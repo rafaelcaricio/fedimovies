@@ -1,0 +1,4 @@
+.env.local
+config.yaml
+/files
+/target

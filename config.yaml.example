@@ -1,0 +1,29 @@
+database_url: postgres://mitra:mitra@127.0.0.1:5432/mitra
+
+http_host: '127.0.0.1'
+http_port: 8380
+
+# 32 symbols or more
+cookie_secret_key: null
+
+# domain name
+instance_uri: myserver.net
+instance_title: myserver
+instance_short_description: myserver is a federated social network
+# Long description can contain markdown syntax
+instance_description: myserver is a federated social network
+registrations_open: false
+# Login message must contain instance URL
+login_message: 'Sign this message to log in to https://myserver.net. Do not sign this message on other sites!'
+
+ethereum_json_rpc_url: 'http://127.0.0.1:8545'
+# Block explorer base URL (must be compatible with https://eips.ethereum.org/EIPS/eip-3091)
+ethereum_explorer_url: null
+ethereum_contract:
+  address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
+  chain_id: 31337
+  signing_key: null
+
+ipfs_api_url: 'http://127.0.0.1:5001'
+# IPFS gateway for clients
+ipfs_gateway_url: 'https://ipfs.io'

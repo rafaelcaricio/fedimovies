@@ -1,0 +1,159 @@
+use actix_session::Session;
+use actix_web::{get, post, web, HttpResponse, Scope};
+use serde::Serialize;
+use uuid::Uuid;
+
+use crate::activitypub::activity::create_activity_note;
+use crate::activitypub::actor::Actor;
+use crate::activitypub::deliverer::deliver_activity;
+use crate::config::Config;
+use crate::database::{Pool, get_database_client};
+use crate::errors::HttpError;
+use crate::ethereum::nft::create_mint_signature;
+use crate::ipfs::store as ipfs_store;
+use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
+use crate::mastodon_api::users::auth::get_current_user;
+use crate::models::profiles::queries::get_followers;
+use crate::models::posts::queries::{create_post, get_post_by_id, update_post};
+use crate::models::posts::types::PostCreateData;
+use super::types::{Status, StatusData};
+
+#[post("")]
+async fn create_status(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    session: Session,
+    data: web::Json<StatusData>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, session).await?;
+    let mut post_data = PostCreateData::from(data.into_inner());
+    post_data.validate()?;
+    let post = create_post(db_client, &current_user.id, post_data).await?;
+    let status = Status::from_post(post.clone(), &config.instance_url());
+    // Federate
+    let activity = create_activity_note(&config, &post);
+    let followers = get_followers(db_client, &current_user.id).await?;
+    let mut recipients: Vec<Actor> = Vec::new();
+    for follower in followers {
+        if let Some(actor_value) = follower.actor_json {
+            // Remote
+            let actor: Actor = serde_json::from_value(actor_value)
+                .map_err(|_| HttpError::InternalError)?;
+            recipients.push(actor);
+        };
+    };
+    actix_rt::spawn(async move {
+        deliver_activity(
+            &config,
+            &current_user,
+            activity,
+            recipients,
+        ).await;
+    });
+    Ok(HttpResponse::Created().json(status))
+}
+
+#[get("/{status_id}")]
+async fn get_status(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(status_id): web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let post = get_post_by_id(db_client, &status_id).await?;
+    let status = Status::from_post(post, &config.instance_url());
+    Ok(HttpResponse::Ok().json(status))
+}
+
+// https://docs.opensea.io/docs/metadata-standards
+#[derive(Serialize)]
+struct PostMetadata {
+    name: String,
+    description: String,
+    image: String,
+    external_url: String,
+}
+
+#[post("/{status_id}/make_permanent")]
+async fn make_permanent(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    session: Session,
+    web::Path(status_id): web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    get_current_user(db_client, session).await?;
+    let mut post = get_post_by_id(db_client, &status_id).await?;
+    let ipfs_api_url = config.ipfs_api_url.as_ref()
+        .ok_or(HttpError::NotSupported)?;
+
+    let post_image_cid = if let Some(attachment) = post.attachments.first() {
+        // Add attachment to IPFS
+        let image_path = config.media_dir().join(&attachment.file_name);
+        let image_data = std::fs::read(image_path)
+            .map_err(|_| HttpError::InternalError)?;
+        let image_cid = ipfs_store::add(&ipfs_api_url, image_data).await
+            .map_err(|_| HttpError::InternalError)?;
+        image_cid
+    } else {
+        // Use IPFS logo if there's no image
+        IPFS_LOGO.to_string()
+    };
+    let post_metadata = PostMetadata {
+        name: format!("Post {}", post.id),
+        description: post.content.clone(),
+        image: get_ipfs_url(&post_image_cid),
+        // TODO: use absolute URL
+        external_url: format!("/post/{}", post.id),
+    };
+    let post_metadata_json = serde_json::to_string(&post_metadata)
+        .map_err(|_| HttpError::InternalError)?
+        .as_bytes().to_vec();
+    let post_metadata_cid = ipfs_store::add(&ipfs_api_url, post_metadata_json).await
+        .map_err(|_| HttpError::InternalError)?;
+
+    // Update post
+    post.ipfs_cid = Some(post_metadata_cid);
+    update_post(db_client, &post).await?;
+    let status = Status::from_post(post, &config.instance_url());
+    Ok(HttpResponse::Ok().json(status))
+}
+
+#[get("/{status_id}/signature")]
+async fn get_signature(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    session: Session,
+    web::Path(status_id): web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, session).await?;
+    let contract_config = config.ethereum_contract.as_ref()
+        .ok_or(HttpError::NotSupported)?;
+    let post = get_post_by_id(db_client, &status_id).await?;
+    if post.author.id != current_user.id {
+        // Users can only tokenize their own posts
+        Err(HttpError::NotFoundError("post"))?;
+    }
+    let ipfs_cid = post.ipfs_cid
+        // Post metadata is not immutable
+        .ok_or(HttpError::ValidationError("post is not immutable".into()))?;
+    let token_uri = get_ipfs_url(&ipfs_cid);
+    let signature = create_mint_signature(
+        &contract_config,
+        &current_user.wallet_address,
+        &token_uri,
+    ).map_err(|_| HttpError::InternalError)?;
+    Ok(HttpResponse::Ok().json(signature))
+}
+
+pub fn status_api_scope() -> Scope {
+    web::scope("/api/v1/statuses")
+        // Routes without status ID
+        .service(create_status)
+        // Routes with status ID
+        .service(get_status)
+        .service(make_permanent)
+        .service(get_signature)
+}

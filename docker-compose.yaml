@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  database:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: mitra
+      POSTGRES_USER: mitra
+      POSTGRES_DB: mitra
+    ports:
+      - "5432:5432"
+    volumes:
+      - mitra_postgres:/var/lib/postgresql/data
+  
+volumes:
+  mitra_postgres:

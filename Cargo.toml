@@ -1,0 +1,77 @@
+[package]
+name = "mitra"
+version = "0.1.0"
+description = "Mitra backend"
+license = "AGPL-3.0"
+
+edition = "2018"
+publish = false
+default-run = "mitra"
+
+[dependencies]
+# Used to handle incoming HTTP requests
+actix-cors = "0.5.4"
+actix-files = "0.5.0"
+actix-session = "0.4.1"
+actix-web = "3.3.2"
+# Used for managing async tasks
+actix-rt = "1.1.1"
+# Used for HTML sanitization
+ammonia = "3.1.2"
+# Used for working with RSA keys, HTTP signatures and file uploads
+base64 = "0.13.0"
+# Used for working with dates
+chrono = { version = "0.4.19", features = ["serde"] }
+# Used to build admin CLI tool
+clap = { version = "3.0.0-beta.2", default-features = false, features = ["std", "derive"] }
+# Used for pooling database connections
+deadpool = "0.7.0"
+deadpool-postgres = { version = "0.5.6", default-features = false }
+# Used to read .env files
+dotenv = "0.15.0"
+# Used to work with hexadecimal strings
+hex = "0.4.3"
+# Used for logging
+log = "0.4.14"
+env_logger = { version = "0.8.4", default-features = false }
+# Used to guess media type of a file
+mime_guess = "2.0.3"
+mime-sniffer = "0.1.2"
+# Used to determine the number of CPUs on the system
+num_cpus = "1.13.0"
+# Used to map postgres types to rust types
+postgres-types = { version = "0.1.2", features = ["derive", "with-chrono-0_4", "with-uuid-0_8", "with-serde_json-1"] }
+# Used for working with regular expressions
+regex = "1.5.4"
+# Used to generate random numbers
+rand = "0.8.3"
+# Used for managing database migrations
+refinery = { version = "0.4.0", features = ["tokio-postgres"] }
+# Used for making async HTTP requests
+reqwest = { version = "0.10.10", features = ["json"] }
+# Used for working with RSA keys
+rsa = "0.5.0"
+# Used for hashing passwords
+rust-argon2 = "0.8.3"
+# Used for working with ethereum keys
+secp256k1 = { version = "0.20.3", features = ["rand", "rand-std"] }
+# Used for serialization/deserialization
+# https://github.com/rust-db/refinery/issues/160
+serde = { version = "=1.0.117", features = ["derive"] }
+serde_json = "1.0"
+# Used to parse config file
+serde_yaml = "0.8.17"
+# Used to calculate SHA2 hashes
+sha2 = "0.9.5"
+# Used for creating error types
+thiserror = "1.0.24"
+# Async runtime ( required for #[tokio::main] )
+tokio = { version = "0.2.25", features = ["macros"] }
+# Used for working with Postgresql database (compatible with tokio 0.2)
+tokio-postgres = { version = "0.5.5", features = ["with-chrono-0_4", "with-uuid-0_8", "with-serde_json-1"] }
+# Used to work with URLs
+url = "2.2.2"
+# Used to work with UUIDs
+uuid = { version = "0.8.2", features = ["serde", "v4"] }
+# Used to query ethereum node
+web3 = { version = "0.15.0", default-features = false, features = ["http", "http-tls", "signing"] }
