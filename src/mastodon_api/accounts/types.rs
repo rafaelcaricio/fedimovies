@@ -4,13 +4,18 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::profiles::types::{DbActorProfile, ProfileUpdateData};
+use crate::models::profiles::types::{
+    DbActorProfile,
+    ExtraField,
+    ProfileUpdateData,
+};
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
 
 /// https://docs.joinmastodon.org/entities/source/
 #[derive(Serialize)]
 pub struct Source {
     pub note: Option<String>,
+    pub fields: Vec<ExtraField>,
 }
 
 /// https://docs.joinmastodon.org/entities/account/
@@ -24,6 +29,7 @@ pub struct Account {
     pub note: Option<String>,
     pub avatar: Option<String>,
     pub header: Option<String>,
+    pub fields: Vec<ExtraField>,
     pub followers_count: i32,
     pub following_count: i32,
     pub statuses_count: i32,
@@ -39,7 +45,10 @@ impl Account {
             // Remote actor
             None
         } else {
-            let source = Source { note: profile.bio_source };
+            let source = Source {
+                note: profile.bio_source,
+                fields: profile.extra_fields.clone().unpack(),
+            };
             Some(source)
         };
         Self {
@@ -51,6 +60,7 @@ impl Account {
             note: profile.bio,
             avatar: avatar_url,
             header: header_url,
+            fields: profile.extra_fields.unpack(),
             followers_count: profile.follower_count,
             following_count: profile.following_count,
             statuses_count: profile.post_count,
@@ -67,6 +77,7 @@ pub struct AccountUpdateData {
     pub note_source: Option<String>,
     pub avatar: Option<String>,
     pub header: Option<String>,
+    pub fields_attributes: Option<Vec<ExtraField>>,
 }
 
 fn process_b64_image_field_value(
@@ -106,12 +117,14 @@ impl AccountUpdateData {
         let banner = process_b64_image_field_value(
             self.header, current_banner.clone(), media_dir,
         )?;
+        let extra_fields = self.fields_attributes.unwrap_or(vec![]);
         let profile_data = ProfileUpdateData {
             display_name: self.display_name,
             bio: self.note,
             bio_source: self.note_source,
             avatar,
             banner,
+            extra_fields,
         };
         Ok(profile_data)
     }

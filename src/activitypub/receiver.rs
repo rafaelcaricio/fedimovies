@@ -152,6 +152,7 @@ pub async fn receive_activity(
                 bio_source: actor.summary,
                 avatar,
                 banner,
+                extra_fields: vec![],
             };
             profile_data.clean()?;
             update_profile(db_client, &profile.id, profile_data).await?;

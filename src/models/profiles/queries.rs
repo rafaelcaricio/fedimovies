@@ -2,7 +2,12 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::errors::DatabaseError;
-use super::types::{DbActorProfile, ProfileCreateData, ProfileUpdateData};
+use super::types::{
+    ExtraFields,
+    DbActorProfile,
+    ProfileCreateData,
+    ProfileUpdateData,
+};
 
 /// Create new profile using given Client or Transaction.
 pub async fn create_profile(
@@ -56,8 +61,9 @@ pub async fn update_profile(
             bio = $2,
             bio_source = $3,
             avatar_file_name = $4,
-            banner_file_name = $5
-        WHERE id = $6
+            banner_file_name = $5,
+            extra_fields = $6
+        WHERE id = $7
         RETURNING actor_profile
         ",
         &[
@@ -66,6 +72,7 @@ pub async fn update_profile(
             &data.bio_source,
             &data.avatar,
             &data.banner,
+            &ExtraFields(data.extra_fields),
             &profile_id,
         ],
     ).await?;

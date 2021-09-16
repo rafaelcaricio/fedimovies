@@ -1,10 +1,52 @@
 use chrono::{DateTime, Utc};
-use postgres_types::FromSql;
+use postgres_types::{
+    FromSql, ToSql, IsNull, Type, Json,
+    accepts, to_sql_checked,
+    private::BytesMut,
+};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
 use crate::utils::html::clean_html;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ExtraField {
+    pub name: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ExtraFields(pub Vec<ExtraField>);
+
+impl ExtraFields {
+    pub fn unpack(self) -> Vec<ExtraField> {
+        let Self(extra_fields) = self;
+        extra_fields
+    }
+}
+
+type SqlError = Box<dyn std::error::Error + Sync + Send>;
+
+impl<'a> FromSql<'a> for ExtraFields {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, SqlError> {
+        let Json(json_value) = Json::<Value>::from_sql(ty, raw)?;
+        let fields: Self = serde_json::from_value(json_value)?;
+        Ok(fields)
+    }
+    accepts!(JSON,JSONB);
+}
+
+impl ToSql for ExtraFields {
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, SqlError> {
+        let value = serde_json::to_value(self)?;
+        Json(value).to_sql(ty, out)
+    }
+
+    accepts!(JSON, JSONB);
+    to_sql_checked!();
+}
 
 #[derive(Clone, FromSql)]
 #[postgres(name = "actor_profile")]
@@ -17,6 +59,7 @@ pub struct DbActorProfile {
     pub bio_source: Option<String>, // plaintext or markdown
     pub avatar_file_name: Option<String>,
     pub banner_file_name: Option<String>,
+    pub extra_fields: ExtraFields,
     pub follower_count: i32,
     pub following_count: i32,
     pub post_count: i32,
@@ -40,12 +83,28 @@ pub struct ProfileUpdateData {
     pub bio_source: Option<String>,
     pub avatar: Option<String>,
     pub banner: Option<String>,
+    pub extra_fields: Vec<ExtraField>,
 }
 
 impl ProfileUpdateData {
-    /// Validate and clean bio.
     pub fn clean(&mut self) -> Result<(), ValidationError> {
+        // Validate and clean bio
         self.bio = self.bio.as_ref().map(|val| clean_html(val));
+        // Remove fields with empty labels
+        self.extra_fields = self.extra_fields.iter().cloned()
+            .filter(|field| field.name.trim().len() > 0)
+            .collect();
+        // Validate extra fields
+        if self.extra_fields.len() >= 10 {
+            return Err(ValidationError("at most 10 fields are allowed"));
+        }
+        let mut unique_labels: Vec<String> = self.extra_fields.iter()
+            .map(|field| field.name.clone()).collect();
+        unique_labels.sort();
+        unique_labels.dedup();
+        if unique_labels.len() < self.extra_fields.len() {
+            return Err(ValidationError("duplicate labels"));
+        }
         Ok(())
     }
 }
