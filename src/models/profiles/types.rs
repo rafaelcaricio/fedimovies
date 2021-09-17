@@ -15,6 +15,7 @@ use crate::utils::html::clean_html;
 pub struct ExtraField {
     pub name: String,
     pub value: String,
+    pub value_source: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -91,9 +92,14 @@ impl ProfileUpdateData {
     pub fn clean(&mut self) -> Result<(), ValidationError> {
         // Validate and clean bio
         self.bio = self.bio.as_ref().map(|val| clean_html(val));
-        // Remove fields with empty labels
+        // Clean extra fields and remove fields with empty labels
         self.extra_fields = self.extra_fields.iter().cloned()
-            .filter(|field| field.name.trim().len() > 0)
+            .map(|mut field| {
+                field.name = field.name.trim().to_string();
+                field.value = clean_html(&field.value);
+                field
+            })
+            .filter(|field| field.name.len() > 0)
             .collect();
         // Validate extra fields
         if self.extra_fields.len() >= 10 {

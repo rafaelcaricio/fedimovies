@@ -92,6 +92,7 @@ impl Actor {
                     .map(|prop| ExtraField {
                         name: prop.name.clone(),
                         value: prop.value.clone(),
+                        value_source: None,
                     })
                     .collect()
             },

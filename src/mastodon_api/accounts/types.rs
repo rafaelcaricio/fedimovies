@@ -11,11 +11,17 @@ use crate::models::profiles::types::{
 };
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
 
+#[derive(Serialize)]
+pub struct AccountField {
+    pub name: String,
+    pub value: String,
+}
+
 /// https://docs.joinmastodon.org/entities/source/
 #[derive(Serialize)]
 pub struct Source {
     pub note: Option<String>,
-    pub fields: Vec<ExtraField>,
+    pub fields: Vec<AccountField>,
 }
 
 /// https://docs.joinmastodon.org/entities/account/
@@ -29,7 +35,7 @@ pub struct Account {
     pub note: Option<String>,
     pub avatar: Option<String>,
     pub header: Option<String>,
-    pub fields: Vec<ExtraField>,
+    pub fields: Vec<AccountField>,
     pub followers_count: i32,
     pub following_count: i32,
     pub statuses_count: i32,
@@ -45,12 +51,22 @@ impl Account {
             // Remote actor
             None
         } else {
+            let fields_sources = profile.extra_fields.clone()
+                .unpack().into_iter()
+                .map(|field| AccountField {
+                    name: field.name,
+                    value: field.value_source.unwrap_or(field.value),
+                })
+                .collect();
             let source = Source {
                 note: profile.bio_source,
-                fields: profile.extra_fields.clone().unpack(),
+                fields: fields_sources,
             };
             Some(source)
         };
+        let fields = profile.extra_fields.unpack().into_iter()
+            .map(|field| AccountField { name: field.name, value: field.value })
+            .collect();
         Self {
             id: profile.id,
             username: profile.username,
@@ -60,7 +76,7 @@ impl Account {
             note: profile.bio,
             avatar: avatar_url,
             header: header_url,
-            fields: profile.extra_fields.unpack(),
+            fields,
             followers_count: profile.follower_count,
             following_count: profile.following_count,
             statuses_count: profile.post_count,
