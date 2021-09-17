@@ -145,6 +145,7 @@ pub async fn create_user(
         bio: None,
         avatar: None,
         banner: None,
+        extra_fields: vec![],
         actor: None,
     };
     let profile = create_profile(&transaction, &profile_data).await?;

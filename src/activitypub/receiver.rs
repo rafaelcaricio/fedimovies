@@ -146,13 +146,14 @@ pub async fn receive_activity(
             let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
             let (avatar, banner) = fetch_avatar_and_banner(&actor, &config.media_dir()).await
                 .map_err(|_| ValidationError("failed to fetch image"))?;
+            let extra_fields = actor.extra_fields();
             let mut profile_data = ProfileUpdateData {
                 display_name: Some(actor.name),
                 bio: actor.summary.clone(),
                 bio_source: actor.summary,
                 avatar,
                 banner,
-                extra_fields: vec![],
+                extra_fields,
             };
             profile_data.clean()?;
             update_profile(db_client, &profile.id, profile_data).await?;

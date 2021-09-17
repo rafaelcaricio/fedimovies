@@ -74,6 +74,7 @@ pub struct ProfileCreateData {
     pub bio: Option<String>,
     pub avatar: Option<String>,
     pub banner: Option<String>,
+    pub extra_fields: Vec<ExtraField>,
     pub actor: Option<Value>,
 }
 

@@ -15,14 +15,15 @@ pub async fn create_profile(
     profile_data: &ProfileCreateData,
 ) -> Result<DbActorProfile, DatabaseError> {
     let profile_id = Uuid::new_v4();
+    let extra_fields = ExtraFields(profile_data.extra_fields.clone());
     let result = db_client.query_one(
         "
         INSERT INTO actor_profile (
             id, username, display_name, acct, bio, bio_source,
-            avatar_file_name, banner_file_name,
+            avatar_file_name, banner_file_name, extra_fields,
             actor_json
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING actor_profile
         ",
         &[
@@ -34,6 +35,7 @@ pub async fn create_profile(
             &profile_data.bio,
             &profile_data.avatar,
             &profile_data.banner,
+            &extra_fields,
             &profile_data.actor,
         ],
     ).await;

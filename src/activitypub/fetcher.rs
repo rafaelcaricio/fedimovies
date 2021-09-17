@@ -92,6 +92,7 @@ pub async fn fetch_profile_by_actor_id(
     let actor_value: Value = serde_json::from_str(&actor_json)?;
     let actor: Actor = serde_json::from_value(actor_value.clone())?;
     let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
+    let extra_fields = actor.extra_fields();
     let actor_address = format!(
         "{}@{}",
         actor.preferred_username,
@@ -102,8 +103,9 @@ pub async fn fetch_profile_by_actor_id(
         display_name: Some(actor.name),
         acct: actor_address,
         bio: actor.summary,
-        avatar: avatar,
-        banner: banner,
+        avatar,
+        banner,
+        extra_fields,
         actor: Some(actor_value),
     };
     Ok(profile_data)

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::config::Config;
-use crate::errors::HttpError;
+use crate::models::profiles::types::ExtraField;
 use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
@@ -14,7 +14,7 @@ use super::views::{
     get_followers_url,
     get_following_url,
 };
-use super::vocabulary::{PERSON, IMAGE};
+use super::vocabulary::{PERSON, IMAGE, PROPERTY_VALUE};
 
 const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
 
@@ -38,6 +38,14 @@ pub struct Image {
 #[serde(rename_all = "camelCase")]
 pub struct ActorCapabilities {
     accepts_chat_messages: Option<bool>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct ActorProperty {
+    name: String,
+    #[serde(rename = "type")]
+    object_type: String,
+    value: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -71,12 +79,31 @@ pub struct Actor {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
+
+    pub attachment: Option<Vec<ActorProperty>>,
+}
+
+impl Actor {
+    /// Parse 'attachment' into ExtraField vector
+    pub fn extra_fields(&self) -> Vec<ExtraField> {
+        match &self.attachment {
+            Some(properties) => {
+                properties.iter()
+                    .map(|prop| ExtraField {
+                        name: prop.name.clone(),
+                        value: prop.value.clone(),
+                    })
+                    .collect()
+            },
+            None => vec![],
+        }
+    }
 }
 
 pub fn get_actor_object(
     config: &Config,
     user: &User,
-) -> Result<Actor, HttpError> {
+) -> Result<Actor, rsa::pkcs8::Error> {
     let username = &user.profile.username;
     let id = get_actor_url(&config.instance_url(), &username);
     let inbox = get_inbox_url(&config.instance_url(), &username);
@@ -84,14 +111,15 @@ pub fn get_actor_object(
     let followers = get_followers_url(&config.instance_url(), &username);
     let following = get_following_url(&config.instance_url(), &username);
 
-    let private_key = deserialize_private_key(&user.private_key)
-        .map_err(|_| HttpError::InternalError)?;
-    let public_key_pem = get_public_key_pem(&private_key)
-        .map_err(|_| HttpError::InternalError)?;
+    let private_key = deserialize_private_key(&user.private_key)?;
+    let public_key_pem = get_public_key_pem(&private_key)?;
     let public_key = PublicKey {
         id: format!("{}#main-key", id),
         owner: id.clone(),
         public_key_pem: public_key_pem,
+    };
+    let capabilities = ActorCapabilities {
+        accepts_chat_messages: Some(false),
     };
     let avatar = match &user.profile.avatar_file_name {
         Some(file_name) => {
@@ -113,9 +141,15 @@ pub fn get_actor_object(
         },
         None => None,
     };
-    let capabilities = ActorCapabilities {
-        accepts_chat_messages: Some(false),
-    };
+    let properties = user.profile.extra_fields.clone()
+        .unpack().into_iter()
+        .map(|field| {
+            ActorProperty {
+                object_type: PROPERTY_VALUE.to_string(),
+                name: field.name,
+                value: field.value,
+            }
+        }).collect();
     let actor = Actor {
         context: Some(json!([
             AP_CONTEXT.to_string(),
@@ -134,6 +168,7 @@ pub fn get_actor_object(
         icon: avatar,
         image: banner,
         summary: None,
+        attachment: Some(properties),
     };
     Ok(actor)
 }
