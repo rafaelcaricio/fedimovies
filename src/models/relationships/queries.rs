@@ -165,7 +165,7 @@ pub async fn create_follow_request(
     Ok(request)
 }
 
-pub async fn accept_follow_request(
+pub async fn follow_request_accepted(
     db_client: &mut impl GenericClient,
     request_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -185,6 +185,25 @@ pub async fn accept_follow_request(
     let target_id: Uuid = row.try_get("target_id")?;
     follow(&mut transaction, &source_id, &target_id).await?;
     transaction.commit().await?;
+    Ok(())
+}
+
+pub async fn follow_request_rejected(
+    db_client: &impl GenericClient,
+    request_id: &Uuid,
+) -> Result<(), DatabaseError> {
+    let status_sql: i16 = FollowRequestStatus::Rejected.into();
+    let updated_count = db_client.execute(
+        "
+        UPDATE follow_request
+        SET request_status = $1
+        WHERE id = $2
+        ",
+        &[&status_sql, &request_id],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("follow request"));
+    }
     Ok(())
 }
 

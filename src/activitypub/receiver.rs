@@ -14,7 +14,11 @@ use crate::models::profiles::queries::{
     update_profile,
 };
 use crate::models::profiles::types::ProfileUpdateData;
-use crate::models::relationships::queries::{accept_follow_request, follow, unfollow};
+use crate::models::relationships::queries::{
+    follow_request_accepted,
+    follow_request_rejected,
+    follow, unfollow,
+};
 use crate::models::users::queries::get_user_by_id;
 use super::activity::{Object, Activity, create_activity_accept_follow};
 use super::actor::Actor;
@@ -64,7 +68,13 @@ pub async fn receive_activity(
                 .map_err(|_| ValidationError("invalid object"))?;
             // TODO: reject if object ID contains wrong instance URI
             let follow_request_id = parse_object_id(&object.id)?;
-            accept_follow_request(db_client, &follow_request_id).await?;
+            follow_request_accepted(db_client, &follow_request_id).await?;
+        },
+        (REJECT, FOLLOW) => {
+            let object: Object = serde_json::from_value(activity.object)
+                .map_err(|_| ValidationError("invalid object"))?;
+            let follow_request_id = parse_object_id(&object.id)?;
+            follow_request_rejected(db_client, &follow_request_id).await?;
         },
         (CREATE, NOTE) => {
             let object: Object = serde_json::from_value(activity.object)
