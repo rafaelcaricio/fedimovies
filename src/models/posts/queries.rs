@@ -13,7 +13,8 @@ pub async fn get_posts(
     db_client: &impl GenericClient,
     current_user_id: &Uuid,
 ) -> Result<Vec<Post>, DatabaseError> {
-    // Select posts from follows + own posts
+    // Select posts from follows + own posts.
+    // Do not select replies
     let rows = db_client.query(
         "
         SELECT
@@ -25,10 +26,13 @@ pub async fn get_posts(
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
-            post.author_id = $1
-            OR EXISTS (
-                SELECT 1 FROM relationship
-                WHERE source_id = $1 AND target_id = post.author_id
+            post.in_reply_to_id IS NULL
+            AND (
+                post.author_id = $1
+                OR EXISTS (
+                    SELECT 1 FROM relationship
+                    WHERE source_id = $1 AND target_id = post.author_id
+                )
             )
         ORDER BY post.created_at DESC
         ",
@@ -76,11 +80,21 @@ pub async fn create_post(
     let created_at = data.created_at.unwrap_or(Utc::now());
     let post_row = transaction.query_one(
         "
-        INSERT INTO post (id, author_id, content, created_at)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO post (
+            id, author_id, content,
+            in_reply_to_id,
+            created_at
+        )
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING post
         ",
-        &[&post_id, &author_id, &data.content, &created_at],
+        &[
+            &post_id,
+            &author_id,
+            &data.content,
+            &data.in_reply_to_id,
+            &created_at,
+        ],
     ).await?;
     let attachment_rows = transaction.query(
         "
@@ -103,6 +117,7 @@ pub async fn create_post(
         id: db_post.id,
         author: author,
         content: db_post.content,
+        in_reply_to_id: db_post.in_reply_to_id,
         attachments: db_attachments,
         ipfs_cid: db_post.ipfs_cid,
         token_id: db_post.token_id,
@@ -135,6 +150,47 @@ pub async fn get_post_by_id(
         None => return Err(DatabaseError::NotFound("post")),
     };
     Ok(post)
+}
+
+pub async fn get_thread(
+    db_client: &impl GenericClient,
+    post_id: &Uuid,
+) -> Result<Vec<Post>, DatabaseError> {
+    // TODO: limit recursion depth
+    let rows = db_client.query(
+        "
+        WITH RECURSIVE
+        ancestors (id, in_reply_to_id) AS (
+            SELECT post.id, post.in_reply_to_id FROM post
+            WHERE post.id = $1
+            UNION ALL
+            SELECT post.id, post.in_reply_to_id FROM post
+            JOIN ancestors ON post.id = ancestors.in_reply_to_id
+        ),
+        context (id, path) AS (
+            SELECT ancestors.id, ARRAY[ancestors.id] FROM ancestors
+            WHERE ancestors.in_reply_to_id IS NULL
+            UNION
+            SELECT post.id, array_append(context.path, post.id) FROM post
+            JOIN context ON post.in_reply_to_id = context.id
+        )
+        SELECT
+            post, actor_profile,
+            ARRAY(
+                SELECT media_attachment
+                FROM media_attachment WHERE post_id = post.id
+            ) AS attachments
+        FROM post
+        JOIN context ON post.id = context.id
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        ORDER BY context.path
+        ",
+        &[&post_id],
+    ).await?;
+    let posts: Vec<Post> = rows.iter()
+        .map(|row| Post::try_from(row))
+        .collect::<Result<_, _>>()?;
+    Ok(posts)
 }
 
 pub async fn get_post_by_ipfs_cid(

@@ -13,4 +13,6 @@ pub const PERSON: &str = "Person";
 pub const DOCUMENT: &str = "Document";
 pub const IMAGE: &str = "Image";
 pub const NOTE: &str = "Note";
+
+// Misc
 pub const PROPERTY_VALUE: &str = "PropertyValue";

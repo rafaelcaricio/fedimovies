@@ -14,7 +14,12 @@ use crate::ipfs::store as ipfs_store;
 use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
 use crate::mastodon_api::users::auth::get_current_user;
 use crate::models::profiles::queries::get_followers;
-use crate::models::posts::queries::{create_post, get_post_by_id, update_post};
+use crate::models::posts::queries::{
+    create_post,
+    get_post_by_id,
+    get_thread,
+    update_post,
+};
 use crate::models::posts::types::PostCreateData;
 use super::types::{Status, StatusData};
 
@@ -64,6 +69,20 @@ async fn get_status(
     let post = get_post_by_id(db_client, &status_id).await?;
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
+}
+
+#[get("/{status_id}/context")]
+async fn get_context(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(status_id): web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let statuses: Vec<Status> = get_thread(db_client, &status_id).await?
+        .into_iter()
+        .map(|post| Status::from_post(post, &config.instance_url()))
+        .collect();
+    Ok(HttpResponse::Ok().json(statuses))
 }
 
 // https://docs.opensea.io/docs/metadata-standards
@@ -154,6 +173,7 @@ pub fn status_api_scope() -> Scope {
         .service(create_status)
         // Routes with status ID
         .service(get_status)
+        .service(get_context)
         .service(make_permanent)
         .service(get_signature)
 }

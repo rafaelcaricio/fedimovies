@@ -16,6 +16,7 @@ pub struct DbPost {
     pub id: Uuid,
     pub author_id: Uuid,
     pub content: String,
+    pub in_reply_to_id: Option<Uuid>,
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
@@ -27,6 +28,7 @@ pub struct Post {
     pub id: Uuid,
     pub author: DbActorProfile,
     pub content: String,
+    pub in_reply_to_id: Option<Uuid>,
     pub attachments: Vec<DbMediaAttachment>,
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
@@ -46,6 +48,7 @@ impl TryFrom<&Row> for Post {
             id: db_post.id,
             author: db_profile,
             content: db_post.content,
+            in_reply_to_id: db_post.in_reply_to_id,
             attachments: db_attachments,
             ipfs_cid: db_post.ipfs_cid,
             token_id: db_post.token_id,
@@ -58,6 +61,7 @@ impl TryFrom<&Row> for Post {
 
 pub struct PostCreateData {
     pub content: String,
+    pub in_reply_to_id: Option<Uuid>,
     pub attachments: Vec<Uuid>,
     pub created_at: Option<DateTime<Utc>>,
 }
@@ -83,6 +87,7 @@ mod tests {
     fn test_validate_post_data() {
         let mut post_data_1 = PostCreateData {
             content: "  ".to_string(),
+            in_reply_to_id: None,
             attachments: vec![],
             created_at: None,
         };
@@ -93,6 +98,7 @@ mod tests {
     fn test_trimming() {
         let mut post_data_2 = PostCreateData {
             content: "test ".to_string(),
+            in_reply_to_id: None,
             attachments: vec![],
             created_at: None,
         };

@@ -122,6 +122,8 @@ pub async fn receive_activity(
             }
             let post_data = PostCreateData {
                 content,
+                // TODO: parse inReplyTo field
+                in_reply_to_id: None,
                 attachments: attachments,
                 created_at: object.published,
             };

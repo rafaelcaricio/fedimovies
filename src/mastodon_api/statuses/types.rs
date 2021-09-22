@@ -13,6 +13,7 @@ pub struct Status {
     pub created_at: DateTime<Utc>,
     pub account: Account,
     pub content: String,
+    pub in_reply_to_id: Option<Uuid>,
     pub media_attachments: Vec<Attachment>,
 
     // Extra fields
@@ -32,6 +33,7 @@ impl Status {
             created_at: post.created_at,
             account: account,
             content: post.content,
+            in_reply_to_id: post.in_reply_to_id,
             media_attachments: attachments,
             ipfs_cid: post.ipfs_cid,
             token_id: post.token_id,
@@ -47,6 +49,8 @@ pub struct StatusData {
 
     #[serde(rename = "media_ids[]")]
     pub media_ids: Option<Vec<Uuid>>,
+
+    pub in_reply_to_id: Option<Uuid>,
 }
 
 impl From<StatusData> for PostCreateData {
@@ -54,6 +58,7 @@ impl From<StatusData> for PostCreateData {
     fn from(value: StatusData) -> Self {
         Self {
             content: value.status,
+            in_reply_to_id: value.in_reply_to_id,
             attachments: value.media_ids.unwrap_or(vec![]),
             created_at: None,
         }

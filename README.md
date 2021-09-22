@@ -77,6 +77,7 @@ POST /api/v1/media
 GET /api/v2/search
 POST /api/v1/statuses
 GET /api/v1/statuses/{status_id}
+GET /api/v1/statuses/{status_id}/context
 GET /api/v1/timelines/home
 ```
 
