@@ -96,6 +96,8 @@ pub async fn create_post(
             &created_at,
         ],
     ).await?;
+    let db_post: DbPost = post_row.try_get("post")?;
+    // Create links to attachments
     let attachment_rows = transaction.query(
         "
         UPDATE media_attachment
@@ -110,14 +112,19 @@ pub async fn create_post(
             row.try_get("media_attachment")
         })
         .collect::<Result<_, _>>()?;
-    let db_post: DbPost = post_row.try_get("post")?;
+    // Update counters
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
+    if let Some(in_reply_to_id) = &db_post.in_reply_to_id {
+        update_reply_count(&transaction, in_reply_to_id, 1).await?;
+    }
+
     transaction.commit().await?;
     let post = Post {
         id: db_post.id,
         author: author,
         content: db_post.content,
         in_reply_to_id: db_post.in_reply_to_id,
+        reply_count: db_post.reply_count,
         attachments: db_attachments,
         ipfs_cid: db_post.ipfs_cid,
         token_id: db_post.token_id,
@@ -240,6 +247,26 @@ pub async fn update_post(
             &post.token_tx_id,
             &post.id,
         ],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("post"));
+    }
+    Ok(())
+}
+
+pub async fn update_reply_count(
+    db_client: &impl GenericClient,
+    post_id: &Uuid,
+    change: i32,
+) -> Result<(), DatabaseError> {
+    let updated_count = db_client.execute(
+        "
+        UPDATE post
+        SET reply_count = reply_count + $1
+        WHERE id = $2
+        RETURNING post
+        ",
+        &[&change, &post_id],
     ).await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));

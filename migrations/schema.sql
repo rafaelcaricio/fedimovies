@@ -34,6 +34,7 @@ CREATE TABLE post (
     author_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     in_reply_to_id UUID REFERENCES post (id) ON DELETE CASCADE,
+    reply_count INTEGER NOT NULL CHECK (reply_count >= 0) DEFAULT 0,
     ipfs_cid VARCHAR(200),
     token_id INTEGER,
     token_tx_id VARCHAR(200),

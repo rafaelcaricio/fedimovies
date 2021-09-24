@@ -14,6 +14,7 @@ pub struct Status {
     pub account: Account,
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
+    pub replies_count: i32,
     pub media_attachments: Vec<Attachment>,
 
     // Extra fields
@@ -34,6 +35,7 @@ impl Status {
             account: account,
             content: post.content,
             in_reply_to_id: post.in_reply_to_id,
+            replies_count: post.reply_count,
             media_attachments: attachments,
             ipfs_cid: post.ipfs_cid,
             token_id: post.token_id,
