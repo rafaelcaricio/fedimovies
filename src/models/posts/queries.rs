@@ -5,6 +5,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::errors::DatabaseError;
+use crate::models::attachments::queries::find_orphaned_files;
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::queries::update_post_count;
 use super::types::{DbPost, Post, PostCreateData};
@@ -287,4 +288,41 @@ pub async fn is_waiting_for_token(
     ).await?;
     let is_waiting: bool = row.try_get("is_waiting")?;
     Ok(is_waiting)
+}
+
+/// Deletes post from database and returns list of orphaned files.
+pub async fn delete_post(
+    db_client: &mut impl GenericClient,
+    post_id: &Uuid,
+) -> Result<Vec<String>, DatabaseError> {
+    let transaction = db_client.transaction().await?;
+    // Get list of attached files
+    let attachment_rows = transaction.query(
+        "
+        SELECT file_name
+        FROM media_attachment WHERE post_id = $1
+        ",
+        &[&post_id],
+    ).await?;
+    let files: Vec<String> = attachment_rows.iter()
+        .map(|row| row.try_get("file_name"))
+        .collect::<Result<_, _>>()?;
+    // Delete post
+    let maybe_post_row = transaction.query_opt(
+        "
+        DELETE FROM post WHERE id = $1
+        RETURNING post
+        ",
+        &[&post_id],
+    ).await?;
+    let post_row = maybe_post_row.ok_or(DatabaseError::NotFound("post"))?;
+    let db_post: DbPost = post_row.try_get("post")?;
+    // Update counters
+    if let Some(parent_id) = &db_post.in_reply_to_id {
+        update_reply_count(&transaction, parent_id, -1).await?;
+    }
+    update_post_count(&transaction, &db_post.author_id, -1).await?;
+    let orphaned_files = find_orphaned_files(&transaction, files).await?;
+    transaction.commit().await?;
+    Ok(orphaned_files)
 }

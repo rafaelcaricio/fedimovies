@@ -7,11 +7,13 @@ use mitra::database::{create_pool, get_database_client};
 use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::utils::generate_ethereum_address;
 use mitra::logger::configure_logger;
+use mitra::models::posts::queries::delete_post;
 use mitra::models::profiles::queries as profiles;
 use mitra::models::users::queries::{
     generate_invite_code,
     get_invite_codes,
 };
+use mitra::utils::files::remove_files;
 
 /// Admin CLI tool
 #[derive(Clap)]
@@ -23,6 +25,7 @@ struct Opts {
 #[derive(Clap)]
 enum SubCommand {
     DeleteProfile(DeleteProfile),
+    DeletePost(DeletePost),
     GenerateInviteCode(GenerateInviteCode),
     ListInviteCodes(ListInviteCodes),
     GenerateEthereumAddress(GenerateEthereumAddress),
@@ -31,7 +34,13 @@ enum SubCommand {
 /// Delete profile
 #[derive(Clap)]
 struct DeleteProfile {
-    /// Print debug info
+    #[clap(short)]
+    id: Uuid,
+}
+
+/// Delete post
+#[derive(Clap)]
+struct DeletePost {
     #[clap(short)]
     id: Uuid,
 }
@@ -54,20 +63,25 @@ async fn main() {
     configure_logger();
     let db_pool = create_pool(&config.database_url);
     apply_migrations(&db_pool).await;
-    let db_client = get_database_client(&db_pool).await.unwrap();
+    let db_client = &mut **get_database_client(&db_pool).await.unwrap();
     let opts: Opts = Opts::parse();
 
     match opts.subcmd {
         SubCommand::DeleteProfile(subopts) => {
-            profiles::delete_profile(&**db_client, &subopts.id).await.unwrap();
+            profiles::delete_profile(db_client, &subopts.id).await.unwrap();
             println!("profile deleted");
         },
+        SubCommand::DeletePost(subopts) => {
+            let orphaned_files = delete_post(db_client, &subopts.id).await.unwrap();
+            remove_files(orphaned_files, &config.media_dir());
+            println!("post deleted");
+        },
         SubCommand::GenerateInviteCode(_) => {
-            let invite_code = generate_invite_code(&**db_client).await.unwrap();
+            let invite_code = generate_invite_code(db_client).await.unwrap();
             println!("generated invite code: {}", invite_code);
         },
         SubCommand::ListInviteCodes(_) => {
-            let invite_codes = get_invite_codes(&**db_client).await.unwrap();
+            let invite_codes = get_invite_codes(db_client).await.unwrap();
             if invite_codes.len() == 0 {
                 println!("no invite codes found");
                 return;

@@ -96,6 +96,12 @@ Delete profile:
 mitractl delete-profile -i 55a3005f-f293-4168-ab70-6ab09a879679
 ```
 
+Delete post:
+
+```
+mitractl delete-post -i 55a3005f-f293-4168-ab70-6ab09a879679
+```
+
 Generate invite code:
 
 ```
