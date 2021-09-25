@@ -99,19 +99,21 @@ pub async fn create_post(
     ).await?;
     let db_post: DbPost = post_row.try_get("post")?;
     // Create links to attachments
-    let attachment_rows = transaction.query(
+    let attachments_rows = transaction.query(
         "
         UPDATE media_attachment
         SET post_id = $1
-        WHERE id = ANY($2)
+        WHERE owner_id = $2 AND id = ANY($3)
         RETURNING media_attachment
         ",
-        &[&post_id, &data.attachments],
+        &[&post_id, &author_id, &data.attachments],
     ).await?;
-    let db_attachments: Vec<DbMediaAttachment> = attachment_rows.iter()
-        .map(|row| -> Result<DbMediaAttachment, tokio_postgres::Error> {
-            row.try_get("media_attachment")
-        })
+    if attachments_rows.len() != data.attachments.len() {
+        // Some attachments were not found
+        return Err(DatabaseError::NotFound("attachment"));
+    }
+    let db_attachments: Vec<DbMediaAttachment> = attachments_rows.iter()
+        .map(|row| row.try_get("media_attachment"))
         .collect::<Result<_, _>>()?;
     // Update counters
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
@@ -297,14 +299,14 @@ pub async fn delete_post(
 ) -> Result<Vec<String>, DatabaseError> {
     let transaction = db_client.transaction().await?;
     // Get list of attached files
-    let attachment_rows = transaction.query(
+    let files_rows = transaction.query(
         "
         SELECT file_name
         FROM media_attachment WHERE post_id = $1
         ",
         &[&post_id],
     ).await?;
-    let files: Vec<String> = attachment_rows.iter()
+    let files: Vec<String> = files_rows.iter()
         .map(|row| row.try_get("file_name"))
         .collect::<Result<_, _>>()?;
     // Delete post
