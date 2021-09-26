@@ -8,7 +8,7 @@ use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::utils::generate_ethereum_address;
 use mitra::logger::configure_logger;
 use mitra::models::posts::queries::delete_post;
-use mitra::models::profiles::queries as profiles;
+use mitra::models::profiles::queries::delete_profile;
 use mitra::models::users::queries::{
     generate_invite_code,
     get_invite_codes,
@@ -68,7 +68,8 @@ async fn main() {
 
     match opts.subcmd {
         SubCommand::DeleteProfile(subopts) => {
-            profiles::delete_profile(db_client, &subopts.id).await.unwrap();
+            let orphaned_files = delete_profile(db_client, &subopts.id).await.unwrap();
+            remove_files(orphaned_files, &config.media_dir());
             println!("profile deleted");
         },
         SubCommand::DeletePost(subopts) => {

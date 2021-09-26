@@ -2,6 +2,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::errors::DatabaseError;
+use crate::models::attachments::queries::find_orphaned_files;
 use super::types::{
     ExtraFields,
     DbActorProfile,
@@ -179,18 +180,63 @@ pub async fn get_followers(
     Ok(profiles)
 }
 
+/// Deletes profile from database and returns list of orphaned files.
 pub async fn delete_profile(
-    db_client: &impl GenericClient,
+    db_client: &mut impl GenericClient,
     profile_id: &Uuid,
-) -> Result<(), DatabaseError> {
-    let deleted_count = db_client.execute(
-        "DELETE FROM actor_profile WHERE id = $1",
+) -> Result<Vec<String>, DatabaseError> {
+    let transaction = db_client.transaction().await?;
+    // Get list of media files owned by actor
+    let files_rows = transaction.query(
+        "
+        SELECT file_name
+        FROM media_attachment WHERE owner_id = $1
+        UNION ALL
+        SELECT unnest(array_remove(ARRAY[avatar_file_name, banner_file_name], NULL))
+        FROM actor_profile WHERE id = $1
+        ",
+        &[&profile_id],
+    ).await?;
+    let files: Vec<String> = files_rows.iter()
+        .map(|row| row.try_get("file_name"))
+        .collect::<Result<_, _>>()?;
+    // Update counters
+    transaction.execute(
+        "
+        UPDATE actor_profile
+        SET follower_count = follower_count - 1
+        FROM relationship
+        WHERE
+            actor_profile.id = relationship.target_id
+            AND relationship.source_id = $1
+        ",
+        &[&profile_id],
+    ).await?;
+    transaction.execute(
+        "
+        UPDATE actor_profile
+        SET following_count = following_count - 1
+        FROM relationship
+        WHERE
+            actor_profile.id = relationship.source_id
+            AND relationship.target_id = $1
+        ",
+        &[&profile_id],
+    ).await?;
+    // Delete profile
+    let deleted_count = transaction.execute(
+        "
+        DELETE FROM actor_profile WHERE id = $1
+        RETURNING actor_profile
+        ",
         &[&profile_id],
     ).await?;
     if deleted_count == 0 {
         return Err(DatabaseError::NotFound("profile"));
     }
-    Ok(())
+    let orphaned_files = find_orphaned_files(&transaction, files).await?;
+    transaction.commit().await?;
+    Ok(orphaned_files)
 }
 
 pub async fn search_profile(
