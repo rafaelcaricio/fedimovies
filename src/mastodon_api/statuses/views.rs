@@ -13,6 +13,7 @@ use crate::ethereum::nft::create_mint_signature;
 use crate::ipfs::store as ipfs_store;
 use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
 use crate::mastodon_api::users::auth::get_current_user;
+use crate::models::attachments::queries::set_attachment_ipfs_cid;
 use crate::models::profiles::queries::get_followers;
 use crate::models::posts::queries::{
     create_post,
@@ -114,6 +115,7 @@ async fn make_permanent(
             .map_err(|_| HttpError::InternalError)?;
         let image_cid = ipfs_store::add(&ipfs_api_url, image_data).await
             .map_err(|_| HttpError::InternalError)?;
+        set_attachment_ipfs_cid(db_client, &attachment.id, &image_cid).await?;
         image_cid
     } else {
         // Use IPFS logo if there's no image

@@ -47,3 +47,22 @@ pub async fn find_orphaned_files(
         .collect::<Result<_, _>>()?;
     Ok(orphaned_files)
 }
+
+pub async fn set_attachment_ipfs_cid(
+    db_client: &impl GenericClient,
+    attachment_id: &Uuid,
+    ipfs_cid: &str,
+) -> Result<DbMediaAttachment, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        UPDATE media_attachment
+        SET ipfs_cid = $1
+        WHERE id = $2
+        RETURNING media_attachment
+        ",
+        &[&ipfs_cid, &attachment_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("attachment"))?;
+    let db_attachment = row.try_get("media_attachment")?;
+    Ok(db_attachment)
+}

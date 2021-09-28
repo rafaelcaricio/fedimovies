@@ -60,6 +60,7 @@ CREATE TABLE media_attachment (
     owner_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     media_type VARCHAR(50),
     file_name VARCHAR(200) NOT NULL,
+    ipfs_cid VARCHAR(200),
     post_id UUID REFERENCES post (id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 )

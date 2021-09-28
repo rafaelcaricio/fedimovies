@@ -9,6 +9,7 @@ pub struct DbMediaAttachment {
     pub owner_id: Uuid,
     pub media_type: Option<String>,
     pub file_name: String,
+    pub ipfs_cid: Option<String>,
     pub post_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
