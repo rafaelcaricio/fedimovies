@@ -243,6 +243,19 @@ pub async fn delete_profile(
         ",
         &[&profile_id],
     ).await?;
+    transaction.execute(
+        "
+        UPDATE post
+        SET reply_count = reply_count - reply.count
+        FROM (
+            SELECT in_reply_to_id, count(*) FROM post
+            WHERE author_id = $1 AND in_reply_to_id IS NOT NULL
+            GROUP BY in_reply_to_id
+        ) AS reply
+        WHERE post.id = reply.in_reply_to_id
+        ",
+        &[&profile_id],
+    ).await?;
     // Delete profile
     let deleted_count = transaction.execute(
         "
