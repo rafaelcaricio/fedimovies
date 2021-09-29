@@ -277,19 +277,21 @@ pub async fn update_reply_count(
     Ok(())
 }
 
-pub async fn is_waiting_for_token(
+pub async fn get_token_waitlist(
     db_client: &impl GenericClient,
-) -> Result<bool, DatabaseError> {
-    let row = db_client.query_one(
+) -> Result<Vec<Uuid>, DatabaseError> {
+    let rows = db_client.query(
         "
-        SELECT count(post) > 0 AS is_waiting
+        SELECT post.id
         FROM post
         WHERE ipfs_cid IS NOT NULL AND token_id IS NULL
         ",
         &[],
     ).await?;
-    let is_waiting: bool = row.try_get("is_waiting")?;
-    Ok(is_waiting)
+    let waitlist: Vec<Uuid> = rows.iter()
+        .map(|row| row.try_get("id"))
+        .collect::<Result<_, _>>()?;
+    Ok(waitlist)
 }
 
 /// Deletes post from database and returns list of orphaned files.
