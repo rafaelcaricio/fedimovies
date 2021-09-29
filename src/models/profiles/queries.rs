@@ -2,7 +2,11 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::errors::DatabaseError;
-use crate::models::attachments::queries::find_orphaned_files;
+use crate::models::cleanup::{
+    find_orphaned_files,
+    find_orphaned_ipfs_objects,
+    DeletionQueue,
+};
 use super::types::{
     ExtraFields,
     DbActorProfile,
@@ -180,11 +184,11 @@ pub async fn get_followers(
     Ok(profiles)
 }
 
-/// Deletes profile from database and returns list of orphaned files.
+/// Deletes profile from database and returns collection of orphaned objects.
 pub async fn delete_profile(
     db_client: &mut impl GenericClient,
     profile_id: &Uuid,
-) -> Result<Vec<String>, DatabaseError> {
+) -> Result<DeletionQueue, DatabaseError> {
     let transaction = db_client.transaction().await?;
     // Get list of media files owned by actor
     let files_rows = transaction.query(
@@ -199,6 +203,22 @@ pub async fn delete_profile(
     ).await?;
     let files: Vec<String> = files_rows.iter()
         .map(|row| row.try_get("file_name"))
+        .collect::<Result<_, _>>()?;
+    // Get list of IPFS objects owned by actor
+    let ipfs_objects_rows = transaction.query(
+        "
+        SELECT ipfs_cid
+        FROM media_attachment
+        WHERE owner_id = $1 AND ipfs_cid IS NOT NULL
+        UNION ALL
+        SELECT ipfs_cid
+        FROM post
+        WHERE author_id = $1 AND ipfs_cid IS NOT NULL
+        ",
+        &[&profile_id],
+    ).await?;
+    let ipfs_objects: Vec<String> = ipfs_objects_rows.iter()
+        .map(|row| row.try_get("ipfs_cid"))
         .collect::<Result<_, _>>()?;
     // Update counters
     transaction.execute(
@@ -235,8 +255,12 @@ pub async fn delete_profile(
         return Err(DatabaseError::NotFound("profile"));
     }
     let orphaned_files = find_orphaned_files(&transaction, files).await?;
+    let orphaned_ipfs_objects = find_orphaned_ipfs_objects(&transaction, ipfs_objects).await?;
     transaction.commit().await?;
-    Ok(orphaned_files)
+    Ok(DeletionQueue {
+        files: orphaned_files,
+        ipfs_objects: orphaned_ipfs_objects,
+    })
 }
 
 pub async fn search_profile(

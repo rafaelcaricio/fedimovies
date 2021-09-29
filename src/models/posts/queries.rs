@@ -5,8 +5,12 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::errors::DatabaseError;
-use crate::models::attachments::queries::find_orphaned_files;
 use crate::models::attachments::types::DbMediaAttachment;
+use crate::models::cleanup::{
+    find_orphaned_files,
+    find_orphaned_ipfs_objects,
+    DeletionQueue,
+};
 use crate::models::profiles::queries::update_post_count;
 use super::types::{DbPost, Post, PostCreateData};
 
@@ -294,11 +298,11 @@ pub async fn get_token_waitlist(
     Ok(waitlist)
 }
 
-/// Deletes post from database and returns list of orphaned files.
+/// Deletes post from database and returns collection of orphaned objects.
 pub async fn delete_post(
     db_client: &mut impl GenericClient,
     post_id: &Uuid,
-) -> Result<Vec<String>, DatabaseError> {
+) -> Result<DeletionQueue, DatabaseError> {
     let transaction = db_client.transaction().await?;
     // Get list of attached files
     let files_rows = transaction.query(
@@ -310,6 +314,22 @@ pub async fn delete_post(
     ).await?;
     let files: Vec<String> = files_rows.iter()
         .map(|row| row.try_get("file_name"))
+        .collect::<Result<_, _>>()?;
+    // Get list of linked IPFS objects
+    let ipfs_objects_rows = transaction.query(
+        "
+        SELECT ipfs_cid
+        FROM media_attachment
+        WHERE post_id = $1 AND ipfs_cid IS NOT NULL
+        UNION ALL
+        SELECT ipfs_cid
+        FROM post
+        WHERE id = $1 AND ipfs_cid IS NOT NULL
+        ",
+        &[&post_id],
+    ).await?;
+    let ipfs_objects: Vec<String> = ipfs_objects_rows.iter()
+        .map(|row| row.try_get("ipfs_cid"))
         .collect::<Result<_, _>>()?;
     // Delete post
     let maybe_post_row = transaction.query_opt(
@@ -327,6 +347,10 @@ pub async fn delete_post(
     }
     update_post_count(&transaction, &db_post.author_id, -1).await?;
     let orphaned_files = find_orphaned_files(&transaction, files).await?;
+    let orphaned_ipfs_objects = find_orphaned_ipfs_objects(&transaction, ipfs_objects).await?;
     transaction.commit().await?;
-    Ok(orphaned_files)
+    Ok(DeletionQueue {
+        files: orphaned_files,
+        ipfs_objects: orphaned_ipfs_objects,
+    })
 }

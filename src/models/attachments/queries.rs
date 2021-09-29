@@ -23,31 +23,6 @@ pub async fn create_attachment(
     Ok(db_attachment)
 }
 
-pub async fn find_orphaned_files(
-    db_client: &impl GenericClient,
-    files: Vec<String>,
-) -> Result<Vec<String>, DatabaseError> {
-    let rows = db_client.query(
-        "
-        SELECT fname
-        FROM unnest($1::text[]) AS fname
-        WHERE
-            NOT EXISTS (
-                SELECT 1 FROM media_attachment WHERE file_name = fname
-            )
-            AND NOT EXISTS (
-                SELECT 1 FROM actor_profile
-                WHERE avatar_file_name = fname OR banner_file_name = fname
-            )
-        ",
-        &[&files],
-    ).await?;
-    let orphaned_files = rows.iter()
-        .map(|row| row.try_get("fname"))
-        .collect::<Result<_, _>>()?;
-    Ok(orphaned_files)
-}
-
 pub async fn set_attachment_ipfs_cid(
     db_client: &impl GenericClient,
     attachment_id: &Uuid,

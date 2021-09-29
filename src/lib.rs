@@ -10,5 +10,5 @@ pub mod mastodon_api;
 pub mod models;
 pub mod nodeinfo;
 pub mod scheduler;
-pub mod utils;
+mod utils;
 pub mod webfinger;

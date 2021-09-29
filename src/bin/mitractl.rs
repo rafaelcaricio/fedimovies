@@ -13,7 +13,6 @@ use mitra::models::users::queries::{
     generate_invite_code,
     get_invite_codes,
 };
-use mitra::utils::files::remove_files;
 
 /// Admin CLI tool
 #[derive(Clap)]
@@ -68,13 +67,13 @@ async fn main() {
 
     match opts.subcmd {
         SubCommand::DeleteProfile(subopts) => {
-            let orphaned_files = delete_profile(db_client, &subopts.id).await.unwrap();
-            remove_files(orphaned_files, &config.media_dir());
+            let deletion_queue = delete_profile(db_client, &subopts.id).await.unwrap();
+            deletion_queue.process(&config).await;
             println!("profile deleted");
         },
         SubCommand::DeletePost(subopts) => {
-            let orphaned_files = delete_post(db_client, &subopts.id).await.unwrap();
-            remove_files(orphaned_files, &config.media_dir());
+            let deletion_queue = delete_post(db_client, &subopts.id).await.unwrap();
+            deletion_queue.process(&config).await;
             println!("post deleted");
         },
         SubCommand::GenerateInviteCode(_) => {
