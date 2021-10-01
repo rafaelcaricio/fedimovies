@@ -1,5 +1,6 @@
 use actix_session::Session;
 use actix_web::{get, post, patch, web, HttpResponse, Scope};
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -13,6 +14,7 @@ use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::mastodon_api::statuses::types::Status;
+use crate::mastodon_api::oauth::auth::get_current_user as get_current_user_;
 use crate::mastodon_api::users::auth::get_current_user;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
@@ -32,6 +34,18 @@ async fn get_account(
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
     let account = Account::from_profile(profile, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
+}
+
+#[get("/verify_credentials")]
+async fn verify_credentials(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    auth: BearerAuth,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let user = get_current_user_(db_client, auth.token()).await?;
+    let account = Account::from_profile(user.profile, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }
 
@@ -198,6 +212,7 @@ pub fn account_api_scope() -> Scope {
     web::scope("/api/v1/accounts")
         // Routes without account ID
         .service(get_relationships)
+        .service(verify_credentials)
         .service(update_credentials)
         // Routes with account ID
         .service(get_account)

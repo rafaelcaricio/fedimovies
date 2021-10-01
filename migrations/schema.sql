@@ -63,4 +63,12 @@ CREATE TABLE media_attachment (
     ipfs_cid VARCHAR(200),
     post_id UUID REFERENCES post (id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-)
+);
+
+CREATE TABLE oauth_token (
+    id SERIAL PRIMARY KEY,
+    owner_id UUID NOT NULL REFERENCES user_account (id) ON DELETE CASCADE,
+    token VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+);

@@ -67,6 +67,7 @@ Endpoints are similar to Mastodon API:
 
 ```
 GET /api/v1/accounts/{account_id}
+GET /api/v1/accounts/verify_credentials
 PATCH /api/v1/accounts/update_credentials
 GET /api/v1/accounts/relationships
 POST /api/v1/accounts/{account_id}/follow
