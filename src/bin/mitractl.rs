@@ -10,7 +10,7 @@ use mitra::logger::configure_logger;
 use mitra::models::posts::queries::delete_post;
 use mitra::models::profiles::queries::delete_profile;
 use mitra::models::users::queries::{
-    generate_invite_code,
+    create_invite_code,
     get_invite_codes,
 };
 
@@ -77,7 +77,7 @@ async fn main() {
             println!("post deleted");
         },
         SubCommand::GenerateInviteCode(_) => {
-            let invite_code = generate_invite_code(db_client).await.unwrap();
+            let invite_code = create_invite_code(db_client).await.unwrap();
             println!("generated invite code: {}", invite_code);
         },
         SubCommand::ListInviteCodes(_) => {

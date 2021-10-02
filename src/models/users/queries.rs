@@ -4,13 +4,13 @@ use uuid::Uuid;
 use crate::errors::DatabaseError;
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
-use crate::utils::crypto::generate_random_string;
 use super::types::{DbUser, User, UserRegistrationData};
+use super::utils::generate_invite_code;
 
-pub async fn generate_invite_code(
+pub async fn create_invite_code(
     db_client: &impl GenericClient,
 ) -> Result<String, DatabaseError> {
-    let invite_code = generate_random_string();
+    let invite_code = generate_invite_code();
     db_client.execute(
         "
         INSERT INTO user_invite_code (code)

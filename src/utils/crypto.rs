@@ -4,12 +4,6 @@ use rsa::{Hash, PaddingScheme, PublicKey, RsaPrivateKey, RsaPublicKey};
 use rsa::pkcs8::{FromPrivateKey, FromPublicKey, ToPrivateKey, ToPublicKey};
 use sha2::{Digest, Sha256};
 
-pub fn generate_random_string() -> String {
-    let mut rng = rand::thread_rng();
-    let value: [u8; 16] = rng.gen();
-    hex::encode(value)
-}
-
 pub fn hash_password(password: &str) -> Result<String, argon2::Error> {
     let mut rng = rand::thread_rng();
     let salt: [u8; 32] = rng.gen();
