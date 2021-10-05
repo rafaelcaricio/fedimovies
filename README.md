@@ -66,6 +66,7 @@ cargo build --release
 Endpoints are similar to Mastodon API:
 
 ```
+POST /api/v1/accounts
 GET /api/v1/accounts/{account_id}
 GET /api/v1/accounts/verify_credentials
 PATCH /api/v1/accounts/update_credentials

@@ -62,8 +62,6 @@ fn default_storage_dir() -> PathBuf { PathBuf::from("files") }
 
 fn default_contract_dir() -> PathBuf { PathBuf::from("contracts") }
 
-fn default_cookie_name() -> String { "session".to_string() }
-
 #[derive(Clone, Deserialize)]
 pub struct EthereumContract {
     pub address: String,
@@ -88,11 +86,6 @@ pub struct Config {
 
     pub http_host: String,
     pub http_port: u32,
-
-    #[serde(default = "default_cookie_name")]
-    pub cookie_name: String,
-
-    pub cookie_secret_key: String,
 
     // Instance info
     pub instance_uri: String,

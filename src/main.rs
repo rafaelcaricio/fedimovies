@@ -1,5 +1,4 @@
 use actix_cors::Cors;
-use actix_session::CookieSession;
 use actix_web::{
     web,
     App, HttpServer,
@@ -20,7 +19,6 @@ use mitra::mastodon_api::oauth::views::oauth_api_scope;
 use mitra::mastodon_api::search::views::search;
 use mitra::mastodon_api::statuses::views::status_api_scope;
 use mitra::mastodon_api::timelines::views as timeline_api;
-use mitra::mastodon_api::users::views as user_api;
 use mitra::nodeinfo::views as nodeinfo;
 use mitra::scheduler;
 use mitra::webfinger::views as webfinger;
@@ -59,14 +57,9 @@ async fn main() -> std::io::Result<()> {
                     .allow_any_header()
             },
         };
-        let cookie_config = CookieSession::signed(config.cookie_secret_key.as_bytes())
-            .name(config.cookie_name.clone())
-            .max_age(86400 * 30)
-            .secure(true);
         App::new()
             .wrap(ActixLogger::new("%r : %s : %{r}a"))
             .wrap(cors_config)
-            .wrap(cookie_config)
             .wrap(create_auth_error_handler())
             .data(web::PayloadConfig::default().limit(MAX_UPLOAD_SIZE))
             .data(web::JsonConfig::default().limit(MAX_UPLOAD_SIZE))
@@ -81,9 +74,6 @@ async fn main() -> std::io::Result<()> {
                 config.contract_dir.clone(),
             ))
             .service(oauth_api_scope())
-            .service(user_api::login_view)
-            .service(user_api::current_user_view)
-            .service(user_api::logout_view)
             .service(profile_directory)
             .service(account_api_scope())
             .service(media_api_scope())

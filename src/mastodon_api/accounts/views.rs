@@ -1,4 +1,3 @@
-use actix_session::Session;
 use actix_web::{get, post, patch, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use serde::Deserialize;
@@ -14,8 +13,7 @@ use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::mastodon_api::statuses::types::Status;
-use crate::mastodon_api::oauth::auth::get_current_user as get_current_user_;
-use crate::mastodon_api::users::auth::get_current_user;
+use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::users::views::create_user_view;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
@@ -40,25 +38,25 @@ async fn get_account(
 
 #[get("/verify_credentials")]
 async fn verify_credentials(
+    auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    auth: BearerAuth,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let user = get_current_user_(db_client, auth.token()).await?;
+    let user = get_current_user(db_client, auth.token()).await?;
     let account = Account::from_user(user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }
 
 #[patch("/update_credentials")]
 async fn update_credentials(
+    auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    session: Session,
     data: web::Json<AccountUpdateData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let mut current_user = get_current_user(db_client, session).await?;
+    let mut current_user = get_current_user(db_client, auth.token()).await?;
     let mut profile_data = data.into_inner()
         .into_profile_data(
             &current_user.profile.avatar_file_name,
@@ -96,12 +94,12 @@ pub struct RelationshipQueryParams {
 
 #[get("/relationships")]
 async fn get_relationships(
+    auth: BearerAuth,
     db_pool: web::Data<Pool>,
-    session: Session,
     query_params: web::Query<RelationshipQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, session).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
     let relationships = follows::get_relationships(
         db_client,
         current_user.id,
@@ -112,13 +110,13 @@ async fn get_relationships(
 
 #[post("/{account_id}/follow")]
 async fn follow(
+    auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    session: Session,
     web::Path(account_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, session).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
     let relationship = if let Some(actor_value) = profile.actor_json {
         // Remote follow
@@ -149,13 +147,13 @@ async fn follow(
 
 #[post("/{account_id}/unfollow")]
 async fn unfollow(
+    auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    session: Session,
     web::Path(account_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, session).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
     let target_profile = get_profile_by_id(db_client, &account_id).await?;
     let relationship = if let Some(actor_value) = target_profile.actor_json {
         // Remote follow

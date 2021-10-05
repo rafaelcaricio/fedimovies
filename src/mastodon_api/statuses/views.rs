@@ -1,5 +1,5 @@
-use actix_session::Session;
 use actix_web::{get, post, web, HttpResponse, Scope};
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -12,7 +12,7 @@ use crate::errors::HttpError;
 use crate::ethereum::nft::create_mint_signature;
 use crate::ipfs::store as ipfs_store;
 use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
-use crate::mastodon_api::users::auth::get_current_user;
+use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::attachments::queries::set_attachment_ipfs_cid;
 use crate::models::profiles::queries::get_followers;
 use crate::models::posts::queries::{
@@ -26,13 +26,13 @@ use super::types::{Status, StatusData};
 
 #[post("")]
 async fn create_status(
+    auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    session: Session,
     data: web::Json<StatusData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, session).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post_data = PostCreateData::from(data.into_inner());
     post_data.validate()?;
     let post = create_post(db_client, &current_user.id, post_data).await?;
@@ -97,13 +97,13 @@ struct PostMetadata {
 
 #[post("/{status_id}/make_permanent")]
 async fn make_permanent(
+    auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    session: Session,
     web::Path(status_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    get_current_user(db_client, session).await?;
+    get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
     let ipfs_api_url = config.ipfs_api_url.as_ref()
         .ok_or(HttpError::NotSupported)?;
@@ -143,13 +143,13 @@ async fn make_permanent(
 
 #[get("/{status_id}/signature")]
 async fn get_signature(
+    auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    session: Session,
     web::Path(status_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, session).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
     let contract_config = config.ethereum_contract.as_ref()
         .ok_or(HttpError::NotSupported)?;
     let post = get_post_by_id(db_client, &status_id).await?;

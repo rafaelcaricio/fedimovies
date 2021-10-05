@@ -52,12 +52,6 @@ impl UserCreateData {
     }
 }
 
-#[derive(Deserialize)]
-pub struct UserLoginData {
-    pub signature: String,
-    pub wallet_address: String,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
