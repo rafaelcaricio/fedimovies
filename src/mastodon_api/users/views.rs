@@ -7,16 +7,13 @@ use actix_web::{
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{HttpError, ValidationError};
-use crate::mastodon_api::accounts::types::Account;
+use crate::mastodon_api::accounts::types::{Account, AccountCreateData};
 use crate::models::users::queries::{
     is_valid_invite_code,
     create_user,
     get_user_by_wallet_address,
 };
-use crate::models::users::types::{
-    UserRegistrationData,
-    UserLoginData,
-};
+use crate::models::users::types::UserLoginData;
 use crate::utils::crypto::{
     hash_password,
     verify_password,
@@ -26,25 +23,26 @@ use crate::utils::crypto::{
 use super::auth::get_current_user;
 
 // /api/v1/accounts
-#[post("/api/v0/create")]
-async fn create_user_view(
+#[post("")]
+pub async fn create_user_view(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    form: web::Json<UserRegistrationData>,
+    account_data: web::Json<AccountCreateData>,
     session: Session,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
+    let user_data = account_data.into_inner().into_user_data();
     // Validate
-    form.clean()?;
+    user_data.clean()?;
     if !config.registrations_open {
-        let invite_code = form.invite_code.as_ref()
+        let invite_code = user_data.invite_code.as_ref()
             .ok_or(ValidationError("invite code is required"))?;
         if !is_valid_invite_code(db_client, &invite_code).await? {
             Err(ValidationError("invalid invite code"))?;
         }
     }
     // Hash password and generate private key
-    let password_hash = hash_password(&form.signature)
+    let password_hash = hash_password(&user_data.password)
         .map_err(|_| HttpError::InternalError)?;
     let private_key = match web::block(move || generate_private_key()).await {
         Ok(private_key) => private_key,
@@ -55,7 +53,7 @@ async fn create_user_view(
 
     let user = create_user(
         db_client,
-        form.into_inner(),
+        user_data,
         password_hash,
         private_key_pem,
     ).await?;

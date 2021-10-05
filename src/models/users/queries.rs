@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::errors::DatabaseError;
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
-use super::types::{DbUser, User, UserRegistrationData};
+use super::types::{DbUser, User, UserCreateData};
 use super::utils::generate_invite_code;
 
 pub async fn create_invite_code(
@@ -118,13 +118,13 @@ pub async fn is_registered_user(
 
 pub async fn create_user(
     db_client: &mut impl GenericClient,
-    form: UserRegistrationData,
+    user_data: UserCreateData,
     password_hash: String,
     private_key_pem: String,
 ) -> Result<User, DatabaseError> {
     let transaction = db_client.transaction().await?;
     // Use invite code
-    if let Some(ref invite_code) = form.invite_code {
+    if let Some(ref invite_code) = user_data.invite_code {
         let updated_count = transaction.execute(
             "
             UPDATE user_invite_code
@@ -139,9 +139,9 @@ pub async fn create_user(
     }
     // Create profile
     let profile_data = ProfileCreateData {
-        username: form.username.clone(),
+        username: user_data.username.clone(),
         display_name: None,
-        acct: form.username.clone(),
+        acct: user_data.username.clone(),
         bio: None,
         avatar: None,
         banner: None,
@@ -160,10 +160,10 @@ pub async fn create_user(
         ",
         &[
             &profile.id,
-            &form.wallet_address,
+            &user_data.wallet_address,
             &password_hash,
             &private_key_pem,
-            &form.invite_code,
+            &user_data.invite_code,
         ],
     ).await;
     match result {

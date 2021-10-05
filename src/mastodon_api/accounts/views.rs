@@ -16,6 +16,7 @@ use crate::errors::HttpError;
 use crate::mastodon_api::statuses::types::Status;
 use crate::mastodon_api::oauth::auth::get_current_user as get_current_user_;
 use crate::mastodon_api::users::auth::get_current_user;
+use crate::mastodon_api::users::views::create_user_view;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_id,
@@ -210,6 +211,7 @@ async fn get_account_statuses(
 pub fn account_api_scope() -> Scope {
     web::scope("/api/v1/accounts")
         // Routes without account ID
+        .service(create_user_view)
         .service(get_relationships)
         .service(verify_credentials)
         .service(update_credentials)

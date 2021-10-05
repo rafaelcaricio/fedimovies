@@ -9,7 +9,7 @@ use crate::models::profiles::types::{
     ExtraField,
     ProfileUpdateData,
 };
-use crate::models::users::types::User;
+use crate::models::users::types::{User, UserCreateData};
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
 
 #[derive(Serialize)]
@@ -96,6 +96,26 @@ impl Account {
 }
 
 /// https://docs.joinmastodon.org/methods/accounts/
+#[derive(Deserialize)]
+pub struct AccountCreateData {
+    username: String,
+    password: String,
+
+    wallet_address: String,
+    invite_code: Option<String>,
+}
+
+impl AccountCreateData {
+    pub fn into_user_data(self) -> UserCreateData {
+        UserCreateData {
+            username: self.username,
+            password: self.password,
+            wallet_address: self.wallet_address,
+            invite_code: self.invite_code,
+        }
+    }
+}
+
 #[derive(Deserialize)]
 pub struct AccountUpdateData {
     pub display_name: Option<String>,

@@ -81,7 +81,6 @@ async fn main() -> std::io::Result<()> {
                 config.contract_dir.clone(),
             ))
             .service(oauth_api_scope())
-            .service(user_api::create_user_view)
             .service(user_api::login_view)
             .service(user_api::current_user_view)
             .service(user_api::logout_view)

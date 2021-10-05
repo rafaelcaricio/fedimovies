@@ -29,9 +29,9 @@ pub struct User {
 }
 
 #[derive(Deserialize)]
-pub struct UserRegistrationData {
+pub struct UserCreateData {
     pub username: String,
-    pub signature: String,
+    pub password: String,
     pub wallet_address: String,
     pub invite_code: Option<String>,
 }
@@ -44,7 +44,7 @@ fn validate_username(username: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-impl UserRegistrationData {
+impl UserCreateData {
     /// Validate and clean.
     pub fn clean(&self) -> Result<(), ValidationError> {
         validate_username(&self.username)?;
