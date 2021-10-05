@@ -45,7 +45,7 @@ async fn verify_credentials(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_current_user_(db_client, auth.token()).await?;
-    let account = Account::from_profile(user.profile, &config.instance_url());
+    let account = Account::from_user(user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }
 
@@ -57,12 +57,11 @@ async fn update_credentials(
     data: web::Json<AccountUpdateData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, session).await?;
-    let profile = get_profile_by_id(db_client, &current_user.id).await?;
+    let mut current_user = get_current_user(db_client, session).await?;
     let mut profile_data = data.into_inner()
         .into_profile_data(
-            &profile.avatar_file_name,
-            &profile.banner_file_name,
+            &current_user.profile.avatar_file_name,
+            &current_user.profile.banner_file_name,
             &config.media_dir(),
         )
         .map_err(|err| {
@@ -77,12 +76,12 @@ async fn update_credentials(
             }
         })?;
     profile_data.clean()?;
-    let updated_profile = update_profile(
+    current_user.profile = update_profile(
         db_client,
-        &profile.id,
+        &current_user.id,
         profile_data,
     ).await?;
-    let account = Account::from_profile(updated_profile, &config.instance_url());
+    let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }
 

@@ -7,6 +7,7 @@ use actix_web::{
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{HttpError, ValidationError};
+use crate::mastodon_api::accounts::types::Account;
 use crate::models::users::queries::{
     is_valid_invite_code,
     create_user,
@@ -23,7 +24,6 @@ use crate::utils::crypto::{
     serialize_private_key,
 };
 use super::auth::get_current_user;
-use super::types::ApiUser;
 
 // /api/v1/accounts
 #[post("/api/v0/create")]
@@ -60,8 +60,8 @@ async fn create_user_view(
         private_key_pem,
     ).await?;
     session.set("id", user.id)?;
-    let api_user = ApiUser::from_user(user, &config.instance_url());
-    Ok(HttpResponse::Created().json(api_user))
+    let account = Account::from_user(user, &config.instance_url());
+    Ok(HttpResponse::Created().json(account))
 }
 
 #[post("/api/v0/login")]
@@ -80,8 +80,8 @@ async fn login_view(
         Err(ValidationError("incorrect password"))?;
     }
     session.set("id", &user.id)?;
-    let api_user = ApiUser::from_user(user, &config.instance_url());
-    Ok(HttpResponse::Ok().json(api_user))
+    let account = Account::from_user(user, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
 }
 
 #[get("/api/v0/current-user")]
@@ -92,8 +92,8 @@ async fn current_user_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_current_user(db_client, session).await?;
-    let api_user = ApiUser::from_user(user, &config.instance_url());
-    Ok(HttpResponse::Ok().json(api_user))
+    let account = Account::from_user(user, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
 }
 
 #[post("/api/v0/logout")]

@@ -9,6 +9,7 @@ use crate::models::profiles::types::{
     ExtraField,
     ProfileUpdateData,
 };
+use crate::models::users::types::User;
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
 
 #[derive(Serialize)]
@@ -41,6 +42,8 @@ pub struct Account {
     pub statuses_count: i32,
 
     pub source: Option<Source>,
+
+    pub wallet_address: Option<String>,
 }
 
 impl Account {
@@ -81,7 +84,14 @@ impl Account {
             following_count: profile.following_count,
             statuses_count: profile.post_count,
             source,
+            wallet_address: None,
         }
+    }
+
+    pub fn from_user(user: User, instance_url: &str) -> Self {
+        let mut account = Self::from_profile(user.profile, instance_url);
+        account.wallet_address = Some(user.wallet_address);
+        account
     }
 }
 
