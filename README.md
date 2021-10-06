@@ -10,7 +10,7 @@ Federated social network with smart contracts.
 
 **WIP: Mitra is not ready for production yet.**
 
-Demo instance: https://test.mitra.pm/ (invite-only)
+Demo instance: https://test.mitra.social/ (invite-only)
 
 ## Requirements
 
