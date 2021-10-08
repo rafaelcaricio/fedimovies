@@ -9,8 +9,9 @@ use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::http_signatures::verify::verify_http_signature;
+use crate::models::posts::queries::get_thread;
 use crate::models::users::queries::get_user_by_name;
-use super::activity::OrderedCollection;
+use super::activity::{create_note, OrderedCollection};
 use super::actor::get_actor_object;
 use super::constants::ACTIVITY_CONTENT_TYPE;
 use super::receiver::receive_activity;
@@ -122,9 +123,25 @@ pub fn activitypub_scope() -> Scope {
 
 #[get("/objects/{object_id}")]
 pub async fn get_object(
-    web::Path(_object_id): web::Path<String>,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(object_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
-    // WARNING: activities/objects are not stored
-    let response = HttpResponse::Gone().body("");
+    let db_client = &**get_database_client(&db_pool).await?;
+    // Try to find local post by ID, return 404 if not found
+    let thread = get_thread(db_client, &object_id).await?;
+    let post = thread.iter()
+        .find(|post| post.id == object_id && post.author.is_local())
+        .ok_or(HttpError::NotFoundError("post"))?;
+    let in_reply_to = match post.in_reply_to_id {
+        Some(in_reply_to_id) => {
+            thread.iter().find(|post| post.id == in_reply_to_id)
+        },
+        None => None,
+    };
+    let object = create_note(&config, post, in_reply_to);
+    let response = HttpResponse::Ok()
+        .content_type(ACTIVITY_CONTENT_TYPE)
+        .json(object);
     Ok(response)
 }

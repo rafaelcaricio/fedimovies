@@ -48,9 +48,11 @@ pub struct Account {
 
 impl Account {
     pub fn from_profile(profile: DbActorProfile, instance_url: &str) -> Self {
-        let avatar_url = profile.avatar_file_name.map(|name| get_file_url(instance_url, &name));
-        let header_url = profile.banner_file_name.map(|name| get_file_url(instance_url, &name));
-        let source = if profile.actor_json.is_some() {
+        let avatar_url = profile.avatar_file_name.as_ref()
+            .map(|name| get_file_url(instance_url, &name));
+        let header_url = profile.banner_file_name.as_ref()
+            .map(|name| get_file_url(instance_url, &name));
+        let source = if !profile.is_local() {
             // Remote actor
             None
         } else {

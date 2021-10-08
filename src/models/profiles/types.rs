@@ -68,6 +68,12 @@ pub struct DbActorProfile {
     pub actor_json: Option<Value>,
 }
 
+impl DbActorProfile {
+    pub fn is_local(&self) -> bool {
+        self.actor_json.is_none()
+    }
+}
+
 pub struct ProfileCreateData {
     pub username: String,
     pub display_name: Option<String>,
