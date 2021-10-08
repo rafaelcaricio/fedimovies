@@ -166,6 +166,8 @@ pub async fn get_post_by_id(
     Ok(post)
 }
 
+/// Given a post ID, finds all items in thread.
+/// Results are sorted by tree path.
 pub async fn get_thread(
     db_client: &impl GenericClient,
     post_id: &Uuid,

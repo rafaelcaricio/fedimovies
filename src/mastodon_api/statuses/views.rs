@@ -36,9 +36,15 @@ async fn create_status(
     let mut post_data = PostCreateData::from(data.into_inner());
     post_data.validate()?;
     let post = create_post(db_client, &current_user.id, post_data).await?;
-    let status = Status::from_post(post.clone(), &config.instance_url());
     // Federate
-    let activity = create_activity_note(&config, &post);
+    let in_reply_to = match post.in_reply_to_id {
+        Some(in_reply_to_id) => {
+            let in_reply_to = get_post_by_id(db_client, &in_reply_to_id).await?;
+            Some(in_reply_to)
+        },
+        None => None,
+    };
+    let activity = create_activity_note(&config, &post, in_reply_to.as_ref());
     let followers = get_followers(db_client, &current_user.id).await?;
     let mut recipients: Vec<Actor> = Vec::new();
     for follower in followers {
@@ -49,14 +55,16 @@ async fn create_status(
             recipients.push(actor);
         };
     };
+    let config_clone = config.clone();
     actix_rt::spawn(async move {
         deliver_activity(
-            &config,
+            &config_clone,
             &current_user,
             activity,
             recipients,
         ).await;
     });
+    let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Created().json(status))
 }
 

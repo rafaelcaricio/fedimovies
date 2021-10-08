@@ -99,10 +99,11 @@ fn create_activity(
     activity
 }
 
-pub fn create_activity_note(
+pub fn create_note(
     config: &Config,
     post: &Post,
-) -> Activity {
+    in_reply_to: Option<&Post>,
+) -> Object {
     let object_id = get_object_url(
         &config.instance_url(),
         &post.id,
@@ -121,7 +122,18 @@ pub fn create_activity_note(
             url,
         }
     }).collect();
-    let object = Object {
+    let in_reply_to_object_id = match post.in_reply_to_id {
+        Some(in_reply_to_id) => {
+            let post = in_reply_to.unwrap();
+            assert_eq!(post.id, in_reply_to_id);
+            match post.author.actor_json {
+                Some(_) => None, // TODO: store object ID for remote posts
+                None => Some(get_object_url(&config.instance_url(), &post.id)),
+            }
+        },
+        None => None,
+    };
+    Object {
         context: Some(json!(AP_CONTEXT)),
         id: object_id,
         object_type: NOTE.to_string(),
@@ -130,10 +142,18 @@ pub fn create_activity_note(
         object: None,
         published: Some(post.created_at),
         attributed_to: Some(actor_id.clone()),
-        in_reply_to: None,
+        in_reply_to: in_reply_to_object_id,
         content: Some(post.content.clone()),
         to: Some(json!(AP_PUBLIC)),
-    };
+    }
+}
+
+pub fn create_activity_note(
+    config: &Config,
+    post: &Post,
+    in_reply_to: Option<&Post>,
+) -> Activity {
+    let object = create_note(config, post, in_reply_to);
     let activity = create_activity(
         &config.instance_url(),
         &post.author.username,
