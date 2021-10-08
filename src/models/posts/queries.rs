@@ -204,6 +204,9 @@ pub async fn get_thread(
     let posts: Vec<Post> = rows.iter()
         .map(|row| Post::try_from(row))
         .collect::<Result<_, _>>()?;
+    if posts.len() == 0 {
+        return Err(DatabaseError::NotFound("post"));
+    }
     Ok(posts)
 }
 
