@@ -18,6 +18,7 @@ pub struct DbPost {
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
     pub reply_count: i32,
+    pub object_id: Option<String>,
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
@@ -32,6 +33,7 @@ pub struct Post {
     pub in_reply_to_id: Option<Uuid>,
     pub reply_count: i32,
     pub attachments: Vec<DbMediaAttachment>,
+    pub object_id: Option<String>,
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
@@ -53,6 +55,7 @@ impl TryFrom<&Row> for Post {
             in_reply_to_id: db_post.in_reply_to_id,
             reply_count: db_post.reply_count,
             attachments: db_attachments,
+            object_id: db_post.object_id,
             ipfs_cid: db_post.ipfs_cid,
             token_id: db_post.token_id,
             token_tx_id: db_post.token_tx_id,
@@ -66,6 +69,7 @@ pub struct PostCreateData {
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
     pub attachments: Vec<Uuid>,
+    pub object_id: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -92,6 +96,7 @@ mod tests {
             content: "  ".to_string(),
             in_reply_to_id: None,
             attachments: vec![],
+            object_id: None,
             created_at: None,
         };
         assert_eq!(post_data_1.validate().is_ok(), false);
@@ -103,6 +108,7 @@ mod tests {
             content: "test ".to_string(),
             in_reply_to_id: None,
             attachments: vec![],
+            object_id: None,
             created_at: None,
         };
         assert_eq!(post_data_2.validate().is_ok(), true);

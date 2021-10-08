@@ -125,6 +125,7 @@ pub async fn receive_activity(
                 // TODO: parse inReplyTo field
                 in_reply_to_id: None,
                 attachments: attachments,
+                object_id: Some(object.id),
                 created_at: object.published,
             };
             create_post(db_client, &author.id, post_data).await?;

@@ -62,6 +62,7 @@ impl From<StatusData> for PostCreateData {
             content: value.status,
             in_reply_to_id: value.in_reply_to_id,
             attachments: value.media_ids.unwrap_or(vec![]),
+            object_id: None,
             created_at: None,
         }
     }

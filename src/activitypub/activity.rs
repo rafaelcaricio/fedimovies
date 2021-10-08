@@ -127,7 +127,7 @@ pub fn create_note(
             let post = in_reply_to.unwrap();
             assert_eq!(post.id, in_reply_to_id);
             match post.author.is_local() {
-                false => None, // TODO: store object ID for remote posts
+                false => post.object_id.clone(),
                 true => Some(get_object_url(&config.instance_url(), &post.id)),
             }
         },
