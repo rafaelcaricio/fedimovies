@@ -5,6 +5,7 @@ use serde_json::Value;
 use crate::models::profiles::types::ProfileCreateData;
 use crate::utils::files::{save_file, FileError};
 use crate::webfinger::types::JsonResourceDescriptor;
+use super::activity::Object;
 use super::actor::Actor;
 use super::constants::ACTIVITY_CONTENT_TYPE;
 
@@ -119,4 +120,17 @@ pub async fn fetch_attachment(
     let file_data = response.bytes().await?;
     let file_name = save_file(file_data.to_vec(), output_dir)?;
     Ok(file_name)
+}
+
+pub async fn fetch_object(
+    object_url: &str,
+) -> Result<Object, FetchError> {
+    let client = reqwest::Client::new();
+    let object_json = client.get(object_url)
+        .header(reqwest::header::ACCEPT, ACTIVITY_CONTENT_TYPE)
+        .send().await?
+        .text().await?;
+    let object_value: Value = serde_json::from_str(&object_json)?;
+    let object: Object = serde_json::from_value(object_value)?;
+    Ok(object)
 }

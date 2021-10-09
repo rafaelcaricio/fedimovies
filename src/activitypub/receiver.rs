@@ -10,7 +10,11 @@ use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
 use crate::models::posts::types::PostCreateData;
-use crate::models::posts::queries::create_post;
+use crate::models::posts::queries::{
+    create_post,
+    get_post_by_id,
+    get_post_by_object_id,
+};
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
@@ -32,6 +36,7 @@ use super::fetcher::{
     fetch_avatar_and_banner,
     fetch_profile_by_actor_id,
     fetch_attachment,
+    fetch_object,
 };
 use super::vocabulary::*;
 
@@ -121,8 +126,40 @@ pub async fn receive_activity(
         (CREATE, NOTE) => {
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
-            // TOOD: fetch the whole thread
-            let objects = vec![object];
+            let mut maybe_parent_object_id = object.in_reply_to.clone();
+            let mut objects = vec![object];
+            // Fetch ancestors by going through inReplyTo references
+            // TODO: fetch replies too
+            loop {
+                let object_id = match maybe_parent_object_id {
+                    Some(parent_object_id) => {
+                        if parse_object_id(&config.instance_url(), &parent_object_id).is_ok() {
+                            // Parent object is a local post
+                            break;
+                        }
+                        match get_post_by_object_id(db_client, &parent_object_id).await {
+                            Ok(_) => {
+                                // Parent object has been fetched already
+                                break;
+                            },
+                            Err(DatabaseError::NotFound(_)) => (),
+                            Err(other_error) => return Err(other_error.into()),
+                        };
+                        parent_object_id
+                    },
+                    None => {
+                        // Object does not have a parent
+                        break;
+                    },
+                };
+                let object = fetch_object(&object_id).await
+                    .map_err(|_| ValidationError("failed to fetch object"))?;
+                maybe_parent_object_id = object.in_reply_to.clone();
+                objects.push(object);
+            }
+            // Objects are ordered according to their place in reply tree,
+            // starting with the root
+            objects.reverse();
             for object in objects {
                 let attributed_to = object.attributed_to
                     .ok_or(ValidationError("unattributed note"))?;
@@ -153,10 +190,25 @@ pub async fn receive_activity(
                         attachments.push(db_attachment.id);
                     }
                 }
+                let in_reply_to_id = match object.in_reply_to {
+                    Some(object_id) => {
+                        match parse_object_id(&config.instance_url(), &object_id) {
+                            Ok(post_id) => {
+                                // Local post
+                                let post = get_post_by_id(db_client, &post_id).await?;
+                                Some(post.id)
+                            },
+                            Err(_) => {
+                                let post = get_post_by_object_id(db_client, &object_id).await?;
+                                Some(post.id)
+                            },
+                        }
+                    },
+                    None => None,
+                };
                 let post_data = PostCreateData {
                     content,
-                    // TODO: parse inReplyTo field
-                    in_reply_to_id: None,
+                    in_reply_to_id,
                     attachments: attachments,
                     object_id: Some(object.id),
                     created_at: object.published,

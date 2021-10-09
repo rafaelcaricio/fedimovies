@@ -213,6 +213,29 @@ pub async fn get_thread(
     Ok(posts)
 }
 
+pub async fn get_post_by_object_id(
+    db_client: &impl GenericClient,
+    object_id: &str,
+) -> Result<Post, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT
+            post, actor_profile,
+            ARRAY(
+                SELECT media_attachment
+                FROM media_attachment WHERE post_id = post.id
+            ) AS attachments
+        FROM post
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE post.object_id = $1
+        ",
+        &[&object_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
+    let post = Post::try_from(&row)?;
+    Ok(post)
+}
+
 pub async fn get_post_by_ipfs_cid(
     db_client: &impl GenericClient,
     ipfs_cid: &str,
