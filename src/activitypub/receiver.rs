@@ -141,7 +141,11 @@ pub async fn receive_activity(
             let target_profile = get_profile_by_acct(db_client, &target_username).await?;
             // Create and send 'Accept' activity
             let target_user = get_user_by_id(db_client, &target_profile.id).await?;
-            let new_activity = create_activity_accept_follow(&config, &target_profile, &activity.id);
+            let new_activity = create_activity_accept_follow(
+                &config.instance_url(),
+                &target_profile,
+                &activity.id,
+            );
             // Save relationship
             follow(db_client, &source_profile.id, &target_profile.id).await?;
 

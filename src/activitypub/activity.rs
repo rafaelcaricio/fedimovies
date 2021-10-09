@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use crate::config::Config;
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::files::get_file_url;
@@ -100,20 +99,20 @@ fn create_activity(
 }
 
 pub fn create_note(
-    config: &Config,
+    instance_url: &str,
     post: &Post,
     in_reply_to: Option<&Post>,
 ) -> Object {
     let object_id = get_object_url(
-        &config.instance_url(),
+        instance_url,
         &post.id,
     );
     let actor_id = get_actor_url(
-        &config.instance_url(),
+        instance_url,
         &post.author.username,
     );
     let attachments: Vec<Attachment> = post.attachments.iter().map(|db_item| {
-        let url = get_file_url(&config.instance_url(), &db_item.file_name);
+        let url = get_file_url(instance_url, &db_item.file_name);
         let media_type = db_item.media_type.clone().unwrap_or("".to_string());
         Attachment {
             name: "".to_string(),
@@ -128,7 +127,7 @@ pub fn create_note(
             assert_eq!(post.id, in_reply_to_id);
             match post.author.is_local() {
                 false => post.object_id.clone(),
-                true => Some(get_object_url(&config.instance_url(), &post.id)),
+                true => Some(get_object_url(instance_url, &post.id)),
             }
         },
         None => None,
@@ -141,7 +140,7 @@ pub fn create_note(
         attachment: Some(attachments),
         object: None,
         published: Some(post.created_at),
-        attributed_to: Some(actor_id.clone()),
+        attributed_to: Some(actor_id),
         in_reply_to: in_reply_to_object_id,
         content: Some(post.content.clone()),
         to: Some(json!(AP_PUBLIC)),
@@ -149,13 +148,13 @@ pub fn create_note(
 }
 
 pub fn create_activity_note(
-    config: &Config,
+    instance_url: &str,
     post: &Post,
     in_reply_to: Option<&Post>,
 ) -> Activity {
-    let object = create_note(config, post, in_reply_to);
+    let object = create_note(instance_url, post, in_reply_to);
     let activity = create_activity(
-        &config.instance_url(),
+        instance_url,
         &post.author.username,
         CREATE,
         None,
@@ -165,7 +164,7 @@ pub fn create_activity_note(
 }
 
 pub fn create_activity_follow(
-    config: &Config,
+    instance_url: &str,
     actor_profile: &DbActorProfile,
     follow_request_id: &Uuid,
     target_id: &str,
@@ -184,7 +183,7 @@ pub fn create_activity_follow(
         to: None,
     };
     let activity = create_activity(
-        &config.instance_url(),
+        instance_url,
         &actor_profile.username,
         FOLLOW,
         Some(*follow_request_id),
@@ -194,7 +193,7 @@ pub fn create_activity_follow(
 }
 
 pub fn create_activity_accept_follow(
-    config: &Config,
+    instance_url: &str,
     actor_profile: &DbActorProfile,
     follow_activity_id: &str,
 ) -> Activity {
@@ -213,7 +212,7 @@ pub fn create_activity_accept_follow(
         to: None,
     };
     let activity = create_activity(
-        &config.instance_url(),
+        instance_url,
         &actor_profile.username,
         ACCEPT,
         None,
@@ -223,18 +222,18 @@ pub fn create_activity_accept_follow(
 }
 
 pub fn create_activity_undo_follow(
-    config: &Config,
+    instance_url: &str,
     actor_profile: &DbActorProfile,
     follow_request_id: &Uuid,
     target_id: &str,
 ) -> Activity {
     // TODO: retrieve 'Follow' activity from database
     let follow_activity_id = get_object_url(
-        &config.instance_url(),
+        instance_url,
         follow_request_id,
     );
     let follow_actor_id = get_actor_url(
-        &config.instance_url(),
+        instance_url,
         &actor_profile.username,
     );
     let object = Object {
@@ -251,7 +250,7 @@ pub fn create_activity_undo_follow(
         to: None,
     };
     let activity = create_activity(
-        &config.instance_url(),
+        instance_url,
         &actor_profile.username,
         UNDO,
         None,
@@ -279,5 +278,72 @@ impl OrderedCollection {
             id: collection_url,
             object_type: "OrderedCollection".to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_create_note() {
+        let author = DbActorProfile {
+            username: "author".to_string(),
+            ..Default::default()
+        };
+        let post = Post { author, ..Default::default() };
+        let note = create_note(INSTANCE_URL, &post, None);
+
+        assert_eq!(
+            note.id,
+            format!("{}/objects/{}", INSTANCE_URL, post.id),
+        );
+        assert_eq!(note.attachment.unwrap().len(), 0);
+        assert_eq!(
+            note.attributed_to.unwrap(),
+            format!("{}/users/{}", INSTANCE_URL, post.author.username),
+        );
+        assert_eq!(note.in_reply_to.is_none(), true);
+        assert_eq!(note.content.unwrap(), post.content);
+    }
+
+    #[test]
+    fn test_create_note_with_local_parent() {
+        let parent = Post::default();
+        let post = Post {
+            in_reply_to_id: Some(parent.id),
+            ..Default::default()
+        };
+        let note = create_note(INSTANCE_URL, &post, Some(&parent));
+
+        assert_eq!(
+            note.in_reply_to.unwrap(),
+            format!("{}/objects/{}", INSTANCE_URL, parent.id),
+        );
+    }
+
+    #[test]
+    fn test_create_note_with_remote_parent() {
+        let parent_author = DbActorProfile {
+            actor_json: Some(json!("test")),
+            ..Default::default()
+        };
+        let parent = Post {
+            author: parent_author,
+            object_id: Some("https://test.net/obj/123".to_string()),
+            ..Default::default()
+        };
+        let post = Post {
+            in_reply_to_id: Some(parent.id),
+            ..Default::default()
+        };
+        let note = create_note(INSTANCE_URL, &post, Some(&parent));
+
+        assert_eq!(
+            note.in_reply_to.unwrap(),
+            parent.object_id.unwrap(),
+        );
     }
 }

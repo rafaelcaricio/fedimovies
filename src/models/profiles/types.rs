@@ -74,6 +74,28 @@ impl DbActorProfile {
     }
 }
 
+#[cfg(test)]
+impl Default for DbActorProfile {
+    fn default() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            username: "".to_string(),
+            acct: "".to_string(),
+            display_name: None,
+            bio: None,
+            bio_source: None,
+            avatar_file_name: None,
+            banner_file_name: None,
+            extra_fields: ExtraFields(vec![]),
+            follower_count: 0,
+            following_count: 0,
+            post_count: 0,
+            created_at: Utc::now(),
+            actor_json: None,
+        }
+    }
+}
+
 pub struct ProfileCreateData {
     pub username: String,
     pub display_name: Option<String>,

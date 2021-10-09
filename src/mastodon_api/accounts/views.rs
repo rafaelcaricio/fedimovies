@@ -124,7 +124,7 @@ async fn follow(
         let actor: Actor = serde_json::from_value(actor_value)
             .map_err(|_| HttpError::InternalError)?;
         let activity = create_activity_follow(
-            &config,
+            &config.instance_url(),
             &current_user.profile,
             &request.id,
             &actor.id,
@@ -171,7 +171,7 @@ async fn unfollow(
         let actor: Actor = serde_json::from_value(actor_value)
             .map_err(|_| HttpError::InternalError)?;
         let activity = create_activity_undo_follow(
-            &config,
+            &config.instance_url(),
             &current_user.profile,
             &follow_request.id,
             &actor.id,

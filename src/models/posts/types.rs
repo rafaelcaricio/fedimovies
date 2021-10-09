@@ -40,6 +40,25 @@ pub struct Post {
     pub created_at: DateTime<Utc>,
 }
 
+#[cfg(test)]
+impl Default for Post {
+    fn default() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            author: Default::default(),
+            content: "".to_string(),
+            in_reply_to_id: None,
+            reply_count: 0,
+            attachments: vec![],
+            object_id: None,
+            ipfs_cid: None,
+            token_id: None,
+            token_tx_id: None,
+            created_at: Utc::now(),
+        }
+    }
+}
+
 impl TryFrom<&Row> for Post {
 
     type Error = tokio_postgres::Error;

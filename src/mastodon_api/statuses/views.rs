@@ -44,7 +44,11 @@ async fn create_status(
         },
         None => None,
     };
-    let activity = create_activity_note(&config, &post, in_reply_to.as_ref());
+    let activity = create_activity_note(
+        &config.instance_url(),
+        &post,
+        in_reply_to.as_ref(),
+    );
     let followers = get_followers(db_client, &current_user.id).await?;
     let mut recipients: Vec<Actor> = Vec::new();
     for follower in followers {
