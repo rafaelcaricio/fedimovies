@@ -1,19 +1,23 @@
+use std::path::PathBuf;
+
 use regex::Regex;
 use serde_json::Value;
+use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
-use crate::errors::{HttpError, ValidationError};
+use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
 use crate::models::posts::types::PostCreateData;
 use crate::models::posts::queries::create_post;
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
+    create_profile,
     update_profile,
 };
-use crate::models::profiles::types::ProfileUpdateData;
+use crate::models::profiles::types::{DbActorProfile, ProfileUpdateData};
 use crate::models::relationships::queries::{
     follow_request_accepted,
     follow_request_rejected,
@@ -24,7 +28,11 @@ use crate::models::users::queries::get_user_by_id;
 use super::activity::{Object, Activity, create_activity_accept_follow};
 use super::actor::Actor;
 use super::deliverer::deliver_activity;
-use super::fetcher::{fetch_avatar_and_banner, fetch_attachment};
+use super::fetcher::{
+    fetch_avatar_and_banner,
+    fetch_profile_by_actor_id,
+    fetch_attachment,
+};
 use super::vocabulary::*;
 
 fn parse_actor_id(
@@ -65,6 +73,24 @@ fn parse_object_id(
     Ok(object_uuid)
 }
 
+async fn get_or_fetch_profile_by_actor_id(
+    db_client: &impl GenericClient,
+    actor_id: &str,
+    media_dir: &PathBuf,
+) -> Result<DbActorProfile, HttpError> {
+    let profile = match get_profile_by_actor_id(db_client, actor_id).await {
+        Ok(profile) => profile,
+        Err(DatabaseError::NotFound(_)) => {
+            let profile_data = fetch_profile_by_actor_id(actor_id, media_dir).await
+                .map_err(|_| ValidationError("failed to fetch actor"))?;
+            let profile = create_profile(db_client, &profile_data).await?;
+            profile
+        },
+        Err(other_error) => return Err(other_error.into()),
+    };
+    Ok(profile)
+}
+
 pub async fn receive_activity(
     config: &Config,
     db_pool: &Pool,
@@ -100,7 +126,11 @@ pub async fn receive_activity(
             for object in objects {
                 let attributed_to = object.attributed_to
                     .ok_or(ValidationError("unattributed note"))?;
-                let author = get_profile_by_actor_id(db_client, &attributed_to).await?;
+                let author = get_or_fetch_profile_by_actor_id(
+                    db_client,
+                    &attributed_to,
+                    &config.media_dir(),
+                ).await?;
                 let content = object.content
                     .ok_or(ValidationError("no content"))?;
                 let mut attachments: Vec<Uuid> = Vec::new();
@@ -135,7 +165,11 @@ pub async fn receive_activity(
             }
         },
         (FOLLOW, _) => {
-            let source_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
+            let source_profile = get_or_fetch_profile_by_actor_id(
+                db_client,
+                &activity.actor,
+                &config.media_dir(),
+            ).await?;
             let source_actor_value = source_profile.actor_json.ok_or(HttpError::InternalError)?;
             let source_actor: Actor = serde_json::from_value(source_actor_value)
                 .map_err(|_| HttpError::InternalError)?;
