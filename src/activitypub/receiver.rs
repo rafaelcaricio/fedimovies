@@ -95,40 +95,44 @@ pub async fn receive_activity(
         (CREATE, NOTE) => {
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
-            let attributed_to = object.attributed_to
-                .ok_or(ValidationError("unattributed note"))?;
-            let author = get_profile_by_actor_id(db_client, &attributed_to).await?;
-            let content = object.content
-                .ok_or(ValidationError("no content"))?;
-            let mut attachments: Vec<Uuid> = Vec::new();
-            if let Some(list) = object.attachment {
-                let mut downloaded: Vec<(String, String)> = Vec::new();
-                let output_dir = config.media_dir();
-                for attachment in list {
-                    let file_name = fetch_attachment(&attachment.url, &output_dir).await
-                        .map_err(|_| ValidationError("failed to fetch attachment"))?;
-                    log::info!("downloaded attachment {}", attachment.url);
-                    downloaded.push((file_name, attachment.media_type));
+            // TOOD: fetch the whole thread
+            let objects = vec![object];
+            for object in objects {
+                let attributed_to = object.attributed_to
+                    .ok_or(ValidationError("unattributed note"))?;
+                let author = get_profile_by_actor_id(db_client, &attributed_to).await?;
+                let content = object.content
+                    .ok_or(ValidationError("no content"))?;
+                let mut attachments: Vec<Uuid> = Vec::new();
+                if let Some(list) = object.attachment {
+                    let mut downloaded: Vec<(String, String)> = Vec::new();
+                    let output_dir = config.media_dir();
+                    for attachment in list {
+                        let file_name = fetch_attachment(&attachment.url, &output_dir).await
+                            .map_err(|_| ValidationError("failed to fetch attachment"))?;
+                        log::info!("downloaded attachment {}", attachment.url);
+                        downloaded.push((file_name, attachment.media_type));
+                    }
+                    for (file_name, media_type) in downloaded {
+                        let db_attachment = create_attachment(
+                            db_client,
+                            &author.id,
+                            Some(media_type),
+                            file_name,
+                        ).await?;
+                        attachments.push(db_attachment.id);
+                    }
                 }
-                for (file_name, media_type) in downloaded {
-                    let db_attachment = create_attachment(
-                        db_client,
-                        &author.id,
-                        Some(media_type),
-                        file_name,
-                    ).await?;
-                    attachments.push(db_attachment.id);
-                }
+                let post_data = PostCreateData {
+                    content,
+                    // TODO: parse inReplyTo field
+                    in_reply_to_id: None,
+                    attachments: attachments,
+                    object_id: Some(object.id),
+                    created_at: object.published,
+                };
+                create_post(db_client, &author.id, post_data).await?;
             }
-            let post_data = PostCreateData {
-                content,
-                // TODO: parse inReplyTo field
-                in_reply_to_id: None,
-                attachments: attachments,
-                object_id: Some(object.id),
-                created_at: object.published,
-            };
-            create_post(db_client, &author.id, post_data).await?;
         },
         (FOLLOW, _) => {
             let source_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
