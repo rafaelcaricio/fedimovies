@@ -52,23 +52,6 @@ impl Account {
             .map(|name| get_file_url(instance_url, &name));
         let header_url = profile.banner_file_name.as_ref()
             .map(|name| get_file_url(instance_url, &name));
-        let source = if !profile.is_local() {
-            // Remote actor
-            None
-        } else {
-            let fields_sources = profile.extra_fields.clone()
-                .unpack().into_iter()
-                .map(|field| AccountField {
-                    name: field.name,
-                    value: field.value_source.unwrap_or(field.value),
-                })
-                .collect();
-            let source = Source {
-                note: profile.bio_source,
-                fields: fields_sources,
-            };
-            Some(source)
-        };
         let fields = profile.extra_fields.unpack().into_iter()
             .map(|field| AccountField { name: field.name, value: field.value })
             .collect();
@@ -85,13 +68,25 @@ impl Account {
             followers_count: profile.follower_count,
             following_count: profile.following_count,
             statuses_count: profile.post_count,
-            source,
+            source: None,
             wallet_address: None,
         }
     }
 
     pub fn from_user(user: User, instance_url: &str) -> Self {
+        let fields_sources = user.profile.extra_fields.clone()
+            .unpack().into_iter()
+            .map(|field| AccountField {
+                name: field.name,
+                value: field.value_source.unwrap_or(field.value),
+            })
+            .collect();
+        let source = Source {
+            note: user.profile.bio_source.clone(),
+            fields: fields_sources,
+        };
         let mut account = Self::from_profile(user.profile, instance_url);
+        account.source = Some(source);
         account.wallet_address = Some(user.wallet_address);
         account
     }
@@ -175,5 +170,55 @@ impl AccountUpdateData {
             extra_fields,
         };
         Ok(profile_data)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_create_account_from_profile() {
+        let profile = DbActorProfile {
+            avatar_file_name: Some("test".to_string()),
+            ..Default::default()
+        };
+        let account = Account::from_profile(profile, INSTANCE_URL);
+
+        assert_eq!(
+            account.avatar.unwrap(),
+            format!("{}/media/test", INSTANCE_URL),
+        );
+        assert!(account.source.is_none());
+        assert!(account.wallet_address.is_none());
+    }
+
+    #[test]
+    fn test_create_account_from_user() {
+        let bio_source = "test";
+        let wallet_address = "0x1234";
+        let profile = DbActorProfile {
+            bio_source: Some(bio_source.to_string()),
+            ..Default::default()
+        };
+        let user = User {
+            id: Uuid::new_v4(),
+            wallet_address: wallet_address.to_string(),
+            password_hash: "".to_string(),
+            private_key: "".to_string(),
+            profile,
+        };
+        let account = Account::from_user(user, INSTANCE_URL);
+
+        assert_eq!(
+            account.source.unwrap().note.unwrap(),
+            bio_source,
+        );
+        assert_eq!(
+            account.wallet_address.unwrap(),
+            wallet_address,
+        );
     }
 }
