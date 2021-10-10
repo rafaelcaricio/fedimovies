@@ -12,6 +12,8 @@ Federated social network with smart contracts.
 
 Demo instance: https://test.mitra.social/ (invite-only)
 
+Smart contracts repo: https://codeberg.org/silverpill/mitra-contracts
+
 ## Requirements
 
 - Rust 1.51+
@@ -51,6 +53,12 @@ cargo run
 
 ```
 cargo run --bin mitractl
+```
+
+### Run tests
+
+```
+cargo test
 ```
 
 ### Build for production
@@ -121,3 +129,7 @@ Generate ethereum address:
 ```
 mitractl generate-ethereum-address
 ```
+
+## License
+
+[AGPL-3.0](./LICENSE)
