@@ -14,6 +14,7 @@ use mitra::mastodon_api::accounts::views::account_api_scope;
 use mitra::mastodon_api::directory::views::profile_directory;
 use mitra::mastodon_api::instance::views as instance_api;
 use mitra::mastodon_api::media::views::media_api_scope;
+use mitra::mastodon_api::notifications::views::notification_api_scope;
 use mitra::mastodon_api::oauth::auth::create_auth_error_handler;
 use mitra::mastodon_api::oauth::views::oauth_api_scope;
 use mitra::mastodon_api::search::views::search;
@@ -77,6 +78,7 @@ async fn main() -> std::io::Result<()> {
             .service(profile_directory)
             .service(account_api_scope())
             .service(media_api_scope())
+            .service(notification_api_scope())
             .service(status_api_scope())
             .service(instance_api::instance)
             .service(search)

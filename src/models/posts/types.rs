@@ -67,7 +67,7 @@ impl TryFrom<&Row> for Post {
         let db_post: DbPost = row.try_get("post")?;
         let db_profile: DbActorProfile = row.try_get("actor_profile")?;
         let db_attachments: Vec<DbMediaAttachment> = row.try_get("attachments")?;
-        let post = Post {
+        let post = Self {
             id: db_post.id,
             author: db_profile,
             content: db_post.content,

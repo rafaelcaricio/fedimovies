@@ -2,6 +2,7 @@ pub mod accounts;
 pub mod directory;
 pub mod instance;
 pub mod media;
+pub mod notifications;
 pub mod oauth;
 pub mod search;
 pub mod statuses;

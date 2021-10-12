@@ -4,6 +4,8 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::errors::DatabaseError;
+use crate::models::notifications::queries::create_notification;
+use crate::models::notifications::types::EventType;
 use crate::models::profiles::queries::{
     update_follower_count,
     update_following_count,
@@ -99,6 +101,12 @@ pub async fn follow(
     };
     update_follower_count(&transaction, target_id, 1).await?;
     update_following_count(&transaction, source_id, 1).await?;
+    create_notification(
+        &transaction,
+        source_id,
+        target_id,
+        EventType::Follow,
+    ).await?;
     let relationship = get_relationship(&transaction, source_id, target_id).await?;
     transaction.commit().await?;
     Ok(relationship)
