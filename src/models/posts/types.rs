@@ -40,6 +40,29 @@ pub struct Post {
     pub created_at: DateTime<Utc>,
 }
 
+impl Post {
+    pub fn new(
+        db_post: DbPost,
+        db_author: DbActorProfile,
+        db_attachments: Vec<DbMediaAttachment>,
+    ) -> Self {
+        assert_eq!(db_post.author_id, db_author.id);
+        Self {
+            id: db_post.id,
+            author: db_author,
+            content: db_post.content,
+            in_reply_to_id: db_post.in_reply_to_id,
+            reply_count: db_post.reply_count,
+            attachments: db_attachments,
+            object_id: db_post.object_id,
+            ipfs_cid: db_post.ipfs_cid,
+            token_id: db_post.token_id,
+            token_tx_id: db_post.token_tx_id,
+            created_at: db_post.created_at,
+        }
+    }
+}
+
 #[cfg(test)]
 impl Default for Post {
     fn default() -> Self {
@@ -67,19 +90,7 @@ impl TryFrom<&Row> for Post {
         let db_post: DbPost = row.try_get("post")?;
         let db_profile: DbActorProfile = row.try_get("actor_profile")?;
         let db_attachments: Vec<DbMediaAttachment> = row.try_get("attachments")?;
-        let post = Self {
-            id: db_post.id,
-            author: db_profile,
-            content: db_post.content,
-            in_reply_to_id: db_post.in_reply_to_id,
-            reply_count: db_post.reply_count,
-            attachments: db_attachments,
-            object_id: db_post.object_id,
-            ipfs_cid: db_post.ipfs_cid,
-            token_id: db_post.token_id,
-            token_tx_id: db_post.token_tx_id,
-            created_at: db_post.created_at,
-        };
+        let post = Self::new(db_post, db_profile, db_attachments);
         Ok(post)
     }
 }

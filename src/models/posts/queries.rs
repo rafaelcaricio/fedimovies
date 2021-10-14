@@ -128,19 +128,7 @@ pub async fn create_post(
     }
 
     transaction.commit().await?;
-    let post = Post {
-        id: db_post.id,
-        author: author,
-        content: db_post.content,
-        in_reply_to_id: db_post.in_reply_to_id,
-        reply_count: db_post.reply_count,
-        attachments: db_attachments,
-        object_id: db_post.object_id,
-        ipfs_cid: db_post.ipfs_cid,
-        token_id: db_post.token_id,
-        token_tx_id: db_post.token_tx_id,
-        created_at: db_post.created_at,
-    };
+    let post = Post::new(db_post, author, db_attachments);
     Ok(post)
 }
 
