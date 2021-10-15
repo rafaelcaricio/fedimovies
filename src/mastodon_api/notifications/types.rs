@@ -25,15 +25,20 @@ impl ApiNotification {
             notification.sender,
             instance_url,
         );
+        let status = notification.post.map(|post| {
+            Status::from_post(post, instance_url)
+        });
         let event_type_mastodon = match notification.event_type {
             EventType::Follow => "follow",
+            EventType::FollowRequest => "follow_request",
+            EventType::Reply => "reply",
         };
         Self {
             id: notification.id.to_string(),
             event_type: event_type_mastodon.to_string(),
             created_at: notification.created_at,
             account,
-            status: None,
+            status,
         }
     }
 }

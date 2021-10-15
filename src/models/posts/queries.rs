@@ -11,6 +11,7 @@ use crate::models::cleanup::{
     find_orphaned_ipfs_objects,
     DeletionQueue,
 };
+use crate::models::notifications::queries::create_reply_notification;
 use crate::models::profiles::queries::update_post_count;
 use super::types::{DbPost, Post, PostCreateData};
 
@@ -125,6 +126,7 @@ pub async fn create_post(
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
     if let Some(in_reply_to_id) = &db_post.in_reply_to_id {
         update_reply_count(&transaction, in_reply_to_id, 1).await?;
+        create_reply_notification(&transaction, &db_post).await?;
     }
 
     transaction.commit().await?;
