@@ -14,6 +14,7 @@ pub fn create_pool(database_url: &str) -> Pool {
     pool
 }
 
+use tokio_postgres::error::{Error as PgError, SqlState};
 use crate::errors::DatabaseError;
 
 pub async fn get_database_client(pool: &Pool)
@@ -23,4 +24,17 @@ pub async fn get_database_client(pool: &Pool)
     // https://github.com/bikeshedder/deadpool/issues/56
     let client = pool.get().await?;
     Ok(client)
+}
+
+pub fn catch_unique_violation(
+    object_type: &'static str,
+) -> impl Fn(PgError) -> DatabaseError {
+    move |err| {
+        if let Some(code) = err.code() {
+            if code == &SqlState::UNIQUE_VIOLATION {
+                return DatabaseError::AlreadyExists(object_type);
+            }
+        }
+        err.into()
+    }
 }

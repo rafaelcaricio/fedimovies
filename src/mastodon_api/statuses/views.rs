@@ -1,3 +1,4 @@
+/// https://docs.joinmastodon.org/methods/statuses/
 use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use serde::Serialize;
@@ -8,7 +9,7 @@ use crate::activitypub::actor::Actor;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
-use crate::errors::HttpError;
+use crate::errors::{DatabaseError, HttpError};
 use crate::ethereum::nft::create_mint_signature;
 use crate::ipfs::store as ipfs_store;
 use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
@@ -22,6 +23,7 @@ use crate::models::posts::queries::{
     update_post,
 };
 use crate::models::posts::types::PostCreateData;
+use crate::models::reactions::queries::create_reaction;
 use super::types::{Status, StatusData};
 
 #[post("")]
@@ -96,6 +98,24 @@ async fn get_context(
         .map(|post| Status::from_post(post, &config.instance_url()))
         .collect();
     Ok(HttpResponse::Ok().json(statuses))
+}
+
+#[post("/{status_id}/favourite")]
+async fn favourite(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(status_id): web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    match create_reaction(db_client, &current_user.id, &status_id).await {
+        Err(DatabaseError::AlreadyExists(_)) => (), // post already favourited
+        other_result => other_result?,
+    }
+    let post = get_post_by_id(db_client, &status_id).await?;
+    let status = Status::from_post(post, &config.instance_url());
+    Ok(HttpResponse::Ok().json(status))
 }
 
 // https://docs.opensea.io/docs/metadata-standards
@@ -188,6 +208,7 @@ pub fn status_api_scope() -> Scope {
         // Routes with status ID
         .service(get_status)
         .service(get_context)
+        .service(favourite)
         .service(make_permanent)
         .service(get_signature)
 }

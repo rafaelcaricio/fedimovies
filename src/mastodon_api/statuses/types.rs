@@ -15,7 +15,11 @@ pub struct Status {
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
     pub replies_count: i32,
+    pub favourites_count: i32,
     pub media_attachments: Vec<Attachment>,
+
+    // Authorized user attributes
+    pub favourited: bool,
 
     // Extra fields
     pub ipfs_cid: Option<String>,
@@ -36,7 +40,9 @@ impl Status {
             content: post.content,
             in_reply_to_id: post.in_reply_to_id,
             replies_count: post.reply_count,
+            favourites_count: post.reaction_count,
             media_attachments: attachments,
+            favourited: false,
             ipfs_cid: post.ipfs_cid,
             token_id: post.token_id,
             token_tx_id: post.token_tx_id,

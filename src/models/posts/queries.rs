@@ -302,6 +302,25 @@ pub async fn update_reply_count(
     Ok(())
 }
 
+pub async fn update_reaction_count(
+    db_client: &impl GenericClient,
+    post_id: &Uuid,
+    change: i32,
+) -> Result<(), DatabaseError> {
+    let updated_count = db_client.execute(
+        "
+        UPDATE post
+        SET reaction_count = reaction_count + $1
+        WHERE id = $2
+        ",
+        &[&change, &post_id],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("post"));
+    }
+    Ok(())
+}
+
 pub async fn get_token_waitlist(
     db_client: &impl GenericClient,
 ) -> Result<Vec<Uuid>, DatabaseError> {

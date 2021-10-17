@@ -256,6 +256,17 @@ pub async fn delete_profile(
         ",
         &[&profile_id],
     ).await?;
+    transaction.execute(
+        "
+        UPDATE post
+        SET reaction_count = reaction_count - 1
+        FROM post_reaction
+        WHERE
+            post_reaction.post_id = post.id
+            AND post_reaction.author_id = $1
+        ",
+        &[&profile_id],
+    ).await?;
     // Delete profile
     let deleted_count = transaction.execute(
         "

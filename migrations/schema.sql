@@ -35,11 +35,20 @@ CREATE TABLE post (
     content TEXT NOT NULL,
     in_reply_to_id UUID REFERENCES post (id) ON DELETE CASCADE,
     reply_count INTEGER NOT NULL CHECK (reply_count >= 0) DEFAULT 0,
+    reaction_count INTEGER NOT NULL CHECK (reaction_count >= 0) DEFAULT 0,
     object_id VARCHAR(200) UNIQUE,
     ipfs_cid VARCHAR(200),
     token_id INTEGER,
     token_tx_id VARCHAR(200),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE post_reaction (
+    id UUID PRIMARY KEY,
+    author_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
+    post_id UUID NOT NULL REFERENCES post (id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    UNIQUE (author_id, post_id)
 );
 
 CREATE TABLE relationship (
