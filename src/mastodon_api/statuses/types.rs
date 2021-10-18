@@ -42,7 +42,7 @@ impl Status {
             replies_count: post.reply_count,
             favourites_count: post.reaction_count,
             media_attachments: attachments,
-            favourited: false,
+            favourited: post.actions.map_or(false, |actions| actions.favourited),
             ipfs_cid: post.ipfs_cid,
             token_id: post.token_id,
             token_tx_id: post.token_tx_id,

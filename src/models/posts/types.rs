@@ -26,7 +26,11 @@ pub struct DbPost {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Clone)]
+// List of user's actions
+pub struct PostActions {
+    pub favourited: bool,
+}
+
 pub struct Post {
     pub id: Uuid,
     pub author: DbActorProfile,
@@ -40,6 +44,7 @@ pub struct Post {
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub actions: Option<PostActions>,
 }
 
 impl Post {
@@ -62,6 +67,7 @@ impl Post {
             token_id: db_post.token_id,
             token_tx_id: db_post.token_tx_id,
             created_at: db_post.created_at,
+            actions: None,
         }
     }
 }
@@ -82,6 +88,7 @@ impl Default for Post {
             token_id: None,
             token_tx_id: None,
             created_at: Utc::now(),
+            actions: None,
         }
     }
 }

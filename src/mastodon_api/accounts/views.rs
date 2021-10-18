@@ -15,6 +15,7 @@ use crate::errors::HttpError;
 use crate::mastodon_api::statuses::types::Status;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::users::views::create_user_view;
+use crate::models::posts::helpers::get_actions_for_posts;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_id,
@@ -194,12 +195,24 @@ async fn unfollow(
 
 #[get("/{account_id}/statuses")]
 async fn get_account_statuses(
+    auth: Option<BearerAuth>,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     web::Path(account_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let posts = get_posts_by_author(db_client, &account_id).await?;
+    let maybe_current_user = match auth {
+        Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
+        None => None,
+    };
+    let mut posts = get_posts_by_author(db_client, &account_id).await?;
+    if let Some(user) = maybe_current_user {
+        get_actions_for_posts(
+            db_client,
+            &user.id,
+            posts.iter_mut().collect(),
+        ).await?;
+    }
     let statuses: Vec<Status> = posts.into_iter()
         .map(|post| Status::from_post(post, &config.instance_url()))
         .collect();

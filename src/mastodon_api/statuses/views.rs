@@ -16,6 +16,10 @@ use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::attachments::queries::set_attachment_ipfs_cid;
 use crate::models::profiles::queries::get_followers;
+use crate::models::posts::helpers::{
+    get_actions_for_post,
+    get_actions_for_posts,
+};
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
@@ -76,24 +80,45 @@ async fn create_status(
 
 #[get("/{status_id}")]
 async fn get_status(
+    auth: Option<BearerAuth>,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     web::Path(status_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let post = get_post_by_id(db_client, &status_id).await?;
+    let maybe_current_user = match auth {
+        Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
+        None => None,
+    };
+    let mut post = get_post_by_id(db_client, &status_id).await?;
+    if let Some(user) = maybe_current_user {
+        get_actions_for_post(db_client, &user.id, &mut post).await?;
+    }
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }
 
 #[get("/{status_id}/context")]
 async fn get_context(
+    auth: Option<BearerAuth>,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     web::Path(status_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let statuses: Vec<Status> = get_thread(db_client, &status_id).await?
+    let maybe_current_user = match auth {
+        Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
+        None => None,
+    };
+    let mut posts = get_thread(db_client, &status_id).await?;
+    if let Some(user) = maybe_current_user {
+        get_actions_for_posts(
+            db_client,
+            &user.id,
+            posts.iter_mut().collect(),
+        ).await?;
+    }
+    let statuses: Vec<Status> = posts
         .into_iter()
         .map(|post| Status::from_post(post, &config.instance_url()))
         .collect();
@@ -113,7 +138,8 @@ async fn favourite(
         Err(DatabaseError::AlreadyExists(_)) => (), // post already favourited
         other_result => other_result?,
     }
-    let post = get_post_by_id(db_client, &status_id).await?;
+    let mut post = get_post_by_id(db_client, &status_id).await?;
+    get_actions_for_post(db_client, &current_user.id, &mut post).await?;
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }
@@ -135,7 +161,7 @@ async fn make_permanent(
     web::Path(status_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    get_current_user(db_client, auth.token()).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
     let ipfs_api_url = config.ipfs_api_url.as_ref()
         .ok_or(HttpError::NotSupported)?;
@@ -169,6 +195,7 @@ async fn make_permanent(
     // Update post
     post.ipfs_cid = Some(post_metadata_cid);
     update_post(db_client, &post).await?;
+    get_actions_for_post(db_client, &current_user.id, &mut post).await?;
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }

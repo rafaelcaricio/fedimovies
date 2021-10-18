@@ -23,3 +23,22 @@ pub async fn create_reaction(
     transaction.commit().await?;
     Ok(())
 }
+
+pub async fn get_favourited(
+    db_client: &impl GenericClient,
+    user_id: &Uuid,
+    posts_ids: Vec<Uuid>,
+) -> Result<Vec<Uuid>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT post_id
+        FROM post_reaction
+        WHERE author_id = $1 AND post_id = ANY($2)
+        ",
+        &[&user_id, &posts_ids],
+    ).await?;
+    let favourited: Vec<Uuid> = rows.iter()
+        .map(|row| row.try_get("post_id"))
+        .collect::<Result<_, _>>()?;
+    Ok(favourited)
+}

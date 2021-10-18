@@ -4,6 +4,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::errors::DatabaseError;
+use crate::models::posts::helpers::get_actions_for_posts;
 use crate::models::posts::types::DbPost;
 use super::types::{EventType, Notification};
 
@@ -76,8 +77,12 @@ pub async fn get_notifications(
         ",
         &[&recipient_id],
     ).await?;
-    let notifications: Vec<Notification> = rows.iter()
+    let mut notifications: Vec<Notification> = rows.iter()
         .map(|row| Notification::try_from(row))
         .collect::<Result<_, _>>()?;
+    let posts = notifications.iter_mut()
+        .filter_map(|item| item.post.as_mut())
+        .collect();
+    get_actions_for_posts(db_client, recipient_id, posts).await?;
     Ok(notifications)
 }
