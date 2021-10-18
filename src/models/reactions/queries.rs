@@ -24,6 +24,27 @@ pub async fn create_reaction(
     Ok(())
 }
 
+pub async fn delete_reaction(
+    db_client: &mut impl GenericClient,
+    author_id: &Uuid,
+    post_id: &Uuid,
+) -> Result<(), DatabaseError> {
+    let transaction = db_client.transaction().await?;
+    let deleted_count = transaction.execute(
+        "
+        DELETE FROM post_reaction
+        WHERE author_id = $1 AND post_id = $2
+        ",
+        &[&author_id, &post_id],
+    ).await?;
+    if deleted_count == 0 {
+        return Err(DatabaseError::NotFound("reaction"));
+    }
+    update_reaction_count(&transaction, post_id, -1).await?;
+    transaction.commit().await?;
+    Ok(())
+}
+
 pub async fn get_favourited(
     db_client: &impl GenericClient,
     user_id: &Uuid,

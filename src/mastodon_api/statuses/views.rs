@@ -27,7 +27,10 @@ use crate::models::posts::queries::{
     update_post,
 };
 use crate::models::posts::types::PostCreateData;
-use crate::models::reactions::queries::create_reaction;
+use crate::models::reactions::queries::{
+    create_reaction,
+    delete_reaction,
+};
 use super::types::{Status, StatusData};
 
 #[post("")]
@@ -144,6 +147,25 @@ async fn favourite(
     Ok(HttpResponse::Ok().json(status))
 }
 
+#[post("/{status_id}/unfavourite")]
+async fn unfavourite(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(status_id): web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    match delete_reaction(db_client, &current_user.id, &status_id).await {
+        Err(DatabaseError::NotFound(_)) => (), // post not favourited
+        other_result => other_result?,
+    }
+    let mut post = get_post_by_id(db_client, &status_id).await?;
+    get_actions_for_post(db_client, &current_user.id, &mut post).await?;
+    let status = Status::from_post(post, &config.instance_url());
+    Ok(HttpResponse::Ok().json(status))
+}
+
 // https://docs.opensea.io/docs/metadata-standards
 #[derive(Serialize)]
 struct PostMetadata {
@@ -236,6 +258,7 @@ pub fn status_api_scope() -> Scope {
         .service(get_status)
         .service(get_context)
         .service(favourite)
+        .service(unfavourite)
         .service(make_permanent)
         .service(get_signature)
 }
