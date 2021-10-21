@@ -29,7 +29,7 @@ use super::utils::{
 };
 
 pub const COLLECTIBLE: &str = "Collectible";
-pub const MINTER: &str = "Minter";
+pub const MANAGER: &str = "Manager";
 const TOKEN_WAIT_TIME: i64 = 10; // in minutes
 
 #[derive(thiserror::Error, Debug)]
@@ -93,15 +93,18 @@ pub async fn get_nft_contract(
     let ethereum_config = config.ethereum_contract.as_ref()
         .ok_or(EthereumError::ImproperlyConfigured)?;
 
-    let minter_abi = load_abi(&config.contract_dir, MINTER)?;
-    let minter_address = parse_address(&ethereum_config.address)?;
-    let minter = Contract::from_json(
+    let manager_abi = load_abi(&config.contract_dir, MANAGER)?;
+    let manager_address = parse_address(&ethereum_config.address)?;
+    let manager = Contract::from_json(
         web3.eth(),
-        minter_address,
-        &minter_abi,
+        manager_address,
+        &manager_abi,
     )?;
 
-    let token_address = minter.query("token", (), None, Options::default(), None).await?;
+    let token_address = manager.query(
+        "collectible",
+        (), None, Options::default(), None,
+    ).await?;
     let token_abi = load_abi(&config.contract_dir, COLLECTIBLE)?;
     let token = Contract::from_json(
         web3.eth(),
@@ -206,8 +209,10 @@ pub async fn process_events(
             // Mint event found
             let token_id_u256 = transfer.token_id.into_uint()
                 .ok_or(EthereumError::ConversionError)?;
-            let token_uri_result = contract.query("tokenURI", (token_id_u256,), None, Options::default(), None);
-            let token_uri: String = token_uri_result.await?;
+            let token_uri: String = contract.query(
+                "tokenURI", (token_id_u256,),
+                None, Options::default(), None,
+            ).await?;
             let tx_id_h256 = transfer.tx_id.ok_or(EthereumError::ConversionError)?;
             let tx_id = hex::encode(tx_id_h256.as_bytes());
             let ipfs_cid = parse_ipfs_url(&token_uri)

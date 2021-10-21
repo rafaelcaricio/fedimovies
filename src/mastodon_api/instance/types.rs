@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::config::Config;
-use crate::ethereum::nft::MINTER;
+use crate::ethereum::nft::MANAGER;
 
 #[derive(Serialize)]
 pub struct Instance {
@@ -31,7 +31,7 @@ impl From<&Config> for Instance {
             login_message: config.login_message.clone(),
             ethereum_explorer_url: config.ethereum_explorer_url.clone(),
             nft_contract_name: config.ethereum_contract.as_ref()
-                .and(Some(MINTER.into())),
+                .and(Some(MANAGER.into())),
             nft_contract_address: config.ethereum_contract.as_ref()
                 .map(|val| val.address.clone()),
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),

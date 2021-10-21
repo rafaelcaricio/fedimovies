@@ -17,7 +17,7 @@ ethereum_json_rpc_url: 'http://127.0.0.1:8545'
 # Block explorer base URL (must be compatible with https://eips.ethereum.org/EIPS/eip-3091)
 ethereum_explorer_url: null
 ethereum_contract:
-  address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
+  address: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0'
   chain_id: 31337
   signing_key: null
 
