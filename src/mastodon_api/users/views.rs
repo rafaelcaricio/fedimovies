@@ -6,6 +6,7 @@ use actix_web::{
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{HttpError, ValidationError};
+use crate::ethereum::gate::is_allowed_user;
 use crate::mastodon_api::accounts::types::{Account, AccountCreateData};
 use crate::models::users::queries::{
     is_valid_invite_code,
@@ -33,6 +34,13 @@ pub async fn create_user_view(
             .ok_or(ValidationError("invite code is required"))?;
         if !is_valid_invite_code(db_client, &invite_code).await? {
             Err(ValidationError("invalid invite code"))?;
+        }
+    }
+    if config.ethereum_contract.is_some() {
+        let is_allowed = is_allowed_user(&config, &user_data.wallet_address).await
+            .map_err(|_| HttpError::InternalError)?;
+        if !is_allowed {
+            Err(ValidationError("not allowed to sign up"))?;
         }
     }
     // Hash password and generate private key

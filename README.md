@@ -5,6 +5,7 @@ Federated social network with smart contracts.
 - Built on [ActivityPub](https://activitypub.rocks/) protocol.
 - Lightweight.
 - Sign-in with Ethereum.
+- Proving membership with a token.
 - Converting posts into NFTs.
 - More crypto features in the future.
 

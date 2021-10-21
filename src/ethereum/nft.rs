@@ -71,7 +71,7 @@ pub enum EthereumError {
     SigError(#[from] SignatureError),
 }
 
-fn load_abi(
+pub fn load_abi(
     contract_dir: &PathBuf,
     contract_name: &str,
 ) -> Result<Vec<u8>, EthereumError> {
