@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::fs;
-use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
@@ -23,66 +21,11 @@ use crate::models::posts::queries::{
     get_token_waitlist,
 };
 use super::api::connect;
-use super::utils::{
-    parse_address, sign_message,
-    AddressError, SignatureData, SignatureError,
-};
+use super::contracts::{MANAGER, COLLECTIBLE, load_abi};
+use super::errors::EthereumError;
+use super::utils::{parse_address, sign_message, SignatureData};
 
-pub const COLLECTIBLE: &str = "Collectible";
-pub const MANAGER: &str = "Manager";
 const TOKEN_WAIT_TIME: i64 = 10; // in minutes
-
-#[derive(thiserror::Error, Debug)]
-pub enum EthereumError {
-    #[error("io error")]
-    IoError(#[from] std::io::Error),
-
-    #[error("json error")]
-    JsonError(#[from] serde_json::Error),
-
-    #[error("invalid address")]
-    InvalidAddress(#[from] AddressError),
-
-    #[error(transparent)]
-    Web3Error(#[from] web3::Error),
-
-    #[error("artifact error")]
-    ArtifactError,
-
-    #[error("abi error")]
-    AbiError(#[from] web3::ethabi::Error),
-
-    #[error("contract error")]
-    ContractError(#[from] web3::contract::Error),
-
-    #[error("improprely configured")]
-    ImproperlyConfigured,
-
-    #[error("data conversion error")]
-    ConversionError,
-
-    #[error("token uri parsing error")]
-    TokenUriParsingError,
-
-    #[error(transparent)]
-    DatabaseError(#[from] DatabaseError),
-
-    #[error("signature error")]
-    SigError(#[from] SignatureError),
-}
-
-pub fn load_abi(
-    contract_dir: &PathBuf,
-    contract_name: &str,
-) -> Result<Vec<u8>, EthereumError> {
-    let contract_artifact_path = contract_dir.join(format!("{}.json", contract_name));
-    let contract_artifact = fs::read_to_string(contract_artifact_path)?;
-    let contract_artifact_value: serde_json::Value = serde_json::from_str(&contract_artifact)?;
-    let contract_abi = contract_artifact_value.get("abi")
-        .ok_or(EthereumError::ArtifactError)?
-        .to_string().as_bytes().to_vec();
-    Ok(contract_abi)
-}
 
 pub async fn get_nft_contract(
     config: &Config,

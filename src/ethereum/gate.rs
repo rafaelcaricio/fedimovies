@@ -2,7 +2,8 @@ use web3::contract::{Contract, Options};
 
 use crate::config::Config;
 use super::api::connect;
-use super::nft::{MANAGER, load_abi, EthereumError};
+use super::contracts::{MANAGER, load_abi};
+use super::errors::EthereumError;
 use super::utils::parse_address;
 
 pub async fn is_allowed_user(

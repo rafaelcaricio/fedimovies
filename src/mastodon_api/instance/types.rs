@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::config::Config;
-use crate::ethereum::nft::MANAGER;
+use crate::ethereum::contracts::MANAGER;
 
 #[derive(Serialize)]
 pub struct Instance {
