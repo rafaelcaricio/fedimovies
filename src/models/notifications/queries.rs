@@ -72,6 +72,7 @@ pub async fn get_notifications(
         LEFT JOIN actor_profile AS post_author
         ON post.author_id = post_author.id
         WHERE recipient_id = $1
+        ORDER BY notification.created_at DESC
         ",
         &[&recipient_id],
     ).await?;
