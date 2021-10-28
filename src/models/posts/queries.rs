@@ -126,7 +126,15 @@ pub async fn create_post(
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
     if let Some(in_reply_to_id) = &db_post.in_reply_to_id {
         update_reply_count(&transaction, in_reply_to_id, 1).await?;
-        create_reply_notification(&transaction, &db_post).await?;
+        let in_reply_to = get_post_by_id(&transaction, in_reply_to_id).await?;
+        if in_reply_to.author.is_local() {
+            create_reply_notification(
+                &transaction,
+                &db_post.author_id,
+                &in_reply_to.author.id,
+                &db_post.id,
+            ).await?;
+        }
     }
 
     transaction.commit().await?;
@@ -292,7 +300,6 @@ pub async fn update_reply_count(
         UPDATE post
         SET reply_count = reply_count + $1
         WHERE id = $2
-        RETURNING post
         ",
         &[&change, &post_id],
     ).await?;

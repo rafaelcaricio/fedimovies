@@ -5,34 +5,15 @@ use uuid::Uuid;
 
 use crate::errors::DatabaseError;
 use crate::models::posts::helpers::get_actions_for_posts;
-use crate::models::posts::types::DbPost;
 use super::types::{EventType, Notification};
 
-pub async fn create_notification(
+async fn create_notification(
     db_client: &impl GenericClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
+    post_id: Option<&Uuid>,
     event_type: EventType,
 ) -> Result<(), DatabaseError> {
-    db_client.execute(
-        "
-        INSERT INTO notification (
-            sender_id,
-            recipient_id,
-            event_type
-        )
-        VALUES ($1, $2, $3)
-        ",
-        &[&sender_id, &recipient_id, &i16::from(event_type)],
-    ).await?;
-    Ok(())
-}
-
-pub async fn create_reply_notification(
-    db_client: &impl GenericClient,
-    reply: &DbPost,
-) -> Result<(), DatabaseError> {
-    let event_type: i16 = EventType::Reply.into();
     db_client.execute(
         "
         INSERT INTO notification (
@@ -41,17 +22,34 @@ pub async fn create_reply_notification(
             post_id,
             event_type
         )
-        SELECT $1, post.author_id, $2, $3
-        FROM post WHERE id = $4
+        VALUES ($1, $2, $3, $4)
         ",
-        &[
-            &reply.author_id,
-            &reply.id,
-            &event_type,
-            &reply.in_reply_to_id,
-        ],
+        &[&sender_id, &recipient_id, &post_id, &i16::from(event_type)],
     ).await?;
     Ok(())
+}
+
+pub async fn create_follow_notification(
+    db_client: &impl GenericClient,
+    sender_id: &Uuid,
+    recipient_id: &Uuid,
+) -> Result<(), DatabaseError> {
+    create_notification(
+        db_client, sender_id, recipient_id, None,
+        EventType::Follow,
+    ).await
+}
+
+pub async fn create_reply_notification(
+    db_client: &impl GenericClient,
+    sender_id: &Uuid,
+    recipient_id: &Uuid,
+    post_id: &Uuid,
+) -> Result<(), DatabaseError> {
+    create_notification(
+        db_client, sender_id, recipient_id, Some(post_id),
+        EventType::Reply,
+    ).await
 }
 
 pub async fn get_notifications(
