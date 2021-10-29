@@ -22,7 +22,7 @@ pub struct Attachment {
     pub url: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Object {
     #[serde(rename = "@context")]
@@ -167,20 +167,13 @@ pub fn create_activity_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     follow_request_id: &Uuid,
-    target_id: &str,
+    target_actor_id: &str,
 ) -> Activity {
     let object = Object {
         context: Some(json!(AP_CONTEXT)),
-        id: target_id.to_owned(),
+        id: target_actor_id.to_owned(),
         object_type: PERSON.to_string(),
-        actor: None,
-        attachment: None,
-        object: None,
-        published: None,
-        attributed_to: None,
-        in_reply_to: None,
-        content: None,
-        to: None,
+        ..Default::default()
     };
     let activity = create_activity(
         instance_url,
@@ -202,14 +195,7 @@ pub fn create_activity_accept_follow(
         context: Some(json!(AP_CONTEXT)),
         id: follow_activity_id.to_string(),
         object_type: FOLLOW.to_string(),
-        actor: None,
-        attachment: None,
-        object: None,
-        published: None,
-        attributed_to: None,
-        in_reply_to: None,
-        content: None,
-        to: None,
+        ..Default::default()
     };
     let activity = create_activity(
         instance_url,
@@ -225,7 +211,7 @@ pub fn create_activity_undo_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     follow_request_id: &Uuid,
-    target_id: &str,
+    target_actor_id: &str,
 ) -> Activity {
     // TODO: retrieve 'Follow' activity from database
     let follow_activity_id = get_object_url(
@@ -241,13 +227,8 @@ pub fn create_activity_undo_follow(
         id: follow_activity_id,
         object_type: FOLLOW.to_string(),
         actor: Some(follow_actor_id),
-        attachment: None,
-        object: Some(target_id.to_owned()),
-        published: None,
-        attributed_to: None,
-        in_reply_to: None,
-        content: None,
-        to: None,
+        object: Some(target_actor_id.to_owned()),
+        ..Default::default()
     };
     let activity = create_activity(
         instance_url,
@@ -345,5 +326,36 @@ mod tests {
             note.in_reply_to.unwrap(),
             parent.object_id.unwrap(),
         );
+    }
+
+    #[test]
+    fn test_create_activity_follow() {
+        let follower = DbActorProfile {
+            username: "follower".to_string(),
+            ..Default::default()
+        };
+        let follow_request_id = Uuid::new_v4();
+        let target_actor_id = "https://example.com/actor/test";
+        let activity = create_activity_follow(
+            INSTANCE_URL,
+            &follower,
+            &follow_request_id,
+            target_actor_id,
+        );
+
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}", INSTANCE_URL, follow_request_id),
+        );
+        assert_eq!(activity.activity_type, "Follow");
+        assert_eq!(
+            activity.actor,
+            format!("{}/users/{}", INSTANCE_URL, follower.username),
+        );
+        assert_eq!(activity.object["id"], target_actor_id);
+        assert_eq!(activity.object["type"], "Person");
+        assert_eq!(activity.object["actor"], Value::Null);
+        assert_eq!(activity.object["object"], Value::Null);
+        assert_eq!(activity.object["content"], Value::Null);
     }
 }
