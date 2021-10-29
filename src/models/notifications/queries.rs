@@ -52,6 +52,18 @@ pub async fn create_reply_notification(
     ).await
 }
 
+pub async fn create_reaction_notification(
+    db_client: &impl GenericClient,
+    sender_id: &Uuid,
+    recipient_id: &Uuid,
+    post_id: &Uuid,
+) -> Result<(), DatabaseError> {
+    create_notification(
+        db_client, sender_id, recipient_id, Some(post_id),
+        EventType::Reaction,
+    ).await
+}
+
 pub async fn get_notifications(
     db_client: &impl GenericClient,
     recipient_id: &Uuid,

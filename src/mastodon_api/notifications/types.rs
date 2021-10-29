@@ -32,6 +32,7 @@ impl ApiNotification {
             EventType::Follow => "follow",
             EventType::FollowRequest => "follow_request",
             EventType::Reply => "reply",
+            EventType::Reaction => "favourite",
         };
         Self {
             id: notification.id.to_string(),
