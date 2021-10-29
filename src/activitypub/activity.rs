@@ -163,6 +163,27 @@ pub fn create_activity_note(
     activity
 }
 
+pub fn create_activity_like(
+    instance_url: &str,
+    actor_profile: &DbActorProfile,
+    object_id: &str,
+) -> Activity {
+    let object = Object {
+        context: Some(json!(AP_CONTEXT)),
+        id: object_id.to_string(),
+        object_type: NOTE.to_string(),
+        ..Default::default()
+    };
+    let activity = create_activity(
+        instance_url,
+        &actor_profile.username,
+        LIKE,
+        None,
+        serde_json::to_value(object).unwrap(),
+    );
+    activity
+}
+
 pub fn create_activity_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,

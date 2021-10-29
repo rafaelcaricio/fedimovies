@@ -4,7 +4,10 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::activitypub::activity::create_activity_note;
+use crate::activitypub::activity::{
+    create_activity_note,
+    create_activity_like,
+};
 use crate::activitypub::actor::Actor;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
@@ -137,12 +140,39 @@ async fn favourite(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    match create_reaction(db_client, &current_user.id, &status_id).await {
-        Err(DatabaseError::AlreadyExists(_)) => (), // post already favourited
-        other_result => other_result?,
-    }
+    let reaction_created = match create_reaction(
+        db_client, &current_user.id, &status_id,
+    ).await {
+        Ok(_) => true,
+        Err(DatabaseError::AlreadyExists(_)) => false, // post already favourited
+        Err(other_error) => return Err(other_error.into()),
+    };
     let mut post = get_post_by_id(db_client, &status_id).await?;
     get_actions_for_post(db_client, &current_user.id, &mut post).await?;
+
+    if reaction_created {
+        if let Some(actor_value) = &post.author.actor_json {
+            // Federate
+            let object_id = post.object_id.as_ref().ok_or(HttpError::InternalError)?;
+            let activity = create_activity_like(
+                &config.instance_url(),
+                &current_user.profile,
+                &object_id,
+            );
+            let recipient: Actor = serde_json::from_value(actor_value.clone())
+                .map_err(|_| HttpError::InternalError)?;
+            let config_clone = config.clone();
+            actix_rt::spawn(async move {
+                deliver_activity(
+                    &config_clone,
+                    &current_user,
+                    activity,
+                    vec![recipient],
+                ).await;
+            });
+        }
+    }
+
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }

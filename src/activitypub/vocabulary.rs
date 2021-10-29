@@ -2,6 +2,7 @@
 pub const ACCEPT: &str = "Accept";
 pub const CREATE: &str = "Create";
 pub const FOLLOW: &str = "Follow";
+pub const LIKE: &str = "Like";
 pub const REJECT: &str = "Reject";
 pub const UNDO: &str = "Undo";
 pub const UPDATE: &str = "Update";

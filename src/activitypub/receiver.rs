@@ -22,6 +22,7 @@ use crate::models::profiles::queries::{
     update_profile,
 };
 use crate::models::profiles::types::{DbActorProfile, ProfileUpdateData};
+use crate::models::reactions::queries::create_reaction;
 use crate::models::relationships::queries::{
     follow_request_accepted,
     follow_request_rejected,
@@ -216,6 +217,23 @@ pub async fn receive_activity(
                 create_post(db_client, &author.id, post_data).await?;
             }
         },
+        (LIKE, _) => {
+            let author = get_or_fetch_profile_by_actor_id(
+                db_client,
+                &activity.actor,
+                &config.media_dir(),
+            ).await?;
+            let object_id = match activity.object.as_str() {
+                Some(object_id) => object_id.to_owned(),
+                None => {
+                    let object: Object = serde_json::from_value(activity.object)
+                        .map_err(|_| ValidationError("invalid object"))?;
+                    object.id
+                },
+            };
+            let post_id = parse_object_id(&config.instance_url(), &object_id)?;
+            create_reaction(db_client, &author.id, &post_id).await?;
+        },
         (FOLLOW, _) => {
             let source_profile = get_or_fetch_profile_by_actor_id(
                 db_client,
@@ -225,8 +243,14 @@ pub async fn receive_activity(
             let source_actor_value = source_profile.actor_json.ok_or(HttpError::InternalError)?;
             let source_actor: Actor = serde_json::from_value(source_actor_value)
                 .map_err(|_| HttpError::InternalError)?;
-            let target_actor_id = activity.object.as_str()
-                .ok_or(ValidationError("invalid object"))?;
+            let target_actor_id = match activity.object.as_str() {
+                Some(object_id) => object_id.to_owned(),
+                None => {
+                    let object: Object = serde_json::from_value(activity.object)
+                        .map_err(|_| ValidationError("invalid object"))?;
+                    object.id
+                },
+            };
             let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
             let target_profile = get_profile_by_acct(db_client, &target_username).await?;
             // Create and send 'Accept' activity
