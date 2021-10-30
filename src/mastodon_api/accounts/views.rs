@@ -130,15 +130,7 @@ async fn follow(
             &request.id,
             &actor.id,
         );
-        let activity_sender = current_user.clone();
-        actix_rt::spawn(async move {
-            deliver_activity(
-                &config,
-                &activity_sender,
-                activity,
-                vec![actor],
-            ).await;
-        });
+        deliver_activity(&config, &current_user, activity, vec![actor]);
         follows::get_relationship(db_client, &current_user.id, &profile.id).await?
     } else {
         follows::follow(db_client, &current_user.id, &profile.id).await?
@@ -177,14 +169,7 @@ async fn unfollow(
             &follow_request.id,
             &actor.id,
         );
-        actix_rt::spawn(async move {
-            deliver_activity(
-                &config,
-                &current_user,
-                activity,
-                vec![actor],
-            ).await;
-        });
+        deliver_activity(&config, &current_user, activity, vec![actor]);
         // TODO: uncouple unfollow and get_relationship
         relationship
     } else {

@@ -24,8 +24,8 @@ pub enum SignatureError {
 pub fn create_http_signature(
     request_url: &str,
     request_body: &str,
-    actor_key: RsaPrivateKey,
-    actor_key_id: String,
+    actor_key: &RsaPrivateKey,
+    actor_key_id: &str,
 ) -> Result<SignatureHeaders, SignatureError> {
     let request_url_object = url::Url::parse(request_url)
         .map_err(|_| SignatureError::UrlError)?;
@@ -41,7 +41,7 @@ pub fn create_http_signature(
         digest,
     );
     let headers_parameter = &["(request-target)", "host", "date", "digest"];
-    let signature_parameter = sign_message(&actor_key, &message)?;
+    let signature_parameter = sign_message(actor_key, &message)?;
     let signature_header = format!(
         r#"keyId="{}",headers="{}",signature="{}""#,
         actor_key_id,
@@ -72,8 +72,8 @@ mod tests {
         let result = create_http_signature(
             request_url,
             request_body,
-            actor_key,
-            actor_key_id.to_string(),
+            &actor_key,
+            actor_key_id,
         );
         assert_eq!(result.is_ok(), true);
 

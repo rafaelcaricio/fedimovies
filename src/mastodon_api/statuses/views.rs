@@ -71,15 +71,7 @@ async fn create_status(
             recipients.push(actor);
         };
     };
-    let config_clone = config.clone();
-    actix_rt::spawn(async move {
-        deliver_activity(
-            &config_clone,
-            &current_user,
-            activity,
-            recipients,
-        ).await;
-    });
+    deliver_activity(&config, &current_user, activity, recipients);
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Created().json(status))
 }
@@ -161,15 +153,7 @@ async fn favourite(
             );
             let recipient: Actor = serde_json::from_value(actor_value.clone())
                 .map_err(|_| HttpError::InternalError)?;
-            let config_clone = config.clone();
-            actix_rt::spawn(async move {
-                deliver_activity(
-                    &config_clone,
-                    &current_user,
-                    activity,
-                    vec![recipient],
-                ).await;
-            });
+            deliver_activity(&config, &current_user, activity, vec![recipient]);
         }
     }
 

@@ -265,15 +265,7 @@ pub async fn receive_activity(
 
             // Send activity
             let recipients = vec![source_actor];
-            let config_clone = config.clone();
-            actix_rt::spawn(async move {
-                deliver_activity(
-                    &config_clone,
-                    &target_user,
-                    new_activity,
-                    recipients,
-                ).await;
-            });
+            deliver_activity(&config, &target_user, new_activity, recipients);
         },
         (UNDO, FOLLOW) => {
             let object: Object = serde_json::from_value(activity.object)
