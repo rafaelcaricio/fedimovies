@@ -4,7 +4,6 @@ use actix_web::{
 };
 use regex::Regex;
 
-use crate::activitypub::actor::Actor;
 use crate::activitypub::fetcher::fetch_profile_by_actor_id;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
@@ -141,9 +140,8 @@ pub async fn verify_http_signature(
             },
         },
     };
-    let actor_value = actor_profile.actor_json.ok_or(VerificationError::ActorError)?;
-    let actor: Actor = serde_json::from_value(actor_value)
-        .map_err(|_| VerificationError::ActorError)?;
+    let actor = actor_profile.actor().ok().flatten()
+        .ok_or(VerificationError::ActorError)?;
 
     let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
     let is_valid_signature = verify_signature(

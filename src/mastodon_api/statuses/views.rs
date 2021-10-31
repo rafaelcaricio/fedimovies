@@ -64,11 +64,10 @@ async fn create_status(
     let followers = get_followers(db_client, &current_user.id).await?;
     let mut recipients: Vec<Actor> = Vec::new();
     for follower in followers {
-        if let Some(actor_value) = follower.actor_json {
-            // Remote
-            let actor: Actor = serde_json::from_value(actor_value)
-                .map_err(|_| HttpError::InternalError)?;
-            recipients.push(actor);
+        let maybe_remote_actor = follower.actor()
+            .map_err(|_| HttpError::InternalError)?;
+        if let Some(remote_actor) = maybe_remote_actor {
+            recipients.push(remote_actor);
         };
     };
     deliver_activity(&config, &current_user, activity, recipients);
@@ -143,7 +142,9 @@ async fn favourite(
     get_actions_for_post(db_client, &current_user.id, &mut post).await?;
 
     if reaction_created {
-        if let Some(actor_value) = &post.author.actor_json {
+        let maybe_remote_actor = post.author.actor()
+            .map_err(|_| HttpError::InternalError)?;
+        if let Some(remote_actor) = maybe_remote_actor {
             // Federate
             let object_id = post.object_id.as_ref().ok_or(HttpError::InternalError)?;
             let activity = create_activity_like(
@@ -151,9 +152,7 @@ async fn favourite(
                 &current_user.profile,
                 &object_id,
             );
-            let recipient: Actor = serde_json::from_value(actor_value.clone())
-                .map_err(|_| HttpError::InternalError)?;
-            deliver_activity(&config, &current_user, activity, vec![recipient]);
+            deliver_activity(&config, &current_user, activity, vec![remote_actor]);
         }
     }
 

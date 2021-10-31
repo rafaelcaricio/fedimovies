@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::config::Config;
-use crate::models::profiles::types::ExtraField;
+use crate::errors::ConversionError;
+use crate::models::profiles::types::{DbActorProfile, ExtraField};
 use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
@@ -98,6 +99,20 @@ impl Actor {
             },
             None => vec![],
         }
+    }
+}
+
+impl DbActorProfile {
+    pub fn actor(&self) -> Result<Option<Actor>, ConversionError> {
+        let actor = match self.actor_json {
+            Some(ref value) => {
+                let actor: Actor = serde_json::from_value(value.clone())
+                    .map_err(|_| ConversionError)?;
+                Some(actor)
+            },
+            None => None,
+        };
+        Ok(actor)
     }
 }
 

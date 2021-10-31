@@ -240,9 +240,8 @@ pub async fn receive_activity(
                 &activity.actor,
                 &config.media_dir(),
             ).await?;
-            let source_actor_value = source_profile.actor_json.ok_or(HttpError::InternalError)?;
-            let source_actor: Actor = serde_json::from_value(source_actor_value)
-                .map_err(|_| HttpError::InternalError)?;
+            let source_actor = source_profile.actor().ok().flatten()
+                .ok_or(HttpError::InternalError)?;
             let target_actor_id = match activity.object.as_str() {
                 Some(object_id) => object_id.to_owned(),
                 None => {

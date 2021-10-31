@@ -7,7 +7,6 @@ use crate::activitypub::activity::{
     create_activity_follow,
     create_activity_undo_follow,
 };
-use crate::activitypub::actor::Actor;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
@@ -119,18 +118,17 @@ async fn follow(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
-    let relationship = if let Some(actor_value) = profile.actor_json {
+    let maybe_remote_actor = profile.actor().map_err(|_| HttpError::InternalError)?;
+    let relationship = if let Some(remote_actor) = maybe_remote_actor {
         // Remote follow
         let request = follows::create_follow_request(db_client, &current_user.id, &profile.id).await?;
-        let actor: Actor = serde_json::from_value(actor_value)
-            .map_err(|_| HttpError::InternalError)?;
         let activity = create_activity_follow(
             &config.instance_url(),
             &current_user.profile,
             &request.id,
-            &actor.id,
+            &remote_actor.id,
         );
-        deliver_activity(&config, &current_user, activity, vec![actor]);
+        deliver_activity(&config, &current_user, activity, vec![remote_actor]);
         follows::get_relationship(db_client, &current_user.id, &profile.id).await?
     } else {
         follows::follow(db_client, &current_user.id, &profile.id).await?
@@ -148,7 +146,8 @@ async fn unfollow(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target_profile = get_profile_by_id(db_client, &account_id).await?;
-    let relationship = if let Some(actor_value) = target_profile.actor_json {
+    let maybe_remote_actor = target_profile.actor().map_err(|_| HttpError::InternalError)?;
+    let relationship = if let Some(remote_actor) = maybe_remote_actor {
         // Remote follow
         let follow_request = follows::get_follow_request_by_path(
             db_client,
@@ -161,15 +160,13 @@ async fn unfollow(
             &target_profile.id,
         ).await?;
         // Federate
-        let actor: Actor = serde_json::from_value(actor_value)
-            .map_err(|_| HttpError::InternalError)?;
         let activity = create_activity_undo_follow(
             &config.instance_url(),
             &current_user.profile,
             &follow_request.id,
-            &actor.id,
+            &remote_actor.id,
         );
-        deliver_activity(&config, &current_user, activity, vec![actor]);
+        deliver_activity(&config, &current_user, activity, vec![remote_actor]);
         // TODO: uncouple unfollow and get_relationship
         relationship
     } else {
