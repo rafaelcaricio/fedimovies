@@ -121,13 +121,19 @@ pub fn create_note(
             url,
         }
     }).collect();
+    let mut recipients = vec![AP_PUBLIC.to_string()];
     let in_reply_to_object_id = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
             let post = in_reply_to.unwrap();
             assert_eq!(post.id, in_reply_to_id);
-            match post.author.is_local() {
-                false => post.object_id.clone(),
-                true => Some(get_object_url(instance_url, &post.id)),
+            match post.author.actor_json {
+                Some(ref actor_value) => {
+                    // Replying to remote post
+                    let remote_actor_id = actor_value["id"].as_str().unwrap();
+                    recipients.push(remote_actor_id.to_string());
+                    post.object_id.clone()
+                },
+                None => Some(get_object_url(instance_url, &post.id)),
             }
         },
         None => None,
@@ -143,7 +149,7 @@ pub fn create_note(
         attributed_to: Some(actor_id),
         in_reply_to: in_reply_to_object_id,
         content: Some(post.content.clone()),
-        to: Some(json!(AP_PUBLIC)),
+        to: Some(json!(recipients)),
     }
 }
 
@@ -324,12 +330,16 @@ mod tests {
             note.in_reply_to.unwrap(),
             format!("{}/objects/{}", INSTANCE_URL, parent.id),
         );
+        assert_eq!(note.to.unwrap(), json!([AP_PUBLIC]));
     }
 
     #[test]
     fn test_create_note_with_remote_parent() {
+        let parent_author_actor_id = "https://test.net/user/test";
         let parent_author = DbActorProfile {
-            actor_json: Some(json!("test")),
+            actor_json: Some(json!({
+                "id": parent_author_actor_id,
+            })),
             ..Default::default()
         };
         let parent = Post {
@@ -346,6 +356,10 @@ mod tests {
         assert_eq!(
             note.in_reply_to.unwrap(),
             parent.object_id.unwrap(),
+        );
+        assert_eq!(
+            note.to.unwrap(),
+            json!([AP_PUBLIC, parent_author_actor_id]),
         );
     }
 

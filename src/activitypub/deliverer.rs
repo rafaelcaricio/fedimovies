@@ -90,14 +90,19 @@ async fn deliver_activity_worker(
         ),
     );
     let activity_json = serde_json::to_string(&activity)?;
-    for recipient in recipients {
+    let mut inboxes: Vec<String> = recipients.into_iter()
+        .map(|actor| actor.inbox)
+        .collect();
+    inboxes.sort();
+    inboxes.dedup();
+    for inbox_url in inboxes {
         // TODO: retry on error
         if let Err(err) = send_activity(
             &config,
             &actor_key,
             &actor_key_id,
             &activity_json,
-            &recipient.inbox,
+            &inbox_url,
         ).await {
             log::error!("{}", err);
         }
