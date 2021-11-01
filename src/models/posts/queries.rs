@@ -53,8 +53,14 @@ pub async fn get_posts(
 pub async fn get_posts_by_author(
     db_client: &impl GenericClient,
     account_id: &Uuid,
+    include_replies: bool,
 ) -> Result<Vec<Post>, DatabaseError> {
-    let rows = db_client.query(
+    let condition = if include_replies {
+        "post.author_id = $1"
+    } else {
+        "post.author_id = $1 AND post.in_reply_to_id IS NULL"
+    };
+    let statement = format!(
         "
         SELECT
             post, actor_profile,
@@ -64,10 +70,13 @@ pub async fn get_posts_by_author(
             ) AS attachments
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
-        WHERE
-            post.author_id = $1
+        WHERE {condition}
         ORDER BY post.created_at DESC
         ",
+        condition=condition,
+    );
+    let rows = db_client.query(
+        statement.as_str(),
         &[&account_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
