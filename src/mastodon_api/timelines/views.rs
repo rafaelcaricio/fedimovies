@@ -9,6 +9,7 @@ use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::helpers::get_actions_for_posts;
 use crate::models::posts::queries::get_posts;
 
+/// https://docs.joinmastodon.org/methods/timelines/
 #[get("/api/v1/timelines/home")]
 pub async fn home_timeline(
     auth: BearerAuth,
