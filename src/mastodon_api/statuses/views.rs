@@ -10,6 +10,7 @@ use crate::activitypub::activity::{
 };
 use crate::activitypub::actor::Actor;
 use crate::activitypub::deliverer::deliver_activity;
+use crate::activitypub::views::get_object_url;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError};
@@ -221,12 +222,15 @@ async fn make_permanent(
         // Use IPFS logo if there's no image
         IPFS_LOGO.to_string()
     };
+    let post_url = get_object_url(
+        &config.instance_url(),
+        &post.id,
+    );
     let post_metadata = PostMetadata {
         name: format!("Post {}", post.id),
         description: post.content.clone(),
         image: get_ipfs_url(&post_image_cid),
-        // TODO: use absolute URL
-        external_url: format!("/post/{}", post.id),
+        external_url: post_url,
     };
     let post_metadata_json = serde_json::to_string(&post_metadata)
         .map_err(|_| HttpError::InternalError)?
