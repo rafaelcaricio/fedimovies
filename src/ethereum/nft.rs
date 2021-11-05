@@ -33,10 +33,12 @@ pub async fn get_nft_contract(
     let json_rpc_url = config.ethereum_json_rpc_url.as_ref()
         .ok_or(EthereumError::ImproperlyConfigured)?;
     let web3 = connect(json_rpc_url)?;
+    let contract_dir = config.ethereum_contract_dir.as_ref()
+        .ok_or(EthereumError::ImproperlyConfigured)?;
     let ethereum_config = config.ethereum_contract.as_ref()
         .ok_or(EthereumError::ImproperlyConfigured)?;
 
-    let manager_abi = load_abi(&config.contract_dir, MANAGER)?;
+    let manager_abi = load_abi(contract_dir, MANAGER)?;
     let manager_address = parse_address(&ethereum_config.address)?;
     let manager = Contract::from_json(
         web3.eth(),
@@ -48,7 +50,7 @@ pub async fn get_nft_contract(
         "collectible",
         (), None, Options::default(), None,
     ).await?;
-    let token_abi = load_abi(&config.contract_dir, COLLECTIBLE)?;
+    let token_abi = load_abi(contract_dir, COLLECTIBLE)?;
     let token = Contract::from_json(
         web3.eth(),
         token_address,

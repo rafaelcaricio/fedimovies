@@ -59,7 +59,7 @@ async fn main() -> std::io::Result<()> {
                     .allow_any_header()
             },
         };
-        App::new()
+        let mut app = App::new()
             .wrap(ActixLogger::new("%r : %s : %{r}a"))
             .wrap(cors_config)
             .wrap(create_auth_error_handler())
@@ -70,10 +70,6 @@ async fn main() -> std::io::Result<()> {
             .service(actix_files::Files::new(
                 "/media",
                 config.media_dir(),
-            ))
-            .service(actix_files::Files::new(
-                "/contracts",
-                config.contract_dir.clone(),
             ))
             .service(oauth_api_scope())
             .service(profile_directory)
@@ -89,7 +85,15 @@ async fn main() -> std::io::Result<()> {
             .service(activitypub_scope())
             .service(get_object)
             .service(nodeinfo::get_nodeinfo)
-            .service(nodeinfo::get_nodeinfo_2_0)
+            .service(nodeinfo::get_nodeinfo_2_0);
+        if let Some(contract_dir) = &config.ethereum_contract_dir {
+            // Serve artifacts if available
+            app = app.service(actix_files::Files::new(
+                "/contracts",
+                contract_dir,
+            ));
+        }
+        app
     })
     .workers(num_workers)
     .bind(http_socket_addr)?

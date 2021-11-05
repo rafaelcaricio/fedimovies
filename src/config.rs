@@ -58,10 +58,6 @@ fn parse_env() -> EnvConfig {
 
 fn default_environment() -> Environment { Environment::Development }
 
-fn default_storage_dir() -> PathBuf { PathBuf::from("files") }
-
-fn default_contract_dir() -> PathBuf { PathBuf::from("contracts") }
-
 #[derive(Clone, Deserialize)]
 pub struct EthereumContract {
     pub address: String,
@@ -80,8 +76,6 @@ pub struct Config {
 
     // Core settings
     pub database_url: String,
-
-    #[serde(default = "default_storage_dir")]
     pub storage_dir: PathBuf,
 
     pub http_host: String,
@@ -99,9 +93,7 @@ pub struct Config {
     pub login_message: String,
 
     // Ethereum & IPFS
-    #[serde(default = "default_contract_dir")]
-    pub contract_dir: PathBuf,
-
+    pub ethereum_contract_dir: Option<PathBuf>,
     pub ethereum_json_rpc_url: Option<String>,
     pub ethereum_explorer_url: Option<String>,
     pub ethereum_contract: Option<EthereumContract>,
@@ -141,10 +133,12 @@ pub fn parse_config() -> Config {
     config.version = env.crate_version;
     // Validate config
     if !config.storage_dir.exists() {
-        panic!("storage_dir does not exist");
+        panic!("storage directory does not exist");
     };
-    if !config.contract_dir.exists() {
-        panic!("contract directory does not exist");
+    if let Some(contract_dir) = &config.ethereum_contract_dir {
+        if !contract_dir.exists() {
+            panic!("contract directory does not exist");
+        };
     };
     config.try_instance_url().expect("invalid instance URI");
 
