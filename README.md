@@ -9,9 +9,7 @@ Federated social network with smart contracts.
 - Converting posts into NFTs.
 - More crypto features in the future.
 
-**WIP: Mitra is not ready for production yet.**
-
-Demo instance: https://test.mitra.social/ (invite-only)
+Demo instance: https://mitra.social/ (invite-only)
 
 Smart contracts repo: https://codeberg.org/silverpill/mitra-contracts
 
@@ -84,11 +82,16 @@ POST /api/v1/accounts/{account_id}/follow
 POST /api/v1/accounts/{account_id}/unfollow
 GET /api/v1/directory
 GET /api/v1/instance
+GET /api/v1/markers
+POST /api/v1/markers
 POST /api/v1/media
+GET /api/v1/notifications
 GET /api/v2/search
 POST /api/v1/statuses
 GET /api/v1/statuses/{status_id}
 GET /api/v1/statuses/{status_id}/context
+POST /api/v1/statuses/{status_id}/favourite
+POST /api/v1/statuses/{status_id}/unfavourite
 GET /api/v1/timelines/home
 ```
 
