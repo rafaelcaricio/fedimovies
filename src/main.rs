@@ -33,6 +33,10 @@ async fn main() -> std::io::Result<()> {
     configure_logger();
     let db_pool = create_pool(&config.database_url);
     apply_migrations(&db_pool).await;
+    if !config.media_dir().exists() {
+        std::fs::create_dir(config.media_dir())
+            .expect("failed to created media directory");
+    }
     log::info!(
         "app initialized; environment = '{:?}'",
         config.environment,
