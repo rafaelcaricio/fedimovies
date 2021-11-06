@@ -10,11 +10,11 @@ pub async fn is_allowed_user(
     config: &Config,
     user_address: &str,
 ) -> Result<bool, EthereumError> {
+    let contract_dir = config.ethereum_contract_dir.as_ref()
+        .ok_or(EthereumError::ImproperlyConfigured)?;
     let json_rpc_url = config.ethereum_json_rpc_url.as_ref()
         .ok_or(EthereumError::ImproperlyConfigured)?;
     let web3 = connect(json_rpc_url)?;
-    let contract_dir = config.ethereum_contract_dir.as_ref()
-        .ok_or(EthereumError::ImproperlyConfigured)?;
     let ethereum_config = config.ethereum_contract.as_ref()
         .ok_or(EthereumError::ImproperlyConfigured)?;
 

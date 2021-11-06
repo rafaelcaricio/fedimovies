@@ -30,11 +30,11 @@ const TOKEN_WAIT_TIME: i64 = 10; // in minutes
 pub async fn get_nft_contract(
     config: &Config,
 ) -> Result<(Web3<Http>, Contract<Http>), EthereumError> {
+    let contract_dir = config.ethereum_contract_dir.as_ref()
+        .ok_or(EthereumError::ImproperlyConfigured)?;
     let json_rpc_url = config.ethereum_json_rpc_url.as_ref()
         .ok_or(EthereumError::ImproperlyConfigured)?;
     let web3 = connect(json_rpc_url)?;
-    let contract_dir = config.ethereum_contract_dir.as_ref()
-        .ok_or(EthereumError::ImproperlyConfigured)?;
     let ethereum_config = config.ethereum_contract.as_ref()
         .ok_or(EthereumError::ImproperlyConfigured)?;
 

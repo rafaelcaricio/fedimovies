@@ -11,15 +11,20 @@ use crate::ethereum::nft::{get_nft_contract, process_events};
 pub fn run(config: Config, db_pool: Pool) -> () {
     actix_rt::spawn(async move {
         let mut interval = actix_rt::time::interval(Duration::from_secs(30));
-        // Verify config and create contract interface
-        let web3_contract = get_nft_contract(&config).await
-            .map_err(|err| log::error!("{}", err))
-            .ok();
+        let web3_contract = if config.ethereum_contract.is_some() {
+            // Verify config and create contract interface
+            get_nft_contract(&config).await
+                .map_err(|err| log::error!("{}", err))
+                .ok()
+        } else {
+            None
+        };
         let mut token_waitlist_map: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
         loop {
             interval.tick().await;
-            // Process events only if contract is properly configured
+
             if let Some((web3, contract)) = web3_contract.as_ref() {
+                // Monitor events only if ethereum integration is enabled
                 process_events(
                     web3, contract,
                     &db_pool,
