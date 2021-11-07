@@ -33,17 +33,19 @@ async fn search_profiles(
     if profiles.len() == 0 && instance.is_some() {
         let instance_uri = instance.unwrap();
         let media_dir = config.media_dir();
-        let profile_data = fetch_profile(&username, &instance_uri, &media_dir).await
-            .map_err(|err| {
+        match fetch_profile(&username, &instance_uri, &media_dir).await {
+            Ok(profile_data) => {
+                let profile = create_profile(db_client, &profile_data).await?;
+                log::info!(
+                    "imported profile '{}'",
+                    profile.acct,
+                );
+                profiles.push(profile);
+            },
+            Err(err) => {
                 log::warn!("{}", err);
-                HttpError::NotFoundError("remote profile")
-            })?;
-        let profile = create_profile(db_client, &profile_data).await?;
-        log::info!(
-            "imported profile '{}'",
-            profile.acct,
-        );
-        profiles.push(profile);
+            },
+        }
     }
     Ok(profiles)
 }

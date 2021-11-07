@@ -1,3 +1,4 @@
+/// https://docs.joinmastodon.org/methods/search/
 use actix_web::{get, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 

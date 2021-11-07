@@ -67,6 +67,7 @@ pub async fn fetch_profile(
     let webfinger_data = client.get(&webfinger_url)
         .query(&[("resource", webfinger_account_uri)])
         .send().await?
+        .error_for_status()?
         .text().await?;
     let jrd: JsonResourceDescriptor = serde_json::from_str(&webfinger_data)?;
     let link = jrd.links.iter()
