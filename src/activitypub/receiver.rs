@@ -97,6 +97,103 @@ async fn get_or_fetch_profile_by_actor_id(
     Ok(profile)
 }
 
+pub async fn process_note(
+    config: &Config,
+    db_client: &mut impl GenericClient,
+    object: Object,
+) -> Result<(), HttpError> {
+    let mut maybe_parent_object_id = object.in_reply_to.clone();
+    let mut objects = vec![object];
+    // Fetch ancestors by going through inReplyTo references
+    // TODO: fetch replies too
+    loop {
+        let object_id = match maybe_parent_object_id {
+            Some(parent_object_id) => {
+                if parse_object_id(&config.instance_url(), &parent_object_id).is_ok() {
+                    // Parent object is a local post
+                    break;
+                }
+                match get_post_by_object_id(db_client, &parent_object_id).await {
+                    Ok(_) => {
+                        // Parent object has been fetched already
+                        break;
+                    },
+                    Err(DatabaseError::NotFound(_)) => (),
+                    Err(other_error) => return Err(other_error.into()),
+                };
+                parent_object_id
+            },
+            None => {
+                // Object does not have a parent
+                break;
+            },
+        };
+        let object = fetch_object(&object_id).await
+            .map_err(|_| ValidationError("failed to fetch object"))?;
+        maybe_parent_object_id = object.in_reply_to.clone();
+        objects.push(object);
+    }
+    // Objects are ordered according to their place in reply tree,
+    // starting with the root
+    objects.reverse();
+    for object in objects {
+        let attributed_to = object.attributed_to
+            .ok_or(ValidationError("unattributed note"))?;
+        let author = get_or_fetch_profile_by_actor_id(
+            db_client,
+            &attributed_to,
+            &config.media_dir(),
+        ).await?;
+        let content = object.content
+            .ok_or(ValidationError("no content"))?;
+        let mut attachments: Vec<Uuid> = Vec::new();
+        if let Some(list) = object.attachment {
+            let mut downloaded: Vec<(String, String)> = Vec::new();
+            let output_dir = config.media_dir();
+            for attachment in list {
+                let file_name = fetch_attachment(&attachment.url, &output_dir).await
+                    .map_err(|_| ValidationError("failed to fetch attachment"))?;
+                log::info!("downloaded attachment {}", attachment.url);
+                downloaded.push((file_name, attachment.media_type));
+            }
+            for (file_name, media_type) in downloaded {
+                let db_attachment = create_attachment(
+                    db_client,
+                    &author.id,
+                    Some(media_type),
+                    file_name,
+                ).await?;
+                attachments.push(db_attachment.id);
+            }
+        }
+        let in_reply_to_id = match object.in_reply_to {
+            Some(object_id) => {
+                match parse_object_id(&config.instance_url(), &object_id) {
+                    Ok(post_id) => {
+                        // Local post
+                        let post = get_post_by_id(db_client, &post_id).await?;
+                        Some(post.id)
+                    },
+                    Err(_) => {
+                        let post = get_post_by_object_id(db_client, &object_id).await?;
+                        Some(post.id)
+                    },
+                }
+            },
+            None => None,
+        };
+        let post_data = PostCreateData {
+            content,
+            in_reply_to_id,
+            attachments: attachments,
+            object_id: Some(object.id),
+            created_at: object.published,
+        };
+        create_post(db_client, &author.id, post_data).await?;
+    }
+    Ok(())
+}
+
 pub async fn receive_activity(
     config: &Config,
     db_pool: &Pool,
@@ -127,95 +224,7 @@ pub async fn receive_activity(
         (CREATE, NOTE) => {
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
-            let mut maybe_parent_object_id = object.in_reply_to.clone();
-            let mut objects = vec![object];
-            // Fetch ancestors by going through inReplyTo references
-            // TODO: fetch replies too
-            loop {
-                let object_id = match maybe_parent_object_id {
-                    Some(parent_object_id) => {
-                        if parse_object_id(&config.instance_url(), &parent_object_id).is_ok() {
-                            // Parent object is a local post
-                            break;
-                        }
-                        match get_post_by_object_id(db_client, &parent_object_id).await {
-                            Ok(_) => {
-                                // Parent object has been fetched already
-                                break;
-                            },
-                            Err(DatabaseError::NotFound(_)) => (),
-                            Err(other_error) => return Err(other_error.into()),
-                        };
-                        parent_object_id
-                    },
-                    None => {
-                        // Object does not have a parent
-                        break;
-                    },
-                };
-                let object = fetch_object(&object_id).await
-                    .map_err(|_| ValidationError("failed to fetch object"))?;
-                maybe_parent_object_id = object.in_reply_to.clone();
-                objects.push(object);
-            }
-            // Objects are ordered according to their place in reply tree,
-            // starting with the root
-            objects.reverse();
-            for object in objects {
-                let attributed_to = object.attributed_to
-                    .ok_or(ValidationError("unattributed note"))?;
-                let author = get_or_fetch_profile_by_actor_id(
-                    db_client,
-                    &attributed_to,
-                    &config.media_dir(),
-                ).await?;
-                let content = object.content
-                    .ok_or(ValidationError("no content"))?;
-                let mut attachments: Vec<Uuid> = Vec::new();
-                if let Some(list) = object.attachment {
-                    let mut downloaded: Vec<(String, String)> = Vec::new();
-                    let output_dir = config.media_dir();
-                    for attachment in list {
-                        let file_name = fetch_attachment(&attachment.url, &output_dir).await
-                            .map_err(|_| ValidationError("failed to fetch attachment"))?;
-                        log::info!("downloaded attachment {}", attachment.url);
-                        downloaded.push((file_name, attachment.media_type));
-                    }
-                    for (file_name, media_type) in downloaded {
-                        let db_attachment = create_attachment(
-                            db_client,
-                            &author.id,
-                            Some(media_type),
-                            file_name,
-                        ).await?;
-                        attachments.push(db_attachment.id);
-                    }
-                }
-                let in_reply_to_id = match object.in_reply_to {
-                    Some(object_id) => {
-                        match parse_object_id(&config.instance_url(), &object_id) {
-                            Ok(post_id) => {
-                                // Local post
-                                let post = get_post_by_id(db_client, &post_id).await?;
-                                Some(post.id)
-                            },
-                            Err(_) => {
-                                let post = get_post_by_object_id(db_client, &object_id).await?;
-                                Some(post.id)
-                            },
-                        }
-                    },
-                    None => None,
-                };
-                let post_data = PostCreateData {
-                    content,
-                    in_reply_to_id,
-                    attachments: attachments,
-                    object_id: Some(object.id),
-                    created_at: object.published,
-                };
-                create_post(db_client, &author.id, post_data).await?;
-            }
+            process_note(config, db_client, object).await?;
         },
         (LIKE, _) => {
             let author = get_or_fetch_profile_by_actor_id(
