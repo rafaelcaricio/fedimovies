@@ -9,7 +9,7 @@ use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
-use crate::models::posts::types::PostCreateData;
+use crate::models::posts::types::{Post, PostCreateData};
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
@@ -101,9 +101,18 @@ pub async fn process_note(
     config: &Config,
     db_client: &mut impl GenericClient,
     object: Object,
-) -> Result<(), HttpError> {
+) -> Result<Post, HttpError> {
+    match get_post_by_object_id(db_client, &object.id).await {
+        Ok(post) => return Ok(post), // post already exists
+        Err(DatabaseError::NotFound(_)) => (), // continue processing
+        Err(other_error) => return Err(other_error.into()),
+    };
+
+    let initial_object_id = object.id.clone();
     let mut maybe_parent_object_id = object.in_reply_to.clone();
     let mut objects = vec![object];
+    let mut posts = vec![];
+
     // Fetch ancestors by going through inReplyTo references
     // TODO: fetch replies too
     loop {
@@ -133,6 +142,7 @@ pub async fn process_note(
         maybe_parent_object_id = object.in_reply_to.clone();
         objects.push(object);
     }
+
     // Objects are ordered according to their place in reply tree,
     // starting with the root
     objects.reverse();
@@ -189,9 +199,14 @@ pub async fn process_note(
             object_id: Some(object.id),
             created_at: object.published,
         };
-        create_post(db_client, &author.id, post_data).await?;
+        let post = create_post(db_client, &author.id, post_data).await?;
+        posts.push(post);
     }
-    Ok(())
+
+    let initial_post = posts.into_iter()
+        .find(|post| post.object_id.as_ref() == Some(&initial_object_id))
+        .unwrap();
+    Ok(initial_post)
 }
 
 pub async fn receive_activity(
