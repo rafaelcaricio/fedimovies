@@ -289,10 +289,10 @@ pub async fn delete_profile(
 
 pub async fn search_profile(
     db_client: &impl GenericClient,
-    username: &String,
-    instance: &Option<String>,
+    username: &str,
+    instance: Option<&String>,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let db_search_query = match &instance {
+    let db_search_query = match instance {
         Some(instance) => {
             // Search for exact profile name.
             // Fetch from remote server if not found

@@ -10,10 +10,10 @@ use crate::activitypub::activity::{
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
-use crate::errors::HttpError;
+use crate::errors::{HttpError, ValidationError};
+use crate::ethereum::gate::is_allowed_user;
 use crate::mastodon_api::statuses::types::Status;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::mastodon_api::users::views::create_user_view;
 use crate::models::posts::helpers::get_actions_for_posts;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
@@ -21,8 +21,61 @@ use crate::models::profiles::queries::{
     update_profile,
 };
 use crate::models::relationships::queries as follows;
+use crate::models::users::queries::{
+    is_valid_invite_code,
+    create_user,
+};
+use crate::utils::crypto::{
+    hash_password,
+    generate_private_key,
+    serialize_private_key,
+};
 use crate::utils::files::FileError;
-use super::types::{Account, AccountUpdateData};
+use super::types::{Account, AccountCreateData, AccountUpdateData};
+
+#[post("")]
+pub async fn create_account(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    account_data: web::Json<AccountCreateData>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let user_data = account_data.into_inner().into_user_data();
+    // Validate
+    user_data.clean()?;
+    if !config.registrations_open {
+        let invite_code = user_data.invite_code.as_ref()
+            .ok_or(ValidationError("invite code is required"))?;
+        if !is_valid_invite_code(db_client, &invite_code).await? {
+            Err(ValidationError("invalid invite code"))?;
+        }
+    }
+    if config.ethereum_contract.is_some() {
+        let is_allowed = is_allowed_user(&config, &user_data.wallet_address).await
+            .map_err(|_| HttpError::InternalError)?;
+        if !is_allowed {
+            Err(ValidationError("not allowed to sign up"))?;
+        }
+    }
+    // Hash password and generate private key
+    let password_hash = hash_password(&user_data.password)
+        .map_err(|_| HttpError::InternalError)?;
+    let private_key = match web::block(move || generate_private_key()).await {
+        Ok(private_key) => private_key,
+        Err(_) => return Err(HttpError::InternalError),
+    };
+    let private_key_pem = serialize_private_key(private_key)
+        .map_err(|_| HttpError::InternalError)?;
+
+    let user = create_user(
+        db_client,
+        user_data,
+        password_hash,
+        private_key_pem,
+    ).await?;
+    let account = Account::from_user(user, &config.instance_url());
+    Ok(HttpResponse::Created().json(account))
+}
 
 #[get("/{account_id}")]
 async fn get_account(
@@ -204,7 +257,7 @@ async fn get_account_statuses(
 pub fn account_api_scope() -> Scope {
     web::scope("/api/v1/accounts")
         // Routes without account ID
-        .service(create_user_view)
+        .service(create_account)
         .service(get_relationships)
         .service(verify_credentials)
         .service(update_credentials)

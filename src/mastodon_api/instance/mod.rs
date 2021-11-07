@@ -1,2 +1,2 @@
-pub mod types;
+mod types;
 pub mod views;

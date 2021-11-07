@@ -15,7 +15,7 @@ use crate::models::notifications::queries::create_reply_notification;
 use crate::models::profiles::queries::update_post_count;
 use super::types::{DbPost, Post, PostCreateData};
 
-pub async fn get_posts(
+pub async fn get_home_timeline(
     db_client: &impl GenericClient,
     current_user_id: &Uuid,
 ) -> Result<Vec<Post>, DatabaseError> {

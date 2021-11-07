@@ -14,7 +14,7 @@ use super::types::{
     JsonResourceDescriptor,
 };
 
-pub async fn get_user_info(
+async fn get_user_info(
     db_pool: &Pool,
     config: &Config,
     query_params: WebfingerQueryParams,
@@ -53,7 +53,7 @@ pub async fn get_user_info(
 }
 
 #[get("/.well-known/webfinger")]
-async fn get_descriptor(
+pub async fn get_descriptor(
     config: web::Data<Config>,
     db_bool: web::Data<Pool>,
     query_params: web::Query<WebfingerQueryParams>,

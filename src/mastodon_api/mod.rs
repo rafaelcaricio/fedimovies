@@ -8,4 +8,3 @@ pub mod oauth;
 pub mod search;
 pub mod statuses;
 pub mod timelines;
-pub mod users;

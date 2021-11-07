@@ -11,16 +11,16 @@ use mitra::database::create_pool;
 use mitra::database::migrate::apply_migrations;
 use mitra::logger::configure_logger;
 use mitra::mastodon_api::accounts::views::account_api_scope;
-use mitra::mastodon_api::directory::views::profile_directory;
-use mitra::mastodon_api::instance::views as instance_api;
+use mitra::mastodon_api::directory::views::directory_api_scope;
+use mitra::mastodon_api::instance::views::instance_api_scope;
 use mitra::mastodon_api::markers::views::marker_api_scope;
 use mitra::mastodon_api::media::views::media_api_scope;
 use mitra::mastodon_api::notifications::views::notification_api_scope;
 use mitra::mastodon_api::oauth::auth::create_auth_error_handler;
 use mitra::mastodon_api::oauth::views::oauth_api_scope;
-use mitra::mastodon_api::search::views::search;
+use mitra::mastodon_api::search::views::search_api_scope;
 use mitra::mastodon_api::statuses::views::status_api_scope;
-use mitra::mastodon_api::timelines::views as timeline_api;
+use mitra::mastodon_api::timelines::views::timeline_api_scope;
 use mitra::nodeinfo::views as nodeinfo;
 use mitra::scheduler;
 use mitra::webfinger::views as webfinger;
@@ -76,15 +76,15 @@ async fn main() -> std::io::Result<()> {
                 config.media_dir(),
             ))
             .service(oauth_api_scope())
-            .service(profile_directory)
             .service(account_api_scope())
+            .service(directory_api_scope())
+            .service(instance_api_scope())
             .service(marker_api_scope())
             .service(media_api_scope())
             .service(notification_api_scope())
             .service(status_api_scope())
-            .service(instance_api::instance)
-            .service(search)
-            .service(timeline_api::home_timeline)
+            .service(search_api_scope())
+            .service(timeline_api_scope())
             .service(webfinger::get_descriptor)
             .service(activitypub_scope())
             .service(get_object)

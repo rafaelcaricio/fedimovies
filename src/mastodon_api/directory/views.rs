@@ -1,4 +1,4 @@
-use actix_web::{get, web, HttpResponse};
+use actix_web::{get, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use crate::config::Config;
@@ -8,8 +8,8 @@ use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::profiles::queries::get_profiles;
 
-#[get("/api/v1/directory")]
-pub async fn profile_directory(
+#[get("")]
+async fn profile_directory(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
@@ -21,4 +21,9 @@ pub async fn profile_directory(
         .map(|profile| Account::from_profile(profile, &config.instance_url()))
         .collect();
     Ok(HttpResponse::Ok().json(accounts))
+}
+
+pub fn directory_api_scope() -> Scope {
+    web::scope("/api/v1/directory")
+        .service(profile_directory)
 }

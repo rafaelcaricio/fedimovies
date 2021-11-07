@@ -1,22 +1,15 @@
-use actix_web::{get, web, HttpResponse};
+use actix_web::{get, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use serde::Deserialize;
 
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
-use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use super::queries;
-use super::types::SearchResults;
+use super::helpers::search;
+use super::types::SearchQueryParams;
 
-#[derive(Deserialize)]
-struct SearchQueryParams {
-    q: String,
-}
-
-#[get("/api/v2/search")]
-async fn search(
+#[get("")]
+async fn search_view(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
@@ -24,10 +17,11 @@ async fn search(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     get_current_user(db_client, auth.token()).await?;
-    let profiles = queries::search(&config, db_client, &query_params.q).await?;
-    let accounts: Vec<Account> = profiles.into_iter()
-        .map(|profile| Account::from_profile(profile, &config.instance_url()))
-        .collect();
-    let results = SearchResults { accounts };
+    let results = search(&config, db_client, &query_params.q).await?;
     Ok(HttpResponse::Ok().json(results))
+}
+
+pub fn search_api_scope() -> Scope {
+    web::scope("/api/v2/search")
+        .service(search_view)
 }
