@@ -56,13 +56,13 @@ pub async fn fetch_avatar_and_banner(
 
 pub async fn fetch_profile(
     username: &str,
-    instance_uri: &str,
+    instance_host: &str,
     media_dir: &PathBuf,
 ) -> Result<ProfileCreateData, FetchError> {
-    let actor_address = format!("{}@{}", &username, &instance_uri);
+    let actor_address = format!("{}@{}", &username, &instance_host);
     let webfinger_account_uri = format!("acct:{}", actor_address);
     // TOOD: support http
-    let webfinger_url = format!("https://{}/.well-known/webfinger", instance_uri);
+    let webfinger_url = format!("https://{}/.well-known/webfinger", instance_host);
     let client = reqwest::Client::new();
     let webfinger_data = client.get(&webfinger_url)
         .query(&[("resource", webfinger_account_uri)])

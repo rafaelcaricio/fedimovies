@@ -1,9 +1,10 @@
 use actix_web::{get, web, HttpResponse};
 use regex::Regex;
+use tokio_postgres::GenericClient;
 
 use crate::activitypub::views::get_actor_url;
 use crate::activitypub::constants::ACTIVITY_CONTENT_TYPE;
-use crate::config::Config;
+use crate::config::{Config, Instance};
 use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::models::users::queries::is_registered_user;
@@ -15,8 +16,8 @@ use super::types::{
 };
 
 async fn get_user_info(
-    db_pool: &Pool,
-    config: &Config,
+    db_client: &impl GenericClient,
+    instance: Instance,
     query_params: WebfingerQueryParams,
 ) -> Result<JsonResourceDescriptor, HttpError> {
     // Parse 'acct' URI
@@ -27,19 +28,18 @@ async fn get_user_info(
     let username = uri_caps.name("user")
         .ok_or(HttpError::ValidationError("invalid query target".into()))?
         .as_str();
-    let instance_uri = uri_caps.name("instance")
+    let instance_host = uri_caps.name("instance")
         .ok_or(HttpError::ValidationError("invalid query target".into()))?
         .as_str();
 
-    if instance_uri != config.instance_uri {
-        // Wrong instance URI
+    if instance_host != instance.host() {
+        // Wrong instance
         return Err(HttpError::NotFoundError("user"));
     }
-    let db_client = &**get_database_client(db_pool).await?;
     if !is_registered_user(db_client, &username).await? {
         return Err(HttpError::NotFoundError("user"));
     }
-    let actor_url = get_actor_url(&config.instance_url(), &username);
+    let actor_url = get_actor_url(&instance.url(), &username);
     let link = Link {
         rel: "self".to_string(),
         link_type: Some(ACTIVITY_CONTENT_TYPE.to_string()),
@@ -55,10 +55,15 @@ async fn get_user_info(
 #[get("/.well-known/webfinger")]
 pub async fn get_descriptor(
     config: web::Data<Config>,
-    db_bool: web::Data<Pool>,
+    db_pool: web::Data<Pool>,
     query_params: web::Query<WebfingerQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
-    let jrd = get_user_info(&db_bool, &config, query_params.into_inner()).await?;
+    let db_client = &**get_database_client(&db_pool).await?;
+    let jrd = get_user_info(
+        db_client,
+        config.instance(),
+        query_params.into_inner(),
+    ).await?;
     let response = HttpResponse::Ok()
         .content_type(JRD_CONTENT_TYPE)
         .json(jrd);

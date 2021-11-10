@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use serde::{de, Deserialize, Deserializer};
-use url::{Url, ParseError as UrlParseError};
+use url::Url;
 
 use crate::errors::ConversionError;
 
@@ -82,7 +82,7 @@ pub struct Config {
     pub http_port: u32,
 
     // Instance info
-    pub instance_uri: String,
+    instance_uri: String,
     pub instance_title: String,
     pub instance_short_description: String,
     pub instance_description: String,
@@ -102,22 +102,43 @@ pub struct Config {
 }
 
 impl Config {
-    fn try_instance_url(&self) -> Result<Url, UrlParseError> {
+    fn try_instance_url(&self) -> Result<Url, ConversionError> {
         // TODO: allow http in production
         let scheme = match self.environment {
             Environment::Development => "http",
             Environment::Production => "https",
         };
         let url_str = format!("{}://{}", scheme, self.instance_uri);
-        Url::parse(&url_str)
+        let url = Url::parse(&url_str).map_err(|_| ConversionError)?;
+        url.host().ok_or(ConversionError)?; // validates URL
+        Ok(url)
+    }
+
+    pub fn instance(&self) -> Instance {
+        Instance { _url: self.try_instance_url().unwrap() }
     }
 
     pub fn instance_url(&self) -> String {
-        self.try_instance_url().unwrap().origin().ascii_serialization()
+        self.instance().url()
     }
 
     pub fn media_dir(&self) -> PathBuf {
         self.storage_dir.join("media")
+    }
+}
+
+pub struct Instance {
+    _url: Url,
+}
+
+impl Instance {
+
+    pub fn url(&self) -> String {
+        self._url.origin().ascii_serialization()
+    }
+
+    pub fn host(&self) -> String {
+        self._url.host_str().unwrap().to_string()
     }
 }
 
@@ -143,4 +164,27 @@ pub fn parse_config() -> Config {
     config.try_instance_url().expect("invalid instance URI");
 
     config
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_instance_url_https_dns() {
+        let instance_url = Url::parse("https://example.com/").unwrap();
+        let instance = Instance { _url: instance_url };
+
+        assert_eq!(instance.url(), "https://example.com");
+        assert_eq!(instance.host(), "example.com");
+    }
+
+    #[test]
+    fn test_instance_url_http_ipv4() {
+        let instance_url = Url::parse("http://1.2.3.4:3777/").unwrap();
+        let instance = Instance { _url: instance_url };
+
+        assert_eq!(instance.url(), "http://1.2.3.4:3777");
+        assert_eq!(instance.host(), "1.2.3.4");
+    }
 }

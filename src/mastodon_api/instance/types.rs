@@ -4,7 +4,7 @@ use crate::config::Config;
 use crate::ethereum::contracts::MANAGER;
 
 #[derive(Serialize)]
-pub struct Instance {
+pub struct InstanceInfo {
     uri: String,
     title: String,
     short_description: String,
@@ -19,10 +19,10 @@ pub struct Instance {
     ipfs_gateway_url: Option<String>,
 }
 
-impl From<&Config> for Instance {
+impl From<&Config> for InstanceInfo {
     fn from(config: &Config) -> Self {
         Self {
-            uri: config.instance_uri.clone(),
+            uri: config.instance().host(),
             title: config.instance_title.clone(),
             short_description: config.instance_short_description.clone(),
             description: config.instance_description.clone(),
