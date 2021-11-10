@@ -126,14 +126,13 @@ pub fn create_note(
         Some(in_reply_to_id) => {
             let post = in_reply_to.unwrap();
             assert_eq!(post.id, in_reply_to_id);
-            match post.author.actor_json {
-                Some(ref actor_value) => {
-                    // Replying to remote post
-                    let remote_actor_id = actor_value["id"].as_str().unwrap();
-                    recipients.push(remote_actor_id.to_string());
-                    post.object_id.clone()
-                },
-                None => Some(get_object_url(instance_url, &post.id)),
+            if post.author.is_local() {
+                Some(get_object_url(instance_url, &post.id))
+            } else {
+                // Replying to remote post
+                let remote_actor_id = post.author.actor_id(instance_url).unwrap();
+                recipients.push(remote_actor_id);
+                post.object_id.clone()
             }
         },
         None => None,

@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::errors::ValidationError;
+use crate::activitypub::views::get_actor_url;
+use crate::errors::{ConversionError, ValidationError};
 use crate::utils::html::clean_html;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -71,6 +72,18 @@ pub struct DbActorProfile {
 impl DbActorProfile {
     pub fn is_local(&self) -> bool {
         self.actor_json.is_none()
+    }
+
+    pub fn actor_id(&self, instance_url: &str) -> Result<String, ConversionError> {
+        let actor_id = match self.actor_json {
+            Some(ref actor_value) => {
+                actor_value["id"].as_str()
+                    .ok_or(ConversionError)?
+                    .to_string()
+            },
+            None => get_actor_url(instance_url, &self.username),
+        };
+        Ok(actor_id)
     }
 }
 
