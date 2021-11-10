@@ -164,6 +164,24 @@ pub async fn get_profiles(
     Ok(profiles)
 }
 
+pub async fn get_profiles_by_accts(
+    db_client: &impl GenericClient,
+    accts: Vec<String>,
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT actor_profile
+        FROM actor_profile
+        WHERE acct = ANY($1)
+        ",
+        &[&accts],
+    ).await?;
+    let profiles = rows.iter()
+        .map(|row| row.try_get("actor_profile"))
+        .collect::<Result<_, _>>()?;
+    Ok(profiles)
+}
+
 pub async fn get_followers(
     db_client: &impl GenericClient,
     profile_id: &Uuid,

@@ -19,6 +19,7 @@ use crate::ipfs::store as ipfs_store;
 use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::attachments::queries::set_attachment_ipfs_cid;
+use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
 use crate::models::profiles::queries::get_followers;
 use crate::models::posts::helpers::{
     get_actions_for_post,
@@ -46,8 +47,21 @@ async fn create_status(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    let instance = config.instance();
     let mut post_data = PostCreateData::from(data.into_inner());
     post_data.validate()?;
+    // Mentions
+    let mention_map = find_mentioned_profiles(
+        db_client,
+        &instance.host(),
+        &post_data.content,
+    ).await?;
+    post_data.content = replace_mentions(
+        &mention_map,
+        &instance.host(),
+        &instance.url(),
+        &post_data.content,
+    );
     let post = create_post(db_client, &current_user.id, post_data).await?;
     // Federate
     let maybe_in_reply_to = match post.in_reply_to_id {
@@ -58,7 +72,7 @@ async fn create_status(
         None => None,
     };
     let activity = create_activity_note(
-        &config.instance_url(),
+        &instance.url(),
         &post,
         maybe_in_reply_to.as_ref(),
     );
@@ -79,7 +93,7 @@ async fn create_status(
         }
     }
     deliver_activity(&config, &current_user, activity, recipients);
-    let status = Status::from_post(post, &config.instance_url());
+    let status = Status::from_post(post, &instance.url());
     Ok(HttpResponse::Created().json(status))
 }
 
