@@ -85,6 +85,14 @@ impl DbActorProfile {
         };
         Ok(actor_id)
     }
+
+    pub fn actor_address(&self, instance_host: &str) -> String {
+        if self.is_local() {
+            format!("{}@{}", self.acct, instance_host)
+        } else {
+            self.acct.clone()
+        }
+    }
 }
 
 #[cfg(test)]
@@ -154,5 +162,39 @@ impl ProfileUpdateData {
             return Err(ValidationError("duplicate labels"));
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use super::*;
+
+    const INSTANCE_HOST: &str = "example.com";
+
+    #[test]
+    fn test_local_actor_address() {
+        let local_profile = DbActorProfile {
+            acct: "user".to_string(),
+            actor_json: None,
+            ..Default::default()
+        };
+        assert_eq!(
+            local_profile.actor_address(INSTANCE_HOST),
+            "user@example.com",
+        );
+    }
+
+    #[test]
+    fn test_remote_actor_address() {
+        let remote_profile = DbActorProfile {
+            acct: "test@remote.com".to_string(),
+            actor_json: Some(json!({"id": "https://test"})),
+            ..Default::default()
+        };
+        assert_eq!(
+            remote_profile.actor_address(INSTANCE_HOST),
+            remote_profile.acct,
+        );
     }
 }

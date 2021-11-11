@@ -74,6 +74,7 @@ async fn create_status(
         None => None,
     };
     let activity = create_activity_note(
+        &instance.host(),
         &instance.url(),
         &post,
         maybe_in_reply_to.as_ref(),
@@ -94,6 +95,13 @@ async fn create_status(
             recipients.push(remote_actor);
         }
     }
+    for profile in post.mentions.iter() {
+        let maybe_remote_actor = profile.actor()
+            .map_err(|_| HttpError::InternalError)?;
+        if let Some(remote_actor) = maybe_remote_actor {
+            recipients.push(remote_actor);
+        };
+    };
     deliver_activity(&config, &current_user, activity, recipients);
     let status = Status::from_post(post, &instance.url());
     Ok(HttpResponse::Created().json(status))

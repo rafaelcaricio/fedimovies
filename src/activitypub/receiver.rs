@@ -176,6 +176,19 @@ pub async fn process_note(
                 attachments.push(db_attachment.id);
             }
         }
+        let mut mentions: Vec<Uuid> = Vec::new();
+        if let Some(list) = object.tag {
+            for tag in list {
+                if tag.tag_type == MENTION {
+                    let profile = get_or_fetch_profile_by_actor_id(
+                        db_client,
+                        &tag.href,
+                        &config.media_dir(),
+                    ).await?;
+                    mentions.push(profile.id);
+                };
+            };
+        };
         let in_reply_to_id = match object.in_reply_to {
             Some(object_id) => {
                 match parse_object_id(&config.instance_url(), &object_id) {
@@ -196,7 +209,7 @@ pub async fn process_note(
             content,
             in_reply_to_id,
             attachments: attachments,
-            mentions: vec![],
+            mentions: mentions,
             object_id: Some(object.id),
             created_at: object.published,
         };

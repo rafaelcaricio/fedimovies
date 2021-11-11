@@ -22,6 +22,17 @@ pub struct Attachment {
     pub url: String,
 }
 
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Tag {
+    pub name: String,
+
+    #[serde(rename = "type")]
+    pub tag_type: String,
+
+    pub href: String,
+}
+
 #[derive(Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Object {
@@ -53,6 +64,9 @@ pub struct Object {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag: Option<Vec<Tag>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Value>,
@@ -99,6 +113,7 @@ fn create_activity(
 }
 
 pub fn create_note(
+    instance_host: &str,
     instance_url: &str,
     post: &Post,
     in_reply_to: Option<&Post>,
@@ -122,6 +137,17 @@ pub fn create_note(
         }
     }).collect();
     let mut recipients = vec![AP_PUBLIC.to_string()];
+    let mentions: Vec<Tag> = post.mentions.iter().map(|profile| {
+        let actor_id = profile.actor_id(instance_url).unwrap();
+        if !profile.is_local() {
+            recipients.push(actor_id.clone());
+        };
+        Tag {
+            name: profile.actor_address(instance_host),
+            tag_type: MENTION.to_string(),
+            href: actor_id,
+        }
+    }).collect();
     let in_reply_to_object_id = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
             let post = in_reply_to.unwrap();
@@ -131,7 +157,9 @@ pub fn create_note(
             } else {
                 // Replying to remote post
                 let remote_actor_id = post.author.actor_id(instance_url).unwrap();
-                recipients.push(remote_actor_id);
+                if !recipients.contains(&remote_actor_id) {
+                    recipients.push(remote_actor_id);
+                };
                 post.object_id.clone()
             }
         },
@@ -148,16 +176,18 @@ pub fn create_note(
         attributed_to: Some(actor_id),
         in_reply_to: in_reply_to_object_id,
         content: Some(post.content.clone()),
+        tag: Some(mentions),
         to: Some(json!(recipients)),
     }
 }
 
 pub fn create_activity_note(
+    instance_host: &str,
     instance_url: &str,
     post: &Post,
     in_reply_to: Option<&Post>,
 ) -> Activity {
-    let object = create_note(instance_url, post, in_reply_to);
+    let object = create_note(instance_host, instance_url, post, in_reply_to);
     let activity = create_activity(
         instance_url,
         &post.author.username,
@@ -292,6 +322,7 @@ impl OrderedCollection {
 mod tests {
     use super::*;
 
+    const INSTANCE_HOST: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";
 
     #[test]
@@ -301,7 +332,7 @@ mod tests {
             ..Default::default()
         };
         let post = Post { author, ..Default::default() };
-        let note = create_note(INSTANCE_URL, &post, None);
+        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post, None);
 
         assert_eq!(
             note.id,
@@ -323,7 +354,7 @@ mod tests {
             in_reply_to_id: Some(parent.id),
             ..Default::default()
         };
-        let note = create_note(INSTANCE_URL, &post, Some(&parent));
+        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post, Some(&parent));
 
         assert_eq!(
             note.in_reply_to.unwrap(),
@@ -334,28 +365,35 @@ mod tests {
 
     #[test]
     fn test_create_note_with_remote_parent() {
+        let parent_author_acct = "test@test.net";
         let parent_author_actor_id = "https://test.net/user/test";
         let parent_author = DbActorProfile {
+            acct: parent_author_acct.to_string(),
             actor_json: Some(json!({
                 "id": parent_author_actor_id,
             })),
             ..Default::default()
         };
         let parent = Post {
-            author: parent_author,
+            author: parent_author.clone(),
             object_id: Some("https://test.net/obj/123".to_string()),
             ..Default::default()
         };
         let post = Post {
             in_reply_to_id: Some(parent.id),
+            mentions: vec![parent_author],
             ..Default::default()
         };
-        let note = create_note(INSTANCE_URL, &post, Some(&parent));
+        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post, Some(&parent));
 
         assert_eq!(
             note.in_reply_to.unwrap(),
             parent.object_id.unwrap(),
         );
+        let tags = note.tag.unwrap();
+        assert_eq!(tags.len(), 1);
+        assert_eq!(tags[0].name, parent_author_acct);
+        assert_eq!(tags[0].href, parent_author_actor_id);
         assert_eq!(
             note.to.unwrap(),
             json!([AP_PUBLIC, parent_author_actor_id]),

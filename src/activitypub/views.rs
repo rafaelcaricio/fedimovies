@@ -139,7 +139,12 @@ pub async fn get_object(
         },
         None => None,
     };
-    let object = create_note(&config.instance_url(), post, in_reply_to);
+    let object = create_note(
+        &config.instance().host(),
+        &config.instance().url(),
+        post,
+        in_reply_to,
+    );
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)
         .json(object);

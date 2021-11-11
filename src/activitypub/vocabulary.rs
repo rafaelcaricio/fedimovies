@@ -13,6 +13,7 @@ pub const PERSON: &str = "Person";
 // Object types
 pub const DOCUMENT: &str = "Document";
 pub const IMAGE: &str = "Image";
+pub const MENTION: &str = "Mention";
 pub const NOTE: &str = "Note";
 
 // Misc
