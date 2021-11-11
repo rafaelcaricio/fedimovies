@@ -62,6 +62,8 @@ async fn create_status(
         &instance.url(),
         &post_data.content,
     );
+    post_data.mentions = mention_map.values()
+        .map(|profile| profile.id).collect();
     let post = create_post(db_client, &current_user.id, post_data).await?;
     // Federate
     let maybe_in_reply_to = match post.in_reply_to_id {

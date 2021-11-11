@@ -75,6 +75,12 @@ CREATE TABLE media_attachment (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
+CREATE TABLE mention (
+    post_id UUID NOT NULL REFERENCES post (id) ON DELETE CASCADE,
+    profile_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
+    PRIMARY KEY (post_id, profile_id)
+);
+
 CREATE TABLE oauth_token (
     id SERIAL PRIMARY KEY,
     owner_id UUID NOT NULL REFERENCES user_account (id) ON DELETE CASCADE,

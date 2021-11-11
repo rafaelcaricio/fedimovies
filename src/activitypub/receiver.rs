@@ -196,6 +196,7 @@ pub async fn process_note(
             content,
             in_reply_to_id,
             attachments: attachments,
+            mentions: vec![],
             object_id: Some(object.id),
             created_at: object.published,
         };

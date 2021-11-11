@@ -5,6 +5,27 @@ use uuid::Uuid;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::media::types::Attachment;
 use crate::models::posts::types::{Post, PostCreateData};
+use crate::models::profiles::types::DbActorProfile;
+
+/// https://docs.joinmastodon.org/entities/mention/
+#[derive(Serialize)]
+pub struct Mention {
+    id: String,
+    username: String,
+    acct: String,
+    url: String,
+}
+
+impl Mention {
+    fn from_profile(profile: DbActorProfile, instance_url: &str) -> Self {
+        Mention {
+            id: profile.id.to_string(),
+            username: profile.username.clone(),
+            acct: profile.acct.clone(),
+            url: profile.actor_id(instance_url).unwrap(),
+        }
+    }
+}
 
 /// https://docs.joinmastodon.org/entities/status/
 #[derive(Serialize)]
@@ -17,6 +38,7 @@ pub struct Status {
     pub replies_count: i32,
     pub favourites_count: i32,
     pub media_attachments: Vec<Attachment>,
+    mentions: Vec<Mention>,
 
     // Authorized user attributes
     pub favourited: bool,
@@ -32,6 +54,9 @@ impl Status {
         let attachments: Vec<Attachment> = post.attachments.into_iter()
             .map(|item| Attachment::from_db(item, instance_url))
             .collect();
+        let mentions: Vec<Mention> = post.mentions.into_iter()
+            .map(|item| Mention::from_profile(item, instance_url))
+            .collect();
         let account = Account::from_profile(post.author, instance_url);
         Self {
             id: post.id,
@@ -42,6 +67,7 @@ impl Status {
             replies_count: post.reply_count,
             favourites_count: post.reaction_count,
             media_attachments: attachments,
+            mentions: mentions,
             favourited: post.actions.map_or(false, |actions| actions.favourited),
             ipfs_cid: post.ipfs_cid,
             token_id: post.token_id,
@@ -68,6 +94,7 @@ impl From<StatusData> for PostCreateData {
             content: value.status,
             in_reply_to_id: value.in_reply_to_id,
             attachments: value.media_ids.unwrap_or(vec![]),
+            mentions: vec![],
             object_id: None,
             created_at: None,
         }

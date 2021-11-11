@@ -13,6 +13,7 @@ use crate::models::cleanup::{
 };
 use crate::models::notifications::queries::create_reply_notification;
 use crate::models::profiles::queries::update_post_count;
+use crate::models::profiles::types::DbActorProfile;
 use super::types::{DbPost, Post, PostCreateData};
 
 pub const RELATED_ATTACHMENTS: &str =
@@ -20,6 +21,14 @@ pub const RELATED_ATTACHMENTS: &str =
         SELECT media_attachment
         FROM media_attachment WHERE post_id = post.id
     ) AS attachments";
+
+pub const RELATED_MENTIONS: &str =
+    "ARRAY(
+        SELECT actor_profile
+        FROM mention
+        JOIN actor_profile ON mention.profile_id = actor_profile.id
+        WHERE post_id = post.id
+    ) AS mentions";
 
 pub async fn get_home_timeline(
     db_client: &impl GenericClient,
@@ -31,7 +40,8 @@ pub async fn get_home_timeline(
         "
         SELECT
             post, actor_profile,
-            {related_attachments}
+            {related_attachments},
+            {related_mentions}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
@@ -46,6 +56,7 @@ pub async fn get_home_timeline(
         ORDER BY post.created_at DESC
         ",
         related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
     );
     let rows = db_client.query(
         statement.as_str(),
@@ -71,13 +82,15 @@ pub async fn get_posts_by_author(
         "
         SELECT
             post, actor_profile,
-            {related_attachments}
+            {related_attachments},
+            {related_mentions}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE {condition}
         ORDER BY post.created_at DESC
         ",
         related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
         condition=condition,
     );
     let rows = db_client.query(
@@ -136,6 +149,25 @@ pub async fn create_post(
     let db_attachments: Vec<DbMediaAttachment> = attachments_rows.iter()
         .map(|row| row.try_get("media_attachment"))
         .collect::<Result<_, _>>()?;
+    // Create mentions
+    let mentions_rows = transaction.query(
+        "
+        INSERT INTO mention (post_id, profile_id)
+        SELECT $1, unnest($2::uuid[])
+        RETURNING (
+            SELECT actor_profile FROM actor_profile
+            WHERE actor_profile.id = profile_id
+        ) AS actor_profile
+        ",
+        &[&db_post.id, &data.mentions],
+    ).await?;
+    if mentions_rows.len() != data.mentions.len() {
+        // Some profiles were not found
+        return Err(DatabaseError::NotFound("profile"));
+    };
+    let db_mentions: Vec<DbActorProfile> = mentions_rows.iter()
+        .map(|row| row.try_get("actor_profile"))
+        .collect::<Result<_, _>>()?;
     // Update counters
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
     if let Some(in_reply_to_id) = &db_post.in_reply_to_id {
@@ -152,7 +184,7 @@ pub async fn create_post(
     }
 
     transaction.commit().await?;
-    let post = Post::new(db_post, author, db_attachments);
+    let post = Post::new(db_post, author, db_attachments, db_mentions);
     Ok(post)
 }
 
@@ -164,12 +196,14 @@ pub async fn get_post_by_id(
         "
         SELECT
             post, actor_profile,
-            {related_attachments}
+            {related_attachments},
+            {related_mentions}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id = $1
         ",
         related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
     );
     let maybe_row = db_client.query_opt(
         statement.as_str(),
@@ -208,13 +242,15 @@ pub async fn get_thread(
         )
         SELECT
             post, actor_profile,
-            {related_attachments}
+            {related_attachments},
+            {related_mentions}
         FROM post
         JOIN context ON post.id = context.id
         JOIN actor_profile ON post.author_id = actor_profile.id
         ORDER BY context.path
         ",
         related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
     );
     let rows = db_client.query(
         statement.as_str(),
@@ -237,12 +273,14 @@ pub async fn get_post_by_object_id(
         "
         SELECT
             post, actor_profile,
-            {related_attachments}
+            {related_attachments},
+            {related_mentions}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.object_id = $1
         ",
         related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
     );
     let maybe_row = db_client.query_opt(
         statement.as_str(),
@@ -261,12 +299,14 @@ pub async fn get_post_by_ipfs_cid(
         "
         SELECT
             post, actor_profile,
-            {related_attachments}
+            {related_attachments},
+            {related_mentions}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.ipfs_cid = $1
         ",
         related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
     );
     let result = db_client.query_opt(
         statement.as_str(),

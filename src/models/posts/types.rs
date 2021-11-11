@@ -39,6 +39,7 @@ pub struct Post {
     pub reply_count: i32,
     pub reaction_count: i32,
     pub attachments: Vec<DbMediaAttachment>,
+    pub mentions: Vec<DbActorProfile>,
     pub object_id: Option<String>,
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
@@ -52,6 +53,7 @@ impl Post {
         db_post: DbPost,
         db_author: DbActorProfile,
         db_attachments: Vec<DbMediaAttachment>,
+        db_mentions: Vec<DbActorProfile>,
     ) -> Self {
         assert_eq!(db_post.author_id, db_author.id);
         Self {
@@ -62,6 +64,7 @@ impl Post {
             reply_count: db_post.reply_count,
             reaction_count: db_post.reaction_count,
             attachments: db_attachments,
+            mentions: db_mentions,
             object_id: db_post.object_id,
             ipfs_cid: db_post.ipfs_cid,
             token_id: db_post.token_id,
@@ -83,6 +86,7 @@ impl Default for Post {
             reply_count: 0,
             reaction_count: 0,
             attachments: vec![],
+            mentions: vec![],
             object_id: None,
             ipfs_cid: None,
             token_id: None,
@@ -101,7 +105,8 @@ impl TryFrom<&Row> for Post {
         let db_post: DbPost = row.try_get("post")?;
         let db_profile: DbActorProfile = row.try_get("actor_profile")?;
         let db_attachments: Vec<DbMediaAttachment> = row.try_get("attachments")?;
-        let post = Self::new(db_post, db_profile, db_attachments);
+        let db_mentions: Vec<DbActorProfile> = row.try_get("mentions")?;
+        let post = Self::new(db_post, db_profile, db_attachments, db_mentions);
         Ok(post)
     }
 }
@@ -110,6 +115,7 @@ pub struct PostCreateData {
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
     pub attachments: Vec<Uuid>,
+    pub mentions: Vec<Uuid>,
     pub object_id: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
 }
@@ -137,6 +143,7 @@ mod tests {
             content: "  ".to_string(),
             in_reply_to_id: None,
             attachments: vec![],
+            mentions: vec![],
             object_id: None,
             created_at: None,
         };
@@ -149,6 +156,7 @@ mod tests {
             content: "test ".to_string(),
             in_reply_to_id: None,
             attachments: vec![],
+            mentions: vec![],
             object_id: None,
             created_at: None,
         };

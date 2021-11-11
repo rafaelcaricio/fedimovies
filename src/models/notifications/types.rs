@@ -75,7 +75,8 @@ impl TryFrom<&Row> for Notification {
             Some(db_post) => {
                 let db_post_author: DbActorProfile = row.try_get("post_author")?;
                 let db_attachments: Vec<DbMediaAttachment> = row.try_get("attachments")?;
-                Some(Post::new(db_post, db_post_author, db_attachments))
+                let db_mentions: Vec<DbActorProfile> = row.try_get("mentions")?;
+                Some(Post::new(db_post, db_post_author, db_attachments, db_mentions))
             },
             None => None,
         };
