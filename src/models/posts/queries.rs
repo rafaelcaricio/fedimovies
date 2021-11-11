@@ -15,20 +15,23 @@ use crate::models::notifications::queries::create_reply_notification;
 use crate::models::profiles::queries::update_post_count;
 use super::types::{DbPost, Post, PostCreateData};
 
+pub const RELATED_ATTACHMENTS: &str =
+    "ARRAY(
+        SELECT media_attachment
+        FROM media_attachment WHERE post_id = post.id
+    ) AS attachments";
+
 pub async fn get_home_timeline(
     db_client: &impl GenericClient,
     current_user_id: &Uuid,
 ) -> Result<Vec<Post>, DatabaseError> {
     // Select posts from follows + own posts.
     // Do not select replies
-    let rows = db_client.query(
+    let statement = format!(
         "
         SELECT
             post, actor_profile,
-            ARRAY(
-                SELECT media_attachment
-                FROM media_attachment WHERE post_id = post.id
-            ) AS attachments
+            {related_attachments}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
@@ -42,6 +45,10 @@ pub async fn get_home_timeline(
             )
         ORDER BY post.created_at DESC
         ",
+        related_attachments=RELATED_ATTACHMENTS,
+    );
+    let rows = db_client.query(
+        statement.as_str(),
         &[&current_user_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
@@ -64,15 +71,13 @@ pub async fn get_posts_by_author(
         "
         SELECT
             post, actor_profile,
-            ARRAY(
-                SELECT media_attachment
-                FROM media_attachment WHERE post_id = post.id
-            ) AS attachments
+            {related_attachments}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE {condition}
         ORDER BY post.created_at DESC
         ",
+        related_attachments=RELATED_ATTACHMENTS,
         condition=condition,
     );
     let rows = db_client.query(
@@ -155,18 +160,19 @@ pub async fn get_post_by_id(
     db_client: &impl GenericClient,
     post_id: &Uuid,
 ) -> Result<Post, DatabaseError> {
-    let maybe_row = db_client.query_opt(
+    let statement = format!(
         "
         SELECT
             post, actor_profile,
-            ARRAY(
-                SELECT media_attachment
-                FROM media_attachment WHERE post_id = post.id
-            ) AS attachments
+            {related_attachments}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id = $1
         ",
+        related_attachments=RELATED_ATTACHMENTS,
+    );
+    let maybe_row = db_client.query_opt(
+        statement.as_str(),
         &[&post_id],
     ).await?;
     let post = match maybe_row {
@@ -183,7 +189,7 @@ pub async fn get_thread(
     post_id: &Uuid,
 ) -> Result<Vec<Post>, DatabaseError> {
     // TODO: limit recursion depth
-    let rows = db_client.query(
+    let statement = format!(
         "
         WITH RECURSIVE
         ancestors (id, in_reply_to_id) AS (
@@ -202,15 +208,16 @@ pub async fn get_thread(
         )
         SELECT
             post, actor_profile,
-            ARRAY(
-                SELECT media_attachment
-                FROM media_attachment WHERE post_id = post.id
-            ) AS attachments
+            {related_attachments}
         FROM post
         JOIN context ON post.id = context.id
         JOIN actor_profile ON post.author_id = actor_profile.id
         ORDER BY context.path
         ",
+        related_attachments=RELATED_ATTACHMENTS,
+    );
+    let rows = db_client.query(
+        statement.as_str(),
         &[&post_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
@@ -226,18 +233,19 @@ pub async fn get_post_by_object_id(
     db_client: &impl GenericClient,
     object_id: &str,
 ) -> Result<Post, DatabaseError> {
-    let maybe_row = db_client.query_opt(
+    let statement = format!(
         "
         SELECT
             post, actor_profile,
-            ARRAY(
-                SELECT media_attachment
-                FROM media_attachment WHERE post_id = post.id
-            ) AS attachments
+            {related_attachments}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.object_id = $1
         ",
+        related_attachments=RELATED_ATTACHMENTS,
+    );
+    let maybe_row = db_client.query_opt(
+        statement.as_str(),
         &[&object_id],
     ).await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
@@ -249,18 +257,19 @@ pub async fn get_post_by_ipfs_cid(
     db_client: &impl GenericClient,
     ipfs_cid: &str,
 ) -> Result<Post, DatabaseError> {
-    let result = db_client.query_opt(
+    let statement = format!(
         "
         SELECT
             post, actor_profile,
-            ARRAY(
-                SELECT media_attachment
-                FROM media_attachment WHERE post_id = post.id
-            ) AS attachments
+            {related_attachments}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.ipfs_cid = $1
         ",
+        related_attachments=RELATED_ATTACHMENTS,
+    );
+    let result = db_client.query_opt(
+        statement.as_str(),
         &[&ipfs_cid],
     ).await?;
     let post = match result {

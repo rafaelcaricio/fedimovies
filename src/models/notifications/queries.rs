@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::errors::DatabaseError;
 use crate::models::posts::helpers::get_actions_for_posts;
+use crate::models::posts::queries::RELATED_ATTACHMENTS;
 use super::types::{EventType, Notification};
 
 async fn create_notification(
@@ -68,14 +69,11 @@ pub async fn get_notifications(
     db_client: &impl GenericClient,
     recipient_id: &Uuid,
 ) -> Result<Vec<Notification>, DatabaseError> {
-    let rows = db_client.query(
+    let statement = format!(
         "
         SELECT
             notification, sender, post, post_author,
-            ARRAY(
-                SELECT media_attachment
-                FROM media_attachment WHERE post_id = post.id
-            ) AS attachments
+            {related_attachments}
         FROM notification
         JOIN actor_profile AS sender
         ON notification.sender_id = sender.id
@@ -86,6 +84,10 @@ pub async fn get_notifications(
         WHERE recipient_id = $1
         ORDER BY notification.created_at DESC
         ",
+        related_attachments=RELATED_ATTACHMENTS,
+    );
+    let rows = db_client.query(
+        statement.as_str(),
         &[&recipient_id],
     ).await?;
     let mut notifications: Vec<Notification> = rows.iter()
