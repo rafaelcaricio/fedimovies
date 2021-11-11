@@ -34,7 +34,7 @@ async fn send_activity(
     activity_json: &str,
     inbox_url: &str,
 ) -> Result<(), DelivererError> {
-    log::info!("sending activity: {}", activity_json);
+    log::info!("sending activity to {}: {}", inbox_url, activity_json);
     let headers = create_http_signature(
         inbox_url,
         activity_json,
