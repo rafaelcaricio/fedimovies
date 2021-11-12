@@ -31,7 +31,7 @@ pub fn create_http_signature(
         .map_err(|_| SignatureError::UrlError)?;
     let host = request_url_object.host_str()
         .ok_or(SignatureError::UrlError)?;
-    let date = Utc::now().to_rfc2822();
+    let date = Utc::now().format("%a, %d %b %Y %T GMT").to_string();
     let digest = get_message_digest(request_body);
     let message = format!(
         "(request-target): post {}\nhost: {}\ndate: {}\ndigest: {}",
