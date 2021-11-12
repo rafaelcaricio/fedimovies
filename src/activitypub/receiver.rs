@@ -14,6 +14,7 @@ use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
     get_post_by_object_id,
+    delete_post,
 };
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
@@ -254,6 +255,16 @@ pub async fn receive_activity(
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
             process_note(config, db_client, object).await?;
+        },
+        (DELETE, TOMBSTONE) => {
+            let object: Object = serde_json::from_value(activity.object)
+                .map_err(|_| ValidationError("invalid object"))?;
+            let post = get_post_by_object_id(db_client, &object.id).await?;
+            let deletion_queue = delete_post(db_client, &post.id).await?;
+            let config = config.clone();
+            actix_rt::spawn(async move {
+                deletion_queue.process(&config).await;
+            });
         },
         (LIKE, _) => {
             let author = get_or_fetch_profile_by_actor_id(

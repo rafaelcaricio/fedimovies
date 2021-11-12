@@ -1,6 +1,9 @@
+/// https://www.w3.org/TR/activitystreams-vocabulary/
+
 // Activity types
 pub const ACCEPT: &str = "Accept";
 pub const CREATE: &str = "Create";
+pub const DELETE: &str = "Delete";
 pub const FOLLOW: &str = "Follow";
 pub const LIKE: &str = "Like";
 pub const REJECT: &str = "Reject";
@@ -15,6 +18,7 @@ pub const DOCUMENT: &str = "Document";
 pub const IMAGE: &str = "Image";
 pub const MENTION: &str = "Mention";
 pub const NOTE: &str = "Note";
+pub const TOMBSTONE: &str = "Tombstone";
 
 // Misc
 pub const PROPERTY_VALUE: &str = "PropertyValue";
