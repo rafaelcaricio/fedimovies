@@ -3,6 +3,7 @@ use std::convert::TryFrom;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
+use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
 use crate::models::notifications::queries::create_follow_notification;
 use crate::models::profiles::queries::{
@@ -87,17 +88,13 @@ pub async fn follow(
     target_id: &Uuid,
 ) -> Result<Relationship, DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let result = transaction.execute(
+    transaction.execute(
         "
         INSERT INTO relationship (source_id, target_id)
         VALUES ($1, $2)
         ",
         &[&source_id, &target_id],
-    ).await;
-    if let Err(err) = result {
-        log::info!("{}", err);
-        return Err(DatabaseError::AlreadyExists("relationship"));
-    };
+    ).await.map_err(catch_unique_violation("relationship"))?;
     let target_profile = update_follower_count(&transaction, target_id, 1).await?;
     update_following_count(&transaction, source_id, 1).await?;
     if target_profile.is_local() {

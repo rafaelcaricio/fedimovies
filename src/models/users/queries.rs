@@ -1,6 +1,7 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
+use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
@@ -150,7 +151,7 @@ pub async fn create_user(
     };
     let profile = create_profile(&transaction, &profile_data).await?;
     // Create user
-    let result = transaction.query_one(
+    let row = transaction.query_one(
         "
         INSERT INTO user_account (
             id, wallet_address, password_hash, private_key, invite_code
@@ -165,26 +166,17 @@ pub async fn create_user(
             &private_key_pem,
             &user_data.invite_code,
         ],
-    ).await;
-    match result {
-        Ok(row) => {
-            transaction.commit().await?;
-            let db_user: DbUser = row.try_get("user_account")?;
-            let user = User {
-                id: db_user.id,
-                wallet_address: db_user.wallet_address,
-                password_hash: db_user.password_hash,
-                private_key: db_user.private_key,
-                profile,
-            };
-            Ok(user)
-        },
-        Err(err) => {
-            // TODO: catch user already exists error
-            log::info!("{}", err);
-            Err(DatabaseError::AlreadyExists("user"))?
-        },
-    }
+    ).await.map_err(catch_unique_violation("user"))?;
+    let db_user: DbUser = row.try_get("user_account")?;
+    let user = User {
+        id: db_user.id,
+        wallet_address: db_user.wallet_address,
+        password_hash: db_user.password_hash,
+        private_key: db_user.private_key,
+        profile,
+    };
+    transaction.commit().await?;
+    Ok(user)
 }
 
 pub async fn get_user_by_wallet_address(

@@ -1,6 +1,7 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
+use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
 use crate::models::cleanup::{
     find_orphaned_files,
@@ -21,7 +22,7 @@ pub async fn create_profile(
 ) -> Result<DbActorProfile, DatabaseError> {
     let profile_id = Uuid::new_v4();
     let extra_fields = ExtraFields(profile_data.extra_fields.clone());
-    let result = db_client.query_one(
+    let row = db_client.query_one(
         "
         INSERT INTO actor_profile (
             id, username, display_name, acct, bio, bio_source,
@@ -43,15 +44,8 @@ pub async fn create_profile(
             &extra_fields,
             &profile_data.actor,
         ],
-    ).await;
-    let profile = match result {
-        Ok(row) => row.try_get("actor_profile")?,
-        Err(err) => {
-            // TODO: catch profile already exists error
-            log::warn!("{}", err);
-            return Err(DatabaseError::AlreadyExists("profile"));
-        },
-    };
+    ).await.map_err(catch_unique_violation("profile"))?;
+    let profile = row.try_get("actor_profile")?;
     Ok(profile)
 }
 
