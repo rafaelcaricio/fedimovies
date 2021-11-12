@@ -6,7 +6,9 @@ use uuid::Uuid;
 use crate::activitypub::activity::{
     create_activity_follow,
     create_activity_undo_follow,
+    create_activity_update_person,
 };
+use crate::activitypub::actor::Actor;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
@@ -17,6 +19,7 @@ use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::posts::helpers::get_actions_for_posts;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
+    get_followers,
     get_profile_by_id,
     update_profile,
 };
@@ -133,6 +136,21 @@ async fn update_credentials(
         &current_user.id,
         profile_data,
     ).await?;
+
+    // Federate
+    let activity = create_activity_update_person(&current_user, &config.instance_url())
+        .map_err(|_| HttpError::InternalError)?;
+    let followers = get_followers(db_client, &current_user.id).await?;
+    let mut recipients: Vec<Actor> = Vec::new();
+    for follower in followers {
+        let maybe_remote_actor = follower.remote_actor()
+            .map_err(|_| HttpError::InternalError)?;
+        if let Some(remote_actor) = maybe_remote_actor {
+            recipients.push(remote_actor);
+        };
+    };
+    deliver_activity(&config, &current_user, activity, recipients);
+
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }

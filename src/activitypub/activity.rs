@@ -5,7 +5,9 @@ use uuid::Uuid;
 
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
+use crate::models::users::types::User;
 use crate::utils::files::get_file_url;
+use super::actor::{get_local_actor, ActorKeyError};
 use super::constants::{AP_CONTEXT, AP_PUBLIC};
 use super::views::{get_actor_url, get_object_url};
 use super::vocabulary::*;
@@ -92,7 +94,7 @@ fn create_activity(
     actor_name: &str,
     activity_type: &str,
     activity_uuid: Option<Uuid>,
-    object: Value,
+    object: impl Serialize,
 ) -> Activity {
     let actor_id = get_actor_url(
         instance_url,
@@ -107,7 +109,7 @@ fn create_activity(
         id: activity_id,
         activity_type: activity_type.to_string(),
         actor: actor_id,
-        object: object,
+        object: serde_json::to_value(object).unwrap(),
     };
     activity
 }
@@ -193,7 +195,7 @@ pub fn create_activity_note(
         &post.author.username,
         CREATE,
         None,
-        serde_json::to_value(object).unwrap(),
+        object,
     );
     activity
 }
@@ -214,7 +216,7 @@ pub fn create_activity_like(
         &actor_profile.username,
         LIKE,
         None,
-        serde_json::to_value(object).unwrap(),
+        object,
     );
     activity
 }
@@ -236,7 +238,7 @@ pub fn create_activity_follow(
         &actor_profile.username,
         FOLLOW,
         Some(*follow_request_id),
-        serde_json::to_value(object).unwrap(),
+        object,
     );
     activity
 }
@@ -258,7 +260,7 @@ pub fn create_activity_accept_follow(
         &actor_profile.username,
         ACCEPT,
         None,
-        serde_json::to_value(object).unwrap(),
+        object,
     );
     activity
 }
@@ -291,9 +293,24 @@ pub fn create_activity_undo_follow(
         &actor_profile.username,
         UNDO,
         None,
-        serde_json::to_value(object).unwrap(),
+        object,
     );
     activity
+}
+
+pub fn create_activity_update_person(
+    user: &User,
+    instance_url: &str,
+) -> Result<Activity, ActorKeyError> {
+    let actor = get_local_actor(user, instance_url)?;
+    let activity = create_activity(
+        instance_url,
+        &user.profile.username,
+        UPDATE,
+        None,
+        actor,
+    );
+    Ok(activity)
 }
 
 #[derive(Serialize)]
