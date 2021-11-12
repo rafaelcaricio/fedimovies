@@ -82,21 +82,21 @@ async fn create_status(
     let followers = get_followers(db_client, &current_user.id).await?;
     let mut recipients: Vec<Actor> = Vec::new();
     for follower in followers {
-        let maybe_remote_actor = follower.actor()
+        let maybe_remote_actor = follower.remote_actor()
             .map_err(|_| HttpError::InternalError)?;
         if let Some(remote_actor) = maybe_remote_actor {
             recipients.push(remote_actor);
         };
     };
     if let Some(in_reply_to) = maybe_in_reply_to {
-        let maybe_remote_actor = in_reply_to.author.actor()
+        let maybe_remote_actor = in_reply_to.author.remote_actor()
             .map_err(|_| HttpError::InternalError)?;
         if let Some(remote_actor) = maybe_remote_actor {
             recipients.push(remote_actor);
         }
     }
     for profile in post.mentions.iter() {
-        let maybe_remote_actor = profile.actor()
+        let maybe_remote_actor = profile.remote_actor()
             .map_err(|_| HttpError::InternalError)?;
         if let Some(remote_actor) = maybe_remote_actor {
             recipients.push(remote_actor);
@@ -174,7 +174,7 @@ async fn favourite(
     get_actions_for_post(db_client, &current_user.id, &mut post).await?;
 
     if reaction_created {
-        let maybe_remote_actor = post.author.actor()
+        let maybe_remote_actor = post.author.remote_actor()
             .map_err(|_| HttpError::InternalError)?;
         if let Some(remote_actor) = maybe_remote_actor {
             // Federate

@@ -289,7 +289,7 @@ pub async fn receive_activity(
                 &activity.actor,
                 &config.media_dir(),
             ).await?;
-            let source_actor = source_profile.actor().ok().flatten()
+            let source_actor = source_profile.remote_actor().ok().flatten()
                 .ok_or(HttpError::InternalError)?;
             let target_actor_id = match activity.object.as_str() {
                 Some(object_id) => object_id.to_owned(),

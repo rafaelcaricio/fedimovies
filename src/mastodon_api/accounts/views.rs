@@ -171,7 +171,8 @@ async fn follow(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
-    let maybe_remote_actor = profile.actor().map_err(|_| HttpError::InternalError)?;
+    let maybe_remote_actor = profile.remote_actor()
+        .map_err(|_| HttpError::InternalError)?;
     let relationship = if let Some(remote_actor) = maybe_remote_actor {
         // Remote follow
         let request = follows::create_follow_request(db_client, &current_user.id, &profile.id).await?;
@@ -199,7 +200,8 @@ async fn unfollow(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target_profile = get_profile_by_id(db_client, &account_id).await?;
-    let maybe_remote_actor = target_profile.actor().map_err(|_| HttpError::InternalError)?;
+    let maybe_remote_actor = target_profile.remote_actor()
+        .map_err(|_| HttpError::InternalError)?;
     let relationship = if let Some(remote_actor) = maybe_remote_actor {
         // Remote follow
         let follow_request = follows::get_follow_request_by_path(

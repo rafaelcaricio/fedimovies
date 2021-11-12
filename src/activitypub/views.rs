@@ -12,7 +12,7 @@ use crate::http_signatures::verify::verify_http_signature;
 use crate::models::posts::queries::get_thread;
 use crate::models::users::queries::get_user_by_name;
 use super::activity::{create_note, OrderedCollection};
-use super::actor::get_actor_object;
+use super::actor::get_local_actor;
 use super::constants::ACTIVITY_CONTENT_TYPE;
 use super::receiver::receive_activity;
 
@@ -48,7 +48,7 @@ async fn get_actor(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
-    let actor = get_actor_object(&config, &user)
+    let actor = get_local_actor(&user, &config.instance_url())
         .map_err(|_| HttpError::InternalError)?;
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)

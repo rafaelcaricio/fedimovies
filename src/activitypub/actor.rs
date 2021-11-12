@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::config::Config;
 use crate::errors::ConversionError;
 use crate::models::profiles::types::{DbActorProfile, ExtraField};
 use crate::models::users::types::User;
@@ -103,7 +102,7 @@ impl Actor {
 }
 
 impl DbActorProfile {
-    pub fn actor(&self) -> Result<Option<Actor>, ConversionError> {
+    pub fn remote_actor(&self) -> Result<Option<Actor>, ConversionError> {
         let actor = match self.actor_json {
             Some(ref value) => {
                 let actor: Actor = serde_json::from_value(value.clone())
@@ -116,16 +115,18 @@ impl DbActorProfile {
     }
 }
 
-pub fn get_actor_object(
-    config: &Config,
+pub type ActorKeyError = rsa::pkcs8::Error;
+
+pub fn get_local_actor(
     user: &User,
-) -> Result<Actor, rsa::pkcs8::Error> {
+    instance_url: &str,
+) -> Result<Actor, ActorKeyError> {
     let username = &user.profile.username;
-    let id = get_actor_url(&config.instance_url(), &username);
-    let inbox = get_inbox_url(&config.instance_url(), &username);
-    let outbox = get_outbox_url(&config.instance_url(), &username);
-    let followers = get_followers_url(&config.instance_url(), &username);
-    let following = get_following_url(&config.instance_url(), &username);
+    let id = get_actor_url(instance_url, username);
+    let inbox = get_inbox_url(instance_url, username);
+    let outbox = get_outbox_url(instance_url, username);
+    let followers = get_followers_url(instance_url, username);
+    let following = get_following_url(instance_url, username);
 
     let private_key = deserialize_private_key(&user.private_key)?;
     let public_key_pem = get_public_key_pem(&private_key)?;
@@ -141,7 +142,7 @@ pub fn get_actor_object(
         Some(file_name) => {
             let image = Image {
                 object_type: IMAGE.to_string(),
-                url: get_file_url(&config.instance_url(), file_name),
+                url: get_file_url(instance_url, file_name),
             };
             Some(image)
         },
@@ -151,7 +152,7 @@ pub fn get_actor_object(
         Some(file_name) => {
             let image = Image {
                 object_type: IMAGE.to_string(),
-                url: get_file_url(&config.instance_url(), file_name),
+                url: get_file_url(instance_url, file_name),
             };
             Some(image)
         },

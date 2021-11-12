@@ -140,7 +140,7 @@ pub async fn verify_http_signature(
             },
         },
     };
-    let actor = actor_profile.actor().ok().flatten()
+    let actor = actor_profile.remote_actor().ok().flatten()
         .ok_or(VerificationError::ActorError)?;
 
     let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
