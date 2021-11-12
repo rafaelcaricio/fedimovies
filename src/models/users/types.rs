@@ -28,6 +28,22 @@ pub struct User {
     pub profile: DbActorProfile,
 }
 
+impl User {
+    pub fn new(
+        db_user: DbUser,
+        db_profile: DbActorProfile,
+    ) -> Self {
+        assert_eq!(db_user.id, db_profile.id);
+        Self {
+            id: db_user.id,
+            wallet_address: db_user.wallet_address,
+            password_hash: db_user.password_hash,
+            private_key: db_user.private_key,
+            profile: db_profile,
+        }
+    }
+}
+
 #[derive(Deserialize)]
 pub struct UserCreateData {
     pub username: String,
