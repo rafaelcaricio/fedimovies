@@ -38,7 +38,8 @@ async fn main() -> std::io::Result<()> {
             .expect("failed to created media directory");
     }
     log::info!(
-        "app initialized; environment = '{:?}'",
+        "app initialized; version {}, environment = '{:?}'",
+        config.version,
         config.environment,
     );
 
