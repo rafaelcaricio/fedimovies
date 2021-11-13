@@ -22,7 +22,7 @@ fn parse_profile_query(query: &str) ->
         .ok_or(ValidationError("invalid search query"))?
         .as_str().to_string();
     let maybe_instance = acct_caps.name("instance")
-        .and_then(|val| Some(val.as_str().to_string()));
+        .map(|val| val.as_str().to_string());
     Ok((username, maybe_instance))
 }
 
@@ -39,7 +39,7 @@ async fn search_profiles(
         },
     };
     let mut profiles = search_profile(db_client, &username, instance.as_ref()).await?;
-    if profiles.len() == 0 && instance.is_some() {
+    if profiles.is_empty() && instance.is_some() {
         let instance_host = instance.unwrap();
         let media_dir = config.media_dir();
         match fetch_profile(&username, &instance_host, &media_dir).await {

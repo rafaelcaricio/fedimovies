@@ -42,7 +42,7 @@ pub fn sign_message(
     signing_key: &str,
     message: &[u8],
 ) -> Result<SignatureData, SignatureError> {
-    let key = SecretKey::from_str(&signing_key)?;
+    let key = SecretKey::from_str(signing_key)?;
     let message_hash = keccak256(message);
     let eip_191_message = [
         "\x19Ethereum Signed Message:\n32".as_bytes(),

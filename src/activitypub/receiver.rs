@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use regex::Regex;
 use serde_json::Value;
@@ -52,7 +52,7 @@ fn parse_actor_id(
     );
     let url_regexp = Regex::new(&url_regexp_str)
         .map_err(|_| ValidationError("error"))?;
-    let url_caps = url_regexp.captures(&actor_id)
+    let url_caps = url_regexp.captures(actor_id)
         .ok_or(ValidationError("invalid actor ID"))?;
     let username = url_caps.name("username")
         .ok_or(ValidationError("invalid actor ID"))?
@@ -71,7 +71,7 @@ fn parse_object_id(
     );
     let url_regexp = Regex::new(&url_regexp_str)
         .map_err(|_| ValidationError("error"))?;
-    let url_caps = url_regexp.captures(&object_id)
+    let url_caps = url_regexp.captures(object_id)
         .ok_or(ValidationError("invalid object ID"))?;
     let object_uuid: Uuid = url_caps.name("uuid")
         .ok_or(ValidationError("invalid object ID"))?
@@ -83,7 +83,7 @@ fn parse_object_id(
 async fn get_or_fetch_profile_by_actor_id(
     db_client: &impl GenericClient,
     actor_id: &str,
-    media_dir: &PathBuf,
+    media_dir: &Path,
 ) -> Result<DbActorProfile, HttpError> {
     let profile = match get_profile_by_actor_id(db_client, actor_id).await {
         Ok(profile) => profile,
@@ -116,6 +116,7 @@ pub async fn process_note(
 
     // Fetch ancestors by going through inReplyTo references
     // TODO: fetch replies too
+    #[allow(clippy::while_let_loop)]
     loop {
         let object_id = match maybe_parent_object_id {
             Some(parent_object_id) => {
@@ -237,7 +238,7 @@ pub async fn receive_activity(
         .and_then(|val| val.as_str())
         .unwrap_or("Unknown")
         .to_owned();
-    let db_client = &mut **get_database_client(&db_pool).await?;
+    let db_client = &mut **get_database_client(db_pool).await?;
     match (activity_type.as_str(), object_type.as_str()) {
         (ACCEPT, FOLLOW) => {
             let object: Object = serde_json::from_value(activity.object)
@@ -313,7 +314,7 @@ pub async fn receive_activity(
 
             // Send activity
             let recipients = vec![source_actor];
-            deliver_activity(&config, &target_user, new_activity, recipients);
+            deliver_activity(config, &target_user, new_activity, recipients);
         },
         (UNDO, FOLLOW) => {
             let object: Object = serde_json::from_value(activity.object)

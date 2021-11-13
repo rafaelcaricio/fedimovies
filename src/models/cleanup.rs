@@ -13,7 +13,7 @@ pub struct DeletionQueue {
 impl DeletionQueue {
     pub async fn process(self, config: &Config) -> () {
         remove_files(self.files, &config.media_dir());
-        if self.ipfs_objects.len() > 0 {
+        if self.ipfs_objects.is_empty() {
             match &config.ipfs_api_url {
                 Some(ipfs_api_url) => {
                     ipfs_store::remove(ipfs_api_url, self.ipfs_objects).await

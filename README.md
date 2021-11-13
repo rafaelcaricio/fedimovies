@@ -54,6 +54,12 @@ cargo run
 cargo run --bin mitractl
 ```
 
+### Run linter
+
+```
+cargo clippy
+```
+
 ### Run tests
 
 ```

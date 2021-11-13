@@ -45,7 +45,7 @@ pub async fn get_relationships(
         &[&source_id, &target_ids],
     ).await?;
     let relationships = rows.iter()
-        .map(|row| Relationship::try_from(row))
+        .map(Relationship::try_from)
         .collect::<Result<_, _>>()?;
     Ok(relationships)
 }

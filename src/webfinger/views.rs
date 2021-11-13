@@ -6,7 +6,7 @@ use crate::activitypub::views::get_actor_url;
 use crate::activitypub::constants::ACTIVITY_CONTENT_TYPE;
 use crate::config::{Config, Instance};
 use crate::database::{Pool, get_database_client};
-use crate::errors::HttpError;
+use crate::errors::{HttpError, ValidationError};
 use crate::models::users::queries::is_registered_user;
 use super::types::{
     JRD_CONTENT_TYPE,
@@ -24,22 +24,22 @@ async fn get_user_info(
     // https://datatracker.ietf.org/doc/html/rfc7565#section-7
     let uri_regexp = Regex::new(r"acct:(?P<user>\w+)@(?P<instance>.+)").unwrap();
     let uri_caps = uri_regexp.captures(&query_params.resource)
-        .ok_or(HttpError::ValidationError("invalid query target".into()))?;
+        .ok_or(ValidationError("invalid query target"))?;
     let username = uri_caps.name("user")
-        .ok_or(HttpError::ValidationError("invalid query target".into()))?
+        .ok_or(ValidationError("invalid query target"))?
         .as_str();
     let instance_host = uri_caps.name("instance")
-        .ok_or(HttpError::ValidationError("invalid query target".into()))?
+        .ok_or(ValidationError("invalid query target"))?
         .as_str();
 
     if instance_host != instance.host() {
         // Wrong instance
         return Err(HttpError::NotFoundError("user"));
     }
-    if !is_registered_user(db_client, &username).await? {
+    if !is_registered_user(db_client, username).await? {
         return Err(HttpError::NotFoundError("user"));
     }
-    let actor_url = get_actor_url(&instance.url(), &username);
+    let actor_url = get_actor_url(&instance.url(), username);
     let link = Link {
         rel: "self".to_string(),
         link_type: Some(ACTIVITY_CONTENT_TYPE.to_string()),

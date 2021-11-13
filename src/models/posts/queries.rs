@@ -63,7 +63,7 @@ pub async fn get_home_timeline(
         &[&current_user_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
-        .map(|row| Post::try_from(row))
+        .map(Post::try_from)
         .collect::<Result<_, _>>()?;
     Ok(posts)
 }
@@ -98,7 +98,7 @@ pub async fn get_posts_by_author(
         &[&account_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
-        .map(|row| Post::try_from(row))
+        .map(Post::try_from)
         .collect::<Result<_, _>>()?;
     Ok(posts)
 }
@@ -257,9 +257,9 @@ pub async fn get_thread(
         &[&post_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
-        .map(|row| Post::try_from(row))
+        .map(Post::try_from)
         .collect::<Result<_, _>>()?;
-    if posts.len() == 0 {
+    if posts.is_empty() {
         return Err(DatabaseError::NotFound("post"));
     }
     Ok(posts)

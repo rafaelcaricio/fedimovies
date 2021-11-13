@@ -93,7 +93,7 @@ pub async fn get_notifications(
         &[&recipient_id],
     ).await?;
     let mut notifications: Vec<Notification> = rows.iter()
-        .map(|row| Notification::try_from(row))
+        .map(Notification::try_from)
         .collect::<Result<_, _>>()?;
     let posts = notifications.iter_mut()
         .filter_map(|item| item.post.as_mut())

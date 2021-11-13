@@ -27,7 +27,7 @@ impl From<&Config> for InstanceInfo {
             short_description: config.instance_short_description.clone(),
             description: config.instance_description.clone(),
             version: config.version.clone(),
-            registrations: config.registrations_open.clone(),
+            registrations: config.registrations_open,
             login_message: config.login_message.clone(),
             ethereum_explorer_url: config.ethereum_explorer_url.clone(),
             nft_contract_name: config.ethereum_contract.as_ref()

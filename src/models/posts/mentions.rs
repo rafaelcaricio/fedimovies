@@ -53,7 +53,7 @@ pub fn replace_mentions(
 ) -> String {
     let mention_re = Regex::new(MENTION_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
-        let acct = pattern_to_acct(&caps, instance_host);
+        let acct = pattern_to_acct(caps, instance_host);
         match mention_map.get(&acct) {
             Some(profile) => {
                 // Replace with a link

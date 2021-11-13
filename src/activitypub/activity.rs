@@ -98,20 +98,19 @@ fn create_activity(
 ) -> Activity {
     let actor_id = get_actor_url(
         instance_url,
-        &actor_name,
+        actor_name,
     );
     let activity_id = get_object_url(
         instance_url,
         &activity_uuid.unwrap_or(Uuid::new_v4()),
     );
-    let activity = Activity {
+    Activity {
         context: json!(AP_CONTEXT),
         id: activity_id,
         activity_type: activity_type.to_string(),
         actor: actor_id,
         object: serde_json::to_value(object).unwrap(),
-    };
-    activity
+    }
 }
 
 pub fn create_note(

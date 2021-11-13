@@ -34,7 +34,7 @@ pub fn serialize_private_key(
 pub fn deserialize_private_key(
     private_key_pem: &str,
 ) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
-    RsaPrivateKey::from_pkcs8_pem(&private_key_pem)
+    RsaPrivateKey::from_pkcs8_pem(private_key_pem)
 }
 
 pub fn get_public_key_pem(
@@ -47,7 +47,7 @@ pub fn get_public_key_pem(
 pub fn deserialize_public_key(
     public_key_pem: &str,
 ) -> Result<RsaPublicKey, rsa::pkcs8::Error> {
-    RsaPublicKey::from_public_key_pem(&public_key_pem.trim())
+    RsaPublicKey::from_public_key_pem(public_key_pem.trim())
 }
 
 pub fn sign_message(

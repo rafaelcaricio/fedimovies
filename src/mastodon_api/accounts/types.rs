@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -49,9 +49,9 @@ pub struct Account {
 impl Account {
     pub fn from_profile(profile: DbActorProfile, instance_url: &str) -> Self {
         let avatar_url = profile.avatar_file_name.as_ref()
-            .map(|name| get_file_url(instance_url, &name));
+            .map(|name| get_file_url(instance_url, name));
         let header_url = profile.banner_file_name.as_ref()
-            .map(|name| get_file_url(instance_url, &name));
+            .map(|name| get_file_url(instance_url, name));
         let fields = profile.extra_fields.unpack().into_iter()
             .map(|field| AccountField { name: field.name, value: field.value })
             .collect();
@@ -126,17 +126,17 @@ pub struct AccountUpdateData {
 fn process_b64_image_field_value(
     form_value: Option<String>,
     db_value: Option<String>,
-    output_dir: &PathBuf,
+    output_dir: &Path,
 ) -> Result<Option<String>, FileError> {
     let maybe_file_name = match form_value {
         Some(b64_data) => {
-            if b64_data == "" {
+            if b64_data.is_empty() {
                 // Remove file
                 None
             } else {
                 // Decode and save file
                 let (file_name, _) = save_validated_b64_file(
-                    &b64_data, &output_dir, "image/",
+                    &b64_data, output_dir, "image/",
                 )?;
                 Some(file_name)
             }
@@ -152,7 +152,7 @@ impl AccountUpdateData {
         self,
         current_avatar: &Option<String>,
         current_banner: &Option<String>,
-        media_dir: &PathBuf,
+        media_dir: &Path,
     ) -> Result<ProfileUpdateData, FileError> {
         let avatar = process_b64_image_field_value(
             self.avatar, current_avatar.clone(), media_dir,

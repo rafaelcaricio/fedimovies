@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use serde_json::Value;
 
@@ -29,7 +29,7 @@ pub enum FetchError {
 
 pub async fn fetch_avatar_and_banner(
     actor: &Actor,
-    media_dir: &PathBuf,
+    media_dir: &Path,
 ) -> Result<(Option<String>, Option<String>), FetchError> {
     let avatar = match &actor.icon {
         Some(icon) => {
@@ -57,7 +57,7 @@ pub async fn fetch_avatar_and_banner(
 pub async fn fetch_profile(
     username: &str,
     instance_host: &str,
-    media_dir: &PathBuf,
+    media_dir: &Path,
 ) -> Result<ProfileCreateData, FetchError> {
     let actor_address = format!("{}@{}", &username, &instance_host);
     let webfinger_account_uri = format!("acct:{}", actor_address);
@@ -80,7 +80,7 @@ pub async fn fetch_profile(
 
 pub async fn fetch_profile_by_actor_id(
     actor_url: &str,
-    media_dir: &PathBuf,
+    media_dir: &Path,
 ) -> Result<ProfileCreateData, FetchError> {
     let actor_host = url::Url::parse(actor_url)?
         .host_str()
@@ -115,7 +115,7 @@ pub async fn fetch_profile_by_actor_id(
 
 pub async fn fetch_attachment(
     url: &str,
-    output_dir: &PathBuf,
+    output_dir: &Path,
 ) -> Result<String, FetchError> {
     let response = reqwest::get(url).await?;
     let file_data = response.bytes().await?;

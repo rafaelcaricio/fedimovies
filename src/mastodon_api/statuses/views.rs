@@ -182,7 +182,7 @@ async fn favourite(
             let activity = create_activity_like(
                 &config.instance_url(),
                 &current_user.profile,
-                &object_id,
+                object_id,
             );
             deliver_activity(&config, &current_user, activity, vec![remote_actor]);
         }
@@ -238,7 +238,7 @@ async fn make_permanent(
         let image_path = config.media_dir().join(&attachment.file_name);
         let image_data = std::fs::read(image_path)
             .map_err(|_| HttpError::InternalError)?;
-        let image_cid = ipfs_store::add(&ipfs_api_url, image_data).await
+        let image_cid = ipfs_store::add(ipfs_api_url, image_data).await
             .map_err(|_| HttpError::InternalError)?;
         set_attachment_ipfs_cid(db_client, &attachment.id, &image_cid).await?;
         image_cid
@@ -259,7 +259,7 @@ async fn make_permanent(
     let post_metadata_json = serde_json::to_string(&post_metadata)
         .map_err(|_| HttpError::InternalError)?
         .as_bytes().to_vec();
-    let post_metadata_cid = ipfs_store::add(&ipfs_api_url, post_metadata_json).await
+    let post_metadata_cid = ipfs_store::add(ipfs_api_url, post_metadata_json).await
         .map_err(|_| HttpError::InternalError)?;
 
     // Update post
@@ -284,14 +284,14 @@ async fn get_signature(
     let post = get_post_by_id(db_client, &status_id).await?;
     if post.author.id != current_user.id {
         // Users can only tokenize their own posts
-        Err(HttpError::NotFoundError("post"))?;
+        return Err(HttpError::NotFoundError("post"));
     }
     let ipfs_cid = post.ipfs_cid
         // Post metadata is not immutable
         .ok_or(HttpError::ValidationError("post is not immutable".into()))?;
     let token_uri = get_ipfs_url(&ipfs_cid);
     let signature = create_mint_signature(
-        &contract_config,
+        contract_config,
         &current_user.wallet_address,
         &token_uri,
     ).map_err(|_| HttpError::InternalError)?;

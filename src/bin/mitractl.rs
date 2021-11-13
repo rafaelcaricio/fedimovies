@@ -1,5 +1,4 @@
 use clap::Clap;
-use tokio;
 use uuid::Uuid;
 
 use mitra::config;
@@ -82,7 +81,7 @@ async fn main() {
         },
         SubCommand::ListInviteCodes(_) => {
             let invite_codes = get_invite_codes(db_client).await.unwrap();
-            if invite_codes.len() == 0 {
+            if invite_codes.is_empty() {
                 println!("no invite codes found");
                 return;
             }

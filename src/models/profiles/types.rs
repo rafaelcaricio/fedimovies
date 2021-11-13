@@ -148,7 +148,7 @@ impl ProfileUpdateData {
                 field.value = clean_html(&field.value);
                 field
             })
-            .filter(|field| field.name.len() > 0)
+            .filter(|field| !field.name.is_empty())
             .collect();
         // Validate extra fields
         if self.extra_fields.len() >= 10 {

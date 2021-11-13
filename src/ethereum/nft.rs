@@ -74,7 +74,7 @@ pub async fn process_events(
     db_pool: &Pool,
     token_waitlist_map: &mut HashMap<Uuid, DateTime<Utc>>,
 ) -> Result<(), EthereumError> {
-    let db_client = &**get_database_client(&db_pool).await?;
+    let db_client = &**get_database_client(db_pool).await?;
 
     // Create/update token waitlist map
     let token_waitlist = get_token_waitlist(db_client).await?;
@@ -196,7 +196,7 @@ pub fn create_mint_signature(
     let contract_address = parse_address(&contract_config.address)?;
     let user_address = parse_address(user_address)?;
     let chain_id: U256 = contract_config.chain_id.into();
-    let chain_id_token = Token::Uint(chain_id.into());
+    let chain_id_token = Token::Uint(chain_id);
     let chain_id_bin = encode(&[chain_id_token]);
     let message = [
         &chain_id_bin,

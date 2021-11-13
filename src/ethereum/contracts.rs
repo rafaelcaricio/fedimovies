@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
 pub const COLLECTIBLE: &str = "Collectible";
 pub const MANAGER: &str = "Manager";
@@ -17,7 +17,7 @@ pub enum ArtifactError {
 }
 
 pub fn load_abi(
-    contract_dir: &PathBuf,
+    contract_dir: &Path,
     contract_name: &str,
 ) -> Result<Vec<u8>, ArtifactError> {
     let contract_artifact_path = contract_dir.join(format!("{}.json", contract_name));

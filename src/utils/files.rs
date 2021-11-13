@@ -1,6 +1,6 @@
 use std::fs::{remove_file, File};
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::Path;
 
 use mime_guess::get_mime_extensions_str;
 use mime_sniffer::MimeTypeSniffer;
@@ -18,7 +18,7 @@ pub enum FileError {
     InvalidMediaType,
 }
 
-pub fn save_file(data: Vec<u8>, output_dir: &PathBuf) -> Result<String, FileError> {
+pub fn save_file(data: Vec<u8>, output_dir: &Path) -> Result<String, FileError> {
     let digest = Sha256::digest(&data);
     let mut file_name = hex::encode(digest);
     let maybe_extension = data.sniff_mime_type()
@@ -34,13 +34,13 @@ pub fn save_file(data: Vec<u8>, output_dir: &PathBuf) -> Result<String, FileErro
     Ok(file_name)
 }
 
-fn sniff_media_type(data: &Vec<u8>) -> Option<String> {
+fn sniff_media_type(data: &[u8]) -> Option<String> {
     data.sniff_mime_type().map(|val| val.to_string())
 }
 
 pub fn save_b64_file(
     b64data: &str,
-    output_dir: &PathBuf,
+    output_dir: &Path,
 ) -> Result<(String, Option<String>), FileError> {
     let data = base64::decode(b64data)?;
     let media_type = sniff_media_type(&data);
@@ -50,7 +50,7 @@ pub fn save_b64_file(
 
 pub fn save_validated_b64_file(
     b64data: &str,
-    output_dir: &PathBuf,
+    output_dir: &Path,
     media_type_prefix: &str,
 ) -> Result<(String, String), FileError> {
     let data = base64::decode(b64data)?;
@@ -67,7 +67,7 @@ pub fn get_file_url(instance_url: &str, file_name: &str) -> String {
     format!("{}/media/{}", instance_url, file_name)
 }
 
-pub fn remove_files(files: Vec<String>, from_dir: &PathBuf) -> () {
+pub fn remove_files(files: Vec<String>, from_dir: &Path) -> () {
     for file_name in files {
         let file_path = from_dir.join(&file_name);
         let file_path_str = file_path.to_string_lossy();

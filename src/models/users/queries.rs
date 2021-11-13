@@ -123,7 +123,7 @@ pub async fn create_user(
             &[&invite_code],
         ).await?;
         if updated_count == 0 {
-            Err(DatabaseError::NotFound("invite code"))?;
+            return Err(DatabaseError::NotFound("invite code"));
         }
     }
     // Create profile

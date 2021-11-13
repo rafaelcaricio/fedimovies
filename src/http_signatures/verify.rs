@@ -58,7 +58,7 @@ fn parse_http_signature(
     );
     let signature_header_regexp = Regex::new(signature_header_regexp_raw).unwrap();
     let signature_header_caps = signature_header_regexp
-        .captures(&signature_header)
+        .captures(signature_header)
         .ok_or(VerificationError::HeaderError("invalid signature header"))?;
     let key_id = signature_header_caps.name("key_id")
         .ok_or(VerificationError::ParseError("keyId parameter is missing"))?
@@ -78,7 +78,7 @@ fn parse_http_signature(
         request_method.as_str().to_lowercase(),
         request_uri,
     );
-    for header in headers_parameter.split(" ") {
+    for header in headers_parameter.split(' ') {
         if header == "(request-target)" {
             continue;
         }

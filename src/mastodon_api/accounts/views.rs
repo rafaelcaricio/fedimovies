@@ -49,21 +49,21 @@ pub async fn create_account(
     if !config.registrations_open {
         let invite_code = user_data.invite_code.as_ref()
             .ok_or(ValidationError("invite code is required"))?;
-        if !is_valid_invite_code(db_client, &invite_code).await? {
-            Err(ValidationError("invalid invite code"))?;
+        if !is_valid_invite_code(db_client, invite_code).await? {
+            return Err(ValidationError("invalid invite code").into());
         }
     }
     if config.ethereum_contract.is_some() {
         let is_allowed = is_allowed_user(&config, &user_data.wallet_address).await
             .map_err(|_| HttpError::InternalError)?;
         if !is_allowed {
-            Err(ValidationError("not allowed to sign up"))?;
+            return Err(ValidationError("not allowed to sign up").into());
         }
     }
     // Hash password and generate private key
     let password_hash = hash_password(&user_data.password)
         .map_err(|_| HttpError::InternalError)?;
-    let private_key = match web::block(move || generate_private_key()).await {
+    let private_key = match web::block(generate_private_key).await {
         Ok(private_key) => private_key,
         Err(_) => return Err(HttpError::InternalError),
     };

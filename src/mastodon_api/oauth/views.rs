@@ -18,8 +18,8 @@ async fn token_view(
     db_pool: web::Data<Pool>,
     request_data: web::Json<TokenRequest>,
 ) -> Result<HttpResponse, HttpError> {
-    if request_data.grant_type != "password".to_string() {
-        Err(ValidationError("unsupported grant type"))?;
+    if &request_data.grant_type != "password" {
+        return Err(ValidationError("unsupported grant type").into());
     }
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_wallet_address(
@@ -32,7 +32,7 @@ async fn token_view(
     ).map_err(|_| HttpError::InternalError)?;
     if !password_correct {
         // Invalid signature/password
-        Err(ValidationError("incorrect password"))?;
+        return Err(ValidationError("incorrect password").into());
     }
     let access_token = generate_access_token();
     let created_at = Utc::now();

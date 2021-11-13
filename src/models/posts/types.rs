@@ -125,7 +125,7 @@ impl PostCreateData {
     pub fn validate(&mut self) -> Result<(), ValidationError> {
         let content_safe = clean_html(&self.content);
         let content_trimmed = content_safe.trim();
-        if content_trimmed == "" {
+        if content_trimmed.is_empty() {
             return Err(ValidationError("post can not be empty"));
         }
         self.content = content_trimmed.to_string();

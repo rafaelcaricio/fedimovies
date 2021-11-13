@@ -1,0 +1,9 @@
+# https://github.com/rust-lang/cargo/issues/5034#issuecomment-927105016
+[target.'cfg(feature = "cargo-clippy")']
+rustflags = [
+    "-Aclippy::let_and_return",
+    "-Aclippy::map_entry",
+    "-Aclippy::or_fun_call",
+    "-Aclippy::redundant_field_names",
+    "-Aclippy::unused_unit",
+]
