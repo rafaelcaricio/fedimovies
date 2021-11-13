@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
+use crate::frontend::{get_post_page_url, get_profile_page_url};
 use crate::http_signatures::verify::verify_http_signature;
 use crate::models::posts::queries::get_thread;
 use crate::models::users::queries::get_user_by_name;
@@ -40,14 +41,35 @@ pub fn get_object_url(instance_url: &str, object_uuid: &Uuid) -> String {
     format!("{}/objects/{}", instance_url, object_uuid)
 }
 
+fn is_activitypub_request(request: &HttpRequest) -> bool {
+    const CONTENT_TYPES: [&str; 3] = [
+        ACTIVITY_CONTENT_TYPE,
+        "application/ld+json",
+        "application/json",
+    ];
+    if let Some(content_type) = request.headers().get("Accept") {
+        let content_type_str = content_type.to_str().unwrap_or("");
+        return CONTENT_TYPES.contains(&content_type_str);
+    };
+    false
+}
+
 #[get("")]
 async fn get_actor(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
+    request: HttpRequest,
     web::Path(username): web::Path<String>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
+    if !is_activitypub_request(&request) {
+        let page_url = get_profile_page_url(&user.id, &config.instance_url());
+        let response = HttpResponse::Found()
+            .header("Location", page_url)
+            .finish();
+        return Ok(response);
+    };
     let actor = get_local_actor(&user, &config.instance_url())
         .map_err(|_| HttpError::InternalError)?;
     let response = HttpResponse::Ok()
@@ -125,6 +147,7 @@ pub fn activitypub_scope() -> Scope {
 pub async fn get_object(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
+    request: HttpRequest,
     web::Path(object_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -133,6 +156,13 @@ pub async fn get_object(
     let post = thread.iter()
         .find(|post| post.id == object_id && post.author.is_local())
         .ok_or(HttpError::NotFoundError("post"))?;
+    if !is_activitypub_request(&request) {
+        let page_url = get_post_page_url(&post.id, &config.instance_url());
+        let response = HttpResponse::Found()
+            .header("Location", page_url)
+            .finish();
+        return Ok(response);
+    };
     let in_reply_to = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
             thread.iter().find(|post| post.id == in_reply_to_id)
