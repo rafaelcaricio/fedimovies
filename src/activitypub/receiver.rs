@@ -281,7 +281,18 @@ pub async fn receive_activity(
                     object.id
                 },
             };
-            let post_id = parse_object_id(&config.instance_url(), &object_id)?;
+            let post_id = match parse_object_id(&config.instance_url(), &object_id) {
+                Ok(post_id) => post_id,
+                Err(_) => {
+                    let post = match get_post_by_object_id(db_client, &object_id).await {
+                        Ok(post) => post,
+                        // Ignore like if post is not found locally
+                        Err(DatabaseError::NotFound(_)) => return Ok(()),
+                        Err(other_error) => return Err(other_error.into()),
+                    };
+                    post.id
+                },
+            };
             create_reaction(db_client, &author.id, &post_id).await?;
         },
         (FOLLOW, _) => {
