@@ -72,11 +72,30 @@ cargo test
 cargo build --release
 ```
 
-## API
+## Federation
+
+The following activities are supported:
+
+- Accept(Follow)
+- Reject(Follow)
+- Create(Note)
+- Delete(Tombstone)
+- Like(Note)
+- Follow(Person)
+- Undo(Follow)
+- Update(Person)
+
+And these additional standards:
+
+- [Http Signatures](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures)
+- [NodeInfo](https://nodeinfo.diaspora.software/)
+- [WebFinger](https://webfinger.net/)
+
+## Client API
 
 ### Mastodon API
 
-Endpoints are similar to Mastodon API:
+Most methods are similar to Mastodon API:
 
 ```
 POST /api/v1/accounts
@@ -101,7 +120,7 @@ POST /api/v1/statuses/{status_id}/unfavourite
 GET /api/v1/timelines/home
 ```
 
-Extra APIs:
+Additional methods:
 
 ```
 POST /api/v1/statuses/{status_id}/make_permanent
