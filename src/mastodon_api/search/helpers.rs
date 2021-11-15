@@ -49,9 +49,13 @@ async fn search_profiles(
     let mut profiles = search_profile(db_client, &username, instance.as_ref()).await?;
     if profiles.is_empty() && instance.is_some() {
         let actor_host = instance.unwrap();
-        let media_dir = config.media_dir();
         // TODO: return error when trying to fetch local profile
-        match fetch_profile(&username, &actor_host, &media_dir).await {
+        match fetch_profile(
+            &config.instance(),
+            &username,
+            &actor_host,
+            &config.media_dir(),
+        ).await {
             Ok(profile_data) => {
                 let profile = create_profile(db_client, &profile_data).await?;
                 log::info!(

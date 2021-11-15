@@ -5,7 +5,7 @@ use serde_json::Value;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::config::Config;
+use crate::config::{Config, Instance};
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
@@ -82,13 +82,17 @@ fn parse_object_id(
 
 async fn get_or_fetch_profile_by_actor_id(
     db_client: &impl GenericClient,
+    instance: &Instance,
     actor_id: &str,
     media_dir: &Path,
 ) -> Result<DbActorProfile, HttpError> {
     let profile = match get_profile_by_actor_id(db_client, actor_id).await {
         Ok(profile) => profile,
         Err(DatabaseError::NotFound(_)) => {
-            let profile_data = fetch_profile_by_actor_id(actor_id, media_dir).await
+            let profile_data = fetch_profile_by_actor_id(
+                instance, actor_id, media_dir,
+            )
+                .await
                 .map_err(|_| ValidationError("failed to fetch actor"))?;
             let profile = create_profile(db_client, &profile_data).await?;
             profile
@@ -153,6 +157,7 @@ pub async fn process_note(
             .ok_or(ValidationError("unattributed note"))?;
         let author = get_or_fetch_profile_by_actor_id(
             db_client,
+            &config.instance(),
             &attributed_to,
             &config.media_dir(),
         ).await?;
@@ -184,6 +189,7 @@ pub async fn process_note(
                 if tag.tag_type == MENTION {
                     let profile = get_or_fetch_profile_by_actor_id(
                         db_client,
+                        &config.instance(),
                         &tag.href,
                         &config.media_dir(),
                     ).await?;
@@ -270,6 +276,7 @@ pub async fn receive_activity(
         (LIKE, _) => {
             let author = get_or_fetch_profile_by_actor_id(
                 db_client,
+                &config.instance(),
                 &activity.actor,
                 &config.media_dir(),
             ).await?;
@@ -298,6 +305,7 @@ pub async fn receive_activity(
         (FOLLOW, _) => {
             let source_profile = get_or_fetch_profile_by_actor_id(
                 db_client,
+                &config.instance(),
                 &activity.actor,
                 &config.media_dir(),
             ).await?;

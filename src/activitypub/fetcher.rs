@@ -1,7 +1,10 @@
 use std::path::Path;
 
+use reqwest::Method;
 use serde_json::Value;
 
+use crate::config::Instance;
+use crate::http_signatures::create::{create_http_signature, SignatureError};
 use crate::models::profiles::types::ProfileCreateData;
 use crate::utils::files::{save_file, FileError};
 use crate::webfinger::types::JsonResourceDescriptor;
@@ -15,6 +18,9 @@ pub enum FetchError {
     UrlError(#[from] url::ParseError),
 
     #[error(transparent)]
+    SignatureError(#[from] SignatureError),
+
+    #[error(transparent)]
     RequestError(#[from] reqwest::Error),
 
     #[error("json parse error")]
@@ -25,6 +31,37 @@ pub enum FetchError {
 
     #[error("{0}")]
     OtherError(&'static str),
+}
+
+/// Sends GET request to fetch AP object
+async fn send_request(
+    instance: &Instance,
+    url: &str,
+    query_params: &[(&str, &str)],
+) -> Result<String, FetchError> {
+    let client = reqwest::Client::new();
+    let mut request_builder = client.get(url);
+    if !query_params.is_empty() {
+        request_builder = request_builder.query(query_params);
+    };
+
+    let headers = create_http_signature(
+        Method::GET,
+        url,
+        "",
+        &instance.actor_key,
+        &instance.actor_key_id(),
+    )?;
+
+    let data = request_builder
+        .header(reqwest::header::ACCEPT, ACTIVITY_CONTENT_TYPE)
+        .header("Host", headers.host)
+        .header("Date", headers.date)
+        .header("Signature", headers.signature)
+        .send().await?
+        .error_for_status()?
+        .text().await?;
+    Ok(data)
 }
 
 pub async fn fetch_avatar_and_banner(
@@ -55,14 +92,15 @@ pub async fn fetch_avatar_and_banner(
 }
 
 pub async fn fetch_profile(
+    instance: &Instance,
     username: &str,
-    instance_host: &str,
+    actor_host: &str,
     media_dir: &Path,
 ) -> Result<ProfileCreateData, FetchError> {
-    let actor_address = format!("{}@{}", &username, &instance_host);
+    let actor_address = format!("{}@{}", &username, &actor_host);
     let webfinger_account_uri = format!("acct:{}", actor_address);
     // TOOD: support http
-    let webfinger_url = format!("https://{}/.well-known/webfinger", instance_host);
+    let webfinger_url = format!("https://{}/.well-known/webfinger", actor_host);
     let client = reqwest::Client::new();
     let webfinger_data = client.get(&webfinger_url)
         .query(&[("resource", webfinger_account_uri)])
@@ -75,10 +113,11 @@ pub async fn fetch_profile(
         .ok_or(FetchError::OtherError("self link not found"))?;
     let actor_url = link.href.as_ref()
         .ok_or(FetchError::OtherError("account href not found"))?;
-    fetch_profile_by_actor_id(actor_url, media_dir).await
+    fetch_profile_by_actor_id(instance, actor_url, media_dir).await
 }
 
 pub async fn fetch_profile_by_actor_id(
+    instance: &Instance,
     actor_url: &str,
     media_dir: &Path,
 ) -> Result<ProfileCreateData, FetchError> {
@@ -86,11 +125,7 @@ pub async fn fetch_profile_by_actor_id(
         .host_str()
         .ok_or(FetchError::OtherError("invalid URL"))?
         .to_owned();
-    let client = reqwest::Client::new();
-    let actor_json = client.get(actor_url)
-        .header(reqwest::header::ACCEPT, ACTIVITY_CONTENT_TYPE)
-        .send().await?
-        .text().await?;
+    let actor_json = send_request(instance, actor_url, &[]).await?;
     let actor_value: Value = serde_json::from_str(&actor_json)?;
     let actor: Actor = serde_json::from_value(actor_value.clone())?;
     let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;

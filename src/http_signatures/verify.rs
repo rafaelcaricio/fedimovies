@@ -123,6 +123,7 @@ pub async fn verify_http_signature(
         Err(err) => match err {
             DatabaseError::NotFound(_) => {
                 let profile_data = fetch_profile_by_actor_id(
+                    &config.instance(),
                     &signature_data.actor_id,
                     &config.media_dir(),
                 ).await.map_err(|err| {
