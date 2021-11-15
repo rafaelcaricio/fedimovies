@@ -110,18 +110,6 @@ GET /api/v1/statuses/{status_id}/signature
 
 ## CLI commands
 
-Delete profile:
-
-```
-mitractl delete-profile -i 55a3005f-f293-4168-ab70-6ab09a879679
-```
-
-Delete post:
-
-```
-mitractl delete-post -i 55a3005f-f293-4168-ab70-6ab09a879679
-```
-
 Generate invite code:
 
 ```
@@ -132,6 +120,18 @@ List generated invites:
 
 ```
 mitractl list-invite-codes
+```
+
+Delete profile:
+
+```
+mitractl delete-profile -i 55a3005f-f293-4168-ab70-6ab09a879679
+```
+
+Delete post:
+
+```
+mitractl delete-post -i 55a3005f-f293-4168-ab70-6ab09a879679
 ```
 
 Generate ethereum address:
