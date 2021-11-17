@@ -1,3 +1,4 @@
+use actix_web::http::Method;
 use rsa::RsaPrivateKey;
 
 use crate::config::{Environment, Config};
@@ -36,11 +37,21 @@ async fn send_activity(
 ) -> Result<(), DelivererError> {
     log::info!("sending activity to {}: {}", inbox_url, activity_json);
     let headers = create_http_signature(
+        Method::POST,
         inbox_url,
         activity_json,
         actor_key,
         actor_key_id,
     )?;
+
+    let client = reqwest::Client::new();
+    let request = client.post(inbox_url)
+        .header("Host", headers.host)
+        .header("Date", headers.date)
+        .header("Digest", headers.digest.unwrap())
+        .header("Signature", headers.signature)
+        .header("Content-Type", ACTIVITY_CONTENT_TYPE)
+        .body(activity_json.to_owned());
 
     match config.environment {
         Environment::Development => {
@@ -50,17 +61,8 @@ async fn send_activity(
             );
         },
         Environment::Production => {
-            let client = reqwest::Client::new();
             // Default timeout is 30s
-            let response = client.post(inbox_url)
-                .header("Host", headers.host)
-                .header("Date", headers.date)
-                .header("Digest", headers.digest)
-                .header("Signature", headers.signature)
-                .header("Content-Type", ACTIVITY_CONTENT_TYPE)
-                .body(activity_json.to_owned())
-                .send()
-                .await?;
+            let response = request.send().await?;
             let response_status = response.status();
             let response_text = response.text().await?;
             log::info!(

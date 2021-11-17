@@ -157,13 +157,12 @@ pub async fn verify_http_signature(
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
     use actix_web::http::{header, HeaderMap, HeaderName, HeaderValue, Uri};
     use super::*;
 
     #[test]
     fn test_parse_signature() {
-        let request_method = Method::from_str("POST").unwrap();
+        let request_method = Method::POST;
         let request_uri = "/user/123/inbox".parse::<Uri>().unwrap();
         let mut request_headers = HeaderMap::new();
         request_headers.insert(
