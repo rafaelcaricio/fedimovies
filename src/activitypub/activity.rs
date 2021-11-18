@@ -87,6 +87,7 @@ pub struct Activity {
 
     pub actor: String,
     pub object: Value,
+    pub to: Value,
 }
 
 fn create_activity(
@@ -95,6 +96,7 @@ fn create_activity(
     activity_type: &str,
     activity_uuid: Option<Uuid>,
     object: impl Serialize,
+    recipient_id: &str,
 ) -> Activity {
     let actor_id = get_actor_url(
         instance_url,
@@ -110,6 +112,7 @@ fn create_activity(
         activity_type: activity_type.to_string(),
         actor: actor_id,
         object: serde_json::to_value(object).unwrap(),
+        to: json!([recipient_id]),
     }
 }
 
@@ -195,6 +198,7 @@ pub fn create_activity_note(
         CREATE,
         None,
         object,
+        AP_PUBLIC,
     );
     activity
 }
@@ -216,6 +220,7 @@ pub fn create_activity_like(
         LIKE,
         None,
         object,
+        AP_PUBLIC,
     );
     activity
 }
@@ -238,6 +243,7 @@ pub fn create_activity_follow(
         FOLLOW,
         Some(*follow_request_id),
         object,
+        target_actor_id,
     );
     activity
 }
@@ -246,6 +252,7 @@ pub fn create_activity_accept_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     follow_activity_id: &str,
+    source_actor_id: &str,
 ) -> Activity {
     // TODO: use received activity as object
     let object = Object {
@@ -260,6 +267,7 @@ pub fn create_activity_accept_follow(
         ACCEPT,
         None,
         object,
+        source_actor_id,
     );
     activity
 }
@@ -293,6 +301,7 @@ pub fn create_activity_undo_follow(
         UNDO,
         None,
         object,
+        target_actor_id,
     );
     activity
 }
@@ -308,6 +317,7 @@ pub fn create_activity_update_person(
         UPDATE,
         None,
         actor,
+        AP_PUBLIC,
     );
     Ok(activity)
 }
@@ -445,5 +455,6 @@ mod tests {
         assert_eq!(activity.object["actor"], Value::Null);
         assert_eq!(activity.object["object"], Value::Null);
         assert_eq!(activity.object["content"], Value::Null);
+        assert_eq!(activity.to, json!([target_actor_id]));
     }
 }

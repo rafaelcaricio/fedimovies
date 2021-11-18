@@ -328,6 +328,7 @@ pub async fn receive_activity(
                 &config.instance_url(),
                 &target_profile,
                 &activity.id,
+                &source_actor.id,
             );
             // Save relationship
             follow(db_client, &source_profile.id, &target_profile.id).await?;
