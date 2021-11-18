@@ -12,6 +12,7 @@ use mitra::models::users::queries::{
     create_invite_code,
     get_invite_codes,
 };
+use mitra::utils::crypto::{generate_private_key, serialize_private_key};
 
 /// Admin CLI tool
 #[derive(Clap)]
@@ -22,12 +23,25 @@ struct Opts {
 
 #[derive(Clap)]
 enum SubCommand {
+    GenerateRsaKey(GenerateRsaKey),
     GenerateEthereumAddress(GenerateEthereumAddress),
 
     GenerateInviteCode(GenerateInviteCode),
     ListInviteCodes(ListInviteCodes),
     DeleteProfile(DeleteProfile),
     DeletePost(DeletePost),
+}
+
+/// Generate RSA private key
+#[derive(Clap)]
+struct GenerateRsaKey;
+
+impl GenerateRsaKey {
+    fn execute(&self) -> () {
+        let private_key = generate_private_key().unwrap();
+        let private_key_str = serialize_private_key(private_key).unwrap();
+        println!("{}", private_key_str);
+    }
 }
 
 /// Generate ethereum address
@@ -61,6 +75,7 @@ async fn main() {
     let opts: Opts = Opts::parse();
 
     match opts.subcmd {
+        SubCommand::GenerateRsaKey(cmd) => cmd.execute(),
         SubCommand::GenerateEthereumAddress(_) => {
             let (private_key, address) = generate_ethereum_address();
             println!(

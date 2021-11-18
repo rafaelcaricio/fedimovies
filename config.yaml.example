@@ -10,6 +10,7 @@ instance_title: myserver
 instance_short_description: my fedi instance
 # Long description can contain markdown syntax
 instance_description: my fedi instance
+instance_rsa_key: null
 registrations_open: false
 # Login message must contain instance URL
 login_message: 'Sign this message to log in to https://myserver.net. Do not sign this message on other sites!'

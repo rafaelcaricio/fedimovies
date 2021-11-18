@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use rsa::RsaPrivateKey;
 use serde::{de, Deserialize, Deserializer};
 use url::Url;
 
 use crate::errors::ConversionError;
+use crate::utils::crypto::deserialize_private_key;
 
 #[derive(Clone, Debug)]
 pub enum Environment {
@@ -86,6 +88,7 @@ pub struct Config {
     pub instance_title: String,
     pub instance_short_description: String,
     pub instance_description: String,
+    instance_rsa_key: String,
 
     #[serde(default)]
     pub registrations_open: bool, // default is false
@@ -114,8 +117,15 @@ impl Config {
         Ok(url)
     }
 
+    fn try_instance_rsa_key(&self) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
+        deserialize_private_key(&self.instance_rsa_key)
+    }
+
     pub fn instance(&self) -> Instance {
-        Instance { _url: self.try_instance_url().unwrap() }
+        Instance {
+            _url: self.try_instance_url().unwrap(),
+            actor_key: self.try_instance_rsa_key().unwrap(),
+        }
     }
 
     pub fn instance_url(&self) -> String {
@@ -129,6 +139,8 @@ impl Config {
 
 pub struct Instance {
     _url: Url,
+    // Instance actor
+    pub actor_key: RsaPrivateKey,
 }
 
 impl Instance {
@@ -162,18 +174,24 @@ pub fn parse_config() -> Config {
         };
     };
     config.try_instance_url().expect("invalid instance URI");
+    config.try_instance_rsa_key().expect("invalid RSA private key");
 
     config
 }
 
 #[cfg(test)]
 mod tests {
+    use rand::rngs::OsRng;
     use super::*;
 
     #[test]
     fn test_instance_url_https_dns() {
         let instance_url = Url::parse("https://example.com/").unwrap();
-        let instance = Instance { _url: instance_url };
+        let instance_rsa_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
+        let instance = Instance {
+            _url: instance_url,
+            actor_key: instance_rsa_key,
+        };
 
         assert_eq!(instance.url(), "https://example.com");
         assert_eq!(instance.host(), "example.com");
@@ -182,7 +200,11 @@ mod tests {
     #[test]
     fn test_instance_url_http_ipv4() {
         let instance_url = Url::parse("http://1.2.3.4:3777/").unwrap();
-        let instance = Instance { _url: instance_url };
+        let instance_rsa_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
+        let instance = Instance {
+            _url: instance_url,
+            actor_key: instance_rsa_key,
+        };
 
         assert_eq!(instance.url(), "http://1.2.3.4:3777");
         assert_eq!(instance.host(), "1.2.3.4");

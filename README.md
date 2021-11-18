@@ -129,6 +129,12 @@ GET /api/v1/statuses/{status_id}/signature
 
 ## CLI commands
 
+Generate RSA private key:
+
+```
+mitractl generate-rsa-key
+```
+
 Generate invite code:
 
 ```
