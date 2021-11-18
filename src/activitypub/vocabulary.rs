@@ -12,6 +12,7 @@ pub const UPDATE: &str = "Update";
 
 // Actor types
 pub const PERSON: &str = "Person";
+pub const SERVICE: &str = "Service";
 
 // Object types
 pub const DOCUMENT: &str = "Document";

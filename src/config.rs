@@ -5,6 +5,7 @@ use rsa::RsaPrivateKey;
 use serde::{de, Deserialize, Deserializer};
 use url::Url;
 
+use crate::activitypub::views::get_instance_actor_url;
 use crate::errors::ConversionError;
 use crate::utils::crypto::deserialize_private_key;
 
@@ -151,6 +152,14 @@ impl Instance {
 
     pub fn host(&self) -> String {
         self._url.host_str().unwrap().to_string()
+    }
+
+    pub fn actor_id(&self) -> String {
+        get_instance_actor_url(&self.url())
+    }
+
+    pub fn actor_key_id(&self) -> String {
+        format!("{}#main-key", self.actor_id())
     }
 }
 

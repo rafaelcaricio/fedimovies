@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpResponse};
 use regex::Regex;
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::views::get_actor_url;
+use crate::activitypub::views::{get_actor_url, get_instance_actor_url};
 use crate::activitypub::constants::ACTIVITY_CONTENT_TYPE;
 use crate::config::{Config, Instance};
 use crate::database::{Pool, get_database_client};
@@ -22,7 +22,7 @@ async fn get_user_info(
 ) -> Result<JsonResourceDescriptor, HttpError> {
     // Parse 'acct' URI
     // https://datatracker.ietf.org/doc/html/rfc7565#section-7
-    let uri_regexp = Regex::new(r"acct:(?P<user>\w+)@(?P<instance>.+)").unwrap();
+    let uri_regexp = Regex::new(r"acct:(?P<user>[\w\.]+)@(?P<instance>.+)").unwrap();
     let uri_caps = uri_regexp.captures(&query_params.resource)
         .ok_or(ValidationError("invalid query target"))?;
     let username = uri_caps.name("user")
@@ -36,10 +36,14 @@ async fn get_user_info(
         // Wrong instance
         return Err(HttpError::NotFoundError("user"));
     }
-    if !is_registered_user(db_client, username).await? {
-        return Err(HttpError::NotFoundError("user"));
-    }
-    let actor_url = get_actor_url(&instance.url(), username);
+    let actor_url = if username == instance.host() {
+        get_instance_actor_url(&instance.url())
+    } else {
+        if !is_registered_user(db_client, username).await? {
+            return Err(HttpError::NotFoundError("user"));
+        };
+        get_actor_url(&instance.url(), username)
+    };
     let link = Link {
         rel: "self".to_string(),
         link_type: Some(ACTIVITY_CONTENT_TYPE.to_string()),

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use crate::config::Instance;
 use crate::errors::ConversionError;
 use crate::models::profiles::types::{DbActorProfile, ExtraField};
 use crate::models::users::types::User;
@@ -14,7 +15,7 @@ use super::views::{
     get_followers_url,
     get_following_url,
 };
-use super::vocabulary::{PERSON, IMAGE, PROPERTY_VALUE};
+use super::vocabulary::{IMAGE, PERSON, PROPERTY_VALUE, SERVICE};
 
 const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
 
@@ -63,8 +64,12 @@ pub struct Actor {
     pub preferred_username: String,
     pub inbox: String,
     pub outbox: String,
-    pub followers: String,
-    pub following: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub followers: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub following: Option<String>,
 
     pub public_key: PublicKey,
 
@@ -80,6 +85,7 @@ pub struct Actor {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub attachment: Option<Vec<ActorProperty>>,
 }
 
@@ -178,14 +184,49 @@ pub fn get_local_actor(
         preferred_username: username.to_string(),
         inbox,
         outbox,
-        followers,
-        following,
+        followers: Some(followers),
+        following: Some(following),
         public_key,
         capabilities: Some(capabilities),
         icon: avatar,
         image: banner,
         summary: None,
         attachment: Some(properties),
+    };
+    Ok(actor)
+}
+
+pub fn get_instance_actor(
+    instance: &Instance,
+) -> Result<Actor, ActorKeyError> {
+    let actor_id = instance.actor_id();
+    let actor_inbox = format!("{}/inbox", actor_id);
+    let actor_outbox = format!("{}/outbox", actor_id);
+    let public_key_pem = get_public_key_pem(&instance.actor_key)?;
+    let public_key = PublicKey {
+        id: instance.actor_key_id(),
+        owner: actor_id.clone(),
+        public_key_pem: public_key_pem,
+    };
+    let actor = Actor {
+        context: Some(json!([
+            AP_CONTEXT.to_string(),
+            W3ID_CONTEXT.to_string(),
+        ])),
+        id: actor_id,
+        object_type: SERVICE.to_string(),
+        name: instance.host(),
+        preferred_username: instance.host(),
+        inbox: actor_inbox,
+        outbox: actor_outbox,
+        followers: None,
+        following: None,
+        public_key,
+        capabilities: None,
+        icon: None,
+        image: None,
+        summary: None,
+        attachment: None,
     };
     Ok(actor)
 }

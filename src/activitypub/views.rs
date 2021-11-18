@@ -13,7 +13,7 @@ use crate::http_signatures::verify::verify_http_signature;
 use crate::models::posts::queries::get_thread;
 use crate::models::users::queries::get_user_by_name;
 use super::activity::{create_note, OrderedCollection};
-use super::actor::get_local_actor;
+use super::actor::{get_local_actor, get_instance_actor};
 use super::constants::ACTIVITY_CONTENT_TYPE;
 use super::receiver::receive_activity;
 
@@ -37,6 +37,10 @@ pub fn get_following_url(instance_url: &str, username: &str) -> String {
     format!("{}/users/{}/following", instance_url, username)
 }
 
+pub fn get_instance_actor_url(instance_url: &str) -> String {
+    format!("{}/actor", instance_url)
+}
+
 pub fn get_object_url(instance_url: &str, object_uuid: &Uuid) -> String {
     format!("{}/objects/{}", instance_url, object_uuid)
 }
@@ -55,7 +59,7 @@ fn is_activitypub_request(request: &HttpRequest) -> bool {
 }
 
 #[get("")]
-async fn get_actor(
+async fn actor_view(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     request: HttpRequest,
@@ -135,16 +139,28 @@ async fn following_collection(
     Ok(response)
 }
 
-pub fn activitypub_scope() -> Scope {
+pub fn actor_scope() -> Scope {
     web::scope("/users/{username}")
-        .service(get_actor)
+        .service(actor_view)
         .service(inbox)
         .service(followers_collection)
         .service(following_collection)
 }
 
+#[get("/actor")]
+pub async fn instance_actor_view(
+    config: web::Data<Config>,
+) -> Result<HttpResponse, HttpError> {
+    let actor = get_instance_actor(&config.instance())
+        .map_err(|_| HttpError::InternalError)?;
+    let response = HttpResponse::Ok()
+        .content_type(ACTIVITY_CONTENT_TYPE)
+        .json(actor);
+    Ok(response)
+}
+
 #[get("/objects/{object_id}")]
-pub async fn get_object(
+pub async fn object_view(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     request: HttpRequest,

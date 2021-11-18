@@ -5,7 +5,7 @@ use actix_web::{
     middleware::Logger as ActixLogger,
 };
 
-use mitra::activitypub::views::{activitypub_scope, get_object};
+use mitra::activitypub::views as activitypub;
 use mitra::config::{Environment, parse_config};
 use mitra::database::create_pool;
 use mitra::database::migrate::apply_migrations;
@@ -87,8 +87,9 @@ async fn main() -> std::io::Result<()> {
             .service(search_api_scope())
             .service(timeline_api_scope())
             .service(webfinger::get_descriptor)
-            .service(activitypub_scope())
-            .service(get_object)
+            .service(activitypub::actor_scope())
+            .service(activitypub::instance_actor_view)
+            .service(activitypub::object_view)
             .service(nodeinfo::get_nodeinfo)
             .service(nodeinfo::get_nodeinfo_2_0);
         if let Some(contract_dir) = &config.ethereum_contract_dir {
