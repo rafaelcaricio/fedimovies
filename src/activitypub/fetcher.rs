@@ -45,19 +45,23 @@ async fn send_request(
         request_builder = request_builder.query(query_params);
     };
 
-    let headers = create_http_signature(
-        Method::GET,
-        url,
-        "",
-        &instance.actor_key,
-        &instance.actor_key_id(),
-    )?;
+    if !instance.is_private {
+        // Only public instance can send signed request
+        let headers = create_http_signature(
+            Method::GET,
+            url,
+            "",
+            &instance.actor_key,
+            &instance.actor_key_id(),
+        )?;
+        request_builder = request_builder
+            .header("Host", headers.host)
+            .header("Date", headers.date)
+            .header("Signature", headers.signature);
+    };
 
     let data = request_builder
         .header(reqwest::header::ACCEPT, ACTIVITY_CONTENT_TYPE)
-        .header("Host", headers.host)
-        .header("Date", headers.date)
-        .header("Signature", headers.signature)
         .send().await?
         .error_for_status()?
         .text().await?;

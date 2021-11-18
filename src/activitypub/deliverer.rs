@@ -1,7 +1,7 @@
 use actix_web::http::Method;
 use rsa::RsaPrivateKey;
 
-use crate::config::{Environment, Config};
+use crate::config::{Config, Instance};
 use crate::http_signatures::create::{create_http_signature, SignatureError};
 use crate::models::users::types::User;
 use crate::utils::crypto::deserialize_private_key;
@@ -29,7 +29,7 @@ pub enum DelivererError {
 }
 
 async fn send_activity(
-    config: &Config,
+    instance: &Instance,
     actor_key: &RsaPrivateKey,
     actor_key_id: &str,
     activity_json: &str,
@@ -53,32 +53,29 @@ async fn send_activity(
         .header("Content-Type", ACTIVITY_CONTENT_TYPE)
         .body(activity_json.to_owned());
 
-    match config.environment {
-        Environment::Development => {
-            log::info!(
-                "development mode: not sending activity to {}",
-                inbox_url,
-            );
-        },
-        Environment::Production => {
-            // Default timeout is 30s
-            let response = request.send().await?;
-            let response_status = response.status();
-            let response_text = response.text().await?;
-            log::info!(
-                "remote server response: {}",
-                response_text,
-            );
-            if response_status.is_client_error() || response_status.is_server_error() {
-                return Err(DelivererError::HttpError(response_status));
-            }
-        },
+    if instance.is_private {
+        log::info!(
+            "private mode: not sending activity to {}",
+            inbox_url,
+        );
+    } else {
+        // Default timeout is 30s
+        let response = request.send().await?;
+        let response_status = response.status();
+        let response_text = response.text().await?;
+        log::info!(
+            "remote server response: {}",
+            response_text,
+        );
+        if response_status.is_client_error() || response_status.is_server_error() {
+            return Err(DelivererError::HttpError(response_status));
+        };
     };
     Ok(())
 }
 
 async fn deliver_activity_worker(
-    config: Config,
+    instance: Instance,
     sender: User,
     activity: Activity,
     recipients: Vec<Actor>,
@@ -87,7 +84,7 @@ async fn deliver_activity_worker(
     let actor_key_id = format!(
         "{}#main-key",
         get_actor_url(
-            &config.instance_url(),
+            &instance.url(),
             &sender.profile.username,
         ),
     );
@@ -100,7 +97,7 @@ async fn deliver_activity_worker(
     for inbox_url in inboxes {
         // TODO: retry on error
         if let Err(err) = send_activity(
-            &config,
+            &instance,
             &actor_key,
             &actor_key_id,
             &activity_json,
@@ -118,11 +115,11 @@ pub fn deliver_activity(
     activity: Activity,
     recipients: Vec<Actor>,
 ) -> () {
-    let config = config.clone();
+    let instance = config.instance();
     let sender = sender.clone();
     actix_rt::spawn(async move {
         deliver_activity_worker(
-            config,
+            instance,
             sender,
             activity,
             recipients,

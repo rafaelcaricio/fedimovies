@@ -9,7 +9,7 @@ use crate::activitypub::views::get_instance_actor_url;
 use crate::errors::ConversionError;
 use crate::utils::crypto::deserialize_private_key;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Environment {
     Development,
     Production,
@@ -126,6 +126,7 @@ impl Config {
         Instance {
             _url: self.try_instance_url().unwrap(),
             actor_key: self.try_instance_rsa_key().unwrap(),
+            is_private: self.environment == Environment::Development,
         }
     }
 
@@ -142,6 +143,8 @@ pub struct Instance {
     _url: Url,
     // Instance actor
     pub actor_key: RsaPrivateKey,
+    // Private instance won't send signed HTTP requests
+    pub is_private: bool,
 }
 
 impl Instance {
@@ -200,6 +203,7 @@ mod tests {
         let instance = Instance {
             _url: instance_url,
             actor_key: instance_rsa_key,
+            is_private: true,
         };
 
         assert_eq!(instance.url(), "https://example.com");
@@ -213,6 +217,7 @@ mod tests {
         let instance = Instance {
             _url: instance_url,
             actor_key: instance_rsa_key,
+            is_private: true,
         };
 
         assert_eq!(instance.url(), "http://1.2.3.4:3777");
