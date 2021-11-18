@@ -15,7 +15,7 @@ use super::vocabulary::*;
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Attachment {
-    pub name: String,
+    pub name: Option<String>,
 
     #[serde(rename = "type")]
     pub attachment_type: String,
@@ -131,7 +131,7 @@ pub fn create_note(
         let url = get_file_url(instance_url, &db_item.file_name);
         let media_type = db_item.media_type.clone().unwrap_or("".to_string());
         Attachment {
-            name: "".to_string(),
+            name: None,
             attachment_type: DOCUMENT.to_string(),
             media_type,
             url,
