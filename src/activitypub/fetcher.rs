@@ -163,13 +163,10 @@ pub async fn fetch_attachment(
 }
 
 pub async fn fetch_object(
+    instance: &Instance,
     object_url: &str,
 ) -> Result<Object, FetchError> {
-    let client = reqwest::Client::new();
-    let object_json = client.get(object_url)
-        .header(reqwest::header::ACCEPT, ACTIVITY_CONTENT_TYPE)
-        .send().await?
-        .text().await?;
+    let object_json = send_request(instance, object_url, &[]).await?;
     let object_value: Value = serde_json::from_str(&object_json)?;
     let object: Object = serde_json::from_value(object_value)?;
     Ok(object)

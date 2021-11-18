@@ -80,8 +80,9 @@ async fn search_note(
     if url::Url::parse(search_query).is_err() {
         // Not a valid URL
         return Ok(None);
-    }
-    let maybe_post = if let Ok(object) = fetch_object(search_query).await {
+    };
+    let instance = config.instance();
+    let maybe_post = if let Ok(object) = fetch_object(&instance, search_query).await {
         let post = process_note(config, db_client, object).await?;
         Some(post)
     } else {

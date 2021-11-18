@@ -113,6 +113,7 @@ pub async fn process_note(
         Err(other_error) => return Err(other_error.into()),
     };
 
+    let instance = config.instance();
     let initial_object_id = object.id.clone();
     let mut maybe_parent_object_id = object.in_reply_to.clone();
     let mut objects = vec![object];
@@ -124,7 +125,7 @@ pub async fn process_note(
     loop {
         let object_id = match maybe_parent_object_id {
             Some(parent_object_id) => {
-                if parse_object_id(&config.instance_url(), &parent_object_id).is_ok() {
+                if parse_object_id(&instance.url(), &parent_object_id).is_ok() {
                     // Parent object is a local post
                     break;
                 }
@@ -143,7 +144,7 @@ pub async fn process_note(
                 break;
             },
         };
-        let object = fetch_object(&object_id).await
+        let object = fetch_object(&instance, &object_id).await
             .map_err(|_| ValidationError("failed to fetch object"))?;
         maybe_parent_object_id = object.in_reply_to.clone();
         objects.push(object);
@@ -157,7 +158,7 @@ pub async fn process_note(
             .ok_or(ValidationError("unattributed note"))?;
         let author = get_or_fetch_profile_by_actor_id(
             db_client,
-            &config.instance(),
+            &instance,
             &attributed_to,
             &config.media_dir(),
         ).await?;
@@ -189,7 +190,7 @@ pub async fn process_note(
                 if tag.tag_type == MENTION {
                     let profile = get_or_fetch_profile_by_actor_id(
                         db_client,
-                        &config.instance(),
+                        &instance,
                         &tag.href,
                         &config.media_dir(),
                     ).await?;
@@ -199,7 +200,7 @@ pub async fn process_note(
         };
         let in_reply_to_id = match object.in_reply_to {
             Some(object_id) => {
-                match parse_object_id(&config.instance_url(), &object_id) {
+                match parse_object_id(&instance.url(), &object_id) {
                     Ok(post_id) => {
                         // Local post
                         let post = get_post_by_id(db_client, &post_id).await?;
