@@ -46,8 +46,10 @@ pub fn get_object_url(instance_url: &str, object_uuid: &Uuid) -> String {
 }
 
 fn is_activitypub_request(request: &HttpRequest) -> bool {
-    const CONTENT_TYPES: [&str; 3] = [
+    const CONTENT_TYPES: [&str; 5] = [
         ACTIVITY_CONTENT_TYPE,
+        "application/activity+json, application/ld+json",  // Mastodon
+        "application/activity+json",
         "application/ld+json",
         "application/json",
     ];
