@@ -80,6 +80,19 @@ fn parse_object_id(
     Ok(object_uuid)
 }
 
+fn parse_array(value: &Value) -> Result<Vec<String>, ValidationError> {
+    let result = match value {
+        Value::String(string) => vec![string.to_string()],
+        Value::Array(array) => {
+            array.into_iter()
+                .filter_map(|val| val.as_str().map(|s| s.to_string()))
+                .collect()
+        },
+        _ => return Err(ValidationError("invalid attribute value")),
+    };
+    Ok(result)
+}
+
 async fn get_or_fetch_profile_by_actor_id(
     db_client: &impl GenericClient,
     instance: &Instance,
@@ -214,10 +227,24 @@ pub async fn process_note(
             },
             None => None,
         };
+        let visibility = match object.to {
+            Some(value) => {
+                let recipients = parse_array(&value)?;
+                if recipients.len() == 1 &&
+                    parse_actor_id(&instance.url(), &recipients[0]).is_ok()
+                {
+                    // Single local recipient
+                    Visibility::Direct
+                } else {
+                    Visibility::Public
+                }
+            },
+            None => Visibility::Public,
+        };
         let post_data = PostCreateData {
             content,
             in_reply_to_id,
-            visibility: Visibility::Public,
+            visibility,
             attachments: attachments,
             mentions: mentions,
             object_id: Some(object.id),
@@ -381,6 +408,7 @@ pub async fn receive_activity(
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.org";
@@ -425,5 +453,23 @@ mod tests {
         let object_id = "https://example.org/objects/1234";
         let error = parse_object_id(INSTANCE_URL, object_id).unwrap_err();
         assert_eq!(error.to_string(), "invalid object ID");
+    }
+
+    #[test]
+    fn test_parse_array_with_string() {
+        let value = json!("test");
+        assert_eq!(
+            parse_array(&value).unwrap(),
+            vec!["test".to_string()],
+        );
+    }
+
+    #[test]
+    fn test_parse_array_with_array() {
+        let value = json!(["test1", "test2"]);
+        assert_eq!(
+            parse_array(&value).unwrap(),
+            vec!["test1".to_string(), "test2".to_string()],
+        );
     }
 }
