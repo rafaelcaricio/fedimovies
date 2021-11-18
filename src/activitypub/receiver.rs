@@ -9,7 +9,7 @@ use crate::config::{Config, Instance};
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
-use crate::models::posts::types::{Post, PostCreateData};
+use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
@@ -217,6 +217,7 @@ pub async fn process_note(
         let post_data = PostCreateData {
             content,
             in_reply_to_id,
+            visibility: Visibility::Public,
             attachments: attachments,
             mentions: mentions,
             object_id: Some(object.id),

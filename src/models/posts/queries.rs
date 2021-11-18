@@ -116,10 +116,11 @@ pub async fn create_post(
         INSERT INTO post (
             id, author_id, content,
             in_reply_to_id,
+            visibility,
             object_id,
             created_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING post
         ",
         &[
@@ -127,6 +128,7 @@ pub async fn create_post(
             &author_id,
             &data.content,
             &data.in_reply_to_id,
+            &data.visibility,
             &data.object_id,
             &created_at,
         ],

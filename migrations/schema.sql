@@ -34,6 +34,7 @@ CREATE TABLE post (
     author_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     in_reply_to_id UUID REFERENCES post (id) ON DELETE CASCADE,
+    visilibity SMALLINT NOT NULL,
     reply_count INTEGER NOT NULL CHECK (reply_count >= 0) DEFAULT 0,
     reaction_count INTEGER NOT NULL CHECK (reaction_count >= 0) DEFAULT 0,
     object_id VARCHAR(200) UNIQUE,

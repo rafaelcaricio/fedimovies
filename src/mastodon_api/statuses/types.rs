@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::media::types::Attachment;
-use crate::models::posts::types::{Post, PostCreateData};
+use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::profiles::types::DbActorProfile;
 
 /// https://docs.joinmastodon.org/entities/mention/
@@ -35,6 +35,7 @@ pub struct Status {
     pub account: Account,
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
+    pub visibility: String,
     pub replies_count: i32,
     pub favourites_count: i32,
     pub media_attachments: Vec<Attachment>,
@@ -58,12 +59,17 @@ impl Status {
             .map(|item| Mention::from_profile(item, instance_url))
             .collect();
         let account = Account::from_profile(post.author, instance_url);
+        let visibility = match post.visibility {
+            Visibility::Public => "public",
+            Visibility::Direct => "direct",
+        };
         Self {
             id: post.id,
             created_at: post.created_at,
             account: account,
             content: post.content,
             in_reply_to_id: post.in_reply_to_id,
+            visibility: visibility.to_string(),
             replies_count: post.reply_count,
             favourites_count: post.reaction_count,
             media_attachments: attachments,
@@ -93,6 +99,7 @@ impl From<StatusData> for PostCreateData {
         Self {
             content: value.status,
             in_reply_to_id: value.in_reply_to_id,
+            visibility: Visibility::Public,
             attachments: value.media_ids.unwrap_or(vec![]),
             mentions: vec![],
             object_id: None,

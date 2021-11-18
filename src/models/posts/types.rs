@@ -1,14 +1,70 @@
 use std::convert::TryFrom;
 
 use chrono::{DateTime, Utc};
-use postgres_types::FromSql;
+use postgres_protocol::types::{int2_from_sql, int2_to_sql};
+use postgres_types::{
+    FromSql, ToSql, IsNull, Type,
+    accepts, to_sql_checked,
+    private::BytesMut,
+};
 use tokio_postgres::Row;
 use uuid::Uuid;
 
-use crate::errors::ValidationError;
+use crate::errors::{ConversionError, ValidationError};
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::html::clean_html;
+
+#[derive(Debug)]
+pub enum Visibility {
+    Public,
+    Direct,
+}
+
+impl From<&Visibility> for i16 {
+    fn from(value: &Visibility) -> i16 {
+        match value {
+            Visibility::Public => 1,
+            Visibility::Direct => 2,
+        }
+    }
+}
+
+impl TryFrom<i16> for Visibility {
+    type Error = ConversionError;
+
+    fn try_from(value: i16) -> Result<Self, Self::Error> {
+        let visibility = match value {
+            1 => Self::Public,
+            2 => Self::Direct,
+            _ => return Err(ConversionError),
+        };
+        Ok(visibility)
+    }
+}
+
+type SqlError = Box<dyn std::error::Error + Sync + Send>;
+
+impl<'a> FromSql<'a> for Visibility {
+    fn from_sql(_: &Type, raw: &'a [u8]) -> Result<Visibility, SqlError> {
+        let int_value = int2_from_sql(raw)?;
+        let visibility = Visibility::try_from(int_value)?;
+        Ok(visibility)
+    }
+
+    accepts!(INT2);
+}
+
+impl ToSql for Visibility {
+    fn to_sql(&self, _: &Type, out: &mut BytesMut) -> Result<IsNull, SqlError> {
+        let int_value: i16 = self.into();
+        int2_to_sql(int_value, out);
+        Ok(IsNull::No)
+    }
+
+    accepts!(INT2);
+    to_sql_checked!();
+}
 
 #[derive(FromSql)]
 #[postgres(name = "post")]
@@ -17,6 +73,7 @@ pub struct DbPost {
     pub author_id: Uuid,
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
+    pub visibility: Visibility,
     pub reply_count: i32,
     pub reaction_count: i32,
     pub object_id: Option<String>,
@@ -36,6 +93,7 @@ pub struct Post {
     pub author: DbActorProfile,
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
+    pub visibility: Visibility,
     pub reply_count: i32,
     pub reaction_count: i32,
     pub attachments: Vec<DbMediaAttachment>,
@@ -61,6 +119,7 @@ impl Post {
             author: db_author,
             content: db_post.content,
             in_reply_to_id: db_post.in_reply_to_id,
+            visibility: db_post.visibility,
             reply_count: db_post.reply_count,
             reaction_count: db_post.reaction_count,
             attachments: db_attachments,
@@ -83,6 +142,7 @@ impl Default for Post {
             author: Default::default(),
             content: "".to_string(),
             in_reply_to_id: None,
+            visibility: Visibility::Public,
             reply_count: 0,
             reaction_count: 0,
             attachments: vec![],
@@ -114,6 +174,7 @@ impl TryFrom<&Row> for Post {
 pub struct PostCreateData {
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
+    pub visibility: Visibility,
     pub attachments: Vec<Uuid>,
     pub mentions: Vec<Uuid>,
     pub object_id: Option<String>,
@@ -142,6 +203,7 @@ mod tests {
         let mut post_data_1 = PostCreateData {
             content: "  ".to_string(),
             in_reply_to_id: None,
+            visibility: Visibility::Public,
             attachments: vec![],
             mentions: vec![],
             object_id: None,
@@ -155,6 +217,7 @@ mod tests {
         let mut post_data_2 = PostCreateData {
             content: "test ".to_string(),
             in_reply_to_id: None,
+            visibility: Visibility::Public,
             attachments: vec![],
             mentions: vec![],
             object_id: None,
