@@ -32,7 +32,15 @@ async fn search_profiles(
     search_query: &str,
 ) -> Result<Vec<DbActorProfile>, HttpError> {
     let (username, instance) = match parse_profile_query(search_query) {
-        Ok(parsed) => parsed,
+        Ok((username, mut instance)) => {
+            if let Some(ref actor_host) = instance {
+                if actor_host == &config.instance().host() {
+                    // This is a local profile
+                    instance = None;
+                };
+            };
+            (username, instance)
+        },
         Err(_) => {
             // Not an 'acct' query
             return Ok(vec![]);
@@ -40,9 +48,10 @@ async fn search_profiles(
     };
     let mut profiles = search_profile(db_client, &username, instance.as_ref()).await?;
     if profiles.is_empty() && instance.is_some() {
-        let instance_host = instance.unwrap();
+        let actor_host = instance.unwrap();
         let media_dir = config.media_dir();
-        match fetch_profile(&username, &instance_host, &media_dir).await {
+        // TODO: return error when trying to fetch local profile
+        match fetch_profile(&username, &actor_host, &media_dir).await {
             Ok(profile_data) => {
                 let profile = create_profile(db_client, &profile_data).await?;
                 log::info!(
