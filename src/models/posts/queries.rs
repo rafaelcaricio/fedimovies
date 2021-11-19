@@ -14,7 +14,7 @@ use crate::models::cleanup::{
 use crate::models::notifications::queries::create_reply_notification;
 use crate::models::profiles::queries::update_post_count;
 use crate::models::profiles::types::DbActorProfile;
-use super::types::{DbPost, Post, PostCreateData};
+use super::types::{DbPost, Post, PostCreateData, Visibility};
 
 pub const RELATED_ATTACHMENTS: &str =
     "ARRAY(
@@ -72,11 +72,18 @@ pub async fn get_posts_by_author(
     db_client: &impl GenericClient,
     account_id: &Uuid,
     include_replies: bool,
+    include_private: bool,
 ) -> Result<Vec<Post>, DatabaseError> {
-    let condition = if include_replies {
-        "post.author_id = $1"
-    } else {
-        "post.author_id = $1 AND post.in_reply_to_id IS NULL"
+    let mut condition = "post.author_id = $1".to_string();
+    if !include_replies {
+        condition.push_str(" AND post.in_reply_to_id IS NULL");
+    };
+    if !include_private {
+        let only_public = format!(
+            " AND visibility = {}",
+            i16::from(&Visibility::Public),
+        );
+        condition.push_str(&only_public);
     };
     let statement = format!(
         "
