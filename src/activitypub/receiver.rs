@@ -292,10 +292,16 @@ pub async fn receive_activity(
                 .map_err(|_| ValidationError("invalid object"))?;
             process_note(config, db_client, object).await?;
         },
-        (DELETE, TOMBSTONE) => {
-            let object: Object = serde_json::from_value(activity.object)
-                .map_err(|_| ValidationError("invalid object"))?;
-            let post = get_post_by_object_id(db_client, &object.id).await?;
+        (DELETE, _) => {
+            let object_id = match activity.object.as_str() {
+                Some(object_id) => object_id.to_owned(),
+                None => {
+                    let object: Object = serde_json::from_value(activity.object)
+                        .map_err(|_| ValidationError("invalid object"))?;
+                    object.id
+                },
+            };
+            let post = get_post_by_object_id(db_client, &object_id).await?;
             let deletion_queue = delete_post(db_client, &post.id).await?;
             let config = config.clone();
             actix_rt::spawn(async move {

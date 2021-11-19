@@ -79,7 +79,7 @@ The following activities are supported:
 - Accept(Follow)
 - Reject(Follow)
 - Create(Note)
-- Delete(Tombstone)
+- Delete(Note)
 - Like(Note)
 - Follow(Person)
 - Undo(Follow)
