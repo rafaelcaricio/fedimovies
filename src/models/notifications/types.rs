@@ -5,6 +5,7 @@ use postgres_types::FromSql;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
+use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
 use crate::errors::{ConversionError, DatabaseError};
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::posts::types::{DbPost, Post};
@@ -18,10 +19,11 @@ struct DbNotification {
     sender_id: Uuid,
     recipient_id: Uuid,
     post_id: Option<Uuid>,
-    event_type: i16,
+    event_type: EventType,
     created_at: DateTime<Utc>,
 }
 
+#[derive(Debug)]
 pub enum EventType {
     Follow,
     FollowRequest,
@@ -29,8 +31,8 @@ pub enum EventType {
     Reaction,
 }
 
-impl From<EventType> for i16 {
-    fn from(value: EventType) -> i16 {
+impl From<&EventType> for i16 {
+    fn from(value: &EventType) -> i16 {
         match value {
             EventType::Follow => 1,
             EventType::FollowRequest => 2,
@@ -54,6 +56,9 @@ impl TryFrom<i16> for EventType {
         Ok(event_type)
     }
 }
+
+int_enum_from_sql!(EventType);
+int_enum_to_sql!(EventType);
 
 pub struct Notification {
     pub id: i32,
@@ -84,7 +89,7 @@ impl TryFrom<&Row> for Notification {
             id: db_notification.id,
             sender: db_sender,
             post: maybe_post,
-            event_type: EventType::try_from(db_notification.event_type)?,
+            event_type: db_notification.event_type,
             created_at: db_notification.created_at,
         };
         Ok(notification)

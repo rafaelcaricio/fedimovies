@@ -1,15 +1,11 @@
 use std::convert::TryFrom;
 
 use chrono::{DateTime, Utc};
-use postgres_protocol::types::{int2_from_sql, int2_to_sql};
-use postgres_types::{
-    FromSql, ToSql, IsNull, Type,
-    accepts, to_sql_checked,
-    private::BytesMut,
-};
+use postgres_types::FromSql;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
+use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
 use crate::errors::{ConversionError, ValidationError};
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::types::DbActorProfile;
@@ -43,28 +39,8 @@ impl TryFrom<i16> for Visibility {
     }
 }
 
-type SqlError = Box<dyn std::error::Error + Sync + Send>;
-
-impl<'a> FromSql<'a> for Visibility {
-    fn from_sql(_: &Type, raw: &'a [u8]) -> Result<Visibility, SqlError> {
-        let int_value = int2_from_sql(raw)?;
-        let visibility = Visibility::try_from(int_value)?;
-        Ok(visibility)
-    }
-
-    accepts!(INT2);
-}
-
-impl ToSql for Visibility {
-    fn to_sql(&self, _: &Type, out: &mut BytesMut) -> Result<IsNull, SqlError> {
-        let int_value: i16 = self.into();
-        int2_to_sql(int_value, out);
-        Ok(IsNull::No)
-    }
-
-    accepts!(INT2);
-    to_sql_checked!();
-}
+int_enum_from_sql!(Visibility);
+int_enum_to_sql!(Visibility);
 
 #[derive(FromSql)]
 #[postgres(name = "post")]

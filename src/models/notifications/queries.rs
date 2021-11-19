@@ -25,7 +25,7 @@ async fn create_notification(
         )
         VALUES ($1, $2, $3, $4)
         ",
-        &[&sender_id, &recipient_id, &post_id, &i16::from(event_type)],
+        &[&sender_id, &recipient_id, &post_id, &event_type],
     ).await?;
     Ok(())
 }

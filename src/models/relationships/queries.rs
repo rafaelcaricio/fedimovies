@@ -12,7 +12,6 @@ use crate::models::profiles::queries::{
 };
 use super::types::{
     DbFollowRequest,
-    FollowRequest,
     FollowRequestStatus,
     Relationship,
 };
@@ -142,12 +141,12 @@ pub async fn create_follow_request(
     db_client: &impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
-) -> Result<FollowRequest, DatabaseError> {
-    let request = FollowRequest {
+) -> Result<DbFollowRequest, DatabaseError> {
+    let request = DbFollowRequest {
         id: Uuid::new_v4(),
         source_id: source_id.to_owned(),
         target_id: target_id.to_owned(),
-        status: FollowRequestStatus::Pending,
+        request_status: FollowRequestStatus::Pending,
     };
     db_client.execute(
         "
@@ -160,7 +159,7 @@ pub async fn create_follow_request(
             &request.id,
             &request.source_id,
             &request.target_id,
-            &i16::from(request.status.clone()),
+            &request.request_status,
         ],
     ).await?;
     Ok(request)
@@ -171,7 +170,6 @@ pub async fn follow_request_accepted(
     request_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     let mut transaction = db_client.transaction().await?;
-    let status_sql = i16::from(FollowRequestStatus::Accepted);
     let maybe_row = transaction.query_opt(
         "
         UPDATE follow_request
@@ -179,7 +177,7 @@ pub async fn follow_request_accepted(
         WHERE id = $2
         RETURNING source_id, target_id
         ",
-        &[&status_sql, &request_id],
+        &[&FollowRequestStatus::Accepted, &request_id],
     ).await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("follow request"))?;
     let source_id: Uuid = row.try_get("source_id")?;
@@ -193,14 +191,13 @@ pub async fn follow_request_rejected(
     db_client: &impl GenericClient,
     request_id: &Uuid,
 ) -> Result<(), DatabaseError> {
-    let status_sql: i16 = FollowRequestStatus::Rejected.into();
     let updated_count = db_client.execute(
         "
         UPDATE follow_request
         SET request_status = $1
         WHERE id = $2
         ",
-        &[&status_sql, &request_id],
+        &[&FollowRequestStatus::Rejected, &request_id],
     ).await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("follow request"));
@@ -228,7 +225,7 @@ pub async fn get_follow_request_by_path(
     db_client: &impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
-) -> Result<FollowRequest, DatabaseError> {
+) -> Result<DbFollowRequest, DatabaseError> {
     let maybe_row = db_client.query_opt(
         "
         SELECT follow_request
@@ -238,13 +235,6 @@ pub async fn get_follow_request_by_path(
         &[&source_id, &target_id],
     ).await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("follow request"))?;
-    let db_request: DbFollowRequest = row.try_get("follow_request")?;
-    let request_status = FollowRequestStatus::try_from(db_request.request_status)?;
-    let request = FollowRequest {
-        id: db_request.id,
-        source_id: db_request.source_id,
-        target_id: db_request.target_id,
-        status: request_status,
-    };
+    let request: DbFollowRequest = row.try_get("follow_request")?;
     Ok(request)
 }

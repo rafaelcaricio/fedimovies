@@ -9,7 +9,7 @@ use crate::activitypub::views::get_instance_actor_url;
 use crate::errors::ConversionError;
 use crate::utils::crypto::deserialize_private_key;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Environment {
     Development,
     Production,
@@ -126,7 +126,7 @@ impl Config {
         Instance {
             _url: self.try_instance_url().unwrap(),
             actor_key: self.try_instance_rsa_key().unwrap(),
-            is_private: self.environment == Environment::Development,
+            is_private: matches!(self.environment, Environment::Development),
         }
     }
 

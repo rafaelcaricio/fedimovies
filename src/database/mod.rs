@@ -1,3 +1,4 @@
+pub mod int_enum;
 pub mod migrate;
 
 pub type Pool = deadpool_postgres::Pool;

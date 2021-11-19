@@ -5,6 +5,7 @@ use serde::Serialize;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
+use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
 use crate::errors::ConversionError;
 
 #[derive(Serialize)]
@@ -30,15 +31,15 @@ impl TryFrom<&Row> for Relationship {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug)]
 pub enum FollowRequestStatus {
     Pending,
     Accepted,
     Rejected,
 }
 
-impl From<FollowRequestStatus> for i16 {
-    fn from(value: FollowRequestStatus) -> i16 {
+impl From<&FollowRequestStatus> for i16 {
+    fn from(value: &FollowRequestStatus) -> i16 {
         match value {
             FollowRequestStatus::Pending  => 1,
             FollowRequestStatus::Accepted => 2,
@@ -61,18 +62,14 @@ impl TryFrom<i16> for FollowRequestStatus {
     }
 }
 
+int_enum_from_sql!(FollowRequestStatus);
+int_enum_to_sql!(FollowRequestStatus);
+
 #[derive(FromSql)]
 #[postgres(name = "follow_request")]
 pub struct DbFollowRequest {
     pub id: Uuid,
     pub source_id: Uuid,
     pub target_id: Uuid,
-    pub request_status: i16,
-}
-
-pub struct FollowRequest {
-    pub id: Uuid,
-    pub source_id: Uuid,
-    pub target_id: Uuid,
-    pub status: FollowRequestStatus,
+    pub request_status: FollowRequestStatus,
 }
