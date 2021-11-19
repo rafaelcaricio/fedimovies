@@ -170,7 +170,7 @@ pub async fn object_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     // Try to find local post by ID, return 404 if not found
-    let thread = get_thread(db_client, &object_id).await?;
+    let thread = get_thread(db_client, &object_id, None).await?;
     let post = thread.iter()
         .find(|post| post.id == object_id && post.author.is_local())
         .ok_or(HttpError::NotFoundError("post"))?;

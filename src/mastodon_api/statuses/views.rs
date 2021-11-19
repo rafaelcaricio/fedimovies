@@ -139,7 +139,11 @@ async fn get_context(
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
         None => None,
     };
-    let mut posts = get_thread(db_client, &status_id).await?;
+    let mut posts = get_thread(
+        db_client,
+        &status_id,
+        maybe_current_user.as_ref().map(|user| &user.id),
+    ).await?;
     if let Some(user) = maybe_current_user {
         get_actions_for_posts(
             db_client,

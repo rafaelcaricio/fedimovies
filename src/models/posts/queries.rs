@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 
 use chrono::Utc;
+use postgres_types::ToSql;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
@@ -237,14 +238,33 @@ pub async fn get_post_by_id(
 pub async fn get_thread(
     db_client: &impl GenericClient,
     post_id: &Uuid,
+    current_user_id: Option<&Uuid>,
 ) -> Result<Vec<Post>, DatabaseError> {
+    let mut condition = format!(
+        "post.visibility = {visibility_public}",
+        visibility_public=i16::from(&Visibility::Public),
+    );
+    // Create mutable params array
+    // https://github.com/sfackler/rust-postgres/issues/712
+    let mut parameters: Vec<&(dyn ToSql + Sync)> = vec![post_id];
+    if let Some(current_user_id) = current_user_id {
+        condition.push_str(
+            "
+            OR EXISTS (
+                SELECT 1 FROM mention
+                WHERE post_id = post.id AND profile_id = $2
+            )
+            ",
+        );
+        parameters.push(current_user_id);
+    };
     // TODO: limit recursion depth
     let statement = format!(
         "
         WITH RECURSIVE
         ancestors (id, in_reply_to_id) AS (
             SELECT post.id, post.in_reply_to_id FROM post
-            WHERE post.id = $1
+            WHERE post.id = $1 AND {condition}
             UNION ALL
             SELECT post.id, post.in_reply_to_id FROM post
             JOIN ancestors ON post.id = ancestors.in_reply_to_id
@@ -263,14 +283,16 @@ pub async fn get_thread(
         FROM post
         JOIN context ON post.id = context.id
         JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE {condition}
         ORDER BY context.path
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        condition=condition,
     );
     let rows = db_client.query(
         statement.as_str(),
-        &[&post_id],
+        &parameters,
     ).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)
