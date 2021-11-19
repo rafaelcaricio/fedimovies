@@ -35,7 +35,7 @@ pub async fn get_home_timeline(
     current_user_id: &Uuid,
 ) -> Result<Vec<Post>, DatabaseError> {
     // Select posts from follows + own posts.
-    // Do not select replies
+    // Exclude direct messages where current user is not mentioned.
     let statement = format!(
         "
         SELECT
@@ -45,18 +45,25 @@ pub async fn get_home_timeline(
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
-            post.in_reply_to_id IS NULL
-            AND (
+            (
                 post.author_id = $1
                 OR EXISTS (
                     SELECT 1 FROM relationship
                     WHERE source_id = $1 AND target_id = post.author_id
                 )
             )
+            AND (
+                post.visibility = {visibility_public}
+                OR EXISTS (
+                    SELECT 1 FROM mention
+                    WHERE post_id = post.id AND profile_id = $1
+                )
+            )
         ORDER BY post.created_at DESC
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        visibility_public=i16::from(&Visibility::Public),
     );
     let rows = db_client.query(
         statement.as_str(),
