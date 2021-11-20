@@ -92,12 +92,12 @@ async fn inbox(
     web::Path(username): web::Path<String>,
     activity: web::Json<serde_json::Value>,
 ) -> Result<HttpResponse, HttpError> {
-    log::info!("received to '{}' inbox: {}", username, activity);
+    log::info!("received in '{}' inbox: {}", username, activity);
     if let Err(err) = verify_http_signature(&config, &db_pool, &request).await {
         log::warn!("invalid signature: {}", err);
     }
     receive_activity(&config, &db_pool, username, activity.into_inner()).await?;
-    Ok(HttpResponse::Ok().body("success"))
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[derive(Deserialize)]
@@ -149,8 +149,8 @@ pub fn actor_scope() -> Scope {
         .service(following_collection)
 }
 
-#[get("/actor")]
-pub async fn instance_actor_view(
+#[get("")]
+async fn instance_actor_view(
     config: web::Data<Config>,
 ) -> Result<HttpResponse, HttpError> {
     let actor = get_instance_actor(&config.instance())
@@ -159,6 +159,20 @@ pub async fn instance_actor_view(
         .content_type(ACTIVITY_CONTENT_TYPE)
         .json(actor);
     Ok(response)
+}
+
+#[post("/inbox")]
+async fn instance_actor_inbox(
+    activity: web::Json<serde_json::Value>,
+) -> Result<HttpResponse, HttpError> {
+    log::info!("received in instance inbox: {}", activity);
+    Ok(HttpResponse::Ok().finish())
+}
+
+pub fn instance_actor_scope() -> Scope {
+    web::scope("/actor")
+        .service(instance_actor_view)
+        .service(instance_actor_inbox)
 }
 
 #[get("/objects/{object_id}")]

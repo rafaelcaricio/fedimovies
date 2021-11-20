@@ -88,7 +88,7 @@ async fn main() -> std::io::Result<()> {
             .service(timeline_api_scope())
             .service(webfinger::get_descriptor)
             .service(activitypub::actor_scope())
-            .service(activitypub::instance_actor_view)
+            .service(activitypub::instance_actor_scope())
             .service(activitypub::object_view)
             .service(nodeinfo::get_nodeinfo)
             .service(nodeinfo::get_nodeinfo_2_0);
