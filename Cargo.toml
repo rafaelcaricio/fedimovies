@@ -26,8 +26,8 @@ chrono = { version = "0.4.19", features = ["serde"] }
 # Used to build admin CLI tool
 # Versions greater than beta.2 require Rust 1.54
 clap = { version = "3.0.0-beta.2", default-features = false, features = ["std", "derive"] }
-# Used for pooling database connections
-deadpool = "0.7.0"
+# Used for pooling database connections (compatible with tokio 0.2)
+deadpool = "0.5.2"
 deadpool-postgres = { version = "0.5.6", default-features = false }
 # Used to read .env files
 dotenv = "0.15.0"
