@@ -108,6 +108,10 @@ impl Post {
             actions: None,
         }
     }
+
+    pub fn is_public(&self) -> bool {
+        matches!(self.visibility, Visibility::Public)
+    }
 }
 
 #[cfg(test)]

@@ -20,6 +20,7 @@ pub struct DbUser {
 
 // Represents local user
 #[derive(Clone)]
+#[cfg_attr(test, derive(Default))]
 pub struct User {
     pub id: Uuid,
     pub wallet_address: String,

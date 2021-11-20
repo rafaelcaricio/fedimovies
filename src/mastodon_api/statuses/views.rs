@@ -19,6 +19,7 @@ use crate::ipfs::store as ipfs_store;
 use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::attachments::queries::set_attachment_ipfs_cid;
+use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
 use crate::models::profiles::queries::get_followers;
 use crate::models::posts::helpers::{
@@ -120,6 +121,9 @@ async fn get_status(
         None => None,
     };
     let mut post = get_post_by_id(db_client, &status_id).await?;
+    if !can_view_post(maybe_current_user.as_ref(), &post) {
+        return Err(HttpError::NotFoundError("post"));
+    };
     if let Some(user) = maybe_current_user {
         get_actions_for_post(db_client, &user.id, &mut post).await?;
     }
@@ -167,6 +171,10 @@ async fn favourite(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    let post = get_post_by_id(db_client, &status_id).await?;
+    if !can_view_post(Some(&current_user), &post) {
+        return Err(HttpError::NotFoundError("post"));
+    };
     let reaction_created = match create_reaction(
         db_client, &current_user.id, &status_id,
     ).await {
@@ -205,6 +213,10 @@ async fn unfavourite(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    let post = get_post_by_id(db_client, &status_id).await?;
+    if !can_view_post(Some(&current_user), &post) {
+        return Err(HttpError::NotFoundError("post"));
+    };
     match delete_reaction(db_client, &current_user.id, &status_id).await {
         Err(DatabaseError::NotFound(_)) => (), // post not favourited
         other_result => other_result?,
@@ -234,6 +246,10 @@ async fn make_permanent(
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
+    if post.author.id != current_user.id || !post.is_public() {
+        // Users can only archive their own public posts
+        return Err(HttpError::NotFoundError("post"));
+    };
     let ipfs_api_url = config.ipfs_api_url.as_ref()
         .ok_or(HttpError::NotSupported)?;
 
@@ -286,10 +302,10 @@ async fn get_signature(
     let contract_config = config.ethereum_contract.as_ref()
         .ok_or(HttpError::NotSupported)?;
     let post = get_post_by_id(db_client, &status_id).await?;
-    if post.author.id != current_user.id {
-        // Users can only tokenize their own posts
+    if post.author.id != current_user.id || !post.is_public() {
+        // Users can only tokenize their own public posts
         return Err(HttpError::NotFoundError("post"));
-    }
+    };
     let ipfs_cid = post.ipfs_cid
         // Post metadata is not immutable
         .ok_or(HttpError::ValidationError("post is not immutable".into()))?;

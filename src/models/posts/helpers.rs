@@ -3,7 +3,8 @@ use uuid::Uuid;
 
 use crate::errors::DatabaseError;
 use crate::models::reactions::queries::get_favourited;
-use super::types::{Post, PostActions};
+use crate::models::users::types::User;
+use super::types::{Post, PostActions, Visibility};
 
 pub async fn get_actions_for_post(
     db_client: &impl GenericClient,
@@ -28,4 +29,55 @@ pub async fn get_actions_for_posts(
         post.actions = Some(actions);
     }
     Ok(())
+}
+
+pub fn can_view_post(user: Option<&User>, post: &Post) -> bool {
+    match post.visibility {
+        Visibility::Public => true,
+        Visibility::Direct => {
+            if let Some(user) = user {
+                // Returns true if user is mentioned
+                post.mentions.iter()
+                    .find(|profile| profile.id == user.profile.id)
+                    .is_some()
+            } else {
+                false
+            }
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_can_view_post_anonymous() {
+        let post = Post {
+            visibility: Visibility::Public,
+            ..Default::default()
+        };
+        assert!(can_view_post(None, &post));
+    }
+
+    #[test]
+    fn test_can_view_post_direct() {
+        let user = User::default();
+        let post = Post {
+            visibility: Visibility::Direct,
+            ..Default::default()
+        };
+        assert!(!can_view_post(Some(&user), &post));
+    }
+
+    #[test]
+    fn test_can_view_post_direct_mentioned() {
+        let user = User::default();
+        let post = Post {
+            visibility: Visibility::Direct,
+            mentions: vec![user.profile.clone()],
+            ..Default::default()
+        };
+        assert!(can_view_post(Some(&user), &post));
+    }
 }

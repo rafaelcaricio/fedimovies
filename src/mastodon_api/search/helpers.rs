@@ -72,6 +72,7 @@ async fn search_profiles(
     Ok(profiles)
 }
 
+/// Finds public post by its object ID
 async fn search_note(
     config: &Config,
     db_client: &mut impl GenericClient,
