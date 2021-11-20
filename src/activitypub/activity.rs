@@ -87,7 +87,7 @@ pub struct Activity {
 
     pub actor: String,
     pub object: Value,
-    pub to: Value,
+    pub to: Option<Value>,
 }
 
 fn create_activity(
@@ -112,7 +112,7 @@ fn create_activity(
         activity_type: activity_type.to_string(),
         actor: actor_id,
         object: serde_json::to_value(object).unwrap(),
-        to: json!([recipient_id]),
+        to: Some(json!([recipient_id])),
     }
 }
 
@@ -455,6 +455,6 @@ mod tests {
         assert_eq!(activity.object["actor"], Value::Null);
         assert_eq!(activity.object["object"], Value::Null);
         assert_eq!(activity.object["content"], Value::Null);
-        assert_eq!(activity.to, json!([target_actor_id]));
+        assert_eq!(activity.to.unwrap(), json!([target_actor_id]));
     }
 }

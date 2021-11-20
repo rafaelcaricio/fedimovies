@@ -84,7 +84,7 @@ fn parse_array(value: &Value) -> Result<Vec<String>, ValidationError> {
     let result = match value {
         Value::String(string) => vec![string.to_string()],
         Value::Array(array) => {
-            array.into_iter()
+            array.iter()
                 .filter_map(|val| val.as_str().map(|s| s.to_string()))
                 .collect()
         },

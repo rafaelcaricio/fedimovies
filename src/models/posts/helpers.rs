@@ -38,8 +38,7 @@ pub fn can_view_post(user: Option<&User>, post: &Post) -> bool {
             if let Some(user) = user {
                 // Returns true if user is mentioned
                 post.mentions.iter()
-                    .find(|profile| profile.id == user.profile.id)
-                    .is_some()
+                    .any(|profile| profile.id == user.profile.id)
             } else {
                 false
             }
