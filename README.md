@@ -9,9 +9,11 @@ Federated social network with smart contracts.
 - Converting posts into NFTs.
 - More crypto features in the future.
 
-Demo instance: https://mitra.social/ (invite-only)
-
 Smart contracts repo: https://codeberg.org/silverpill/mitra-contracts
+
+Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
+
+Demo instance: https://mitra.social/ (invite-only)
 
 ## Requirements
 
