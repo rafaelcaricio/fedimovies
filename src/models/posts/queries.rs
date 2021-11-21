@@ -190,7 +190,9 @@ pub async fn create_post(
     if let Some(in_reply_to_id) = &db_post.in_reply_to_id {
         update_reply_count(&transaction, in_reply_to_id, 1).await?;
         let in_reply_to = get_post_by_id(&transaction, in_reply_to_id).await?;
-        if in_reply_to.author.is_local() {
+        if in_reply_to.author.is_local() &&
+            in_reply_to.author.id != db_post.author_id
+        {
             create_reply_notification(
                 &transaction,
                 &db_post.author_id,

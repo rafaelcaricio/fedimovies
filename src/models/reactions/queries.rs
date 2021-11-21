@@ -22,7 +22,7 @@ pub async fn create_reaction(
     ).await.map_err(catch_unique_violation("reaction"))?;
     update_reaction_count(&transaction, post_id, 1).await?;
     let post = get_post_by_id(&transaction, post_id).await?;
-    if post.author.is_local() {
+    if post.author.is_local() && post.author.id != *author_id {
         create_reaction_notification(
             &transaction,
             author_id,
