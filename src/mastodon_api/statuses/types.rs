@@ -31,6 +31,7 @@ impl Mention {
 #[derive(Serialize)]
 pub struct Status {
     pub id: Uuid,
+    pub uri: String,
     pub created_at: DateTime<Utc>,
     pub account: Account,
     pub content: String,
@@ -52,6 +53,7 @@ pub struct Status {
 
 impl Status {
     pub fn from_post(post: Post, instance_url: &str) -> Self {
+        let object_id = post.get_object_id(instance_url);
         let attachments: Vec<Attachment> = post.attachments.into_iter()
             .map(|item| Attachment::from_db(item, instance_url))
             .collect();
@@ -65,6 +67,7 @@ impl Status {
         };
         Self {
             id: post.id,
+            uri: object_id,
             created_at: post.created_at,
             account: account,
             content: post.content,

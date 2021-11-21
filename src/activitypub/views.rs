@@ -41,8 +41,8 @@ pub fn get_instance_actor_url(instance_url: &str) -> String {
     format!("{}/actor", instance_url)
 }
 
-pub fn get_object_url(instance_url: &str, object_uuid: &Uuid) -> String {
-    format!("{}/objects/{}", instance_url, object_uuid)
+pub fn get_object_url(instance_url: &str, internal_object_id: &Uuid) -> String {
+    format!("{}/objects/{}", instance_url, internal_object_id)
 }
 
 fn is_activitypub_request(request: &HttpRequest) -> bool {
@@ -180,13 +180,13 @@ pub async fn object_view(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     request: HttpRequest,
-    web::Path(object_id): web::Path<Uuid>,
+    web::Path(internal_object_id): web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     // Try to find local post by ID, return 404 if not found
-    let thread = get_thread(db_client, &object_id, None).await?;
+    let thread = get_thread(db_client, &internal_object_id, None).await?;
     let post = thread.iter()
-        .find(|post| post.id == object_id && post.author.is_local())
+        .find(|post| post.id == internal_object_id && post.author.is_local())
         .ok_or(HttpError::NotFoundError("post"))?;
     if !is_activitypub_request(&request) {
         let page_url = get_post_page_url(&post.id, &config.instance_url());
