@@ -129,6 +129,9 @@ pub async fn fetch_profile_by_actor_id(
         .host_str()
         .ok_or(FetchError::OtherError("invalid URL"))?
         .to_owned();
+    if actor_host == instance.host() {
+        return Err(FetchError::OtherError("trying to fetch local profile"));
+    };
     let actor_json = send_request(instance, actor_url, &[]).await?;
     let actor_value: Value = serde_json::from_str(&actor_json)?;
     let actor: Actor = serde_json::from_value(actor_value.clone())?;
