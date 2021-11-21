@@ -6,7 +6,7 @@ use tokio_postgres::Row;
 use uuid::Uuid;
 
 use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
-use crate::errors::{ConversionError, ValidationError};
+use crate::errors::{ConversionError, DatabaseError, ValidationError};
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::html::clean_html;
@@ -88,9 +88,15 @@ impl Post {
         db_author: DbActorProfile,
         db_attachments: Vec<DbMediaAttachment>,
         db_mentions: Vec<DbActorProfile>,
-    ) -> Self {
-        assert_eq!(db_post.author_id, db_author.id);
-        Self {
+    ) -> Result<Self, ConversionError> {
+        // Consistency checks
+        if db_post.author_id != db_post.author_id {
+            return Err(ConversionError);
+        };
+        if db_author.is_local() != db_post.object_id.is_none() {
+            return Err(ConversionError);
+        };
+        let post = Self {
             id: db_post.id,
             author: db_author,
             content: db_post.content,
@@ -106,7 +112,8 @@ impl Post {
             token_tx_id: db_post.token_tx_id,
             created_at: db_post.created_at,
             actions: None,
-        }
+        };
+        Ok(post)
     }
 
     pub fn is_public(&self) -> bool {
@@ -139,14 +146,14 @@ impl Default for Post {
 
 impl TryFrom<&Row> for Post {
 
-    type Error = tokio_postgres::Error;
+    type Error = DatabaseError;
 
     fn try_from(row: &Row) -> Result<Self, Self::Error> {
         let db_post: DbPost = row.try_get("post")?;
         let db_profile: DbActorProfile = row.try_get("actor_profile")?;
         let db_attachments: Vec<DbMediaAttachment> = row.try_get("attachments")?;
         let db_mentions: Vec<DbActorProfile> = row.try_get("mentions")?;
-        let post = Self::new(db_post, db_profile, db_attachments, db_mentions);
+        let post = Self::new(db_post, db_profile, db_attachments, db_mentions)?;
         Ok(post)
     }
 }

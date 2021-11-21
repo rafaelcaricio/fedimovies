@@ -203,7 +203,7 @@ pub async fn create_post(
     }
 
     transaction.commit().await?;
-    let post = Post::new(db_post, author, db_attachments, db_mentions);
+    let post = Post::new(db_post, author, db_attachments, db_mentions)?;
     Ok(post)
 }
 
