@@ -263,7 +263,6 @@ pub async fn process_note(
 pub async fn receive_activity(
     config: &Config,
     db_pool: &Pool,
-    _username: String,
     activity_raw: Value,
 ) -> Result<(), HttpError> {
     let activity: Activity = serde_json::from_value(activity_raw)

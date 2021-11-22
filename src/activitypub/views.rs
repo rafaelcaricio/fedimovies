@@ -16,6 +16,7 @@ use super::activity::{create_note, OrderedCollection};
 use super::actor::{get_local_actor, get_instance_actor};
 use super::constants::ACTIVITY_CONTENT_TYPE;
 use super::receiver::receive_activity;
+use super::vocabulary::DELETE;
 
 pub fn get_actor_url(instance_url: &str, username: &str) -> String {
     format!("{}/users/{}", instance_url, username)
@@ -89,14 +90,19 @@ async fn inbox(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     request: HttpRequest,
-    web::Path(username): web::Path<String>,
     activity: web::Json<serde_json::Value>,
 ) -> Result<HttpResponse, HttpError> {
-    log::info!("received in '{}' inbox: {}", username, activity);
-    if let Err(err) = verify_http_signature(&config, &db_pool, &request).await {
+    let signature_verified = verify_http_signature(&config, &db_pool, &request).await;
+    if activity["type"].as_str() == Some(DELETE) && signature_verified.is_err() {
+        // Don't log Delete() activities if HTTP signature is not valid
+        log::info!("received in {}: Delete", request.uri().path());
+    } else {
+        log::info!("received in {}: {}", request.uri().path(), activity);
+    };
+    if let Err(err) = signature_verified {
         log::warn!("invalid signature: {}", err);
-    }
-    receive_activity(&config, &db_pool, username, activity.into_inner()).await?;
+    };
+    receive_activity(&config, &db_pool, activity.into_inner()).await?;
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -165,7 +171,10 @@ async fn instance_actor_view(
 async fn instance_actor_inbox(
     activity: web::Json<serde_json::Value>,
 ) -> Result<HttpResponse, HttpError> {
-    log::info!("received in instance inbox: {}", activity);
+    log::info!(
+        "received in instance inbox: {}",
+        activity["type"].as_str().unwrap_or("Unknown"),
+    );
     Ok(HttpResponse::Ok().finish())
 }
 
