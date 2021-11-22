@@ -25,8 +25,11 @@ pub enum VerificationError {
     #[error("invalid key ID")]
     UrlError(#[from] url::ParseError),
 
-    #[error("actor error")]
-    ActorError,
+    #[error("database error")]
+    DatabaseError(#[from] DatabaseError),
+
+    #[error("{0}")]
+    ActorError(String),
 
     #[error("invalid key")]
     InvalidKey(#[from] rsa::pkcs8::Error),
@@ -116,8 +119,7 @@ pub async fn verify_http_signature(
         request.headers(),
     )?;
 
-    let db_client = &**get_database_client(db_pool).await
-        .map_err(|_| VerificationError::ActorError)?;
+    let db_client = &**get_database_client(db_pool).await?;
     let actor_profile = match get_profile_by_actor_id(db_client, &signature_data.actor_id).await {
         Ok(profile) => profile,
         Err(err) => match err {
@@ -127,22 +129,18 @@ pub async fn verify_http_signature(
                     &signature_data.actor_id,
                     &config.media_dir(),
                 ).await.map_err(|err| {
-                    log::error!("{}", err);
-                    VerificationError::ActorError
+                    VerificationError::ActorError(err.to_string())
                 })?;
-                let profile = create_profile(
-                    db_client,
-                    &profile_data,
-                ).await.map_err(|_| VerificationError::ActorError)?;
+                let profile = create_profile(db_client, &profile_data).await?;
                 profile
             },
-            _ => {
-                return Err(VerificationError::ActorError);
+            other_error => {
+                return Err(other_error.into());
             },
         },
     };
     let actor = actor_profile.remote_actor().ok().flatten()
-        .ok_or(VerificationError::ActorError)?;
+        .ok_or(VerificationError::ActorError("invalid profile".to_string()))?;
 
     let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
     let is_valid_signature = verify_signature(
