@@ -83,11 +83,15 @@ async fn search_note(
         return Ok(None);
     };
     let instance = config.instance();
-    let maybe_post = if let Ok(object) = fetch_object(&instance, search_query).await {
-        let post = process_note(config, db_client, object).await?;
-        Some(post)
-    } else {
-        None
+    let maybe_post = match fetch_object(&instance, search_query).await {
+        Ok(object) => {
+            let post = process_note(config, db_client, object).await?;
+            Some(post)
+        },
+        Err(err) => {
+            log::warn!("{}", err);
+            None
+        },
     };
     Ok(maybe_post)
 }
