@@ -6,7 +6,10 @@ use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::statuses::types::Status;
-use crate::models::posts::helpers::get_actions_for_posts;
+use crate::models::posts::helpers::{
+    get_actions_for_posts,
+    get_reposted_posts,
+};
 use crate::models::posts::queries::get_home_timeline;
 
 /// https://docs.joinmastodon.org/methods/timelines/
@@ -19,6 +22,7 @@ async fn home_timeline(
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut posts = get_home_timeline(db_client, &current_user.id).await?;
+    get_reposted_posts(db_client, posts.iter_mut().collect()).await?;
     get_actions_for_posts(
         db_client,
         &current_user.id,

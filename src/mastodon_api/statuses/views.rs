@@ -24,12 +24,15 @@ use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
 use crate::models::profiles::queries::get_followers;
 use crate::models::posts::helpers::{
     get_actions_for_posts,
+    get_reposted_posts,
 };
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
     get_thread,
+    find_reposts_by_user,
     update_post,
+    delete_post,
 };
 use crate::models::posts::types::PostCreateData;
 use crate::models::reactions::queries::{
@@ -123,6 +126,7 @@ async fn get_status(
     if !can_view_post(maybe_current_user.as_ref(), &post) {
         return Err(HttpError::NotFoundError("post"));
     };
+    get_reposted_posts(db_client, vec![&mut post]).await?;
     if let Some(user) = maybe_current_user {
         get_actions_for_posts(db_client, &user.id, vec![&mut post]).await?;
     }
@@ -147,6 +151,7 @@ async fn get_context(
         &status_id,
         maybe_current_user.as_ref().map(|user| &user.id),
     ).await?;
+    get_reposted_posts(db_client, posts.iter_mut().collect()).await?;
     if let Some(user) = maybe_current_user {
         get_actions_for_posts(
             db_client,
@@ -182,6 +187,7 @@ async fn favourite(
         Err(other_error) => return Err(other_error.into()),
     };
     let mut post = get_post_by_id(db_client, &status_id).await?;
+    get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     if reaction_created {
@@ -221,6 +227,48 @@ async fn unfavourite(
         other_result => other_result?,
     }
     let mut post = get_post_by_id(db_client, &status_id).await?;
+    get_reposted_posts(db_client, vec![&mut post]).await?;
+    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
+    let status = Status::from_post(post, &config.instance_url());
+    Ok(HttpResponse::Ok().json(status))
+}
+
+#[post("/{status_id}/reblog")]
+async fn reblog(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(status_id): web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let repost_data = PostCreateData {
+        repost_of_id: Some(status_id),
+        ..Default::default()
+    };
+    create_post(db_client, &current_user.id, repost_data).await?;
+    let mut post = get_post_by_id(db_client, &status_id).await?;
+    get_reposted_posts(db_client, vec![&mut post]).await?;
+    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
+    let status = Status::from_post(post, &config.instance_url());
+    Ok(HttpResponse::Ok().json(status))
+}
+
+#[post("/{status_id}/unreblog")]
+async fn unreblog(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(status_id): web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let reposts = find_reposts_by_user(db_client, &current_user.id, &[status_id]).await?;
+    let repost_id = reposts.first().ok_or(HttpError::NotFoundError("post"))?;
+    // Ignore returned data because reposts don't have attached files
+    delete_post(db_client, repost_id).await?;
+    let mut post = get_post_by_id(db_client, &status_id).await?;
+    get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
@@ -284,6 +332,7 @@ async fn make_permanent(
     // Update post
     post.ipfs_cid = Some(post_metadata_cid);
     update_post(db_client, &post).await?;
+    get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
@@ -326,6 +375,8 @@ pub fn status_api_scope() -> Scope {
         .service(get_context)
         .service(favourite)
         .service(unfavourite)
+        .service(reblog)
+        .service(unreblog)
         .service(make_permanent)
         .service(get_signature)
 }

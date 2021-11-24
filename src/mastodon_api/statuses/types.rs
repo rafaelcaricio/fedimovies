@@ -36,14 +36,17 @@ pub struct Status {
     pub account: Account,
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
+    pub reblog: Option<Box<Status>>,
     pub visibility: String,
     pub replies_count: i32,
     pub favourites_count: i32,
+    pub reblogs_count: i32,
     pub media_attachments: Vec<Attachment>,
     mentions: Vec<Mention>,
 
     // Authorized user attributes
     pub favourited: bool,
+    pub reblogged: bool,
 
     // Extra fields
     pub ipfs_cid: Option<String>,
@@ -61,6 +64,12 @@ impl Status {
             .map(|item| Mention::from_profile(item, instance_url))
             .collect();
         let account = Account::from_profile(post.author, instance_url);
+        let reblog = if let Some(repost_of) = post.repost_of {
+            let status = Status::from_post(*repost_of, instance_url);
+            Some(Box::new(status))
+        } else {
+            None
+        };
         let visibility = match post.visibility {
             Visibility::Public => "public",
             Visibility::Direct => "direct",
@@ -72,12 +81,15 @@ impl Status {
             account: account,
             content: post.content,
             in_reply_to_id: post.in_reply_to_id,
+            reblog: reblog,
             visibility: visibility.to_string(),
             replies_count: post.reply_count,
             favourites_count: post.reaction_count,
+            reblogs_count: post.repost_count,
             media_attachments: attachments,
             mentions: mentions,
-            favourited: post.actions.map_or(false, |actions| actions.favourited),
+            favourited: post.actions.as_ref().map_or(false, |actions| actions.favourited),
+            reblogged: post.actions.as_ref().map_or(false, |actions| actions.reposted),
             ipfs_cid: post.ipfs_cid,
             token_id: post.token_id,
             token_tx_id: post.token_tx_id,
@@ -102,6 +114,7 @@ impl From<StatusData> for PostCreateData {
         Self {
             content: value.status,
             in_reply_to_id: value.in_reply_to_id,
+            repost_of_id: None,
             visibility: Visibility::Public,
             attachments: value.media_ids.unwrap_or(vec![]),
             mentions: vec![],

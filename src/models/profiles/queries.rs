@@ -279,6 +279,17 @@ pub async fn delete_profile(
         ",
         &[&profile_id],
     ).await?;
+    transaction.execute(
+        "
+        UPDATE post
+        SET repost_count = repost_count - 1
+        FROM post AS repost
+        WHERE
+            repost.repost_of_id = post.id
+            AND repost.author_id = $1
+        ",
+        &[&profile_id],
+    ).await?;
     // Delete profile
     let deleted_count = transaction.execute(
         "

@@ -34,14 +34,17 @@ CREATE TABLE post (
     author_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     in_reply_to_id UUID REFERENCES post (id) ON DELETE CASCADE,
+    repost_of_id UUID REFERENCES post (id) ON DELETE CASCADE,
     visilibity SMALLINT NOT NULL,
     reply_count INTEGER NOT NULL CHECK (reply_count >= 0) DEFAULT 0,
     reaction_count INTEGER NOT NULL CHECK (reaction_count >= 0) DEFAULT 0,
+    repost_count INTEGER NOT NULL CHECK (repost_count >= 0) DEFAULT 0,
     object_id VARCHAR(200) UNIQUE,
     ipfs_cid VARCHAR(200),
     token_id INTEGER,
     token_tx_id VARCHAR(200),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    UNIQUE (author_id, repost_of_id)
 );
 
 CREATE TABLE post_reaction (

@@ -247,6 +247,7 @@ pub async fn process_note(
         let post_data = PostCreateData {
             content,
             in_reply_to_id,
+            repost_of_id: None,
             visibility,
             attachments: attachments,
             mentions: mentions,

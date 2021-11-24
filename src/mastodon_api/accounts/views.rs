@@ -16,7 +16,10 @@ use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::gate::is_allowed_user;
 use crate::mastodon_api::statuses::types::Status;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::models::posts::helpers::get_actions_for_posts;
+use crate::models::posts::helpers::{
+    get_actions_for_posts,
+    get_reposted_posts,
+};
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_followers,
@@ -266,6 +269,7 @@ async fn get_account_statuses(
         false,
         false,
     ).await?;
+    get_reposted_posts(db_client, posts.iter_mut().collect()).await?;
     if let Some(user) = maybe_current_user {
         get_actions_for_posts(
             db_client,

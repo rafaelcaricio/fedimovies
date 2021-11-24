@@ -18,6 +18,10 @@ pub enum Visibility {
     Direct,
 }
 
+impl Default for Visibility {
+    fn default() -> Self { Self::Public }
+}
+
 impl From<&Visibility> for i16 {
     fn from(value: &Visibility) -> i16 {
         match value {
@@ -50,9 +54,11 @@ pub struct DbPost {
     pub author_id: Uuid,
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
+    pub repost_of_id: Option<Uuid>,
     pub visibility: Visibility,
     pub reply_count: i32,
     pub reaction_count: i32,
+    pub repost_count: i32,
     pub object_id: Option<String>,
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
@@ -63,6 +69,7 @@ pub struct DbPost {
 // List of user's actions
 pub struct PostActions {
     pub favourited: bool,
+    pub reposted: bool,
 }
 
 pub struct Post {
@@ -70,9 +77,11 @@ pub struct Post {
     pub author: DbActorProfile,
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
+    pub repost_of_id: Option<Uuid>,
     pub visibility: Visibility,
     pub reply_count: i32,
     pub reaction_count: i32,
+    pub repost_count: i32,
     pub attachments: Vec<DbMediaAttachment>,
     pub mentions: Vec<DbActorProfile>,
     pub object_id: Option<String>,
@@ -80,7 +89,9 @@ pub struct Post {
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
     pub created_at: DateTime<Utc>,
+
     pub actions: Option<PostActions>,
+    pub repost_of: Option<Box<Post>>,
 }
 
 impl Post {
@@ -102,9 +113,11 @@ impl Post {
             author: db_author,
             content: db_post.content,
             in_reply_to_id: db_post.in_reply_to_id,
+            repost_of_id: db_post.repost_of_id,
             visibility: db_post.visibility,
             reply_count: db_post.reply_count,
             reaction_count: db_post.reaction_count,
+            repost_count: db_post.repost_count,
             attachments: db_attachments,
             mentions: db_mentions,
             object_id: db_post.object_id,
@@ -113,6 +126,7 @@ impl Post {
             token_tx_id: db_post.token_tx_id,
             created_at: db_post.created_at,
             actions: None,
+            repost_of: None,
         };
         Ok(post)
     }
@@ -137,9 +151,11 @@ impl Default for Post {
             author: Default::default(),
             content: "".to_string(),
             in_reply_to_id: None,
+            repost_of_id: None,
             visibility: Visibility::Public,
             reply_count: 0,
             reaction_count: 0,
+            repost_count: 0,
             attachments: vec![],
             mentions: vec![],
             object_id: None,
@@ -148,6 +164,7 @@ impl Default for Post {
             token_tx_id: None,
             created_at: Utc::now(),
             actions: None,
+            repost_of: None,
         }
     }
 }
@@ -166,9 +183,11 @@ impl TryFrom<&Row> for Post {
     }
 }
 
+#[derive(Default)]
 pub struct PostCreateData {
     pub content: String,
     pub in_reply_to_id: Option<Uuid>,
+    pub repost_of_id: Option<Uuid>,
     pub visibility: Visibility,
     pub attachments: Vec<Uuid>,
     pub mentions: Vec<Uuid>,
@@ -198,6 +217,7 @@ mod tests {
         let mut post_data_1 = PostCreateData {
             content: "  ".to_string(),
             in_reply_to_id: None,
+            repost_of_id: None,
             visibility: Visibility::Public,
             attachments: vec![],
             mentions: vec![],
@@ -212,6 +232,7 @@ mod tests {
         let mut post_data_2 = PostCreateData {
             content: "test ".to_string(),
             in_reply_to_id: None,
+            repost_of_id: None,
             visibility: Visibility::Public,
             attachments: vec![],
             mentions: vec![],

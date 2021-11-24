@@ -5,6 +5,7 @@ use postgres_types::ToSql;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
+use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::cleanup::{
@@ -76,6 +77,33 @@ pub async fn get_home_timeline(
     Ok(posts)
 }
 
+pub async fn get_posts(
+    db_client: &impl GenericClient,
+    posts_ids: Vec<Uuid>,
+) -> Result<Vec<Post>, DatabaseError> {
+    let statement = format!(
+        "
+        SELECT
+            post, actor_profile,
+            {related_attachments},
+            {related_mentions}
+        FROM post
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE post.id = ANY($1)
+        ",
+        related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
+    );
+    let rows = db_client.query(
+        statement.as_str(),
+        &[&posts_ids],
+    ).await?;
+    let posts: Vec<Post> = rows.iter()
+        .map(Post::try_from)
+        .collect::<Result<_, _>>()?;
+    Ok(posts)
+}
+
 pub async fn get_posts_by_author(
     db_client: &impl GenericClient,
     account_id: &Uuid,
@@ -126,28 +154,43 @@ pub async fn create_post(
     let transaction = db_client.transaction().await?;
     let post_id = uuid::Uuid::new_v4();
     let created_at = data.created_at.unwrap_or(Utc::now());
-    let post_row = transaction.query_one(
+    // Reposting of other reposts or non-public posts is not allowed
+    let insert_statement = format!(
         "
         INSERT INTO post (
             id, author_id, content,
             in_reply_to_id,
+            repost_of_id,
             visibility,
             object_id,
             created_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        SELECT $1, $2, $3, $4, $5, $6, $7, $8
+        WHERE NOT EXISTS (
+            SELECT 1 FROM post
+            WHERE post.id = $5 AND (
+                post.repost_of_id IS NOT NULL
+                OR post.visibility != {visibility_public}
+            )
+        )
         RETURNING post
         ",
+        visibility_public=i16::from(&Visibility::Public),
+    );
+    let maybe_post_row = transaction.query_opt(
+        insert_statement.as_str(),
         &[
             &post_id,
             &author_id,
             &data.content,
             &data.in_reply_to_id,
+            &data.repost_of_id,
             &data.visibility,
             &data.object_id,
             &created_at,
         ],
-    ).await?;
+    ).await.map_err(catch_unique_violation("post"))?;
+    let post_row = maybe_post_row.ok_or(DatabaseError::NotFound("post"))?;
     let db_post: DbPost = post_row.try_get("post")?;
     // Create links to attachments
     let attachments_rows = transaction.query(
@@ -201,6 +244,9 @@ pub async fn create_post(
             ).await?;
         }
     }
+    if let Some(repost_of_id) = &db_post.repost_of_id {
+        update_repost_count(&transaction, repost_of_id, 1).await?;
+    };
 
     transaction.commit().await?;
     let post = Post::new(db_post, author, db_attachments, db_mentions)?;
@@ -426,6 +472,68 @@ pub async fn update_reaction_count(
     Ok(())
 }
 
+pub async fn update_repost_count(
+    db_client: &impl GenericClient,
+    post_id: &Uuid,
+    change: i32,
+) -> Result<(), DatabaseError> {
+    let updated_count = db_client.execute(
+        "
+        UPDATE post
+        SET repost_count = repost_count + $1
+        WHERE id = $2
+        ",
+        &[&change, &post_id],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("post"));
+    }
+    Ok(())
+}
+
+/// Finds reposts of given posts and returns their IDs
+pub async fn find_reposts_by_user(
+    db_client: &impl GenericClient,
+    user_id: &Uuid,
+    posts_ids: &[Uuid],
+) -> Result<Vec<Uuid>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT post.id
+        FROM post
+        WHERE post.author_id = $1 AND post.repost_of_id = ANY($2)
+        ",
+        &[&user_id, &posts_ids],
+    ).await?;
+    let reposts: Vec<Uuid> = rows.iter()
+        .map(|row| row.try_get("id"))
+        .collect::<Result<_, _>>()?;
+    Ok(reposts)
+}
+
+/// Finds items reposted by user among given posts
+pub async fn find_reposted_by_user(
+    db_client: &impl GenericClient,
+    user_id: &Uuid,
+    posts_ids: &[Uuid],
+) -> Result<Vec<Uuid>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT post.id
+        FROM post
+        WHERE post.id = ANY($2) AND EXISTS (
+            SELECT 1 FROM post AS repost
+            WHERE repost.author_id = $1 AND repost.repost_of_id = post.id
+        )
+        ",
+        &[&user_id, &posts_ids],
+    ).await?;
+    let reposted: Vec<Uuid> = rows.iter()
+        .map(|row| row.try_get("id"))
+        .collect::<Result<_, _>>()?;
+    Ok(reposted)
+}
+
 pub async fn get_token_waitlist(
     db_client: &impl GenericClient,
 ) -> Result<Vec<Uuid>, DatabaseError> {
@@ -490,6 +598,9 @@ pub async fn delete_post(
     if let Some(parent_id) = &db_post.in_reply_to_id {
         update_reply_count(&transaction, parent_id, -1).await?;
     }
+    if let Some(repost_of_id) = &db_post.repost_of_id {
+        update_repost_count(&transaction, repost_of_id, -1).await?;
+    };
     update_post_count(&transaction, &db_post.author_id, -1).await?;
     let orphaned_files = find_orphaned_files(&transaction, files).await?;
     let orphaned_ipfs_objects = find_orphaned_ipfs_objects(&transaction, ipfs_objects).await?;
