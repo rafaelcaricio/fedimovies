@@ -55,10 +55,11 @@ pub async fn delete_reaction(
     Ok(())
 }
 
-pub async fn get_favourited(
+/// Finds favourites among given posts and returns their IDs
+pub async fn find_favourited_by_user(
     db_client: &impl GenericClient,
     user_id: &Uuid,
-    posts_ids: Vec<Uuid>,
+    posts_ids: &[Uuid],
 ) -> Result<Vec<Uuid>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -68,8 +69,8 @@ pub async fn get_favourited(
         ",
         &[&user_id, &posts_ids],
     ).await?;
-    let favourited: Vec<Uuid> = rows.iter()
+    let favourites: Vec<Uuid> = rows.iter()
         .map(|row| row.try_get("post_id"))
         .collect::<Result<_, _>>()?;
-    Ok(favourited)
+    Ok(favourites)
 }

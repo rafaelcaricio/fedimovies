@@ -23,7 +23,6 @@ use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
 use crate::models::profiles::queries::get_followers;
 use crate::models::posts::helpers::{
-    get_actions_for_post,
     get_actions_for_posts,
 };
 use crate::models::posts::queries::{
@@ -125,7 +124,7 @@ async fn get_status(
         return Err(HttpError::NotFoundError("post"));
     };
     if let Some(user) = maybe_current_user {
-        get_actions_for_post(db_client, &user.id, &mut post).await?;
+        get_actions_for_posts(db_client, &user.id, vec![&mut post]).await?;
     }
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
@@ -183,7 +182,7 @@ async fn favourite(
         Err(other_error) => return Err(other_error.into()),
     };
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    get_actions_for_post(db_client, &current_user.id, &mut post).await?;
+    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     if reaction_created {
         let maybe_remote_actor = post.author.remote_actor()
@@ -222,7 +221,7 @@ async fn unfavourite(
         other_result => other_result?,
     }
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    get_actions_for_post(db_client, &current_user.id, &mut post).await?;
+    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }
@@ -285,7 +284,7 @@ async fn make_permanent(
     // Update post
     post.ipfs_cid = Some(post_metadata_cid);
     update_post(db_client, &post).await?;
-    get_actions_for_post(db_client, &current_user.id, &mut post).await?;
+    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }
