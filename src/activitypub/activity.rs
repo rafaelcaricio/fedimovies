@@ -32,7 +32,7 @@ pub struct Tag {
     #[serde(rename = "type")]
     pub tag_type: String,
 
-    pub href: String,
+    pub href: Option<String>,
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -149,7 +149,7 @@ pub fn create_note(
         Tag {
             name: profile.actor_address(instance_host),
             tag_type: MENTION.to_string(),
-            href: actor_id,
+            href: Some(actor_id),
         }
     }).collect();
     let in_reply_to_object_id = match post.in_reply_to_id {
@@ -419,7 +419,7 @@ mod tests {
         let tags = note.tag.unwrap();
         assert_eq!(tags.len(), 1);
         assert_eq!(tags[0].name, parent_author_acct);
-        assert_eq!(tags[0].href, parent_author_actor_id);
+        assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_id);
         assert_eq!(
             note.to.unwrap(),
             json!([AP_PUBLIC, parent_author_actor_id]),

@@ -200,11 +200,14 @@ pub async fn process_note(
         let mut mentions: Vec<Uuid> = Vec::new();
         if let Some(list) = object.tag {
             for tag in list {
-                if tag.tag_type == MENTION {
+                if tag.tag_type != MENTION {
+                    continue;
+                };
+                if let Some(href) = tag.href {
                     let profile = get_or_fetch_profile_by_actor_id(
                         db_client,
                         &instance,
-                        &tag.href,
+                        &href,
                         &config.media_dir(),
                     ).await?;
                     mentions.push(profile.id);
