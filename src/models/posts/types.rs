@@ -91,7 +91,7 @@ impl Post {
         db_mentions: Vec<DbActorProfile>,
     ) -> Result<Self, ConversionError> {
         // Consistency checks
-        if db_post.author_id != db_post.author_id {
+        if db_post.author_id != db_author.id {
             return Err(ConversionError);
         };
         if db_author.is_local() != db_post.object_id.is_none() {
