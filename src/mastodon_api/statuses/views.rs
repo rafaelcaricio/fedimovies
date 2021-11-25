@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::activitypub::activity::{
     create_activity_note,
     create_activity_like,
+    create_activity_announce,
 };
 use crate::activitypub::actor::Actor;
 use crate::activitypub::deliverer::deliver_activity;
@@ -250,6 +251,20 @@ async fn reblog(
     let mut post = get_post_by_id(db_client, &status_id).await?;
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
+
+    // Federate
+    let maybe_remote_actor = post.author.remote_actor()
+        .map_err(|_| HttpError::InternalError)?;
+    if let Some(remote_actor) = maybe_remote_actor {
+        let object_id = post.object_id.as_ref().ok_or(HttpError::InternalError)?;
+        let activity = create_activity_announce(
+            &config.instance_url(),
+            &current_user.profile,
+            object_id,
+        );
+        deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+    };
+
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }

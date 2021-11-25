@@ -295,6 +295,35 @@ pub async fn receive_activity(
                 .map_err(|_| ValidationError("invalid object"))?;
             process_note(config, db_client, object).await?;
         },
+        (ANNOUNCE, _) => {
+            let author = get_or_fetch_profile_by_actor_id(
+                db_client,
+                &config.instance(),
+                &activity.actor,
+                &config.media_dir(),
+            ).await?;
+            let object_id = match activity.object.as_str() {
+                Some(object_id) => object_id.to_owned(),
+                None => {
+                    let object: Object = serde_json::from_value(activity.object)
+                        .map_err(|_| ValidationError("invalid object"))?;
+                    object.id
+                },
+            };
+            let post_id = match parse_object_id(&config.instance_url(), &object_id) {
+                Ok(post_id) => post_id,
+                Err(_) => {
+                    let post = get_post_by_object_id(db_client, &object_id).await?;
+                    post.id
+                },
+            };
+            let repost_data = PostCreateData {
+                repost_of_id: Some(post_id),
+                object_id: Some(object_id),
+                ..Default::default()
+            };
+            create_post(db_client, &author.id, repost_data).await?;
+        },
         (DELETE, _) => {
             let object_id = match activity.object.as_str() {
                 Some(object_id) => object_id.to_owned(),

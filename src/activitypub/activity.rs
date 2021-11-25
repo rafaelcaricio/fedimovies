@@ -225,6 +225,28 @@ pub fn create_activity_like(
     activity
 }
 
+pub fn create_activity_announce(
+    instance_url: &str,
+    actor_profile: &DbActorProfile,
+    object_id: &str,
+) -> Activity {
+    let object = Object {
+        context: Some(json!(AP_CONTEXT)),
+        id: object_id.to_string(),
+        object_type: NOTE.to_string(),
+        ..Default::default()
+    };
+    let activity = create_activity(
+        instance_url,
+        &actor_profile.username,
+        ANNOUNCE,
+        None,
+        object,
+        AP_PUBLIC,
+    );
+    activity
+}
+
 pub fn create_activity_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
