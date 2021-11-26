@@ -186,7 +186,7 @@ pub fn parse_config() -> Config {
         };
     };
     config.try_instance_url().expect("invalid instance URI");
-    config.try_instance_rsa_key().expect("invalid RSA private key");
+    config.try_instance_rsa_key().expect("invalid instance RSA key");
 
     config
 }

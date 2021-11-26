@@ -1,4 +1,5 @@
 .env.local
 config.yaml
-/files
+/files/*
+!/files/.gitkeep
 /target
