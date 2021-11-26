@@ -253,17 +253,26 @@ async fn reblog(
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     // Federate
-    let maybe_remote_actor = post.author.remote_actor()
-        .map_err(|_| HttpError::InternalError)?;
-    if let Some(remote_actor) = maybe_remote_actor {
-        let object_id = post.object_id.as_ref().ok_or(HttpError::InternalError)?;
-        let activity = create_activity_announce(
-            &config.instance_url(),
-            &current_user.profile,
-            object_id,
-        );
-        deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+    let activity = create_activity_announce(
+        &config.instance_url(),
+        &current_user.profile,
+        &post,
+    );
+    let mut recipients: Vec<Actor> = Vec::new();
+    let followers = get_followers(db_client, &current_user.id).await?;
+    for follower in followers {
+        let maybe_remote_follower = follower.remote_actor()
+            .map_err(|_| HttpError::InternalError)?;
+        if let Some(remote_actor) = maybe_remote_follower {
+            recipients.push(remote_actor);
+        };
     };
+    let maybe_remote_author = post.author.remote_actor()
+        .map_err(|_| HttpError::InternalError)?;
+    if let Some(remote_actor) = maybe_remote_author {
+        recipients.push(remote_actor);
+    };
+    deliver_activity(&config, &current_user, activity, recipients);
 
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))

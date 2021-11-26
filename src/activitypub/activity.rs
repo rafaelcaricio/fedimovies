@@ -228,11 +228,12 @@ pub fn create_activity_like(
 pub fn create_activity_announce(
     instance_url: &str,
     actor_profile: &DbActorProfile,
-    object_id: &str,
+    post: &Post,
 ) -> Activity {
+    let object_id = post.get_object_id(instance_url);
     let object = Object {
         context: Some(json!(AP_CONTEXT)),
-        id: object_id.to_string(),
+        id: object_id,
         object_type: NOTE.to_string(),
         ..Default::default()
     };
