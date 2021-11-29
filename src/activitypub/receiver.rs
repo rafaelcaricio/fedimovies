@@ -73,11 +73,11 @@ fn parse_object_id(
         .map_err(|_| ValidationError("error"))?;
     let url_caps = url_regexp.captures(object_id)
         .ok_or(ValidationError("invalid object ID"))?;
-    let object_uuid: Uuid = url_caps.name("uuid")
+    let internal_object_id: Uuid = url_caps.name("uuid")
         .ok_or(ValidationError("invalid object ID"))?
         .as_str().parse()
         .map_err(|_| ValidationError("invalid object ID"))?;
-    Ok(object_uuid)
+    Ok(internal_object_id)
 }
 
 fn parse_array(value: &Value) -> Result<Vec<String>, ValidationError> {
@@ -91,6 +91,19 @@ fn parse_array(value: &Value) -> Result<Vec<String>, ValidationError> {
         _ => return Err(ValidationError("invalid attribute value")),
     };
     Ok(result)
+}
+
+/// Parses object json value and returns its ID as string
+fn get_object_id(object: Value) -> Result<String, ValidationError> {
+    let object_id = match object.as_str() {
+        Some(object_id) => object_id.to_owned(),
+        None => {
+            let object: Object = serde_json::from_value(object)
+                .map_err(|_| ValidationError("invalid object"))?;
+            object.id
+        },
+    };
+    Ok(object_id)
 }
 
 async fn get_or_fetch_profile_by_actor_id(
@@ -279,15 +292,13 @@ pub async fn receive_activity(
     let db_client = &mut **get_database_client(db_pool).await?;
     match (activity_type.as_str(), object_type.as_str()) {
         (ACCEPT, FOLLOW) => {
-            let object: Object = serde_json::from_value(activity.object)
-                .map_err(|_| ValidationError("invalid object"))?;
-            let follow_request_id = parse_object_id(&config.instance_url(), &object.id)?;
+            let object_id = get_object_id(activity.object)?;
+            let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
             follow_request_accepted(db_client, &follow_request_id).await?;
         },
         (REJECT, FOLLOW) => {
-            let object: Object = serde_json::from_value(activity.object)
-                .map_err(|_| ValidationError("invalid object"))?;
-            let follow_request_id = parse_object_id(&config.instance_url(), &object.id)?;
+            let object_id = get_object_id(activity.object)?;
+            let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
             follow_request_rejected(db_client, &follow_request_id).await?;
         },
         (CREATE, NOTE) => {
@@ -302,14 +313,7 @@ pub async fn receive_activity(
                 &activity.actor,
                 &config.media_dir(),
             ).await?;
-            let object_id = match activity.object.as_str() {
-                Some(object_id) => object_id.to_owned(),
-                None => {
-                    let object: Object = serde_json::from_value(activity.object)
-                        .map_err(|_| ValidationError("invalid object"))?;
-                    object.id
-                },
-            };
+            let object_id = get_object_id(activity.object)?;
             let post_id = match parse_object_id(&config.instance_url(), &object_id) {
                 Ok(post_id) => post_id,
                 Err(_) => {
@@ -325,14 +329,7 @@ pub async fn receive_activity(
             create_post(db_client, &author.id, repost_data).await?;
         },
         (DELETE, _) => {
-            let object_id = match activity.object.as_str() {
-                Some(object_id) => object_id.to_owned(),
-                None => {
-                    let object: Object = serde_json::from_value(activity.object)
-                        .map_err(|_| ValidationError("invalid object"))?;
-                    object.id
-                },
-            };
+            let object_id = get_object_id(activity.object)?;
             let post = get_post_by_object_id(db_client, &object_id).await?;
             let deletion_queue = delete_post(db_client, &post.id).await?;
             let config = config.clone();
@@ -347,14 +344,7 @@ pub async fn receive_activity(
                 &activity.actor,
                 &config.media_dir(),
             ).await?;
-            let object_id = match activity.object.as_str() {
-                Some(object_id) => object_id.to_owned(),
-                None => {
-                    let object: Object = serde_json::from_value(activity.object)
-                        .map_err(|_| ValidationError("invalid object"))?;
-                    object.id
-                },
-            };
+            let object_id = get_object_id(activity.object)?;
             let post_id = match parse_object_id(&config.instance_url(), &object_id) {
                 Ok(post_id) => post_id,
                 Err(_) => {
@@ -378,14 +368,7 @@ pub async fn receive_activity(
             ).await?;
             let source_actor = source_profile.remote_actor().ok().flatten()
                 .ok_or(HttpError::InternalError)?;
-            let target_actor_id = match activity.object.as_str() {
-                Some(object_id) => object_id.to_owned(),
-                None => {
-                    let object: Object = serde_json::from_value(activity.object)
-                        .map_err(|_| ValidationError("invalid object"))?;
-                    object.id
-                },
-            };
+            let target_actor_id = get_object_id(activity.object)?;
             let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
             let target_profile = get_profile_by_acct(db_client, &target_username).await?;
             // Create and send 'Accept' activity
@@ -482,8 +465,8 @@ mod tests {
             "https://example.org/objects/{}",
             expected_uuid,
         );
-        let object_uuid = parse_object_id(INSTANCE_URL, &object_id).unwrap();
-        assert_eq!(object_uuid, expected_uuid);
+        let internal_object_id = parse_object_id(INSTANCE_URL, &object_id).unwrap();
+        assert_eq!(internal_object_id, expected_uuid);
     }
 
     #[test]
@@ -509,5 +492,17 @@ mod tests {
             parse_array(&value).unwrap(),
             vec!["test1".to_string(), "test2".to_string()],
         );
+    }
+
+    #[test]
+    fn test_get_object_id_from_string() {
+        let value = json!("test_id");
+        assert_eq!(get_object_id(value).unwrap(), "test_id");
+    }
+
+    #[test]
+    fn test_get_object_id_from_object() {
+        let value = json!({"id": "test_id", "type": "Note"});
+        assert_eq!(get_object_id(value).unwrap(), "test_id");
     }
 }
