@@ -11,6 +11,8 @@ Federated social network with smart contracts.
 
 Smart contracts repo: https://codeberg.org/silverpill/mitra-contracts
 
+Frontend repo: https://codeberg.org/silverpill/mitra-web
+
 Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 
 Demo instance: https://mitra.social/ (invite-only)
