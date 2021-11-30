@@ -337,7 +337,7 @@ pub async fn receive_activity(
                 deletion_queue.process(&config).await;
             });
         },
-        (LIKE, _) => {
+        (LIKE, _) | (EMOJI_REACT, _) => {
             let author = get_or_fetch_profile_by_actor_id(
                 db_client,
                 &config.instance(),

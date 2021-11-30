@@ -5,6 +5,7 @@ pub const ACCEPT: &str = "Accept";
 pub const ANNOUNCE: &str = "Announce";
 pub const CREATE: &str = "Create";
 pub const DELETE: &str = "Delete";
+pub const EMOJI_REACT: &str = "EmojiReact";
 pub const FOLLOW: &str = "Follow";
 pub const LIKE: &str = "Like";
 pub const REJECT: &str = "Reject";
