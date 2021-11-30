@@ -30,6 +30,7 @@ pub enum EventType {
     Reply,
     Reaction,
     Mention,
+    Repost,
 }
 
 impl From<&EventType> for i16 {
@@ -40,6 +41,7 @@ impl From<&EventType> for i16 {
             EventType::Reply => 3,
             EventType::Reaction => 4,
             EventType::Mention => 5,
+            EventType::Repost => 6,
         }
     }
 }
@@ -54,6 +56,7 @@ impl TryFrom<i16> for EventType {
             3 => Self::Reply,
             4 => Self::Reaction,
             5 => Self::Mention,
+            6 => Self::Repost,
             _ => return Err(ConversionError),
         };
         Ok(event_type)

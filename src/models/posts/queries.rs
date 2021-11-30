@@ -16,6 +16,7 @@ use crate::models::cleanup::{
 use crate::models::notifications::queries::{
     create_mention_notification,
     create_reply_notification,
+    create_repost_notification,
 };
 use crate::models::profiles::queries::update_post_count;
 use crate::models::profiles::types::DbActorProfile;
@@ -251,12 +252,26 @@ pub async fn create_post(
     }
     if let Some(repost_of_id) = &db_post.repost_of_id {
         update_repost_count(&transaction, repost_of_id, 1).await?;
+        let repost_of = get_post_by_id(&transaction, repost_of_id).await?;
+        if repost_of.author.is_local() &&
+            repost_of.author.id != db_post.author_id &&
+            !notified_users.contains(&repost_of.author.id)
+        {
+            create_repost_notification(
+                &transaction,
+                &db_post.author_id,
+                &repost_of.author.id,
+                &db_post.id,
+            ).await?;
+            notified_users.push(repost_of.author.id);
+        };
     };
     // Notify mentioned users
     for profile in db_mentions.iter() {
         if profile.is_local() &&
             profile.id != db_post.author_id &&
             // Don't send mention notification to the author of parent post
+            // or to the author of reposted post
             !notified_users.contains(&profile.id)
         {
             create_mention_notification(

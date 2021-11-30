@@ -34,6 +34,7 @@ impl ApiNotification {
             EventType::Reply => "reply",
             EventType::Reaction => "favourite",
             EventType::Mention => "mention",
+            EventType::Repost => "reblog",
         };
         Self {
             id: notification.id.to_string(),

@@ -88,11 +88,12 @@ The following activities are supported:
 
 - Accept(Follow)
 - Reject(Follow)
+- Undo(Follow)
 - Create(Note)
 - Delete(Note)
 - Like(Note)
+- Announce(Note)
 - Follow(Person)
-- Undo(Follow)
 - Update(Person)
 
 And these additional standards:
