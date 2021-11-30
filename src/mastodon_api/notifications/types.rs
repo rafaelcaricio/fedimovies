@@ -33,6 +33,7 @@ impl ApiNotification {
             EventType::FollowRequest => "follow_request",
             EventType::Reply => "reply",
             EventType::Reaction => "favourite",
+            EventType::Mention => "mention",
         };
         Self {
             id: notification.id.to_string(),

@@ -13,7 +13,10 @@ use crate::models::cleanup::{
     find_orphaned_ipfs_objects,
     DeletionQueue,
 };
-use crate::models::notifications::queries::create_reply_notification;
+use crate::models::notifications::queries::{
+    create_mention_notification,
+    create_reply_notification,
+};
 use crate::models::profiles::queries::update_post_count;
 use crate::models::profiles::types::DbActorProfile;
 use super::types::{DbPost, Post, PostCreateData, Visibility};
@@ -230,6 +233,7 @@ pub async fn create_post(
         .collect::<Result<_, _>>()?;
     // Update counters
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
+    let mut notified_users = vec![];
     if let Some(in_reply_to_id) = &db_post.in_reply_to_id {
         update_reply_count(&transaction, in_reply_to_id, 1).await?;
         let in_reply_to = get_post_by_id(&transaction, in_reply_to_id).await?;
@@ -242,10 +246,26 @@ pub async fn create_post(
                 &in_reply_to.author.id,
                 &db_post.id,
             ).await?;
+            notified_users.push(in_reply_to.author.id);
         }
     }
     if let Some(repost_of_id) = &db_post.repost_of_id {
         update_repost_count(&transaction, repost_of_id, 1).await?;
+    };
+    // Notify mentioned users
+    for profile in db_mentions.iter() {
+        if profile.is_local() &&
+            profile.id != db_post.author_id &&
+            // Don't send mention notification to the author of parent post
+            !notified_users.contains(&profile.id)
+        {
+            create_mention_notification(
+                &transaction,
+                &db_post.author_id,
+                &profile.id,
+                &db_post.id,
+            ).await?;
+        };
     };
 
     transaction.commit().await?;
