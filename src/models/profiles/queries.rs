@@ -8,6 +8,7 @@ use crate::models::cleanup::{
     find_orphaned_ipfs_objects,
     DeletionQueue,
 };
+use crate::utils::id::new_uuid;
 use super::types::{
     ExtraFields,
     DbActorProfile,
@@ -20,7 +21,7 @@ pub async fn create_profile(
     db_client: &impl GenericClient,
     profile_data: &ProfileCreateData,
 ) -> Result<DbActorProfile, DatabaseError> {
-    let profile_id = Uuid::new_v4();
+    let profile_id = new_uuid();
     let extra_fields = ExtraFields(profile_data.extra_fields.clone());
     let row = db_client.query_one(
         "

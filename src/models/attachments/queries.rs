@@ -2,6 +2,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::errors::DatabaseError;
+use crate::utils::id::new_uuid;
 use super::types::DbMediaAttachment;
 
 pub async fn create_attachment(
@@ -10,7 +11,7 @@ pub async fn create_attachment(
     media_type: Option<String>,
     file_name: String,
 ) -> Result<DbMediaAttachment, DatabaseError> {
-    let attachment_id = Uuid::new_v4();
+    let attachment_id = new_uuid();
     let inserted_row = db_client.query_one(
         "
         INSERT INTO media_attachment (id, owner_id, media_type, file_name)

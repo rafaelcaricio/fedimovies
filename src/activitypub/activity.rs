@@ -7,6 +7,7 @@ use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
 use crate::utils::files::get_file_url;
+use crate::utils::id::new_uuid;
 use super::actor::{get_local_actor, ActorKeyError};
 use super::constants::{AP_CONTEXT, AP_PUBLIC};
 use super::views::{get_actor_url, get_object_url};
@@ -104,7 +105,7 @@ fn create_activity(
     );
     let activity_id = get_object_url(
         instance_url,
-        &activity_uuid.unwrap_or(Uuid::new_v4()),
+        &activity_uuid.unwrap_or(new_uuid()),
     );
     Activity {
         context: json!(AP_CONTEXT),
@@ -455,7 +456,7 @@ mod tests {
             username: "follower".to_string(),
             ..Default::default()
         };
-        let follow_request_id = Uuid::new_v4();
+        let follow_request_id = new_uuid();
         let target_actor_id = "https://example.com/actor/test";
         let activity = create_activity_follow(
             INSTANCE_URL,

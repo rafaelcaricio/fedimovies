@@ -20,6 +20,7 @@ use crate::models::notifications::queries::{
 };
 use crate::models::profiles::queries::update_post_count;
 use crate::models::profiles::types::DbActorProfile;
+use crate::utils::id::new_uuid;
 use super::types::{DbPost, Post, PostCreateData, Visibility};
 
 pub async fn create_post(
@@ -28,7 +29,7 @@ pub async fn create_post(
     data: PostCreateData,
 ) -> Result<Post, DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let post_id = uuid::Uuid::new_v4();
+    let post_id = new_uuid();
     let created_at = data.created_at.unwrap_or(Utc::now());
     // Reposting of other reposts or non-public posts is not allowed
     let insert_statement = format!(

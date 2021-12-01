@@ -5,6 +5,7 @@ use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
 use crate::models::notifications::queries::create_reaction_notification;
 use crate::models::posts::queries::{get_post_by_id, update_reaction_count};
+use crate::utils::id::new_uuid;
 
 pub async fn create_reaction(
     db_client: &mut impl GenericClient,
@@ -12,7 +13,7 @@ pub async fn create_reaction(
     post_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let reaction_id = Uuid::new_v4();
+    let reaction_id = new_uuid();
     transaction.execute(
         "
         INSERT INTO post_reaction (id, author_id, post_id)

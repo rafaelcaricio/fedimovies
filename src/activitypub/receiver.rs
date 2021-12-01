@@ -430,6 +430,7 @@ pub async fn receive_activity(
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use crate::utils::id::new_uuid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.org";
@@ -460,7 +461,7 @@ mod tests {
 
     #[test]
     fn test_parse_object_id() {
-        let expected_uuid = Uuid::new_v4();
+        let expected_uuid = new_uuid();
         let object_id = format!(
             "https://example.org/objects/{}",
             expected_uuid,

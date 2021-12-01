@@ -10,6 +10,7 @@ use crate::models::profiles::queries::{
     update_follower_count,
     update_following_count,
 };
+use crate::utils::id::new_uuid;
 use super::types::{
     DbFollowRequest,
     FollowRequestStatus,
@@ -143,7 +144,7 @@ pub async fn create_follow_request(
     target_id: &Uuid,
 ) -> Result<DbFollowRequest, DatabaseError> {
     let request = DbFollowRequest {
-        id: Uuid::new_v4(),
+        id: new_uuid(),
         source_id: source_id.to_owned(),
         target_id: target_id.to_owned(),
         request_status: FollowRequestStatus::Pending,

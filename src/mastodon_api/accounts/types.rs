@@ -204,11 +204,9 @@ mod tests {
             ..Default::default()
         };
         let user = User {
-            id: Uuid::new_v4(),
             wallet_address: wallet_address.to_string(),
-            password_hash: "".to_string(),
-            private_key: "".to_string(),
             profile,
+            ..Default::default()
         };
         let account = Account::from_user(user, INSTANCE_URL);
 

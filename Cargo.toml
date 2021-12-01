@@ -73,6 +73,8 @@ postgres-types = { version = "0.1.2", features = ["derive", "with-chrono-0_4", "
 postgres-protocol = "0.5.3"
 # Used to work with URLs
 url = "2.2.2"
+# Used to generate lexicographically sortable IDs
+ulid = { version = "0.4.1", features = ["uuid"] }
 # Used to work with UUIDs
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 # Used to query ethereum node
