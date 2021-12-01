@@ -22,134 +22,6 @@ use crate::models::profiles::queries::update_post_count;
 use crate::models::profiles::types::DbActorProfile;
 use super::types::{DbPost, Post, PostCreateData, Visibility};
 
-pub const RELATED_ATTACHMENTS: &str =
-    "ARRAY(
-        SELECT media_attachment
-        FROM media_attachment WHERE post_id = post.id
-    ) AS attachments";
-
-pub const RELATED_MENTIONS: &str =
-    "ARRAY(
-        SELECT actor_profile
-        FROM mention
-        JOIN actor_profile ON mention.profile_id = actor_profile.id
-        WHERE post_id = post.id
-    ) AS mentions";
-
-pub async fn get_home_timeline(
-    db_client: &impl GenericClient,
-    current_user_id: &Uuid,
-) -> Result<Vec<Post>, DatabaseError> {
-    // Select posts from follows + own posts.
-    // Exclude direct messages where current user is not mentioned.
-    let statement = format!(
-        "
-        SELECT
-            post, actor_profile,
-            {related_attachments},
-            {related_mentions}
-        FROM post
-        JOIN actor_profile ON post.author_id = actor_profile.id
-        WHERE
-            (
-                post.author_id = $1
-                OR EXISTS (
-                    SELECT 1 FROM relationship
-                    WHERE source_id = $1 AND target_id = post.author_id
-                )
-            )
-            AND (
-                post.visibility = {visibility_public}
-                OR EXISTS (
-                    SELECT 1 FROM mention
-                    WHERE post_id = post.id AND profile_id = $1
-                )
-            )
-        ORDER BY post.created_at DESC
-        ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        visibility_public=i16::from(&Visibility::Public),
-    );
-    let rows = db_client.query(
-        statement.as_str(),
-        &[&current_user_id],
-    ).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
-    Ok(posts)
-}
-
-pub async fn get_posts(
-    db_client: &impl GenericClient,
-    posts_ids: Vec<Uuid>,
-) -> Result<Vec<Post>, DatabaseError> {
-    let statement = format!(
-        "
-        SELECT
-            post, actor_profile,
-            {related_attachments},
-            {related_mentions}
-        FROM post
-        JOIN actor_profile ON post.author_id = actor_profile.id
-        WHERE post.id = ANY($1)
-        ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-    );
-    let rows = db_client.query(
-        statement.as_str(),
-        &[&posts_ids],
-    ).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
-    Ok(posts)
-}
-
-pub async fn get_posts_by_author(
-    db_client: &impl GenericClient,
-    account_id: &Uuid,
-    include_replies: bool,
-    include_private: bool,
-) -> Result<Vec<Post>, DatabaseError> {
-    let mut condition = "post.author_id = $1".to_string();
-    if !include_replies {
-        condition.push_str(" AND post.in_reply_to_id IS NULL");
-    };
-    if !include_private {
-        let only_public = format!(
-            " AND visibility = {}",
-            i16::from(&Visibility::Public),
-        );
-        condition.push_str(&only_public);
-    };
-    let statement = format!(
-        "
-        SELECT
-            post, actor_profile,
-            {related_attachments},
-            {related_mentions}
-        FROM post
-        JOIN actor_profile ON post.author_id = actor_profile.id
-        WHERE {condition}
-        ORDER BY post.created_at DESC
-        ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        condition=condition,
-    );
-    let rows = db_client.query(
-        statement.as_str(),
-        &[&account_id],
-    ).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
-    Ok(posts)
-}
-
 pub async fn create_post(
     db_client: &mut impl GenericClient,
     author_id: &Uuid,
@@ -286,6 +158,134 @@ pub async fn create_post(
     transaction.commit().await?;
     let post = Post::new(db_post, author, db_attachments, db_mentions)?;
     Ok(post)
+}
+
+pub const RELATED_ATTACHMENTS: &str =
+    "ARRAY(
+        SELECT media_attachment
+        FROM media_attachment WHERE post_id = post.id
+    ) AS attachments";
+
+pub const RELATED_MENTIONS: &str =
+    "ARRAY(
+        SELECT actor_profile
+        FROM mention
+        JOIN actor_profile ON mention.profile_id = actor_profile.id
+        WHERE post_id = post.id
+    ) AS mentions";
+
+pub async fn get_home_timeline(
+    db_client: &impl GenericClient,
+    current_user_id: &Uuid,
+) -> Result<Vec<Post>, DatabaseError> {
+    // Select posts from follows + own posts.
+    // Exclude direct messages where current user is not mentioned.
+    let statement = format!(
+        "
+        SELECT
+            post, actor_profile,
+            {related_attachments},
+            {related_mentions}
+        FROM post
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE
+            (
+                post.author_id = $1
+                OR EXISTS (
+                    SELECT 1 FROM relationship
+                    WHERE source_id = $1 AND target_id = post.author_id
+                )
+            )
+            AND (
+                post.visibility = {visibility_public}
+                OR EXISTS (
+                    SELECT 1 FROM mention
+                    WHERE post_id = post.id AND profile_id = $1
+                )
+            )
+        ORDER BY post.created_at DESC
+        ",
+        related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
+        visibility_public=i16::from(&Visibility::Public),
+    );
+    let rows = db_client.query(
+        statement.as_str(),
+        &[&current_user_id],
+    ).await?;
+    let posts: Vec<Post> = rows.iter()
+        .map(Post::try_from)
+        .collect::<Result<_, _>>()?;
+    Ok(posts)
+}
+
+pub async fn get_posts(
+    db_client: &impl GenericClient,
+    posts_ids: Vec<Uuid>,
+) -> Result<Vec<Post>, DatabaseError> {
+    let statement = format!(
+        "
+        SELECT
+            post, actor_profile,
+            {related_attachments},
+            {related_mentions}
+        FROM post
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE post.id = ANY($1)
+        ",
+        related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
+    );
+    let rows = db_client.query(
+        statement.as_str(),
+        &[&posts_ids],
+    ).await?;
+    let posts: Vec<Post> = rows.iter()
+        .map(Post::try_from)
+        .collect::<Result<_, _>>()?;
+    Ok(posts)
+}
+
+pub async fn get_posts_by_author(
+    db_client: &impl GenericClient,
+    account_id: &Uuid,
+    include_replies: bool,
+    include_private: bool,
+) -> Result<Vec<Post>, DatabaseError> {
+    let mut condition = "post.author_id = $1".to_string();
+    if !include_replies {
+        condition.push_str(" AND post.in_reply_to_id IS NULL");
+    };
+    if !include_private {
+        let only_public = format!(
+            " AND visibility = {}",
+            i16::from(&Visibility::Public),
+        );
+        condition.push_str(&only_public);
+    };
+    let statement = format!(
+        "
+        SELECT
+            post, actor_profile,
+            {related_attachments},
+            {related_mentions}
+        FROM post
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE {condition}
+        ORDER BY post.created_at DESC
+        ",
+        related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
+        condition=condition,
+    );
+    let rows = db_client.query(
+        statement.as_str(),
+        &[&account_id],
+    ).await?;
+    let posts: Vec<Post> = rows.iter()
+        .map(Post::try_from)
+        .collect::<Result<_, _>>()?;
+    Ok(posts)
 }
 
 pub async fn get_post_by_id(
