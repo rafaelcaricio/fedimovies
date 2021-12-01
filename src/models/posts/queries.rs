@@ -178,6 +178,8 @@ pub const RELATED_MENTIONS: &str =
 pub async fn get_home_timeline(
     db_client: &impl GenericClient,
     current_user_id: &Uuid,
+    limit: i64,
+    max_post_id: Option<Uuid>,
 ) -> Result<Vec<Post>, DatabaseError> {
     // Select posts from follows + own posts.
     // Exclude direct messages where current user is not mentioned.
@@ -204,7 +206,9 @@ pub async fn get_home_timeline(
                     WHERE post_id = post.id AND profile_id = $1
                 )
             )
-        ORDER BY post.created_at DESC
+            AND ($3::uuid IS NULL OR post.id < $3)
+        ORDER BY post.id DESC
+        LIMIT $2
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
@@ -212,7 +216,7 @@ pub async fn get_home_timeline(
     );
     let rows = db_client.query(
         statement.as_str(),
-        &[&current_user_id],
+        &[&current_user_id, &limit, &max_post_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)
