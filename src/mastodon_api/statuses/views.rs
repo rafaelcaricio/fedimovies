@@ -176,18 +176,20 @@ async fn favourite(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let post = get_post_by_id(db_client, &status_id).await?;
+    let mut post = get_post_by_id(db_client, &status_id).await?;
     if !can_view_post(Some(&current_user), &post) {
         return Err(HttpError::NotFoundError("post"));
     };
     let reaction_created = match create_reaction(
         db_client, &current_user.id, &status_id,
     ).await {
-        Ok(_) => true,
+        Ok(_) => {
+            post.reaction_count += 1;
+            true
+        },
         Err(DatabaseError::AlreadyExists(_)) => false, // post already favourited
         Err(other_error) => return Err(other_error.into()),
     };
-    let mut post = get_post_by_id(db_client, &status_id).await?;
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
@@ -219,15 +221,15 @@ async fn unfavourite(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let post = get_post_by_id(db_client, &status_id).await?;
+    let mut post = get_post_by_id(db_client, &status_id).await?;
     if !can_view_post(Some(&current_user), &post) {
         return Err(HttpError::NotFoundError("post"));
     };
     match delete_reaction(db_client, &current_user.id, &status_id).await {
+        Ok(_) => post.reaction_count -= 1,
         Err(DatabaseError::NotFound(_)) => (), // post not favourited
-        other_result => other_result?,
+        Err(other_error) => return Err(other_error.into()),
     }
-    let mut post = get_post_by_id(db_client, &status_id).await?;
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
     let status = Status::from_post(post, &config.instance_url());

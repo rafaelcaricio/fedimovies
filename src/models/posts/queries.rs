@@ -323,6 +323,7 @@ pub async fn get_thread(
     post_id: &Uuid,
     current_user_id: Option<&Uuid>,
 ) -> Result<Vec<Post>, DatabaseError> {
+    // Exclude direct messages
     let mut condition = format!(
         "post.visibility = {visibility_public}",
         visibility_public=i16::from(&Visibility::Public),
