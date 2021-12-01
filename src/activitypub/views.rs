@@ -99,8 +99,9 @@ async fn inbox(
     } else {
         log::info!("received in {}: {}", request.uri().path(), activity);
     };
-    if let Err(err) = signature_verified {
-        log::warn!("invalid signature: {}", err);
+    match signature_verified {
+        Ok(signer_id) => log::info!("activity signed by {}", signer_id),
+        Err(err) => log::warn!("invalid signature: {}", err),
     };
     receive_activity(&config, &db_pool, activity.into_inner()).await?;
     Ok(HttpResponse::Ok().finish())

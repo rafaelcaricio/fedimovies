@@ -108,11 +108,12 @@ fn parse_http_signature(
     Ok(signature_data)
 }
 
+/// Verifies HTTP signature and returns signer ID
 pub async fn verify_http_signature(
     config: &Config,
     db_pool: &Pool,
     request: &HttpRequest,
-) -> Result<(), VerificationError> {
+) -> Result<String, VerificationError> {
     let signature_data = parse_http_signature(
         request.method(),
         request.uri(),
@@ -151,7 +152,9 @@ pub async fn verify_http_signature(
     if !is_valid_signature {
         return Err(VerificationError::InvalidSignature);
     }
-    Ok(())
+    let signer_id = actor_profile.actor_id(&config.instance_url())
+        .map_err(|_| VerificationError::ActorError("invalid profile".to_string()))?;
+    Ok(signer_id)
 }
 
 #[cfg(test)]
