@@ -187,6 +187,9 @@ pub fn parse_config() -> Config {
     };
     config.try_instance_url().expect("invalid instance URI");
     config.try_instance_rsa_key().expect("invalid instance RSA key");
+    if config.ipfs_api_url.is_some() != config.ipfs_gateway_url.is_some() {
+        panic!("both ipfs_api_url and ipfs_gateway_url must be set");
+    };
 
     config
 }
