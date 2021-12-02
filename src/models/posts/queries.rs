@@ -353,7 +353,7 @@ pub async fn get_thread(
         WITH RECURSIVE
         ancestors (id, in_reply_to_id) AS (
             SELECT post.id, post.in_reply_to_id FROM post
-            WHERE post.id = $1 AND {condition}
+            WHERE post.id = $1 AND ({condition})
             UNION ALL
             SELECT post.id, post.in_reply_to_id FROM post
             JOIN ancestors ON post.id = ancestors.in_reply_to_id
