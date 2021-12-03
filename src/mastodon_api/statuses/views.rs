@@ -319,9 +319,12 @@ async fn make_permanent(
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
+    if post.ipfs_cid.is_some() {
+        return Err(HttpError::OperationError("post already saved to IPFS"));
+    };
     if post.author.id != current_user.id || !post.is_public() {
         // Users can only archive their own public posts
-        return Err(HttpError::NotFoundError("post"));
+        return Err(HttpError::PermissionError);
     };
     let ipfs_api_url = config.ipfs_api_url.as_ref()
         .ok_or(HttpError::NotSupported)?;
@@ -378,11 +381,11 @@ async fn get_signature(
     let post = get_post_by_id(db_client, &status_id).await?;
     if post.author.id != current_user.id || !post.is_public() {
         // Users can only tokenize their own public posts
-        return Err(HttpError::NotFoundError("post"));
+        return Err(HttpError::PermissionError);
     };
     let ipfs_cid = post.ipfs_cid
         // Post metadata is not immutable
-        .ok_or(HttpError::ValidationError("post is not immutable".into()))?;
+        .ok_or(HttpError::OperationError("post is not immutable"))?;
     let token_uri = get_ipfs_url(&ipfs_cid);
     let signature = create_mint_signature(
         contract_config,

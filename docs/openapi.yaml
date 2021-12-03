@@ -17,8 +17,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Status'
+        403:
+          description: Post does not belong to user or is not public
         404:
           description: Post not found
+        418:
+          description: IPFS integration is not enabled
+        422:
+          description: Post already saved to IPFS
   /api/v1/{status_id}/signature:
     get:
       summary: Sign post data with instance key
@@ -42,8 +48,14 @@ paths:
                   s:
                     type: string
                     example: '6a5cb313907cd3...'
+        403:
+          description: Post does not belong to user or is not public
         404:
           description: Post not found
+        418:
+          description: Ethereum integration is not enabled
+        422:
+          description: Post is not saved to IPFS
 
 components:
   parameters:
