@@ -68,6 +68,8 @@ struct TokenTransfer {
     token_id: Token,
 }
 
+/// Finds posts awaiting tokenization
+/// and looks for corresponding Mint events
 pub async fn process_events(
     web3: &Web3<Http>,
     contract: &Contract<Http>,
@@ -93,7 +95,7 @@ pub async fn process_events(
         return Ok(())
     }
     log::info!(
-        "{} posts are waiting for token to be minted",
+        "{} posts are waiting for confirmation of tokenization tx",
         token_waitlist_active_count,
     );
 

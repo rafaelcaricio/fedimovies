@@ -581,7 +581,7 @@ pub async fn get_token_waitlist(
         "
         SELECT post.id
         FROM post
-        WHERE ipfs_cid IS NOT NULL AND token_id IS NULL
+        WHERE token_tx_id IS NOT NULL AND token_id IS NULL
         ",
         &[],
     ).await?;
