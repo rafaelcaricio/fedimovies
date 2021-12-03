@@ -450,7 +450,6 @@ pub async fn update_post(
     db_client: &impl GenericClient,
     post: &Post,
 ) -> Result<(), DatabaseError> {
-    // TODO: create PostUpdateData type
     let updated_count = db_client.execute(
         "
         UPDATE post

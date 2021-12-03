@@ -40,7 +40,7 @@ use crate::models::reactions::queries::{
     create_reaction,
     delete_reaction,
 };
-use super::types::{Status, StatusData};
+use super::types::{Status, StatusData, TransactionData};
 
 #[post("")]
 async fn create_status(
@@ -395,6 +395,31 @@ async fn get_signature(
     Ok(HttpResponse::Ok().json(signature))
 }
 
+#[post("/{status_id}/token_minted")]
+async fn token_minted(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(status_id): web::Path<Uuid>,
+    data: web::Json<TransactionData>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let mut post = get_post_by_id(db_client, &status_id).await?;
+    if post.token_tx_id.is_some() {
+        return Err(HttpError::OperationError("transaction is already registered"));
+    };
+    if post.author.id != current_user.id || !post.is_public() {
+        return Err(HttpError::PermissionError);
+    };
+    post.token_tx_id = Some(data.into_inner().transaction_id);
+    update_post(db_client, &post).await?;
+    get_reposted_posts(db_client, vec![&mut post]).await?;
+    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
+    let status = Status::from_post(post, &config.instance_url());
+    Ok(HttpResponse::Ok().json(status))
+}
+
 pub fn status_api_scope() -> Scope {
     web::scope("/api/v1/statuses")
         // Routes without status ID
@@ -408,4 +433,5 @@ pub fn status_api_scope() -> Scope {
         .service(unreblog)
         .service(make_permanent)
         .service(get_signature)
+        .service(token_minted)
 }

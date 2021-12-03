@@ -138,6 +138,7 @@ Additional methods:
 ```
 POST /api/v1/statuses/{status_id}/make_permanent
 GET /api/v1/statuses/{status_id}/signature
+POST /api/v1/statuses/{status_id}/token_minted
 ```
 
 [OpenAPI spec](./docs/openapi.yaml)

@@ -123,3 +123,8 @@ impl From<StatusData> for PostCreateData {
         }
     }
 }
+
+#[derive(Deserialize)]
+pub struct TransactionData {
+    pub transaction_id: String,
+}

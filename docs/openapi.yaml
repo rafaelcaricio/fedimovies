@@ -56,6 +56,32 @@ paths:
           description: Ethereum integration is not enabled
         422:
           description: Post is not saved to IPFS
+  /api/v1/{status_id}/token_minted:
+    post:
+      summary: Register transaction that mints a token
+      parameters:
+        - $ref: '#/components/parameters/status_id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                transaction_id:
+                  type: string
+                  description: Transaction ID
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        403:
+          description: Post does not belong to user or is not public
+        404:
+          description: Post not found
+        422:
+          description: Transaction already registered
 
 components:
   parameters:
@@ -78,3 +104,7 @@ components:
           type: string
           nullable: true
           example: 'bafkr...'
+        token_tx_id:
+          type: string
+          nullable: true
+          example: '0x5fe80cdea7f...'
