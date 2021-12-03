@@ -1,0 +1,68 @@
+openapi: 3.0.1
+info:
+  title: Mitra API
+  description: Mitra API spec
+  version: 1.0.0
+
+paths:
+  /api/v1/{status_id}/make_permanent:
+    post:
+      summary: Save post to IPFS
+      parameters:
+        - $ref: '#/components/parameters/status_id'
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        404:
+          description: Post not found
+  /api/v1/{status_id}/signature:
+    get:
+      summary: Sign post data with instance key
+      parameters:
+        - $ref: '#/components/parameters/status_id'
+      responses:
+        200:
+          description: Signature created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  v:
+                    type: integer
+                    format: int64
+                    example: 27
+                  r:
+                    type: string
+                    example: '6f61670e67bf72...'
+                  s:
+                    type: string
+                    example: '6a5cb313907cd3...'
+        404:
+          description: Post not found
+
+components:
+  parameters:
+    status_id:
+      name: status_id
+      in: path
+      description: Post ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    Status:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ipfs_cid:
+          type: string
+          nullable: true
+          example: 'bafkr...'

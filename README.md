@@ -140,6 +140,8 @@ POST /api/v1/statuses/{status_id}/make_permanent
 GET /api/v1/statuses/{status_id}/signature
 ```
 
+[OpenAPI spec](./docs/openapi.yaml)
+
 ## CLI commands
 
 Generate RSA private key:
