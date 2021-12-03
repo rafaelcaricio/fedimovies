@@ -18,7 +18,7 @@ pub async fn get_current_user(
     let user = get_user_by_oauth_token(db_client, token).await.map_err(|err| {
         match err {
             DatabaseError::NotFound(_) => {
-                HttpError::SessionError("access token is invalid")
+                HttpError::AuthError("access token is invalid")
             },
             _ => HttpError::InternalError,
         }

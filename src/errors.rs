@@ -47,7 +47,7 @@ pub enum HttpError {
     ValidationErrorAuto(#[from] ValidationError),
 
     #[error("{0}")]
-    SessionError(&'static str),
+    AuthError(&'static str),
 
     #[error("permission error")]
     PermissionError,
@@ -93,7 +93,7 @@ impl ResponseError for HttpError {
             HttpError::ActixError(err) => err.as_response_error().status_code(),
             HttpError::ValidationError(_) => StatusCode::BAD_REQUEST,
             HttpError::ValidationErrorAuto(_) => StatusCode::BAD_REQUEST,
-            HttpError::SessionError(_) => StatusCode::UNAUTHORIZED,
+            HttpError::AuthError(_) => StatusCode::UNAUTHORIZED,
             HttpError::PermissionError => StatusCode::FORBIDDEN,
             HttpError::NotFoundError(_) => StatusCode::NOT_FOUND,
             HttpError::NotSupported => StatusCode::IM_A_TEAPOT,
