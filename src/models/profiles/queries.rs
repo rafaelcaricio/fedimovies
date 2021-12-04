@@ -283,7 +283,7 @@ pub async fn delete_profile(
     transaction.execute(
         "
         UPDATE post
-        SET repost_count = repost_count - 1
+        SET repost_count = post.repost_count - 1
         FROM post AS repost
         WHERE
             repost.repost_of_id = post.id
