@@ -5,6 +5,19 @@ info:
   version: 1.0.0
 
 paths:
+  /api/v1/statuses/{status_id}:
+    delete:
+      summary: Delete post
+      parameters:
+        - $ref: '#/components/parameters/status_id'
+      responses:
+        204:
+          description: Successful operation
+          content: {}
+        403:
+          description: Post does not belong to user
+        404:
+          description: Post not found
   /api/v1/{status_id}/make_permanent:
     post:
       summary: Save post to IPFS

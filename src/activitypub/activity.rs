@@ -249,6 +249,29 @@ pub fn create_activity_announce(
     activity
 }
 
+pub fn create_activity_delete_note(
+    instance_url: &str,
+    actor_profile: &DbActorProfile,
+    post: &Post,
+) -> Activity {
+    let object_id = post.get_object_id(instance_url);
+    let object = Object {
+        context: Some(json!(AP_CONTEXT)),
+        id: object_id,
+        object_type: TOMBSTONE.to_string(),
+        ..Default::default()
+    };
+    let activity = create_activity(
+        instance_url,
+        &actor_profile.username,
+        DELETE,
+        None,
+        object,
+        AP_PUBLIC,
+    );
+    activity
+}
+
 pub fn create_activity_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,

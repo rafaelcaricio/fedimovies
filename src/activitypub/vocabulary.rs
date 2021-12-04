@@ -21,6 +21,7 @@ pub const DOCUMENT: &str = "Document";
 pub const IMAGE: &str = "Image";
 pub const MENTION: &str = "Mention";
 pub const NOTE: &str = "Note";
+pub const TOMBSTONE: &str = "Tombstone";
 
 // Misc
 pub const PROPERTY_VALUE: &str = "PropertyValue";

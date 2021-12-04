@@ -1,5 +1,5 @@
 /// https://docs.joinmastodon.org/methods/statuses/
-use actix_web::{get, post, web, HttpResponse, Scope};
+use actix_web::{delete, get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use serde::Serialize;
 use uuid::Uuid;
@@ -8,6 +8,7 @@ use crate::activitypub::activity::{
     create_activity_note,
     create_activity_like,
     create_activity_announce,
+    create_activity_delete_note,
 };
 use crate::activitypub::actor::Actor;
 use crate::activitypub::deliverer::deliver_activity;
@@ -31,6 +32,7 @@ use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
     get_thread,
+    get_post_author,
     find_reposts_by_user,
     update_post,
     delete_post,
@@ -133,6 +135,49 @@ async fn get_status(
     }
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
+}
+
+#[delete("/{status_id}")]
+async fn delete_status(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(status_id): web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let post = get_post_by_id(db_client, &status_id).await?;
+    if post.author.id != current_user.id {
+        return Err(HttpError::PermissionError);
+    };
+    let deletion_queue = delete_post(db_client, &status_id).await?;
+    let config_clone = config.clone();
+    actix_rt::spawn(async move {
+        deletion_queue.process(&config_clone).await;
+    });
+
+    let activity = create_activity_delete_note(
+        &config.instance_url(),
+        &current_user.profile,
+        &post,
+    );
+    let mut audience = get_followers(db_client, &current_user.id).await?;
+    if let Some(in_reply_to_id) = post.in_reply_to_id {
+        let in_reply_to_author = get_post_author(db_client, &in_reply_to_id).await?;
+        audience.push(in_reply_to_author);
+    };
+    audience.extend(post.mentions);
+    let mut recipients: Vec<Actor> = Vec::new();
+    for profile in audience {
+        let maybe_remote_actor = profile.remote_actor()
+            .map_err(|_| HttpError::InternalError)?;
+        if let Some(remote_actor) = maybe_remote_actor {
+            recipients.push(remote_actor);
+        };
+    };
+    deliver_activity(&config, &current_user, activity, recipients);
+
+    Ok(HttpResponse::NoContent().finish())
 }
 
 #[get("/{status_id}/context")]
@@ -426,6 +471,7 @@ pub fn status_api_scope() -> Scope {
         .service(create_status)
         // Routes with status ID
         .service(get_status)
+        .service(delete_status)
         .service(get_context)
         .service(favourite)
         .service(unfavourite)

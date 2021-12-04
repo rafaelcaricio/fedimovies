@@ -125,6 +125,7 @@ GET /api/v1/notifications
 GET /api/v2/search
 POST /api/v1/statuses
 GET /api/v1/statuses/{status_id}
+DELETE /api/v1/statuses/{status_id}
 GET /api/v1/statuses/{status_id}/context
 POST /api/v1/statuses/{status_id}/favourite
 POST /api/v1/statuses/{status_id}/unfavourite
