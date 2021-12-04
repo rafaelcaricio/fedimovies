@@ -110,33 +110,33 @@ pub async fn create_post(
     let mut notified_users = vec![];
     if let Some(in_reply_to_id) = &db_post.in_reply_to_id {
         update_reply_count(&transaction, in_reply_to_id, 1).await?;
-        let in_reply_to = get_post_by_id(&transaction, in_reply_to_id).await?;
-        if in_reply_to.author.is_local() &&
-            in_reply_to.author.id != db_post.author_id
+        let in_reply_to_author = get_post_author(&transaction, in_reply_to_id).await?;
+        if in_reply_to_author.is_local() &&
+            in_reply_to_author.id != db_post.author_id
         {
             create_reply_notification(
                 &transaction,
                 &db_post.author_id,
-                &in_reply_to.author.id,
+                &in_reply_to_author.id,
                 &db_post.id,
             ).await?;
-            notified_users.push(in_reply_to.author.id);
-        }
+            notified_users.push(in_reply_to_author.id);
+        };
     }
     if let Some(repost_of_id) = &db_post.repost_of_id {
         update_repost_count(&transaction, repost_of_id, 1).await?;
-        let repost_of = get_post_by_id(&transaction, repost_of_id).await?;
-        if repost_of.author.is_local() &&
-            repost_of.author.id != db_post.author_id &&
-            !notified_users.contains(&repost_of.author.id)
+        let repost_of_author = get_post_author(&transaction, repost_of_id).await?;
+        if repost_of_author.is_local() &&
+            repost_of_author.id != db_post.author_id &&
+            !notified_users.contains(&repost_of_author.id)
         {
             create_repost_notification(
                 &transaction,
                 &db_post.author_id,
-                &repost_of.author.id,
+                &repost_of_author.id,
                 &db_post.id,
             ).await?;
-            notified_users.push(repost_of.author.id);
+            notified_users.push(repost_of_author.id);
         };
     };
     // Notify mentioned users
@@ -529,6 +529,24 @@ pub async fn update_repost_count(
         return Err(DatabaseError::NotFound("post"));
     }
     Ok(())
+}
+
+pub async fn get_post_author(
+    db_client: &impl GenericClient,
+    post_id: &Uuid,
+) -> Result<DbActorProfile, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT actor_profile
+        FROM post
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE post.id = $1
+        ",
+        &[&post_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
+    let author: DbActorProfile = row.try_get("actor_profile")?;
+    Ok(author)
 }
 
 /// Finds reposts of given posts and returns their IDs

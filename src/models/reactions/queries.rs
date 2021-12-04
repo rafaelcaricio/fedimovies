@@ -4,7 +4,10 @@ use uuid::Uuid;
 use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
 use crate::models::notifications::queries::create_reaction_notification;
-use crate::models::posts::queries::{get_post_by_id, update_reaction_count};
+use crate::models::posts::queries::{
+    update_reaction_count,
+    get_post_author,
+};
 use crate::utils::id::new_uuid;
 
 pub async fn create_reaction(
@@ -22,13 +25,13 @@ pub async fn create_reaction(
         &[&reaction_id, &author_id, &post_id],
     ).await.map_err(catch_unique_violation("reaction"))?;
     update_reaction_count(&transaction, post_id, 1).await?;
-    let post = get_post_by_id(&transaction, post_id).await?;
-    if post.author.is_local() && post.author.id != *author_id {
+    let post_author = get_post_author(&transaction, post_id).await?;
+    if post_author.is_local() && post_author.id != *author_id {
         create_reaction_notification(
             &transaction,
             author_id,
-            &post.author.id,
-            &post.id,
+            &post_author.id,
+            post_id,
         ).await?;
     }
     transaction.commit().await?;
