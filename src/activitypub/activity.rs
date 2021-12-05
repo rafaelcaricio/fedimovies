@@ -75,6 +75,35 @@ pub struct Object {
     pub to: Option<Value>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Note {
+    #[serde(rename = "@context")]
+    context: String,
+
+    id: String,
+
+    #[serde(rename = "type")]
+    object_type: String,
+
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    attachment: Vec<Attachment>,
+
+    attributed_to: String,
+
+    content: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    in_reply_to: Option<String>,
+
+    published: DateTime<Utc>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tag: Vec<Tag>,
+
+    to: Vec<String>,
+}
+
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Activity {
@@ -122,7 +151,7 @@ pub fn create_note(
     instance_url: &str,
     post: &Post,
     in_reply_to: Option<&Post>,
-) -> Object {
+) -> Note {
     let object_id = get_object_url(
         instance_url,
         &post.id,
@@ -170,19 +199,17 @@ pub fn create_note(
         },
         None => None,
     };
-    Object {
-        context: Some(json!(AP_CONTEXT)),
+    Note {
+        context: AP_CONTEXT.to_string(),
         id: object_id,
         object_type: NOTE.to_string(),
-        actor: None,
-        attachment: Some(attachments),
-        object: None,
-        published: Some(post.created_at),
-        attributed_to: Some(actor_id),
+        attachment: attachments,
+        published: post.created_at,
+        attributed_to: actor_id,
         in_reply_to: in_reply_to_object_id,
-        content: Some(post.content.clone()),
-        tag: Some(mentions),
-        to: Some(json!(recipients)),
+        content: post.content.clone(),
+        tag: mentions,
+        to: recipients,
     }
 }
 
@@ -411,13 +438,13 @@ mod tests {
             note.id,
             format!("{}/objects/{}", INSTANCE_URL, post.id),
         );
-        assert_eq!(note.attachment.unwrap().len(), 0);
+        assert_eq!(note.attachment.len(), 0);
         assert_eq!(
-            note.attributed_to.unwrap(),
+            note.attributed_to,
             format!("{}/users/{}", INSTANCE_URL, post.author.username),
         );
         assert_eq!(note.in_reply_to.is_none(), true);
-        assert_eq!(note.content.unwrap(), post.content);
+        assert_eq!(note.content, post.content);
     }
 
     #[test]
@@ -433,7 +460,7 @@ mod tests {
             note.in_reply_to.unwrap(),
             format!("{}/objects/{}", INSTANCE_URL, parent.id),
         );
-        assert_eq!(note.to.unwrap(), json!([AP_PUBLIC]));
+        assert_eq!(note.to, vec![AP_PUBLIC]);
     }
 
     #[test]
@@ -463,14 +490,11 @@ mod tests {
             note.in_reply_to.unwrap(),
             parent.object_id.unwrap(),
         );
-        let tags = note.tag.unwrap();
+        let tags = note.tag;
         assert_eq!(tags.len(), 1);
         assert_eq!(tags[0].name, parent_author_acct);
         assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_id);
-        assert_eq!(
-            note.to.unwrap(),
-            json!([AP_PUBLIC, parent_author_actor_id]),
-        );
+        assert_eq!(note.to, vec![AP_PUBLIC, parent_author_actor_id]);
     }
 
     #[test]
