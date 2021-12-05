@@ -1,7 +1,7 @@
 use regex::Regex;
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::fetcher::{fetch_object, fetch_profile};
+use crate::activitypub::fetcher::fetch_profile;
 use crate::activitypub::receiver::process_note;
 use crate::config::Config;
 use crate::errors::{ValidationError, HttpError};
@@ -82,12 +82,11 @@ async fn search_note(
         // Not a valid URL
         return Ok(None);
     };
-    let instance = config.instance();
-    let maybe_post = match fetch_object(&instance, search_query).await {
-        Ok(object) => {
-            let post = process_note(config, db_client, object).await?;
-            Some(post)
-        },
+    let maybe_post = match process_note(
+        config, db_client,
+        search_query.to_string(), None,
+    ).await {
+        Ok(post) => Some(post),
         Err(err) => {
             log::warn!("{}", err);
             None

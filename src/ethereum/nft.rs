@@ -60,6 +60,7 @@ pub async fn get_nft_contract(
     Ok((web3, token))
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct TokenTransfer {
     tx_id: Option<H256>,

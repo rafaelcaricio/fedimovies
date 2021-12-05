@@ -131,50 +131,66 @@ async fn get_or_fetch_profile_by_actor_id(
 pub async fn process_note(
     config: &Config,
     db_client: &mut impl GenericClient,
-    object: Object,
+    object_id: String,
+    object_received: Option<Object>,
 ) -> Result<Post, HttpError> {
-    match get_post_by_object_id(db_client, &object.id).await {
-        Ok(post) => return Ok(post), // post already exists
-        Err(DatabaseError::NotFound(_)) => (), // continue processing
-        Err(other_error) => return Err(other_error.into()),
-    };
-
     let instance = config.instance();
-    let initial_object_id = object.id.clone();
-    let mut maybe_parent_object_id = object.in_reply_to.clone();
-    let mut objects = vec![object];
+    let mut maybe_object_id_to_fetch = Some(object_id);
+    let mut maybe_object = object_received;
+    let mut objects = vec![];
     let mut posts = vec![];
 
     // Fetch ancestors by going through inReplyTo references
     // TODO: fetch replies too
     #[allow(clippy::while_let_loop)]
     loop {
-        let object_id = match maybe_parent_object_id {
-            Some(parent_object_id) => {
-                if parse_object_id(&instance.url(), &parent_object_id).is_ok() {
-                    // Parent object is a local post
+        let object_id = match maybe_object_id_to_fetch {
+            Some(object_id) => {
+                if parse_object_id(&instance.url(), &object_id).is_ok() {
+                    // Object is a local post
+                    assert!(objects.len() > 0);
                     break;
                 }
-                match get_post_by_object_id(db_client, &parent_object_id).await {
-                    Ok(_) => {
-                        // Parent object has been fetched already
+                match get_post_by_object_id(db_client, &object_id).await {
+                    Ok(post) => {
+                        // Object already fetched
+                        if objects.len() == 0 {
+                            // Return post corresponding to initial object ID
+                            return Ok(post);
+                        };
                         break;
                     },
                     Err(DatabaseError::NotFound(_)) => (),
                     Err(other_error) => return Err(other_error.into()),
                 };
-                parent_object_id
+                object_id
             },
             None => {
-                // Object does not have a parent
+                // No object to fetch
                 break;
             },
         };
-        let object = fetch_object(&instance, &object_id).await
-            .map_err(|_| ValidationError("failed to fetch object"))?;
-        maybe_parent_object_id = object.in_reply_to.clone();
-        objects.push(object);
+        let object = match maybe_object {
+            Some(object) => object,
+            None => {
+                let object = fetch_object(&instance, &object_id).await
+                    .map_err(|_| ValidationError("failed to fetch object"))?;
+                log::info!("fetched object {}", object.id);
+                object
+            },
+        };
+        if object.id != object_id {
+            // ID of fetched object doesn't match requested ID
+            maybe_object_id_to_fetch = Some(object.id.clone());
+            // Don't re-fetch object
+            maybe_object = Some(object);
+        } else {
+            maybe_object_id_to_fetch = object.in_reply_to.clone();
+            maybe_object = None;
+            objects.push(object);
+        };
     }
+    let initial_object_id = objects[0].id.clone();
 
     // Objects are ordered according to their place in reply tree,
     // starting with the root
@@ -304,7 +320,7 @@ pub async fn receive_activity(
         (CREATE, NOTE) => {
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
-            process_note(config, db_client, object).await?;
+            process_note(config, db_client, object.id.clone(), Some(object)).await?;
         },
         (ANNOUNCE, _) => {
             let author = get_or_fetch_profile_by_actor_id(
