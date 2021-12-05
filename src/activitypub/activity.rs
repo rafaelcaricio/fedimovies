@@ -126,7 +126,7 @@ fn create_activity(
     activity_type: &str,
     activity_uuid: Option<Uuid>,
     object: impl Serialize,
-    recipient_id: &str,
+    recipients: Vec<String>,
 ) -> Activity {
     let actor_id = get_actor_url(
         instance_url,
@@ -142,7 +142,7 @@ fn create_activity(
         activity_type: activity_type.to_string(),
         actor: actor_id,
         object: serde_json::to_value(object).unwrap(),
-        to: Some(json!([recipient_id])),
+        to: Some(json!(recipients)),
     }
 }
 
@@ -220,13 +220,14 @@ pub fn create_activity_note(
     in_reply_to: Option<&Post>,
 ) -> Activity {
     let object = create_note(instance_host, instance_url, post, in_reply_to);
+    let recipients = object.to.clone();
     let activity = create_activity(
         instance_url,
         &post.author.username,
         CREATE,
         None,
         object,
-        AP_PUBLIC,
+        recipients,
     );
     activity
 }
@@ -248,7 +249,7 @@ pub fn create_activity_like(
         LIKE,
         None,
         object,
-        AP_PUBLIC,
+        vec![AP_PUBLIC.to_string()],
     );
     activity
 }
@@ -271,7 +272,7 @@ pub fn create_activity_announce(
         ANNOUNCE,
         None,
         object,
-        AP_PUBLIC,
+        vec![AP_PUBLIC.to_string()],
     );
     activity
 }
@@ -294,7 +295,7 @@ pub fn create_activity_delete_note(
         DELETE,
         None,
         object,
-        AP_PUBLIC,
+        vec![AP_PUBLIC.to_string()],
     );
     activity
 }
@@ -317,7 +318,7 @@ pub fn create_activity_follow(
         FOLLOW,
         Some(*follow_request_id),
         object,
-        target_actor_id,
+        vec![target_actor_id.to_string()],
     );
     activity
 }
@@ -341,7 +342,7 @@ pub fn create_activity_accept_follow(
         ACCEPT,
         None,
         object,
-        source_actor_id,
+        vec![source_actor_id.to_string()],
     );
     activity
 }
@@ -375,7 +376,7 @@ pub fn create_activity_undo_follow(
         UNDO,
         None,
         object,
-        target_actor_id,
+        vec![target_actor_id.to_string()],
     );
     activity
 }
@@ -391,7 +392,7 @@ pub fn create_activity_update_person(
         UPDATE,
         None,
         actor,
-        AP_PUBLIC,
+        vec![AP_PUBLIC.to_string()],
     );
     Ok(activity)
 }
