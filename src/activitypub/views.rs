@@ -103,7 +103,11 @@ async fn inbox(
         Ok(signer_id) => log::info!("activity signed by {}", signer_id),
         Err(err) => log::warn!("invalid signature: {}", err),
     };
-    receive_activity(&config, &db_pool, activity.into_inner()).await?;
+    receive_activity(&config, &db_pool, activity.into_inner()).await
+        .map_err(|err| {
+            log::info!("failed to process activity: {}", err);
+            err
+        })?;
     Ok(HttpResponse::Ok().finish())
 }
 
