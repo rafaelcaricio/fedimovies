@@ -333,7 +333,8 @@ pub async fn receive_activity(
             let post_id = match parse_object_id(&config.instance_url(), &object_id) {
                 Ok(post_id) => post_id,
                 Err(_) => {
-                    let post = get_post_by_object_id(db_client, &object_id).await?;
+                    // Try to get remote post
+                    let post = process_note(config, db_client, object_id.clone(), None).await?;
                     post.id
                 },
             };
