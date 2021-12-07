@@ -334,13 +334,13 @@ pub async fn receive_activity(
                 Ok(post_id) => post_id,
                 Err(_) => {
                     // Try to get remote post
-                    let post = process_note(config, db_client, object_id.clone(), None).await?;
+                    let post = process_note(config, db_client, object_id, None).await?;
                     post.id
                 },
             };
             let repost_data = PostCreateData {
                 repost_of_id: Some(post_id),
-                object_id: Some(object_id),
+                object_id: Some(activity.id),
                 ..Default::default()
             };
             create_post(db_client, &author.id, repost_data).await?;
