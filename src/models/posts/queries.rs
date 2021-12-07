@@ -105,6 +105,29 @@ pub async fn create_post(
     let db_mentions: Vec<DbActorProfile> = mentions_rows.iter()
         .map(|row| row.try_get("actor_profile"))
         .collect::<Result<_, _>>()?;
+    // Create tags
+    transaction.execute(
+        "
+        INSERT INTO tag (tag_name)
+        SELECT unnest($1::text[])
+        ON CONFLICT (tag_name) DO NOTHING
+        ",
+        &[&data.tags],
+    ).await?;
+    let tags_rows = transaction.query(
+        "
+        INSERT INTO post_tag (post_id, tag_id)
+        SELECT $1, tag.id FROM tag WHERE tag_name = ANY($2)
+        RETURNING (SELECT tag_name FROM tag WHERE tag.id = tag_id)
+        ",
+        &[&db_post.id, &data.tags],
+    ).await?;
+    if tags_rows.len() != data.tags.len() {
+        return Err(DatabaseError::NotFound("tag"));
+    };
+    let db_tags: Vec<String> = tags_rows.iter()
+        .map(|row| row.try_get("tag_name"))
+        .collect::<Result<_, _>>()?;
     // Update counters
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
     let mut notified_users = vec![];
@@ -157,7 +180,7 @@ pub async fn create_post(
     };
 
     transaction.commit().await?;
-    let post = Post::new(db_post, author, db_attachments, db_mentions)?;
+    let post = Post::new(db_post, author, db_attachments, db_mentions, db_tags)?;
     Ok(post)
 }
 
@@ -175,6 +198,13 @@ pub const RELATED_MENTIONS: &str =
         WHERE post_id = post.id
     ) AS mentions";
 
+pub const RELATED_TAGS: &str =
+    "ARRAY(
+        SELECT tag.tag_name FROM tag
+        JOIN post_tag ON post_tag.tag_id = tag.id
+        WHERE post_tag.post_id = post.id
+    ) AS tags";
+
 pub async fn get_home_timeline(
     db_client: &impl GenericClient,
     current_user_id: &Uuid,
@@ -188,7 +218,8 @@ pub async fn get_home_timeline(
         SELECT
             post, actor_profile,
             {related_attachments},
-            {related_mentions}
+            {related_mentions},
+            {related_tags}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
@@ -212,6 +243,7 @@ pub async fn get_home_timeline(
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
         visibility_public=i16::from(&Visibility::Public),
     );
     let rows = db_client.query(
@@ -233,13 +265,15 @@ pub async fn get_posts(
         SELECT
             post, actor_profile,
             {related_attachments},
-            {related_mentions}
+            {related_mentions},
+            {related_tags}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id = ANY($1)
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
     );
     let rows = db_client.query(
         statement.as_str(),
@@ -273,7 +307,8 @@ pub async fn get_posts_by_author(
         SELECT
             post, actor_profile,
             {related_attachments},
-            {related_mentions}
+            {related_mentions},
+            {related_tags}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE {condition}
@@ -281,6 +316,7 @@ pub async fn get_posts_by_author(
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
         condition=condition,
     );
     let rows = db_client.query(
@@ -302,13 +338,15 @@ pub async fn get_post_by_id(
         SELECT
             post, actor_profile,
             {related_attachments},
-            {related_mentions}
+            {related_mentions},
+            {related_tags}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id = $1
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
     );
     let maybe_row = db_client.query_opt(
         statement.as_str(),
@@ -368,7 +406,8 @@ pub async fn get_thread(
         SELECT
             post, actor_profile,
             {related_attachments},
-            {related_mentions}
+            {related_mentions},
+            {related_tags}
         FROM post
         JOIN context ON post.id = context.id
         JOIN actor_profile ON post.author_id = actor_profile.id
@@ -377,6 +416,7 @@ pub async fn get_thread(
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
         condition=condition,
     );
     let rows = db_client.query(
@@ -401,13 +441,15 @@ pub async fn get_post_by_object_id(
         SELECT
             post, actor_profile,
             {related_attachments},
-            {related_mentions}
+            {related_mentions},
+            {related_tags}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.object_id = $1
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
     );
     let maybe_row = db_client.query_opt(
         statement.as_str(),
@@ -427,13 +469,15 @@ pub async fn get_post_by_ipfs_cid(
         SELECT
             post, actor_profile,
             {related_attachments},
-            {related_mentions}
+            {related_mentions},
+            {related_tags}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.ipfs_cid = $1
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
     );
     let result = db_client.query_opt(
         statement.as_str(),

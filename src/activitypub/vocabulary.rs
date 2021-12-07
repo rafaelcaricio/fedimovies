@@ -24,4 +24,5 @@ pub const NOTE: &str = "Note";
 pub const TOMBSTONE: &str = "Tombstone";
 
 // Misc
+pub const HASHTAG: &str = "Hashtag";
 pub const PROPERTY_VALUE: &str = "PropertyValue";

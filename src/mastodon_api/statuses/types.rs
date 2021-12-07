@@ -27,6 +27,23 @@ impl Mention {
     }
 }
 
+/// https://docs.joinmastodon.org/entities/tag/
+#[derive(Serialize)]
+pub struct Tag {
+    name: String,
+    url: String,
+}
+
+impl Tag {
+    fn from_tag_name(tag_name: String) -> Self {
+        Tag {
+            name: tag_name,
+            // TODO: add link to tag page
+            url: "".to_string(),
+        }
+    }
+}
+
 /// https://docs.joinmastodon.org/entities/status/
 #[derive(Serialize)]
 pub struct Status {
@@ -43,6 +60,7 @@ pub struct Status {
     pub reblogs_count: i32,
     pub media_attachments: Vec<Attachment>,
     mentions: Vec<Mention>,
+    tags: Vec<Tag>,
 
     // Authorized user attributes
     pub favourited: bool,
@@ -62,6 +80,9 @@ impl Status {
             .collect();
         let mentions: Vec<Mention> = post.mentions.into_iter()
             .map(|item| Mention::from_profile(item, instance_url))
+            .collect();
+        let tags: Vec<Tag> = post.tags.into_iter()
+            .map(|tag_name| Tag::from_tag_name(tag_name))
             .collect();
         let account = Account::from_profile(post.author, instance_url);
         let reblog = if let Some(repost_of) = post.repost_of {
@@ -88,6 +109,7 @@ impl Status {
             reblogs_count: post.repost_count,
             media_attachments: attachments,
             mentions: mentions,
+            tags: tags,
             favourited: post.actions.as_ref().map_or(false, |actions| actions.favourited),
             reblogged: post.actions.as_ref().map_or(false, |actions| actions.reposted),
             ipfs_cid: post.ipfs_cid,
@@ -118,6 +140,7 @@ impl From<StatusData> for PostCreateData {
             visibility: Visibility::Public,
             attachments: value.media_ids.unwrap_or(vec![]),
             mentions: vec![],
+            tags: vec![],
             object_id: None,
             created_at: None,
         }

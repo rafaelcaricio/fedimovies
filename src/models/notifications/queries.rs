@@ -5,7 +5,11 @@ use uuid::Uuid;
 
 use crate::errors::DatabaseError;
 use crate::models::posts::helpers::get_actions_for_posts;
-use crate::models::posts::queries::{RELATED_ATTACHMENTS, RELATED_MENTIONS};
+use crate::models::posts::queries::{
+    RELATED_ATTACHMENTS,
+    RELATED_MENTIONS,
+    RELATED_TAGS,
+};
 use super::types::{EventType, Notification};
 
 async fn create_notification(
@@ -98,7 +102,8 @@ pub async fn get_notifications(
         SELECT
             notification, sender, post, post_author,
             {related_attachments},
-            {related_mentions}
+            {related_mentions},
+            {related_tags}
         FROM notification
         JOIN actor_profile AS sender
         ON notification.sender_id = sender.id
@@ -111,6 +116,7 @@ pub async fn get_notifications(
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
     );
     let rows = db_client.query(
         statement.as_str(),

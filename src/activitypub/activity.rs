@@ -171,17 +171,27 @@ pub fn create_note(
         }
     }).collect();
     let mut recipients = vec![AP_PUBLIC.to_string()];
-    let mentions: Vec<Tag> = post.mentions.iter().map(|profile| {
+    let mut tags = vec![];
+    for profile in &post.mentions {
         let actor_id = profile.actor_id(instance_url).unwrap();
         if !profile.is_local() {
             recipients.push(actor_id.clone());
         };
-        Tag {
+        let tag = Tag {
             name: profile.actor_address(instance_host),
             tag_type: MENTION.to_string(),
             href: Some(actor_id),
-        }
-    }).collect();
+        };
+        tags.push(tag);
+    };
+    for tag_name in &post.tags {
+        let tag = Tag {
+            name: format!("#{}", tag_name),
+            tag_type: HASHTAG.to_string(),
+            href: None,
+        };
+        tags.push(tag);
+    };
     let in_reply_to_object_id = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
             let post = in_reply_to.unwrap();
@@ -208,7 +218,7 @@ pub fn create_note(
         attributed_to: actor_id,
         in_reply_to: in_reply_to_object_id,
         content: post.content.clone(),
-        tag: mentions,
+        tag: tags,
         to: recipients,
     }
 }

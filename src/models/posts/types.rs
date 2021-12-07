@@ -86,6 +86,7 @@ pub struct Post {
     pub repost_count: i32,
     pub attachments: Vec<DbMediaAttachment>,
     pub mentions: Vec<DbActorProfile>,
+    pub tags: Vec<String>,
     pub object_id: Option<String>,
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
@@ -102,6 +103,7 @@ impl Post {
         db_author: DbActorProfile,
         db_attachments: Vec<DbMediaAttachment>,
         db_mentions: Vec<DbActorProfile>,
+        db_tags: Vec<String>,
     ) -> Result<Self, ConversionError> {
         // Consistency checks
         if db_post.author_id != db_author.id {
@@ -122,6 +124,7 @@ impl Post {
             repost_count: db_post.repost_count,
             attachments: db_attachments,
             mentions: db_mentions,
+            tags: db_tags,
             object_id: db_post.object_id,
             ipfs_cid: db_post.ipfs_cid,
             token_id: db_post.token_id,
@@ -160,6 +163,7 @@ impl Default for Post {
             repost_count: 0,
             attachments: vec![],
             mentions: vec![],
+            tags: vec![],
             object_id: None,
             ipfs_cid: None,
             token_id: None,
@@ -180,7 +184,8 @@ impl TryFrom<&Row> for Post {
         let db_profile: DbActorProfile = row.try_get("actor_profile")?;
         let db_attachments: Vec<DbMediaAttachment> = row.try_get("attachments")?;
         let db_mentions: Vec<DbActorProfile> = row.try_get("mentions")?;
-        let post = Self::new(db_post, db_profile, db_attachments, db_mentions)?;
+        let db_tags: Vec<String> = row.try_get("tags")?;
+        let post = Self::new(db_post, db_profile, db_attachments, db_mentions, db_tags)?;
         Ok(post)
     }
 }
@@ -193,6 +198,7 @@ pub struct PostCreateData {
     pub visibility: Visibility,
     pub attachments: Vec<Uuid>,
     pub mentions: Vec<Uuid>,
+    pub tags: Vec<String>,
     pub object_id: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
 }
@@ -223,6 +229,7 @@ mod tests {
             visibility: Visibility::Public,
             attachments: vec![],
             mentions: vec![],
+            tags: vec![],
             object_id: None,
             created_at: None,
         };
@@ -238,6 +245,7 @@ mod tests {
             visibility: Visibility::Public,
             attachments: vec![],
             mentions: vec![],
+            tags: vec![],
             object_id: None,
             created_at: None,
         };

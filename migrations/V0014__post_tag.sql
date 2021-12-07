@@ -1,0 +1,10 @@
+CREATE TABLE tag (
+    id SERIAL PRIMARY KEY,
+    tag_name VARCHAR(100) UNIQUE NOT NULL
+);
+
+CREATE TABLE post_tag (
+    post_id UUID NOT NULL REFERENCES post (id) ON DELETE CASCADE,
+    tag_id INTEGER NOT NULL REFERENCES tag (id) ON DELETE CASCADE,
+    PRIMARY KEY (post_id, tag_id)
+);

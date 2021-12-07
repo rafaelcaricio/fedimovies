@@ -23,6 +23,7 @@ use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::attachments::queries::set_attachment_ipfs_cid;
 use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
+use crate::models::posts::tags::{find_tags, replace_tags};
 use crate::models::profiles::queries::get_followers;
 use crate::models::posts::helpers::{
     get_actions_for_posts,
@@ -70,6 +71,8 @@ async fn create_status(
     );
     post_data.mentions = mention_map.values()
         .map(|profile| profile.id).collect();
+    post_data.tags = find_tags(&post_data.content);
+    post_data.content = replace_tags(&post_data.content, &post_data.tags);
     let post = create_post(db_client, &current_user.id, post_data).await?;
     // Federate
     let maybe_in_reply_to = match post.in_reply_to_id {

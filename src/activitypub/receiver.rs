@@ -16,6 +16,7 @@ use crate::models::posts::queries::{
     get_post_by_object_id,
     delete_post,
 };
+use crate::models::posts::tags::normalize_tag;
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
@@ -227,9 +228,15 @@ pub async fn process_note(
             }
         }
         let mut mentions: Vec<Uuid> = Vec::new();
+        let mut tags = vec![];
         if let Some(list) = object.tag {
             for tag in list {
-                if tag.tag_type == MENTION {
+                if tag.tag_type == HASHTAG {
+                    // Ignore invalid tags
+                    if let Ok(tag_name) = normalize_tag(&tag.name) {
+                        tags.push(tag_name);
+                    };
+                } else if tag.tag_type == MENTION {
                     if let Some(href) = tag.href {
                         let profile = get_or_fetch_profile_by_actor_id(
                             db_client,
@@ -281,6 +288,7 @@ pub async fn process_note(
             visibility,
             attachments: attachments,
             mentions: mentions,
+            tags: tags,
             object_id: Some(object.id),
             created_at: object.published,
         };
