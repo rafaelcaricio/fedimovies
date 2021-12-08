@@ -229,17 +229,18 @@ pub async fn process_note(
         let mut mentions: Vec<Uuid> = Vec::new();
         if let Some(list) = object.tag {
             for tag in list {
-                if tag.tag_type != MENTION {
-                    continue;
-                };
-                if let Some(href) = tag.href {
-                    let profile = get_or_fetch_profile_by_actor_id(
-                        db_client,
-                        &instance,
-                        &href,
-                        &config.media_dir(),
-                    ).await?;
-                    mentions.push(profile.id);
+                if tag.tag_type == MENTION {
+                    if let Some(href) = tag.href {
+                        let profile = get_or_fetch_profile_by_actor_id(
+                            db_client,
+                            &instance,
+                            &href,
+                            &config.media_dir(),
+                        ).await?;
+                        if !mentions.contains(&profile.id) {
+                            mentions.push(profile.id);
+                        };
+                    };
                 };
             };
         };

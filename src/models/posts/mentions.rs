@@ -26,7 +26,9 @@ fn find_mentions(
     let mut mentions = vec![];
     for caps in mention_re.captures_iter(text) {
         let acct = pattern_to_acct(&caps, instance_host);
-        mentions.push(acct);
+        if !mentions.contains(&acct) {
+            mentions.push(acct);
+        };
     };
     mentions
 }
@@ -87,6 +89,7 @@ mod tests {
             "@@invalid@server2.com ",
             "@test@server3.com@nospace@server4.com ",
             "@notmention ",
+            "@user2@server2.com copy ",
             "some text",
         );
         let results = find_mentions(INSTANCE_HOST, text);
