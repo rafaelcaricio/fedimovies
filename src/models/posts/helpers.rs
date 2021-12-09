@@ -14,13 +14,13 @@ pub async fn get_reposted_posts(
     let reposted_ids: Vec<Uuid> = posts.iter()
         .filter_map(|post| post.repost_of_id)
         .collect();
-    let mut reposted = get_posts(db_client, reposted_ids).await?;
+    let reposted = get_posts(db_client, reposted_ids).await?;
     for post in posts {
         if let Some(ref repost_of_id) = post.repost_of_id {
-            let index = reposted.iter()
-                .position(|post| post.id == *repost_of_id)
-                .ok_or(DatabaseError::NotFound("post"))?;
-            let repost_of = reposted.swap_remove(index);
+            let repost_of = reposted.iter()
+                .find(|post| post.id == *repost_of_id)
+                .ok_or(DatabaseError::NotFound("post"))?
+                .clone();
             post.repost_of = Some(Box::new(repost_of));
         };
     };

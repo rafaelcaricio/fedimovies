@@ -12,7 +12,7 @@ use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::html::clean_html;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Visibility {
     Public,
     Direct,
@@ -67,11 +67,13 @@ pub struct DbPost {
 }
 
 // List of user's actions
+#[derive(Clone)]
 pub struct PostActions {
     pub favourited: bool,
     pub reposted: bool,
 }
 
+#[derive(Clone)]
 pub struct Post {
     pub id: Uuid,
     pub author: DbActorProfile,
