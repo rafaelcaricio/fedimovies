@@ -157,7 +157,7 @@ pub async fn create_post(
                 &transaction,
                 &db_post.author_id,
                 &repost_of_author.id,
-                &db_post.id,
+                repost_of_id,
             ).await?;
             notified_users.push(repost_of_author.id);
         };
