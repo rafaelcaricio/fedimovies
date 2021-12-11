@@ -61,7 +61,7 @@ pub fn replace_mentions(
                 // Replace with a link
                 let url = profile.actor_id(instance_url).unwrap();
                 format!(
-                    r#"{}<a class="mention" href="{}" target="_blank" rel="noreferrer">@{}</a>"#,
+                    r#"{}<a class="mention" href="{}">@{}</a>"#,
                     caps["space"].to_string(),
                     url,
                     profile.username,
@@ -123,8 +123,8 @@ mod tests {
         let result = replace_mentions(&mention_map, INSTANCE_HOST, INSTANCE_URL, text);
 
         let expected_result = concat!(
-            r#"<a class="mention" href="https://server1.com/users/user1" target="_blank" rel="noreferrer">@user1</a> "#,
-            r#"<a class="mention" href="https://server2.com/actors/user2" target="_blank" rel="noreferrer">@user2</a> "#,
+            r#"<a class="mention" href="https://server1.com/users/user1">@user1</a> "#,
+            r#"<a class="mention" href="https://server2.com/actors/user2">@user2</a> "#,
             r#"sometext @notmention @test@unknown.org"#,
         );
         assert_eq!(result, expected_result);
