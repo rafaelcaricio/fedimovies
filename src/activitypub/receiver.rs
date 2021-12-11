@@ -332,6 +332,12 @@ pub async fn receive_activity(
             process_note(config, db_client, object.id.clone(), Some(object)).await?;
         },
         (ANNOUNCE, _) => {
+            let repost_object_id = activity.id;
+            match get_post_by_object_id(db_client, &repost_object_id).await {
+                Ok(_) => return Ok(()), // Ignore if repost already exists
+                Err(DatabaseError::NotFound(_)) => (),
+                Err(other_error) => return Err(other_error.into()),
+            };
             let author = get_or_fetch_profile_by_actor_id(
                 db_client,
                 &config.instance(),
@@ -349,7 +355,7 @@ pub async fn receive_activity(
             };
             let repost_data = PostCreateData {
                 repost_of_id: Some(post_id),
-                object_id: Some(activity.id),
+                object_id: Some(repost_object_id),
                 ..Default::default()
             };
             create_post(db_client, &author.id, repost_data).await?;
