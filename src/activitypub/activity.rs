@@ -178,7 +178,7 @@ pub fn create_note(
             recipients.push(actor_id.clone());
         };
         let tag = Tag {
-            name: profile.actor_address(instance_host),
+            name: format!("@{}", profile.actor_address(instance_host)),
             tag_type: MENTION.to_string(),
             href: Some(actor_id),
         };
@@ -503,7 +503,7 @@ mod tests {
         );
         let tags = note.tag;
         assert_eq!(tags.len(), 1);
-        assert_eq!(tags[0].name, parent_author_acct);
+        assert_eq!(tags[0].name, format!("@{}", parent_author_acct));
         assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_id);
         assert_eq!(note.to, vec![AP_PUBLIC, parent_author_actor_id]);
     }
