@@ -86,6 +86,15 @@ impl DbActorProfile {
         Ok(actor_id)
     }
 
+    pub fn actor_url(&self, instance_url: &str) -> Result<String, ConversionError> {
+        if let Some(ref actor_value) = self.actor_json {
+            if let Some(actor_url) = actor_value["url"].as_str() {
+                return Ok(actor_url.to_string());
+            };
+        };
+        self.actor_id(instance_url)
+    }
+
     pub fn actor_address(&self, instance_host: &str) -> String {
         if self.is_local() {
             format!("{}@{}", self.acct, instance_host)

@@ -175,12 +175,13 @@ pub fn create_note(
     for profile in &post.mentions {
         let actor_id = profile.actor_id(instance_url).unwrap();
         if !profile.is_local() {
-            recipients.push(actor_id.clone());
+            recipients.push(actor_id);
         };
+        let actor_url = profile.actor_url(instance_url).unwrap();
         let tag = Tag {
             name: format!("@{}", profile.actor_address(instance_host)),
             tag_type: MENTION.to_string(),
-            href: Some(actor_id),
+            href: Some(actor_url),
         };
         tags.push(tag);
     };
@@ -478,10 +479,12 @@ mod tests {
     fn test_create_note_with_remote_parent() {
         let parent_author_acct = "test@test.net";
         let parent_author_actor_id = "https://test.net/user/test";
+        let parent_author_actor_url = "https://test.net/@test";
         let parent_author = DbActorProfile {
             acct: parent_author_acct.to_string(),
             actor_json: Some(json!({
                 "id": parent_author_actor_id,
+                "url": parent_author_actor_url,
             })),
             ..Default::default()
         };
@@ -504,7 +507,7 @@ mod tests {
         let tags = note.tag;
         assert_eq!(tags.len(), 1);
         assert_eq!(tags[0].name, format!("@{}", parent_author_acct));
-        assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_id);
+        assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_url);
         assert_eq!(note.to, vec![AP_PUBLIC, parent_author_actor_id]);
     }
 

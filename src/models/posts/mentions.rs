@@ -59,9 +59,10 @@ pub fn replace_mentions(
         match mention_map.get(&acct) {
             Some(profile) => {
                 // Replace with a link
-                let url = profile.actor_id(instance_url).unwrap();
+                let url = profile.actor_url(instance_url).unwrap();
                 format!(
-                    r#"{}<a class="mention" href="{}">@{}</a>"#,
+                    // https://microformats.org/wiki/h-card
+                    r#"{}<span class="h-card"><a class="u-url mention" href="{}">@{}</a></span>"#,
                     caps["space"].to_string(),
                     url,
                     profile.username,
@@ -112,6 +113,7 @@ mod tests {
             username: "user2".to_string(),
             actor_json: Some(json!({
                 "id": "https://server2.com/actors/user2",
+                "url": "https://server2.com/@user2",
             })),
             ..Default::default()
         };
@@ -123,8 +125,8 @@ mod tests {
         let result = replace_mentions(&mention_map, INSTANCE_HOST, INSTANCE_URL, text);
 
         let expected_result = concat!(
-            r#"<a class="mention" href="https://server1.com/users/user1">@user1</a> "#,
-            r#"<a class="mention" href="https://server2.com/actors/user2">@user2</a> "#,
+            r#"<span class="h-card"><a class="u-url mention" href="https://server1.com/users/user1">@user1</a></span> "#,
+            r#"<span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> "#,
             r#"sometext @notmention @test@unknown.org"#,
         );
         assert_eq!(result, expected_result);

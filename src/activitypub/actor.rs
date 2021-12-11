@@ -87,6 +87,9 @@ pub struct Actor {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attachment: Option<Vec<ActorProperty>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
 }
 
 impl Actor {
@@ -128,7 +131,7 @@ pub fn get_local_actor(
     instance_url: &str,
 ) -> Result<Actor, ActorKeyError> {
     let username = &user.profile.username;
-    let id = get_actor_url(instance_url, username);
+    let actor_id = get_actor_url(instance_url, username);
     let inbox = get_inbox_url(instance_url, username);
     let outbox = get_outbox_url(instance_url, username);
     let followers = get_followers_url(instance_url, username);
@@ -137,8 +140,8 @@ pub fn get_local_actor(
     let private_key = deserialize_private_key(&user.private_key)?;
     let public_key_pem = get_public_key_pem(&private_key)?;
     let public_key = PublicKey {
-        id: format!("{}#main-key", id),
-        owner: id.clone(),
+        id: format!("{}#main-key", actor_id),
+        owner: actor_id.clone(),
         public_key_pem: public_key_pem,
     };
     let capabilities = ActorCapabilities {
@@ -178,7 +181,7 @@ pub fn get_local_actor(
             AP_CONTEXT.to_string(),
             W3ID_CONTEXT.to_string(),
         ])),
-        id,
+        id: actor_id.clone(),
         object_type: PERSON.to_string(),
         name: username.to_string(),
         preferred_username: username.to_string(),
@@ -192,6 +195,7 @@ pub fn get_local_actor(
         image: banner,
         summary: None,
         attachment: Some(properties),
+        url: Some(actor_id),
     };
     Ok(actor)
 }
@@ -227,6 +231,7 @@ pub fn get_instance_actor(
         image: None,
         summary: None,
         attachment: None,
+        url: None,
     };
     Ok(actor)
 }
