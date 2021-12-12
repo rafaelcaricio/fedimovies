@@ -250,18 +250,12 @@ pub fn create_activity_like(
     actor_profile: &DbActorProfile,
     object_id: &str,
 ) -> Activity {
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
-        id: object_id.to_string(),
-        object_type: NOTE.to_string(),
-        ..Default::default()
-    };
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         LIKE,
         None,
-        object,
+        object_id,
         vec![AP_PUBLIC.to_string()],
     );
     activity
@@ -273,18 +267,12 @@ pub fn create_activity_announce(
     post: &Post,
 ) -> Activity {
     let object_id = post.get_object_id(instance_url);
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
-        id: object_id,
-        object_type: NOTE.to_string(),
-        ..Default::default()
-    };
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         ANNOUNCE,
         None,
-        object,
+        object_id,
         vec![AP_PUBLIC.to_string()],
     );
     activity
