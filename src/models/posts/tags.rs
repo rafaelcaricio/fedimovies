@@ -1,6 +1,7 @@
 use regex::{Captures, Regex};
 
 use crate::errors::ConversionError;
+use crate::frontend::get_tag_page_url;
 
 const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s)#(?P<tag>\S+)";
 const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>(\.|<br>|\.<br>)?)$";
@@ -23,7 +24,7 @@ pub fn find_tags(text: &str) -> Vec<String> {
 }
 
 /// Replaces hashtags with links
-pub fn replace_tags(text: &str, tags: &[String]) -> String {
+pub fn replace_tags(instance_url: &str, text: &str, tags: &[String]) -> String {
     let hashtag_re = Regex::new(HASHTAG_RE).unwrap();
     let hashtag_secondary_re = Regex::new(HASHTAG_SECONDARY_RE).unwrap();
     let result = hashtag_re.replace_all(text, |caps: &Captures| {
@@ -33,10 +34,11 @@ pub fn replace_tags(text: &str, tags: &[String]) -> String {
             let tag_name = tag.to_lowercase();
             let after = secondary_caps["after"].to_string();
             if tags.contains(&tag_name) {
+                let tag_page_url = get_tag_page_url(instance_url, &tag_name);
                 format!(
-                    r#"{}<a class="hashtag" href="/tag/{}">#{}</a>{}"#,
+                    r#"{}<a class="hashtag" href="{}">#{}</a>{}"#,
                     before,
-                    tag_name,
+                    tag_page_url,
                     tag,
                     after,
                 )
@@ -63,6 +65,8 @@ pub fn normalize_tag(tag: &str) -> Result<String, ConversionError> {
 mod tests {
     use super::*;
 
+    const INSTANCE_URL: &str = "https://example.com";
+
     #[test]
     fn test_find_tags() {
         let text = concat!(
@@ -87,13 +91,13 @@ mod tests {
             "more text #tag2",
         );
         let tags = find_tags(text);
-        let output = replace_tags(&text, &tags);
+        let output = replace_tags(INSTANCE_URL, &text, &tags);
 
         let expected_output = concat!(
-            r#"@user1@server1 some text <a class="hashtag" href="/tag/testtag">#TestTag</a>."#, "\n",
-            r#"<a class="hashtag" href="/tag/tag1">#TAG1</a> <a class="hashtag" href="/tag/tag1">#tag1</a> "#,
+            r#"@user1@server1 some text <a class="hashtag" href="https://example.com/tag/testtag">#TestTag</a>."#, "\n",
+            r#"<a class="hashtag" href="https://example.com/tag/tag1">#TAG1</a> <a class="hashtag" href="https://example.com/tag/tag1">#tag1</a> "#,
             r#"#test_underscore #test*special "#,
-            r#"more text <a class="hashtag" href="/tag/tag2">#tag2</a>"#,
+            r#"more text <a class="hashtag" href="https://example.com/tag/tag2">#tag2</a>"#,
         );
         assert_eq!(output, expected_output);
     }

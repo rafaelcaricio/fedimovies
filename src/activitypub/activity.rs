@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uuid::Uuid;
 
+use crate::frontend::get_tag_page_url;
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
@@ -186,10 +187,11 @@ pub fn create_note(
         tags.push(tag);
     };
     for tag_name in &post.tags {
+        let tag_page_url = get_tag_page_url(instance_url, tag_name);
         let tag = Tag {
             name: format!("#{}", tag_name),
             tag_type: HASHTAG.to_string(),
-            href: None,
+            href: Some(tag_page_url),
         };
         tags.push(tag);
     };

@@ -71,7 +71,7 @@ async fn actor_view(
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
     if !is_activitypub_request(&request) {
-        let page_url = get_profile_page_url(&user.id, &config.instance_url());
+        let page_url = get_profile_page_url(&config.instance_url(), &user.id);
         let response = HttpResponse::Found()
             .header("Location", page_url)
             .finish();
@@ -203,7 +203,7 @@ pub async fn object_view(
         .find(|post| post.id == internal_object_id && post.author.is_local())
         .ok_or(HttpError::NotFoundError("post"))?;
     if !is_activitypub_request(&request) {
-        let page_url = get_post_page_url(&post.id, &config.instance_url());
+        let page_url = get_post_page_url(&config.instance_url(), &post.id);
         let response = HttpResponse::Found()
             .header("Location", page_url)
             .finish();

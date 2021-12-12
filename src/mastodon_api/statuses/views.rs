@@ -72,7 +72,11 @@ async fn create_status(
     post_data.mentions = mention_map.values()
         .map(|profile| profile.id).collect();
     post_data.tags = find_tags(&post_data.content);
-    post_data.content = replace_tags(&post_data.content, &post_data.tags);
+    post_data.content = replace_tags(
+        &instance.url(),
+        &post_data.content,
+        &post_data.tags,
+    );
     let post = create_post(db_client, &current_user.id, post_data).await?;
     // Federate
     let maybe_in_reply_to = match post.in_reply_to_id {
