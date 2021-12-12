@@ -132,6 +132,7 @@ POST /api/v1/statuses/{status_id}/unfavourite
 POST /api/v1/statuses/{status_id}/reblog
 POST /api/v1/statuses/{status_id}/unreblog
 GET /api/v1/timelines/home
+GET /api/v1/timelines/tag/{hashtag}
 ```
 
 Additional methods:

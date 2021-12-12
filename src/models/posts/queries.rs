@@ -329,6 +329,46 @@ pub async fn get_posts_by_author(
     Ok(posts)
 }
 
+pub async fn get_posts_by_tag(
+    db_client: &impl GenericClient,
+    tag_name: &str,
+    max_post_id: Option<Uuid>,
+    limit: i64,
+) -> Result<Vec<Post>, DatabaseError> {
+    let statement = format!(
+        "
+        SELECT
+            post, actor_profile,
+            {related_attachments},
+            {related_mentions},
+            {related_tags}
+        FROM post
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE
+            post.visibility = {visibility_public}
+            AND EXISTS (
+                SELECT 1 FROM post_tag JOIN tag ON post_tag.tag_id = tag.id
+                WHERE post_tag.post_id = post.id AND tag.tag_name = $1
+            )
+            AND ($2::uuid IS NULL OR post.id < $2)
+        ORDER BY post.id DESC
+        LIMIT $3
+        ",
+        related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
+        visibility_public=i16::from(&Visibility::Public),
+    );
+    let rows = db_client.query(
+        statement.as_str(),
+        &[&tag_name.to_lowercase(), &max_post_id, &limit],
+    ).await?;
+    let posts: Vec<Post> = rows.iter()
+        .map(Post::try_from)
+        .collect::<Result<_, _>>()?;
+    Ok(posts)
+}
+
 pub async fn get_post_by_id(
     db_client: &impl GenericClient,
     post_id: &Uuid,

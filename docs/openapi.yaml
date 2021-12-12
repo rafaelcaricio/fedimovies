@@ -18,7 +18,7 @@ paths:
           description: Post does not belong to user
         404:
           description: Post not found
-  /api/v1/{status_id}/make_permanent:
+  /api/v1/statuses/{status_id}/make_permanent:
     post:
       summary: Save post to IPFS
       parameters:
@@ -38,7 +38,7 @@ paths:
           description: IPFS integration is not enabled
         422:
           description: Post already saved to IPFS
-  /api/v1/{status_id}/signature:
+  /api/v1/statuses/{status_id}/signature:
     get:
       summary: Sign post data with instance key
       parameters:
@@ -69,7 +69,7 @@ paths:
           description: Ethereum integration is not enabled
         422:
           description: Post is not saved to IPFS
-  /api/v1/{status_id}/token_minted:
+  /api/v1/statuses/{status_id}/token_minted:
     post:
       summary: Register transaction that mints a token
       parameters:
@@ -95,6 +95,40 @@ paths:
           description: Post not found
         422:
           description: Transaction already registered
+  /api/v1/timelines/tag/{hashtag}:
+    get:
+      summary: View public posts containing the given hashtag
+      parameters:
+        - name: hashtag
+          in: path
+          description: Hashtag name
+          required: true
+          schema:
+            type: string
+        - name: max_id
+          in: query
+          description: Return results older than this ID.
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Maximum number of results to return.
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                description: Post list
+                type: array
+                items:
+                  $ref: '#/components/schemas/Status'
 
 components:
   parameters:
@@ -113,6 +147,14 @@ components:
         id:
           type: string
           format: uuid
+        content:
+          description: HTML-encoded status content.
+          type: string
+        tags:
+          description: Hashtags used within the status content.
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
         ipfs_cid:
           type: string
           nullable: true
@@ -121,3 +163,11 @@ components:
           type: string
           nullable: true
           example: '0x5fe80cdea7f...'
+    Tag:
+      type: object
+      properties:
+        name:
+          description: 'The value of the hashtag after the # sign.'
+          type: string
+        url:
+          description: A link to the hashtag on the instance.
