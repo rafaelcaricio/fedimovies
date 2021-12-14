@@ -233,7 +233,7 @@ async fn favourite(
         return Err(HttpError::NotFoundError("post"));
     };
     let reaction_created = match create_reaction(
-        db_client, &current_user.id, &status_id,
+        db_client, &current_user.id, &status_id, None,
     ).await {
         Ok(_) => {
             post.reaction_count += 1;

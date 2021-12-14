@@ -389,7 +389,12 @@ pub async fn receive_activity(
                     post.id
                 },
             };
-            create_reaction(db_client, &author.id, &post_id).await?;
+            create_reaction(
+                db_client,
+                &author.id,
+                &post_id,
+                Some(&activity.id),
+            ).await?;
         },
         (FOLLOW, _) => {
             let source_profile = get_or_fetch_profile_by_actor_id(

@@ -51,6 +51,7 @@ CREATE TABLE post_reaction (
     id UUID PRIMARY KEY,
     author_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     post_id UUID NOT NULL REFERENCES post (id) ON DELETE CASCADE,
+    activity_id VARCHAR(250) UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     UNIQUE (author_id, post_id)
 );

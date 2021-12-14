@@ -9,21 +9,25 @@ use crate::models::posts::queries::{
     get_post_author,
 };
 use crate::utils::id::new_uuid;
+use super::types::DbReaction;
 
 pub async fn create_reaction(
     db_client: &mut impl GenericClient,
     author_id: &Uuid,
     post_id: &Uuid,
-) -> Result<(), DatabaseError> {
+    activity_id: Option<&String>,
+) -> Result<DbReaction, DatabaseError> {
     let transaction = db_client.transaction().await?;
     let reaction_id = new_uuid();
-    transaction.execute(
+    let row = transaction.query_one(
         "
-        INSERT INTO post_reaction (id, author_id, post_id)
-        VALUES ($1, $2, $3)
+        INSERT INTO post_reaction (id, author_id, post_id, activity_id)
+        VALUES ($1, $2, $3, $4)
+        RETURNING post_reaction
         ",
-        &[&reaction_id, &author_id, &post_id],
+        &[&reaction_id, &author_id, &post_id, &activity_id],
     ).await.map_err(catch_unique_violation("reaction"))?;
+    let reaction: DbReaction = row.try_get("post_reaction")?;
     update_reaction_count(&transaction, post_id, 1).await?;
     let post_author = get_post_author(&transaction, post_id).await?;
     if post_author.is_local() && post_author.id != *author_id {
@@ -33,9 +37,9 @@ pub async fn create_reaction(
             &post_author.id,
             post_id,
         ).await?;
-    }
+    };
     transaction.commit().await?;
-    Ok(())
+    Ok(reaction)
 }
 
 pub async fn delete_reaction(
