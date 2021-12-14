@@ -208,8 +208,8 @@ pub const RELATED_TAGS: &str =
 pub async fn get_home_timeline(
     db_client: &impl GenericClient,
     current_user_id: &Uuid,
-    limit: i64,
     max_post_id: Option<Uuid>,
+    limit: i64,
 ) -> Result<Vec<Post>, DatabaseError> {
     // Select posts from follows + own posts.
     // Exclude direct messages where current user is not mentioned.
@@ -237,9 +237,9 @@ pub async fn get_home_timeline(
                     WHERE post_id = post.id AND profile_id = $1
                 )
             )
-            AND ($3::uuid IS NULL OR post.id < $3)
+            AND ($2::uuid IS NULL OR post.id < $2)
         ORDER BY post.id DESC
-        LIMIT $2
+        LIMIT $3
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
@@ -248,7 +248,7 @@ pub async fn get_home_timeline(
     );
     let rows = db_client.query(
         statement.as_str(),
-        &[&current_user_id, &limit, &max_post_id],
+        &[&current_user_id, &max_post_id, &limit],
     ).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)
@@ -290,8 +290,11 @@ pub async fn get_posts_by_author(
     account_id: &Uuid,
     include_replies: bool,
     include_private: bool,
+    max_post_id: Option<Uuid>,
+    limit: i64,
 ) -> Result<Vec<Post>, DatabaseError> {
-    let mut condition = "post.author_id = $1".to_string();
+    let mut condition = "post.author_id = $1
+        AND ($2::uuid IS NULL OR post.id < $2)".to_string();
     if !include_replies {
         condition.push_str(" AND post.in_reply_to_id IS NULL");
     };
@@ -313,6 +316,7 @@ pub async fn get_posts_by_author(
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE {condition}
         ORDER BY post.created_at DESC
+        LIMIT $3
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
@@ -321,7 +325,7 @@ pub async fn get_posts_by_author(
     );
     let rows = db_client.query(
         statement.as_str(),
-        &[&account_id],
+        &[&account_id, &max_post_id, &limit],
     ).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)

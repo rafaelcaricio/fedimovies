@@ -26,8 +26,8 @@ async fn home_timeline(
     let mut posts = get_home_timeline(
         db_client,
         &current_user.id,
-        query_params.limit,
         query_params.max_id,
+        query_params.limit,
     ).await?;
     get_reposted_posts(db_client, posts.iter_mut().collect()).await?;
     get_actions_for_posts(

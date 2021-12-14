@@ -14,12 +14,13 @@ use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::gate::is_allowed_user;
-use crate::mastodon_api::statuses::types::Status;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::posts::helpers::{
     get_actions_for_posts,
     get_reposted_posts,
 };
+use crate::mastodon_api::statuses::types::Status;
+use crate::mastodon_api::timelines::types::TimelineQueryParams;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_followers,
@@ -257,6 +258,7 @@ async fn get_account_statuses(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     web::Path(account_id): web::Path<Uuid>,
+    query_params: web::Query<TimelineQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let maybe_current_user = match auth {
@@ -268,6 +270,8 @@ async fn get_account_statuses(
         &account_id,
         false,
         false,
+        query_params.max_id,
+        query_params.limit,
     ).await?;
     get_reposted_posts(db_client, posts.iter_mut().collect()).await?;
     if let Some(user) = maybe_current_user {

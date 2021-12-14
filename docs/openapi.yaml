@@ -5,6 +5,35 @@ info:
   version: 1.0.0
 
 paths:
+  /api/v1/accounts/{account_id}/statuses:
+    get:
+      summary: Statuses posted to the given account.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+        - name: max_id
+          in: query
+          description: Return results older than this ID.
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Maximum number of results to return.
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                description: Post list
+                type: array
+                items:
+                  $ref: '#/components/schemas/Status'
   /api/v1/statuses/{status_id}:
     delete:
       summary: Delete post
@@ -132,6 +161,14 @@ paths:
 
 components:
   parameters:
+    account_id:
+      name: account_id
+      in: path
+      description: Profile ID
+      required: true
+      schema:
+        type: string
+        format: uuid
     status_id:
       name: status_id
       in: path
