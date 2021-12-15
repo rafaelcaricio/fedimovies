@@ -24,7 +24,11 @@ use crate::models::profiles::queries::{
     update_profile,
 };
 use crate::models::profiles::types::{DbActorProfile, ProfileUpdateData};
-use crate::models::reactions::queries::create_reaction;
+use crate::models::reactions::queries::{
+    create_reaction,
+    get_reaction_by_activity_id,
+    delete_reaction,
+};
 use crate::models::relationships::queries::{
     follow_request_accepted,
     follow_request_rejected,
@@ -432,6 +436,16 @@ pub async fn receive_activity(
             let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
             let target_profile = get_profile_by_acct(db_client, &target_username).await?;
             unfollow(db_client, &source_profile.id, &target_profile.id).await?;
+        },
+        (UNDO, _) => {
+            // Undo(Like)
+            let object_id = get_object_id(activity.object)?;
+            let reaction = get_reaction_by_activity_id(db_client, &object_id).await?;
+            delete_reaction(
+                db_client,
+                &reaction.author_id,
+                &reaction.post_id,
+            ).await?;
         },
         (UPDATE, PERSON) => {
             let actor: Actor = serde_json::from_value(activity.object)

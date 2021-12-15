@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::activitypub::activity::{
     create_activity_note,
     create_activity_like,
+    create_activity_undo_like,
     create_activity_announce,
     create_activity_delete_note,
 };
@@ -232,20 +233,20 @@ async fn favourite(
     if !can_view_post(Some(&current_user), &post) {
         return Err(HttpError::NotFoundError("post"));
     };
-    let reaction_created = match create_reaction(
+    let maybe_reaction_created = match create_reaction(
         db_client, &current_user.id, &status_id, None,
     ).await {
-        Ok(_) => {
+        Ok(reaction) => {
             post.reaction_count += 1;
-            true
+            Some(reaction)
         },
-        Err(DatabaseError::AlreadyExists(_)) => false, // post already favourited
+        Err(DatabaseError::AlreadyExists(_)) => None, // post already favourited
         Err(other_error) => return Err(other_error.into()),
     };
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
-    if reaction_created {
+    if let Some(reaction) = maybe_reaction_created {
         let maybe_remote_actor = post.author.remote_actor()
             .map_err(|_| HttpError::InternalError)?;
         if let Some(remote_actor) = maybe_remote_actor {
@@ -255,6 +256,7 @@ async fn favourite(
                 &config.instance_url(),
                 &current_user.profile,
                 object_id,
+                &reaction.id,
             );
             deliver_activity(&config, &current_user, activity, vec![remote_actor]);
         }
@@ -277,13 +279,33 @@ async fn unfavourite(
     if !can_view_post(Some(&current_user), &post) {
         return Err(HttpError::NotFoundError("post"));
     };
-    match delete_reaction(db_client, &current_user.id, &status_id).await {
-        Ok(_) => post.reaction_count -= 1,
-        Err(DatabaseError::NotFound(_)) => (), // post not favourited
+    let maybe_reaction_deleted = match delete_reaction(
+        db_client, &current_user.id, &status_id,
+    ).await {
+        Ok(reaction_id) => {
+            post.reaction_count -= 1;
+            Some(reaction_id)
+        },
+        Err(DatabaseError::NotFound(_)) => None, // post not favourited
         Err(other_error) => return Err(other_error.into()),
-    }
+    };
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
+
+    if let Some(reaction_id) = maybe_reaction_deleted {
+        let maybe_remote_actor = post.author.remote_actor()
+            .map_err(|_| HttpError::InternalError)?;
+        if let Some(remote_actor) = maybe_remote_actor {
+            // Federate
+            let activity = create_activity_undo_like(
+                &config.instance_url(),
+                &current_user.profile,
+                &reaction_id,
+            );
+            deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+        };
+    };
+
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }

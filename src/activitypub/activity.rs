@@ -125,7 +125,7 @@ fn create_activity(
     instance_url: &str,
     actor_name: &str,
     activity_type: &str,
-    activity_uuid: Option<Uuid>,
+    internal_activity_id: Option<&Uuid>,
     object: impl Serialize,
     recipients: Vec<String>,
 ) -> Activity {
@@ -135,7 +135,7 @@ fn create_activity(
     );
     let activity_id = get_object_url(
         instance_url,
-        &activity_uuid.unwrap_or(new_uuid()),
+        internal_activity_id.unwrap_or(&new_uuid()),
     );
     Activity {
         context: json!(AP_CONTEXT),
@@ -248,17 +248,37 @@ pub fn create_activity_note(
 pub fn create_activity_like(
     instance_url: &str,
     actor_profile: &DbActorProfile,
-    object_id: &str,
+    note_id: &str,
+    reaction_id: &Uuid,
 ) -> Activity {
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         LIKE,
-        None,
-        object_id,
+        Some(reaction_id),
+        note_id,
         vec![AP_PUBLIC.to_string()],
     );
     activity
+}
+
+pub fn create_activity_undo_like(
+    instance_url: &str,
+    actor_profile: &DbActorProfile,
+    reaction_id: &Uuid,
+) -> Activity {
+    let object_id = get_object_url(
+        instance_url,
+        reaction_id,
+    );
+    create_activity(
+        instance_url,
+        &actor_profile.username,
+        UNDO,
+        None,
+        object_id,
+        vec![AP_PUBLIC.to_string()],
+    )
 }
 
 pub fn create_activity_announce(
@@ -317,7 +337,7 @@ pub fn create_activity_follow(
         instance_url,
         &actor_profile.username,
         FOLLOW,
-        Some(*follow_request_id),
+        Some(follow_request_id),
         object,
         vec![target_actor_id.to_string()],
     );

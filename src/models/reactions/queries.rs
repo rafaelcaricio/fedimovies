@@ -42,25 +42,42 @@ pub async fn create_reaction(
     Ok(reaction)
 }
 
+pub async fn get_reaction_by_activity_id(
+    db_client: &impl GenericClient,
+    activity_id: &str,
+) -> Result<DbReaction, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT post_reaction
+        FROM post_reaction
+        WHERE activity_id = $1
+        ",
+        &[&activity_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("reaction"))?;
+    let reaction = row.try_get("post_reaction")?;
+    Ok(reaction)
+}
+
 pub async fn delete_reaction(
     db_client: &mut impl GenericClient,
     author_id: &Uuid,
     post_id: &Uuid,
-) -> Result<(), DatabaseError> {
+) -> Result<Uuid, DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let deleted_count = transaction.execute(
+    let maybe_row = transaction.query_opt(
         "
         DELETE FROM post_reaction
         WHERE author_id = $1 AND post_id = $2
+        RETURNING post_reaction.id
         ",
         &[&author_id, &post_id],
     ).await?;
-    if deleted_count == 0 {
-        return Err(DatabaseError::NotFound("reaction"));
-    }
+    let row = maybe_row.ok_or(DatabaseError::NotFound("reaction"))?;
+    let reaction_id = row.try_get("id")?;
     update_reaction_count(&transaction, post_id, -1).await?;
     transaction.commit().await?;
-    Ok(())
+    Ok(reaction_id)
 }
 
 /// Finds favourites among given posts and returns their IDs

@@ -92,6 +92,7 @@ The following activities are supported:
 - Create(Note)
 - Delete(Note)
 - Like(Note)
+- Undo(Like)
 - Announce(Note)
 - Follow(Person)
 - Update(Person)
