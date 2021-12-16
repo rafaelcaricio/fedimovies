@@ -144,14 +144,17 @@ pub async fn get_profile_by_acct(
 
 pub async fn get_profiles(
     db_client: &impl GenericClient,
+    offset: i64,
+    limit: i64,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let rows = db_client.query(
         "
         SELECT actor_profile
         FROM actor_profile
         ORDER BY username
+        LIMIT $1 OFFSET $2
         ",
-        &[],
+        &[&limit, &offset],
     ).await?;
     let profiles = rows.iter()
         .map(|row| row.try_get("actor_profile"))
