@@ -285,17 +285,37 @@ pub fn create_activity_announce(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     post: &Post,
+    repost_id: &Uuid,
 ) -> Activity {
     let object_id = post.get_object_id(instance_url);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         ANNOUNCE,
-        None,
+        Some(repost_id),
         object_id,
         vec![AP_PUBLIC.to_string()],
     );
     activity
+}
+
+pub fn create_activity_undo_announce(
+    instance_url: &str,
+    actor_profile: &DbActorProfile,
+    repost_id: &Uuid,
+) -> Activity {
+    let object_id = get_object_url(
+        instance_url,
+        repost_id,
+    );
+    create_activity(
+        instance_url,
+        &actor_profile.username,
+        UNDO,
+        None,
+        object_id,
+        vec![AP_PUBLIC.to_string()],
+    )
 }
 
 pub fn create_activity_delete_note(

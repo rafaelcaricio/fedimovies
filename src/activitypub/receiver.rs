@@ -438,14 +438,26 @@ pub async fn receive_activity(
             unfollow(db_client, &source_profile.id, &target_profile.id).await?;
         },
         (UNDO, _) => {
-            // Undo(Like)
             let object_id = get_object_id(activity.object)?;
-            let reaction = get_reaction_by_activity_id(db_client, &object_id).await?;
-            delete_reaction(
-                db_client,
-                &reaction.author_id,
-                &reaction.post_id,
-            ).await?;
+            match get_reaction_by_activity_id(db_client, &object_id).await {
+                Ok(reaction) => {
+                    // Undo(Like)
+                    delete_reaction(
+                        db_client,
+                        &reaction.author_id,
+                        &reaction.post_id,
+                    ).await?;
+                },
+                Err(DatabaseError::NotFound(_)) => {
+                    // Undo(Announce)
+                    let post = get_post_by_object_id(db_client, &object_id).await?;
+                    match post.repost_of_id {
+                        Some(_) => delete_post(db_client, &post.id).await?,
+                        None => return Err(HttpError::NotFoundError("object")),
+                    };
+                },
+                Err(other_error) => return Err(other_error.into()),
+            };
         },
         (UPDATE, PERSON) => {
             let actor: Actor = serde_json::from_value(activity.object)

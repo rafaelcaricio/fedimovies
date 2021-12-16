@@ -9,6 +9,7 @@ use crate::activitypub::activity::{
     create_activity_like,
     create_activity_undo_like,
     create_activity_announce,
+    create_activity_undo_announce,
     create_activity_delete_note,
 };
 use crate::activitypub::actor::Actor;
@@ -323,7 +324,7 @@ async fn reblog(
         repost_of_id: Some(status_id),
         ..Default::default()
     };
-    create_post(db_client, &current_user.id, repost_data).await?;
+    let repost = create_post(db_client, &current_user.id, repost_data).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
@@ -333,6 +334,7 @@ async fn reblog(
         &config.instance_url(),
         &current_user.profile,
         &post,
+        &repost.id,
     );
     let mut recipients: Vec<Actor> = Vec::new();
     let followers = get_followers(db_client, &current_user.id).await?;
@@ -370,6 +372,29 @@ async fn unreblog(
     let mut post = get_post_by_id(db_client, &status_id).await?;
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
+
+    // Federate
+    let activity = create_activity_undo_announce(
+        &config.instance_url(),
+        &current_user.profile,
+        &repost_id,
+    );
+    let mut recipients: Vec<Actor> = Vec::new();
+    let followers = get_followers(db_client, &current_user.id).await?;
+    for follower in followers {
+        let maybe_remote_follower = follower.remote_actor()
+            .map_err(|_| HttpError::InternalError)?;
+        if let Some(remote_actor) = maybe_remote_follower {
+            recipients.push(remote_actor);
+        };
+    };
+    let maybe_remote_author = post.author.remote_actor()
+        .map_err(|_| HttpError::InternalError)?;
+    if let Some(remote_actor) = maybe_remote_author {
+        recipients.push(remote_actor);
+    };
+    deliver_activity(&config, &current_user, activity, recipients);
+
     let status = Status::from_post(post, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }
