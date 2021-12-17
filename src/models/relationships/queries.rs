@@ -118,17 +118,17 @@ pub async fn unfollow(
         ",
         &[&source_id, &target_id],
     ).await?;
-    if deleted_count == 0 {
-        // Relationship not found, try to delete follow request
-        let follow_request_deleted = delete_follow_request(
-            &transaction,
-            source_id,
-            target_id,
-        ).await?;
-        if !follow_request_deleted {
-            return Err(DatabaseError::NotFound("relationship"));
-        }
-    } else {
+    let relationship_deleted = deleted_count > 0;
+    // Delete follow request (for remote follows)
+    let follow_request_deleted = delete_follow_request(
+        &transaction,
+        source_id,
+        target_id,
+    ).await?;
+    if !relationship_deleted && !follow_request_deleted {
+        return Err(DatabaseError::NotFound("relationship"));
+    };
+    if relationship_deleted {
         // Update counters only if relationship exists
         update_follower_count(&transaction, target_id, -1).await?;
         update_following_count(&transaction, source_id, -1).await?;
