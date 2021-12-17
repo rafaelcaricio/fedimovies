@@ -314,26 +314,28 @@ pub async fn receive_activity(
     let activity: Activity = serde_json::from_value(activity_raw)
         .map_err(|_| ValidationError("invalid activity"))?;
     let activity_type = activity.activity_type;
-    let object_type = activity.object.get("type")
+    let maybe_object_type = activity.object.get("type")
         .and_then(|val| val.as_str())
-        .unwrap_or("Unknown")
-        .to_owned();
+        .unwrap_or("Unknown");
     let db_client = &mut **get_database_client(db_pool).await?;
-    match (activity_type.as_str(), object_type.as_str()) {
+    let object_type = match (activity_type.as_str(), maybe_object_type) {
         (ACCEPT, FOLLOW) => {
             let object_id = get_object_id(activity.object)?;
             let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
             follow_request_accepted(db_client, &follow_request_id).await?;
+            FOLLOW
         },
         (REJECT, FOLLOW) => {
             let object_id = get_object_id(activity.object)?;
             let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
             follow_request_rejected(db_client, &follow_request_id).await?;
+            FOLLOW
         },
         (CREATE, NOTE) => {
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
             process_note(config, db_client, object.id.clone(), Some(object)).await?;
+            NOTE
         },
         (ANNOUNCE, _) => {
             let repost_object_id = activity.id;
@@ -363,6 +365,7 @@ pub async fn receive_activity(
                 ..Default::default()
             };
             create_post(db_client, &author.id, repost_data).await?;
+            NOTE
         },
         (DELETE, _) => {
             let object_id = get_object_id(activity.object)?;
@@ -372,6 +375,7 @@ pub async fn receive_activity(
             actix_rt::spawn(async move {
                 deletion_queue.process(&config).await;
             });
+            NOTE
         },
         (LIKE, _) | (EMOJI_REACT, _) => {
             let author = get_or_fetch_profile_by_actor_id(
@@ -399,6 +403,7 @@ pub async fn receive_activity(
                 &post_id,
                 Some(&activity.id),
             ).await?;
+            NOTE
         },
         (FOLLOW, _) => {
             let source_profile = get_or_fetch_profile_by_actor_id(
@@ -426,6 +431,7 @@ pub async fn receive_activity(
             // Send activity
             let recipients = vec![source_actor];
             deliver_activity(config, &target_user, new_activity, recipients);
+            PERSON
         },
         (UNDO, FOLLOW) => {
             let object: Object = serde_json::from_value(activity.object)
@@ -436,6 +442,7 @@ pub async fn receive_activity(
             let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
             let target_profile = get_profile_by_acct(db_client, &target_username).await?;
             unfollow(db_client, &source_profile.id, &target_profile.id).await?;
+            FOLLOW
         },
         (UNDO, _) => {
             let object_id = get_object_id(activity.object)?;
@@ -447,6 +454,7 @@ pub async fn receive_activity(
                         &reaction.author_id,
                         &reaction.post_id,
                     ).await?;
+                    LIKE
                 },
                 Err(DatabaseError::NotFound(_)) => {
                     // Undo(Announce)
@@ -455,9 +463,10 @@ pub async fn receive_activity(
                         Some(_) => delete_post(db_client, &post.id).await?,
                         None => return Err(HttpError::NotFoundError("object")),
                     };
+                    ANNOUNCE
                 },
                 Err(other_error) => return Err(other_error.into()),
-            };
+            }
         },
         (UPDATE, PERSON) => {
             let actor: Actor = serde_json::from_value(activity.object)
@@ -476,6 +485,7 @@ pub async fn receive_activity(
             };
             profile_data.clean()?;
             update_profile(db_client, &profile.id, profile_data).await?;
+            PERSON
         },
         _ => {
             return Err(HttpError::ValidationError("activity type is not supported".into()));
