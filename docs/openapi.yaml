@@ -5,6 +5,80 @@ info:
   version: 1.0.0
 
 paths:
+  /oauth/token:
+    post:
+      summary: Returns an access token, to be used during API calls that are not public.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                  enum:
+                    - password
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                    example: Bearer
+                  scope:
+                    type: string
+                    example: read write follow
+                  created_at:
+                    type: integer
+                    example: 1639747526
+        400:
+          description: Invalid token request
+  /api/v1/accounts:
+    post:
+      summary: Creates a user and profile records.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  description: The desired username for the account.
+                  type: string
+                password:
+                  description: The password to be used for login.
+                  type: string
+                wallet_address:
+                  description: Ethereum wallet address
+                  type: string
+                  example: '0xd8da6bf...'
+                invite_code:
+                  description: Invite code
+                  type: string
+                  example: 9b288bfa7dc75fff53e98aa4d76e77d5
+              required:
+                - username
+                - password
+                - wallet_address
+      responses:
+        201:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        400:
+          description: Invalid user data
   /api/v1/directory:
     get:
       summary: List accounts visible in the directory.
