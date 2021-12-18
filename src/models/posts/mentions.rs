@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use regex::{Captures, Regex};
 use tokio_postgres::GenericClient;
 
-use crate::errors::DatabaseError;
+use crate::errors::{DatabaseError, ValidationError};
 use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
 
-const MENTION_RE: &str = r"(?m)(?P<space>^|\s)@(?P<user>\w+)@(?P<instance>\S+)";
+const MENTION_RE: &str = r"@?(?P<user>\w+)@(?P<instance>.+)";
+const MENTION_SEARCH_RE: &str = r"(?m)(?P<space>^|\s)@(?P<user>\w+)@(?P<instance>\S+)";
 
 fn pattern_to_acct(caps: &Captures, instance_host: &str) -> String {
     if &caps["instance"] == instance_host {
@@ -22,7 +23,7 @@ fn find_mentions(
     instance_host: &str,
     text: &str,
 ) -> Vec<String> {
-    let mention_re = Regex::new(MENTION_RE).unwrap();
+    let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
     let mut mentions = vec![];
     for caps in mention_re.captures_iter(text) {
         let acct = pattern_to_acct(&caps, instance_host);
@@ -53,12 +54,13 @@ pub fn replace_mentions(
     instance_url: &str,
     text: &str,
 ) -> String {
-    let mention_re = Regex::new(MENTION_RE).unwrap();
+    let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
         let acct = pattern_to_acct(caps, instance_host);
         match mention_map.get(&acct) {
             Some(profile) => {
-                // Replace with a link
+                // Replace with a link to profile.
+                // Actor URL may differ from actor ID.
                 let url = profile.actor_url(instance_url).unwrap();
                 format!(
                     // https://microformats.org/wiki/h-card
@@ -72,6 +74,17 @@ pub fn replace_mentions(
         }
     });
     result.to_string()
+}
+
+pub fn mention_to_acct(
+    instance_host: &str,
+    mention: &str,
+) -> Result<String, ValidationError> {
+    let mention_re = Regex::new(MENTION_RE).unwrap();
+    let mention_caps = mention_re.captures(mention)
+        .ok_or(ValidationError("invalid mention tag"))?;
+    let acct = pattern_to_acct(&mention_caps, instance_host);
+    Ok(acct)
 }
 
 #[cfg(test)]
@@ -130,5 +143,15 @@ mod tests {
             r#"sometext @notmention @test@unknown.org"#,
         );
         assert_eq!(result, expected_result);
+    }
+
+    #[test]
+    fn test_mention_to_acct() {
+        let mention = "@user@example.com";
+        let acct_1 = mention_to_acct("example.com", mention).unwrap();
+        assert_eq!(acct_1, "user");
+
+        let acct_2 = mention_to_acct("server.info", mention).unwrap();
+        assert_eq!(acct_2, "user@example.com");
     }
 }

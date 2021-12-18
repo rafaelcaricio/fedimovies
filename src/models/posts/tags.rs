@@ -1,6 +1,6 @@
 use regex::{Captures, Regex};
 
-use crate::errors::ConversionError;
+use crate::errors::ValidationError;
 use crate::frontend::get_tag_page_url;
 
 const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s)#(?P<tag>\S+)";
@@ -52,11 +52,11 @@ pub fn replace_tags(instance_url: &str, text: &str, tags: &[String]) -> String {
     result.to_string()
 }
 
-pub fn normalize_tag(tag: &str) -> Result<String, ConversionError> {
+pub fn normalize_tag(tag: &str) -> Result<String, ValidationError> {
     let hashtag_name_re = Regex::new(HASHTAG_NAME_RE).unwrap();
     let tag_name = tag.trim_start_matches('#');
     if !hashtag_name_re.is_match(tag_name) {
-        return Err(ConversionError);
+        return Err(ValidationError("invalid tag name"));
     };
     Ok(tag_name.to_lowercase())
 }

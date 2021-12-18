@@ -9,7 +9,7 @@ use crate::config::{Config, Instance};
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
-use crate::models::posts::types::{Post, PostCreateData, Visibility};
+use crate::models::posts::mentions::mention_to_acct;
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
@@ -17,6 +17,7 @@ use crate::models::posts::queries::{
     delete_post,
 };
 use crate::models::posts::tags::normalize_tag;
+use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
@@ -241,13 +242,9 @@ pub async fn process_note(
                         tags.push(tag_name);
                     };
                 } else if tag.tag_type == MENTION {
-                    if let Some(href) = tag.href {
-                        let profile = get_or_fetch_profile_by_actor_id(
-                            db_client,
-                            &instance,
-                            &href,
-                            &config.media_dir(),
-                        ).await?;
+                    // Ignore invalid mentions
+                    if let Ok(acct) = mention_to_acct(&instance.host(), &tag.name) {
+                        let profile = get_profile_by_acct(db_client, &acct).await?;
                         if !mentions.contains(&profile.id) {
                             mentions.push(profile.id);
                         };
