@@ -55,6 +55,9 @@ pub struct Object {
     pub attachment: Option<Vec<Attachment>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub former_type: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub object: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -328,6 +331,7 @@ pub fn create_activity_delete_note(
         context: Some(json!(AP_CONTEXT)),
         id: object_id,
         object_type: TOMBSTONE.to_string(),
+        former_type: Some(NOTE.to_string()),
         ..Default::default()
     };
     let activity = create_activity(
