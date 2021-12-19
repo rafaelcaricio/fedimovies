@@ -42,6 +42,7 @@ use super::actor::Actor;
 use super::deliverer::deliver_activity;
 use super::fetcher::{
     fetch_avatar_and_banner,
+    fetch_profile,
     fetch_profile_by_actor_id,
     fetch_attachment,
     fetch_object,
@@ -247,10 +248,23 @@ pub async fn process_note(
                         &instance.host(),
                         &tag.name,
                     ) {
-                        let profile = get_profile_by_acct(
+                        let profile = match get_profile_by_acct(
                             db_client,
                             &actor_address.acct(),
-                        ).await?;
+                        ).await {
+                            Ok(profile) => profile,
+                            Err(DatabaseError::NotFound(_)) => {
+                                let profile_data = fetch_profile(
+                                    &config.instance(),
+                                    &actor_address.username,
+                                    &actor_address.instance,
+                                    &config.media_dir(),
+                                ).await.map_err(|_| ValidationError("failed to fetch actor"))?;
+                                let profile = create_profile(db_client, &profile_data).await?;
+                                profile
+                            },
+                            Err(other_error) => return Err(other_error.into()),
+                        };
                         if !mentions.contains(&profile.id) {
                             mentions.push(profile.id);
                         };
