@@ -124,6 +124,23 @@ impl DbActorProfile {
     }
 }
 
+pub struct ActorAddress {
+    pub username: String,
+    pub instance: String,
+    pub is_local: bool,
+}
+
+impl ActorAddress {
+    /// Returns acct string, as used in Mastodon
+    pub fn acct(&self) -> String {
+        if self.is_local {
+            self.username.clone()
+        } else {
+            format!("{}@{}", self.username, self.instance)
+        }
+    }
+}
+
 pub type ActorKeyError = rsa::pkcs8::Error;
 
 pub fn get_local_actor(

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use regex::{Captures, Regex};
 use tokio_postgres::GenericClient;
 
+use crate::activitypub::actor::ActorAddress;
 use crate::errors::{DatabaseError, ValidationError};
 use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
@@ -10,11 +11,11 @@ use crate::models::profiles::types::DbActorProfile;
 const MENTION_RE: &str = r"@?(?P<user>\w+)@(?P<instance>.+)";
 const MENTION_SEARCH_RE: &str = r"(?m)(?P<space>^|\s)@(?P<user>\w+)@(?P<instance>\S+)";
 
-fn pattern_to_acct(caps: &Captures, instance_host: &str) -> String {
-    if &caps["instance"] == instance_host {
-        caps["user"].to_string()
-    } else {
-        format!("{}@{}", &caps["user"], &caps["instance"])
+fn pattern_to_address(caps: &Captures, instance_host: &str) -> ActorAddress {
+    ActorAddress {
+        username: caps["user"].to_string(),
+        instance: caps["instance"].to_string(),
+        is_local: &caps["instance"] == instance_host,
     }
 }
 
@@ -26,7 +27,7 @@ fn find_mentions(
     let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
     let mut mentions = vec![];
     for caps in mention_re.captures_iter(text) {
-        let acct = pattern_to_acct(&caps, instance_host);
+        let acct = pattern_to_address(&caps, instance_host).acct();
         if !mentions.contains(&acct) {
             mentions.push(acct);
         };
@@ -56,7 +57,7 @@ pub fn replace_mentions(
 ) -> String {
     let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
-        let acct = pattern_to_acct(caps, instance_host);
+        let acct = pattern_to_address(caps, instance_host).acct();
         match mention_map.get(&acct) {
             Some(profile) => {
                 // Replace with a link to profile.
@@ -76,15 +77,15 @@ pub fn replace_mentions(
     result.to_string()
 }
 
-pub fn mention_to_acct(
+pub fn mention_to_address(
     instance_host: &str,
     mention: &str,
-) -> Result<String, ValidationError> {
+) -> Result<ActorAddress, ValidationError> {
     let mention_re = Regex::new(MENTION_RE).unwrap();
     let mention_caps = mention_re.captures(mention)
         .ok_or(ValidationError("invalid mention tag"))?;
-    let acct = pattern_to_acct(&mention_caps, instance_host);
-    Ok(acct)
+    let actor_address = pattern_to_address(&mention_caps, instance_host);
+    Ok(actor_address)
 }
 
 #[cfg(test)]
@@ -146,12 +147,12 @@ mod tests {
     }
 
     #[test]
-    fn test_mention_to_acct() {
+    fn test_mention_to_address() {
         let mention = "@user@example.com";
-        let acct_1 = mention_to_acct("example.com", mention).unwrap();
-        assert_eq!(acct_1, "user");
+        let address_1 = mention_to_address("example.com", mention).unwrap();
+        assert_eq!(address_1.acct(), "user");
 
-        let acct_2 = mention_to_acct("server.info", mention).unwrap();
-        assert_eq!(acct_2, "user@example.com");
+        let address_2 = mention_to_address("server.info", mention).unwrap();
+        assert_eq!(address_2.acct(), "user@example.com");
     }
 }

@@ -9,7 +9,7 @@ use crate::config::{Config, Instance};
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
-use crate::models::posts::mentions::mention_to_acct;
+use crate::models::posts::mentions::mention_to_address;
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
@@ -243,8 +243,14 @@ pub async fn process_note(
                     };
                 } else if tag.tag_type == MENTION {
                     // Ignore invalid mentions
-                    if let Ok(acct) = mention_to_acct(&instance.host(), &tag.name) {
-                        let profile = get_profile_by_acct(db_client, &acct).await?;
+                    if let Ok(actor_address) = mention_to_address(
+                        &instance.host(),
+                        &tag.name,
+                    ) {
+                        let profile = get_profile_by_acct(
+                            db_client,
+                            &actor_address.acct(),
+                        ).await?;
                         if !mentions.contains(&profile.id) {
                             mentions.push(profile.id);
                         };
