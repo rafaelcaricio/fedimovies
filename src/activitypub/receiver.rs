@@ -127,7 +127,10 @@ async fn get_or_fetch_profile_by_actor_id(
                 instance, actor_id, media_dir,
             )
                 .await
-                .map_err(|_| ValidationError("failed to fetch actor"))?;
+                .map_err(|err| {
+                    log::warn!("{}", err);
+                    ValidationError("failed to fetch actor")
+                })?;
             let profile = create_profile(db_client, &profile_data).await?;
             profile
         },
@@ -183,7 +186,10 @@ pub async fn process_note(
             Some(object) => object,
             None => {
                 let object = fetch_object(&instance, &object_id).await
-                    .map_err(|_| ValidationError("failed to fetch object"))?;
+                    .map_err(|err| {
+                        log::warn!("{}", err);
+                        ValidationError("failed to fetch object")
+                    })?;
                 log::info!("fetched object {}", object.id);
                 object
             },

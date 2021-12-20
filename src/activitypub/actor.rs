@@ -46,7 +46,7 @@ pub struct ActorProperty {
     name: String,
     #[serde(rename = "type")]
     object_type: String,
-    value: String,
+    value: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -96,18 +96,23 @@ pub struct Actor {
 impl Actor {
     /// Parse 'attachment' into ExtraField vector
     pub fn extra_fields(&self) -> Vec<ExtraField> {
-        match &self.attachment {
-            Some(properties) => {
-                properties.iter()
-                    .map(|prop| ExtraField {
-                        name: prop.name.clone(),
-                        value: prop.value.clone(),
+        let mut extra_fields = vec![];
+        if let Some(properties) = &self.attachment {
+            for property in properties {
+                if property.object_type != PROPERTY_VALUE {
+                    continue;
+                };
+                if let Some(property_value) = &property.value {
+                    let field = ExtraField {
+                        name: property.name.clone(),
+                        value: property_value.clone(),
                         value_source: None,
-                    })
-                    .collect()
-            },
-            None => vec![],
-        }
+                    };
+                    extra_fields.push(field);
+                };
+            };
+        };
+        extra_fields
     }
 }
 
@@ -191,7 +196,7 @@ pub fn get_local_actor(
             ActorProperty {
                 object_type: PROPERTY_VALUE.to_string(),
                 name: field.name,
-                value: field.value,
+                value: Some(field.value),
             }
         }).collect();
     let actor = Actor {
