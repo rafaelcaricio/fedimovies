@@ -144,7 +144,7 @@ pub async fn fetch_profile_by_actor_id(
     );
     let profile_data = ProfileCreateData {
         username: actor.preferred_username,
-        display_name: Some(actor.name),
+        display_name: actor.name,
         acct: actor_address,
         bio: actor.summary,
         avatar,

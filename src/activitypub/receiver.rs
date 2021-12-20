@@ -493,7 +493,7 @@ pub async fn receive_activity(
                 .map_err(|_| ValidationError("failed to fetch image"))?;
             let extra_fields = actor.extra_fields();
             let mut profile_data = ProfileUpdateData {
-                display_name: Some(actor.name),
+                display_name: actor.name,
                 bio: actor.summary.clone(),
                 bio_source: actor.summary,
                 avatar,

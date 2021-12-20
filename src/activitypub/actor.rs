@@ -60,7 +60,8 @@ pub struct Actor {
     #[serde(rename = "type")]
     object_type: String,
 
-    pub name: String,
+    pub name: Option<String>,
+
     pub preferred_username: String,
     pub inbox: String,
     pub outbox: String,
@@ -200,7 +201,7 @@ pub fn get_local_actor(
         ])),
         id: actor_id.clone(),
         object_type: PERSON.to_string(),
-        name: username.to_string(),
+        name: user.profile.display_name.clone(),
         preferred_username: username.to_string(),
         inbox,
         outbox,
@@ -236,7 +237,7 @@ pub fn get_instance_actor(
         ])),
         id: actor_id,
         object_type: SERVICE.to_string(),
-        name: instance.host(),
+        name: Some(instance.host()),
         preferred_username: instance.host(),
         inbox: actor_inbox,
         outbox: actor_outbox,
