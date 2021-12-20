@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 use regex::Regex;
@@ -145,6 +146,7 @@ pub async fn process_note(
     let mut maybe_object_id_to_fetch = Some(object_id);
     let mut maybe_object = object_received;
     let mut objects = vec![];
+    let mut redirects: HashMap<String, String> = HashMap::new();
     let mut posts = vec![];
 
     // Fetch ancestors by going through inReplyTo references
@@ -188,8 +190,10 @@ pub async fn process_note(
         };
         if object.id != object_id {
             // ID of fetched object doesn't match requested ID
+            // Add IDs to the map of redirects
+            redirects.insert(object_id, object.id.clone());
             maybe_object_id_to_fetch = Some(object.id.clone());
-            // Don't re-fetch object
+            // Don't re-fetch object on the next iteration
             maybe_object = Some(object);
         } else {
             maybe_object_id_to_fetch = object.in_reply_to.clone();
@@ -281,7 +285,9 @@ pub async fn process_note(
                         Some(post.id)
                     },
                     Err(_) => {
-                        let post = get_post_by_object_id(db_client, &object_id).await?;
+                        let note_id = redirects.get(&object_id)
+                            .unwrap_or(&object_id);
+                        let post = get_post_by_object_id(db_client, note_id).await?;
                         Some(post.id)
                     },
                 }
