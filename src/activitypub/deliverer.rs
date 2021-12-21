@@ -35,7 +35,6 @@ async fn send_activity(
     activity_json: &str,
     inbox_url: &str,
 ) -> Result<(), DelivererError> {
-    log::info!("sending activity to {}: {}", inbox_url, activity_json);
     let headers = create_http_signature(
         Method::POST,
         inbox_url,
@@ -54,7 +53,7 @@ async fn send_activity(
         .body(activity_json.to_owned());
 
     if instance.is_private {
-        log::info!(
+        log::debug!(
             "private mode: not sending activity to {}",
             inbox_url,
         );
@@ -94,6 +93,7 @@ async fn deliver_activity_worker(
         .collect();
     inboxes.sort();
     inboxes.dedup();
+    log::info!("sending activity to {} inboxes: {}", inboxes.len(), activity_json);
     for inbox_url in inboxes {
         // TODO: retry on error
         if let Err(err) = send_activity(
@@ -103,8 +103,8 @@ async fn deliver_activity_worker(
             &activity_json,
             &inbox_url,
         ).await {
-            log::error!("{}", err);
-        }
+            log::error!("failed to deliver activity to {}: {}", inbox_url, err);
+        };
     };
     Ok(())
 }
@@ -115,6 +115,9 @@ pub fn deliver_activity(
     activity: Activity,
     recipients: Vec<Actor>,
 ) -> () {
+    if recipients.is_empty() {
+        return;
+    };
     let instance = config.instance();
     let sender = sender.clone();
     actix_rt::spawn(async move {

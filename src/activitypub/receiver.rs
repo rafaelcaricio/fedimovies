@@ -338,9 +338,9 @@ pub async fn process_note(
 pub async fn receive_activity(
     config: &Config,
     db_pool: &Pool,
-    activity_raw: Value,
+    activity_raw: &Value,
 ) -> Result<(), HttpError> {
-    let activity: Activity = serde_json::from_value(activity_raw)
+    let activity: Activity = serde_json::from_value(activity_raw.clone())
         .map_err(|_| ValidationError("invalid activity"))?;
     let activity_type = activity.activity_type;
     let maybe_object_type = activity.object.get("type")

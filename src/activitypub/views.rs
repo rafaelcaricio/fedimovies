@@ -92,20 +92,22 @@ async fn inbox(
     request: HttpRequest,
     activity: web::Json<serde_json::Value>,
 ) -> Result<HttpResponse, HttpError> {
+    let activity_type = activity["type"].as_str().unwrap_or("Unknown");
+    log::info!("received in {}: {}", request.uri().path(), activity_type);
+    log::debug!("received activity: {}", activity);
     let signature_verified = verify_http_signature(&config, &db_pool, &request).await;
-    if activity["type"].as_str() == Some(DELETE) && signature_verified.is_err() {
-        // Don't log Delete() activities if HTTP signature is not valid
+    if activity_type == DELETE && signature_verified.is_err() {
+        // Ignore Delete() activities if HTTP signature is not valid
         log::info!("received in {}: Delete", request.uri().path());
-    } else {
-        log::info!("received in {}: {}", request.uri().path(), activity);
+        return Ok(HttpResponse::Ok().finish());
     };
     match signature_verified {
-        Ok(signer_id) => log::info!("activity signed by {}", signer_id),
+        Ok(signer_id) => log::debug!("activity signed by {}", signer_id),
         Err(err) => log::warn!("invalid signature: {}", err),
     };
-    receive_activity(&config, &db_pool, activity.into_inner()).await
+    receive_activity(&config, &db_pool, &activity).await
         .map_err(|err| {
-            log::info!("failed to process activity: {}", err);
+            log::warn!("failed to process activity: {}; {}", err, activity);
             err
         })?;
     Ok(HttpResponse::Ok().finish())

@@ -86,7 +86,7 @@ async fn main() {
         subcmd => {
             // Other commands require initialized app
             let config = config::parse_config();
-            configure_logger();
+            configure_logger(config.log_level);
             let db_pool = create_pool(&config.database_url);
             apply_migrations(&db_pool).await;
             let db_client = &mut **get_database_client(&db_pool).await.unwrap();

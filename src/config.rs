@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use log::{Level as LogLevel};
 use rsa::RsaPrivateKey;
 use serde::{de, Deserialize, Deserializer};
 use url::Url;
@@ -61,6 +62,8 @@ fn parse_env() -> EnvConfig {
 
 fn default_environment() -> Environment { Environment::Development }
 
+fn default_log_level() -> LogLevel { LogLevel::Info }
+
 #[derive(Clone, Deserialize)]
 pub struct EthereumContract {
     pub address: String,
@@ -83,6 +86,9 @@ pub struct Config {
 
     pub http_host: String,
     pub http_port: u32,
+
+    #[serde(default = "default_log_level")]
+    pub log_level: LogLevel,
 
     // Instance info
     instance_uri: String,

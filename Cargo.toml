@@ -34,8 +34,8 @@ dotenv = "0.15.0"
 # Used to work with hexadecimal strings
 hex = "0.4.3"
 # Used for logging
-log = "0.4.14"
-env_logger = { version = "0.8.4", default-features = false }
+log = { version = "0.4.14", features = ["serde"] }
+env_logger = { version = "0.9.0", default-features = false }
 # Used to guess media type of a file
 mime_guess = "2.0.3"
 mime-sniffer = "0.1.2"

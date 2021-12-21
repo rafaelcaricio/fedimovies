@@ -30,7 +30,7 @@ const MAX_UPLOAD_SIZE: usize = 1024 * 1024 * 10;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let config = parse_config();
-    configure_logger();
+    configure_logger(config.log_level);
     let db_pool = create_pool(&config.database_url);
     apply_migrations(&db_pool).await;
     if !config.media_dir().exists() {
