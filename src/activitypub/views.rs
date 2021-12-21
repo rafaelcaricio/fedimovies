@@ -107,7 +107,7 @@ async fn inbox(
     };
     receive_activity(&config, &db_pool, &activity).await
         .map_err(|err| {
-            log::warn!("failed to process activity: {}; {}", err, activity);
+            log::warn!("failed to process activity ({}): {}", err, activity);
             err
         })?;
     Ok(HttpResponse::Ok().finish())

@@ -478,11 +478,16 @@ pub async fn receive_activity(
             match get_reaction_by_activity_id(db_client, &object_id).await {
                 Ok(reaction) => {
                     // Undo(Like)
-                    delete_reaction(
+                    match delete_reaction(
                         db_client,
                         &reaction.author_id,
                         &reaction.post_id,
-                    ).await?;
+                    ).await {
+                        Ok(_) => (),
+                        // Ignore undo if reaction is not found
+                        Err(DatabaseError::NotFound(_)) => return Ok(()),
+                        Err(other_error) => return Err(other_error.into()),
+                    };
                     LIKE
                 },
                 Err(DatabaseError::NotFound(_)) => {
