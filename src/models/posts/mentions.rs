@@ -9,15 +9,8 @@ use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
 
 const MENTION_RE: &str = r"@?(?P<user>\w+)@(?P<instance>.+)";
-const MENTION_SEARCH_RE: &str = r"(?m)(?P<space>^|\s)@(?P<user>\w+)@(?P<instance>\S+)";
-
-fn pattern_to_address(caps: &Captures, instance_host: &str) -> ActorAddress {
-    ActorAddress {
-        username: caps["user"].to_string(),
-        instance: caps["instance"].to_string(),
-        is_local: &caps["instance"] == instance_host,
-    }
-}
+const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s)@(?P<user>\w+)@(?P<instance>\S+)";
+const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<instance>[\w\.-]+\w)(?P<after>(\.|<br>|\.<br>)?)$";
 
 /// Finds everything that looks like a mention
 fn find_mentions(
@@ -25,11 +18,19 @@ fn find_mentions(
     text: &str,
 ) -> Vec<String> {
     let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
+    let mention_secondary_re = Regex::new(MENTION_SEARCH_SECONDARY_RE).unwrap();
     let mut mentions = vec![];
     for caps in mention_re.captures_iter(text) {
-        let acct = pattern_to_address(&caps, instance_host).acct();
-        if !mentions.contains(&acct) {
-            mentions.push(acct);
+        if let Some(secondary_caps) = mention_secondary_re.captures(&caps["instance"]) {
+            let actor_address = ActorAddress {
+                username: caps["user"].to_string(),
+                instance: secondary_caps["instance"].to_string(),
+                is_local: &secondary_caps["instance"] == instance_host,
+            };
+            let acct = actor_address.acct();
+            if !mentions.contains(&acct) {
+                mentions.push(acct);
+            };
         };
     };
     mentions
@@ -56,23 +57,31 @@ pub fn replace_mentions(
     text: &str,
 ) -> String {
     let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
+    let mention_secondary_re = Regex::new(MENTION_SEARCH_SECONDARY_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
-        let acct = pattern_to_address(caps, instance_host).acct();
-        match mention_map.get(&acct) {
-            Some(profile) => {
+        if let Some(secondary_caps) = mention_secondary_re.captures(&caps["instance"]) {
+            let actor_address = ActorAddress {
+                username: caps["user"].to_string(),
+                instance: secondary_caps["instance"].to_string(),
+                is_local: &secondary_caps["instance"] == instance_host,
+            };
+            let acct = actor_address.acct();
+            if let Some(profile) = mention_map.get(&acct) {
                 // Replace with a link to profile.
                 // Actor URL may differ from actor ID.
                 let url = profile.actor_url(instance_url).unwrap();
-                format!(
+                return format!(
                     // https://microformats.org/wiki/h-card
-                    r#"{}<span class="h-card"><a class="u-url mention" href="{}">@{}</a></span>"#,
-                    caps["space"].to_string(),
+                    r#"{}<span class="h-card"><a class="u-url mention" href="{}">@{}</a></span>{}"#,
+                    caps["before"].to_string(),
                     url,
                     profile.username,
-                )
-            },
-            None => caps[0].to_string(), // leave unchanged if actor is not known
-        }
+                    secondary_caps["after"].to_string(),
+                );
+            };
+        };
+        // Leave unchanged if actor is not known
+        caps[0].to_string()
     });
     result.to_string()
 }
@@ -84,7 +93,11 @@ pub fn mention_to_address(
     let mention_re = Regex::new(MENTION_RE).unwrap();
     let mention_caps = mention_re.captures(mention)
         .ok_or(ValidationError("invalid mention tag"))?;
-    let actor_address = pattern_to_address(&mention_caps, instance_host);
+    let actor_address = ActorAddress {
+        username: mention_caps["user"].to_string(),
+        instance: mention_caps["instance"].to_string(),
+        is_local: &mention_caps["instance"] == instance_host,
+    };
     Ok(actor_address)
 }
 
@@ -111,7 +124,6 @@ mod tests {
         assert_eq!(results, vec![
             "user1",
             "user2@server2.com",
-            "test@server3.com@nospace@server4.com",
         ]);
     }
 
@@ -131,7 +143,10 @@ mod tests {
             })),
             ..Default::default()
         };
-        let text = "@user1@server1.com @user2@server2.com sometext @notmention @test@unknown.org";
+        let text = concat!(
+            "@user1@server1.com @user2@server2.com.\n",
+            "sometext @notmention @test@unknown.org"
+        );
         let mention_map = HashMap::from([
             ("user1".to_string(), profile_1),
             ("user2@server2.com".to_string(), profile_2),
@@ -140,7 +155,7 @@ mod tests {
 
         let expected_result = concat!(
             r#"<span class="h-card"><a class="u-url mention" href="https://server1.com/users/user1">@user1</a></span> "#,
-            r#"<span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> "#,
+            r#"<span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span>."#, "\n",
             r#"sometext @notmention @test@unknown.org"#,
         );
         assert_eq!(result, expected_result);

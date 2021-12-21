@@ -35,19 +35,16 @@ pub fn replace_tags(instance_url: &str, text: &str, tags: &[String]) -> String {
             let after = secondary_caps["after"].to_string();
             if tags.contains(&tag_name) {
                 let tag_page_url = get_tag_page_url(instance_url, &tag_name);
-                format!(
+                return format!(
                     r#"{}<a class="hashtag" href="{}">#{}</a>{}"#,
                     before,
                     tag_page_url,
                     tag,
                     after,
-                )
-            } else {
-                caps[0].to_string()
-            }
-        } else {
-            caps[0].to_string()
-        }
+                );
+            };
+        };
+        caps[0].to_string()
     });
     result.to_string()
 }
