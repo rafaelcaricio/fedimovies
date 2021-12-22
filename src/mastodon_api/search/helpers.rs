@@ -1,14 +1,17 @@
 use regex::Regex;
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::fetcher::fetch_profile;
-use crate::activitypub::receiver::process_note;
+use crate::activitypub::actor::ActorAddress;
+use crate::activitypub::receiver::{
+    import_profile_by_actor_address,
+    process_note,
+};
 use crate::config::Config;
 use crate::errors::{ValidationError, HttpError};
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::types::Post;
-use crate::models::profiles::queries::{create_profile, search_profile};
+use crate::models::profiles::queries::search_profile;
 use crate::models::profiles::types::DbActorProfile;
 use super::types::SearchResults;
 
@@ -48,20 +51,18 @@ async fn search_profiles(
     };
     let mut profiles = search_profile(db_client, &username, instance.as_ref()).await?;
     if profiles.is_empty() && instance.is_some() {
-        let actor_host = instance.unwrap();
-        // TODO: return error when trying to fetch local profile
-        match fetch_profile(
+        let actor_address = ActorAddress {
+            username: username,
+            instance: instance.unwrap(),
+            is_local: false,
+        };
+        match import_profile_by_actor_address(
+            db_client,
             &config.instance(),
-            &username,
-            &actor_host,
             &config.media_dir(),
+            &actor_address,
         ).await {
-            Ok(profile_data) => {
-                let profile = create_profile(db_client, &profile_data).await?;
-                log::info!(
-                    "imported profile '{}'",
-                    profile.acct,
-                );
+            Ok(profile) => {
                 profiles.push(profile);
             },
             Err(err) => {

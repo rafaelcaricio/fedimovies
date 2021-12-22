@@ -39,7 +39,7 @@ use crate::models::relationships::queries::{
 };
 use crate::models::users::queries::get_user_by_id;
 use super::activity::{Object, Activity, create_activity_accept_follow};
-use super::actor::Actor;
+use super::actor::{Actor, ActorAddress};
 use super::deliverer::deliver_activity;
 use super::fetcher::{
     fetch_avatar_and_banner,
@@ -131,11 +131,38 @@ async fn get_or_fetch_profile_by_actor_id(
                     log::warn!("{}", err);
                     ValidationError("failed to fetch actor")
                 })?;
+            log::info!("fetched profile {}", profile_data.acct);
             let profile = create_profile(db_client, &profile_data).await?;
             profile
         },
         Err(other_error) => return Err(other_error.into()),
     };
+    Ok(profile)
+}
+
+/// Fetches actor profile and saves it into database
+pub async fn import_profile_by_actor_address(
+    db_client: &impl GenericClient,
+    instance: &Instance,
+    media_dir: &Path,
+    actor_address: &ActorAddress,
+) -> Result<DbActorProfile, HttpError> {
+    let profile_data = fetch_profile(
+        instance,
+        &actor_address.username,
+        &actor_address.instance,
+        media_dir,
+    ).await.map_err(|_| ValidationError("failed to fetch actor"))?;
+    if profile_data.acct != actor_address.acct() {
+        // Redirected to different server
+        match get_profile_by_acct(db_client, &profile_data.acct).await {
+            Ok(profile) => return Ok(profile),
+            Err(DatabaseError::NotFound(_)) => (),
+            Err(other_error) => return Err(other_error.into()),
+        };
+    };
+    log::info!("fetched profile {}", profile_data.acct);
+    let profile = create_profile(db_client, &profile_data).await?;
     Ok(profile)
 }
 
@@ -264,14 +291,12 @@ pub async fn process_note(
                         ).await {
                             Ok(profile) => profile,
                             Err(DatabaseError::NotFound(_)) => {
-                                let profile_data = fetch_profile(
+                                import_profile_by_actor_address(
+                                    db_client,
                                     &config.instance(),
-                                    &actor_address.username,
-                                    &actor_address.instance,
                                     &config.media_dir(),
-                                ).await.map_err(|_| ValidationError("failed to fetch actor"))?;
-                                let profile = create_profile(db_client, &profile_data).await?;
-                                profile
+                                    &actor_address,
+                                ).await?
                             },
                             Err(other_error) => return Err(other_error.into()),
                         };
