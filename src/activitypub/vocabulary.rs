@@ -25,6 +25,7 @@ pub const TOMBSTONE: &str = "Tombstone";
 
 // Collections
 pub const ORDERED_COLLECTION: &str = "OrderedCollection";
+pub const ORDERED_COLLECTION_PAGE: &str = "OrderedCollectionPage";
 
 // Misc
 pub const HASHTAG: &str = "Hashtag";

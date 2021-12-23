@@ -10,11 +10,15 @@ use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::frontend::{get_post_page_url, get_profile_page_url};
 use crate::http_signatures::verify::verify_http_signature;
-use crate::models::posts::queries::get_thread;
+use crate::models::posts::queries::{get_posts_by_author, get_thread};
 use crate::models::users::queries::get_user_by_name;
-use super::activity::create_note;
+use super::activity::{create_note, create_activity_note};
 use super::actor::{get_local_actor, get_instance_actor};
-use super::collections::OrderedCollection;
+use super::collections::{
+    COLLECTION_PAGE_SIZE,
+    OrderedCollection,
+    OrderedCollectionPage,
+};
 use super::constants::ACTIVITY_CONTENT_TYPE;
 use super::receiver::receive_activity;
 use super::vocabulary::DELETE;
@@ -116,7 +120,60 @@ async fn inbox(
 
 #[derive(Deserialize)]
 struct CollectionQueryParams {
-    page: Option<i32>,
+    page: Option<bool>,
+}
+
+#[get("/outbox")]
+async fn outbox(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(username): web::Path<String>,
+    query_params: web::Query<CollectionQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let instance = config.instance();
+    let collection_id = get_outbox_url(&instance.url(), &username);
+    let first_page_id = format!("{}?page=true", collection_id);
+    if query_params.page.is_none() {
+        let collection = OrderedCollection::new(
+            collection_id,
+            Some(first_page_id),
+        );
+        let response = HttpResponse::Ok()
+            .content_type(ACTIVITY_CONTENT_TYPE)
+            .json(collection);
+        return Ok(response);
+    };
+    let db_client = &**get_database_client(&db_pool).await?;
+    let user = get_user_by_name(db_client, &username).await?;
+    // Post are ordered by creation date
+    let posts = get_posts_by_author(
+        db_client, &user.id,
+        false, false,
+        None, COLLECTION_PAGE_SIZE,
+    ).await?;
+    // TODO: include reposts
+    let activities: Vec<_> = posts.iter().filter_map(|post| {
+        match post.repost_of_id {
+            Some(_) => None,
+            None => {
+                let activity = create_activity_note(
+                    &instance.host(),
+                    &instance.url(),
+                    post,
+                    None,
+                );
+                Some(activity)
+            },
+        }
+    }).collect();
+    let collection_page = OrderedCollectionPage::new(
+        first_page_id,
+        activities,
+    );
+    let response = HttpResponse::Ok()
+        .content_type(ACTIVITY_CONTENT_TYPE)
+        .json(collection_page);
+    Ok(response)
 }
 
 #[get("/followers")]
@@ -129,8 +186,8 @@ async fn followers_collection(
         // Social graph is not available
         return Err(HttpError::PermissionError);
     }
-    let collection_url = get_followers_url(&config.instance_url(), &username);
-    let collection = OrderedCollection::new(collection_url);
+    let collection_id = get_followers_url(&config.instance_url(), &username);
+    let collection = OrderedCollection::new(collection_id, None);
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)
         .json(collection);
@@ -147,8 +204,8 @@ async fn following_collection(
         // Social graph is not available
         return Err(HttpError::PermissionError);
     }
-    let collection_url = get_following_url(&config.instance_url(), &username);
-    let collection = OrderedCollection::new(collection_url);
+    let collection_id = get_following_url(&config.instance_url(), &username);
+    let collection = OrderedCollection::new(collection_id, None);
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)
         .json(collection);
@@ -159,6 +216,7 @@ pub fn actor_scope() -> Scope {
     web::scope("/users/{username}")
         .service(actor_view)
         .service(inbox)
+        .service(outbox)
         .service(followers_collection)
         .service(following_collection)
 }

@@ -136,10 +136,13 @@ fn create_activity(
         instance_url,
         actor_name,
     );
-    let activity_id = get_object_url(
+    let mut activity_id = get_object_url(
         instance_url,
         internal_activity_id.unwrap_or(&new_uuid()),
     );
+    if activity_type == CREATE {
+        activity_id.push_str("/create");
+    };
     Activity {
         context: json!(AP_CONTEXT),
         id: activity_id,
@@ -241,7 +244,7 @@ pub fn create_activity_note(
         instance_url,
         &post.author.username,
         CREATE,
-        None,
+        Some(&post.id),
         object,
         recipients,
     );
