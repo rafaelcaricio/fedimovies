@@ -442,28 +442,6 @@ pub fn create_activity_update_person(
     Ok(activity)
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OrderedCollection {
-    #[serde(rename = "@context")]
-    pub context: Value,
-
-    pub id: String,
-
-    #[serde(rename = "type")]
-    pub object_type: String,
-}
-
-impl OrderedCollection {
-    pub fn new(collection_url: String) -> Self {
-        Self {
-            context: json!(AP_CONTEXT),
-            id: collection_url,
-            object_type: "OrderedCollection".to_string(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

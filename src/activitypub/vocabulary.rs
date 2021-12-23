@@ -23,6 +23,9 @@ pub const MENTION: &str = "Mention";
 pub const NOTE: &str = "Note";
 pub const TOMBSTONE: &str = "Tombstone";
 
+// Collections
+pub const ORDERED_COLLECTION: &str = "OrderedCollection";
+
 // Misc
 pub const HASHTAG: &str = "Hashtag";
 pub const PROPERTY_VALUE: &str = "PropertyValue";
