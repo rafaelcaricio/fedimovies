@@ -64,7 +64,7 @@ pub struct Object {
     pub published: Option<DateTime<Utc>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributed_to: Option<String>,
+    pub attributed_to: Option<Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub in_reply_to: Option<String>,

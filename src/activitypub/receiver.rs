@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::config::{Config, Instance};
 use crate::database::{Pool, get_database_client};
-use crate::errors::{DatabaseError, HttpError, ValidationError};
+use crate::errors::{ConversionError, DatabaseError, HttpError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
 use crate::models::posts::mentions::mention_to_address;
 use crate::models::posts::queries::{
@@ -88,15 +88,30 @@ fn parse_object_id(
     Ok(internal_object_id)
 }
 
-fn parse_array(value: &Value) -> Result<Vec<String>, ValidationError> {
+fn parse_array(value: &Value) -> Result<Vec<String>, ConversionError> {
     let result = match value {
         Value::String(string) => vec![string.to_string()],
         Value::Array(array) => {
-            array.iter()
-                .filter_map(|val| val.as_str().map(|s| s.to_string()))
-                .collect()
+            let mut results = vec![];
+            for value in array {
+                match value {
+                    Value::String(string) => results.push(string.to_string()),
+                    Value::Object(object) => {
+                        if let Some(string) = object["id"].as_str() {
+                            results.push(string.to_string());
+                        } else {
+                            // id property is missing
+                            return Err(ConversionError);
+                        };
+                    },
+                    // Unexpected array item type
+                    _ => return Err(ConversionError),
+                };
+            };
+            results
         },
-        _ => return Err(ValidationError("invalid attribute value")),
+        // Unexpected value type
+        _ => return Err(ConversionError),
     };
     Ok(result)
 }
@@ -242,10 +257,15 @@ pub async fn process_note(
     for object in objects {
         let attributed_to = object.attributed_to
             .ok_or(ValidationError("unattributed note"))?;
+        let author_id = parse_array(&attributed_to)
+            .map_err(|_| ValidationError("invalid attributedTo property"))?
+            .get(0)
+            .ok_or(ValidationError("invalid attributedTo property"))?
+            .to_string();
         let author = get_or_fetch_profile_by_actor_id(
             db_client,
             &instance,
-            &attributed_to,
+            &author_id,
             &config.media_dir(),
         ).await?;
         let content = object.content
@@ -327,7 +347,8 @@ pub async fn process_note(
         };
         let visibility = match object.to {
             Some(value) => {
-                let recipients = parse_array(&value)?;
+                let recipients = parse_array(&value)
+                    .map_err(|_| ValidationError("invalid 'to' property value"))?;
                 if recipients.len() == 1 &&
                     parse_actor_id(&instance.url(), &recipients[0]).is_ok()
                 {
@@ -621,6 +642,15 @@ mod tests {
     #[test]
     fn test_parse_array_with_array() {
         let value = json!(["test1", "test2"]);
+        assert_eq!(
+            parse_array(&value).unwrap(),
+            vec!["test1".to_string(), "test2".to_string()],
+        );
+    }
+
+    #[test]
+    fn test_parse_array_with_array_of_objects() {
+        let value = json!([{"id": "test1"}, {"id": "test2"}]);
         assert_eq!(
             parse_array(&value).unwrap(),
             vec!["test1".to_string(), "test2".to_string()],
