@@ -53,58 +53,6 @@ pub async fn is_valid_invite_code(
     Ok(maybe_row.is_some())
 }
 
-pub async fn get_user_by_id(
-    db_client: &impl GenericClient,
-    user_id: &Uuid,
-) -> Result<User, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
-        SELECT user_account, actor_profile
-        FROM user_account JOIN actor_profile USING (id)
-        WHERE id = $1
-        ",
-        &[&user_id],
-    ).await?;
-    let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
-    let db_user: DbUser = row.try_get("user_account")?;
-    let db_profile: DbActorProfile = row.try_get("actor_profile")?;
-    let user = User::new(db_user, db_profile);
-    Ok(user)
-}
-
-pub async fn get_user_by_name(
-    db_client: &impl GenericClient,
-    username: &str,
-) -> Result<User, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
-        SELECT user_account, actor_profile
-        FROM user_account JOIN actor_profile USING (id)
-        WHERE actor_profile.username = $1
-        ",
-        &[&username],
-    ).await?;
-    let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
-    let db_user: DbUser = row.try_get("user_account")?;
-    let db_profile: DbActorProfile = row.try_get("actor_profile")?;
-    let user = User::new(db_user, db_profile);
-    Ok(user)
-}
-
-pub async fn is_registered_user(
-    db_client: &impl GenericClient,
-    username: &str,
-) -> Result<bool, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
-        SELECT 1 FROM user_account JOIN actor_profile USING (id)
-        WHERE actor_profile.username = $1
-        ",
-        &[&username],
-    ).await?;
-    Ok(maybe_row.is_some())
-}
-
 pub async fn create_user(
     db_client: &mut impl GenericClient,
     user_data: UserCreateData,
@@ -161,6 +109,58 @@ pub async fn create_user(
     Ok(user)
 }
 
+pub async fn get_user_by_id(
+    db_client: &impl GenericClient,
+    user_id: &Uuid,
+) -> Result<User, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT user_account, actor_profile
+        FROM user_account JOIN actor_profile USING (id)
+        WHERE id = $1
+        ",
+        &[&user_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
+    let db_user: DbUser = row.try_get("user_account")?;
+    let db_profile: DbActorProfile = row.try_get("actor_profile")?;
+    let user = User::new(db_user, db_profile);
+    Ok(user)
+}
+
+pub async fn get_user_by_name(
+    db_client: &impl GenericClient,
+    username: &str,
+) -> Result<User, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT user_account, actor_profile
+        FROM user_account JOIN actor_profile USING (id)
+        WHERE actor_profile.username = $1
+        ",
+        &[&username],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
+    let db_user: DbUser = row.try_get("user_account")?;
+    let db_profile: DbActorProfile = row.try_get("actor_profile")?;
+    let user = User::new(db_user, db_profile);
+    Ok(user)
+}
+
+pub async fn is_registered_user(
+    db_client: &impl GenericClient,
+    username: &str,
+) -> Result<bool, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT 1 FROM user_account JOIN actor_profile USING (id)
+        WHERE actor_profile.username = $1
+        ",
+        &[&username],
+    ).await?;
+    Ok(maybe_row.is_some())
+}
+
 pub async fn get_user_by_wallet_address(
     db_client: &impl GenericClient,
     wallet_address: &str,
@@ -176,12 +176,6 @@ pub async fn get_user_by_wallet_address(
     let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
     let db_profile: DbActorProfile = row.try_get("actor_profile")?;
-    let user = User {
-        id: db_user.id,
-        wallet_address: db_user.wallet_address,
-        password_hash: db_user.password_hash,
-        private_key: db_user.private_key,
-        profile: db_profile,
-    };
+    let user = User::new(db_user, db_profile);
     Ok(user)
 }

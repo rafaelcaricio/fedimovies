@@ -42,12 +42,6 @@ pub async fn get_user_by_oauth_token(
     let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
     let db_profile: DbActorProfile = row.try_get("actor_profile")?;
-    let user = User {
-        id: db_user.id,
-        wallet_address: db_user.wallet_address,
-        password_hash: db_user.password_hash,
-        private_key: db_user.private_key,
-        profile: db_profile,
-    };
+    let user = User::new(db_user, db_profile);
     Ok(user)
 }
