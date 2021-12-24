@@ -63,7 +63,8 @@ async fn send_activity(
         let response_status = response.status();
         let response_text = response.text().await?;
         log::info!(
-            "remote server response: {}",
+            "response from {}: {}",
+            inbox_url,
             response_text,
         );
         if response_status.is_client_error() || response_status.is_server_error() {
