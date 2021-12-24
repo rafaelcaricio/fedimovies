@@ -18,10 +18,19 @@ paths:
                   type: string
                   enum:
                     - password
+                    - ethereum
                 username:
+                  description: User name (required if grant type is "password").
                   type: string
+                wallet_address:
+                  description: Ethereum wallet address (required if grant type is "ethereum").
+                  type: string
+                  example: null
                 password:
                   type: string
+              required:
+                - grant_type
+                - password
       responses:
         200:
           description: Successful operation
@@ -59,7 +68,7 @@ paths:
                   description: The password to be used for login.
                   type: string
                 wallet_address:
-                  description: Ethereum wallet address
+                  description: Ethereum wallet address.
                   type: string
                   example: '0xd8da6bf...'
                 invite_code:
@@ -69,7 +78,6 @@ paths:
               required:
                 - username
                 - password
-                - wallet_address
       responses:
         201:
           description: Successful operation
@@ -193,7 +201,7 @@ paths:
                     type: string
                     example: '6a5cb313907cd3...'
         403:
-          description: Post does not belong to user or is not public
+          description: Post does not belong to user or is not public or user's wallet address is not known
         404:
           description: Post not found
         418:
@@ -295,6 +303,10 @@ components:
           description: The Webfinger account URI. Equal to username for local actors, or username@domain for remote actors.
           type: string
           example: user@example.com
+        wallet_address:
+          description: Ethereum wallet address.
+          type: string
+          example: '0xd8da6bf...'
     Status:
       type: object
       properties:

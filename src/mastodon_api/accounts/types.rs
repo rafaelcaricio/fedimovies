@@ -87,7 +87,7 @@ impl Account {
         };
         let mut account = Self::from_profile(user.profile, instance_url);
         account.source = Some(source);
-        account.wallet_address = Some(user.wallet_address);
+        account.wallet_address = user.wallet_address;
         account
     }
 }
@@ -98,7 +98,7 @@ pub struct AccountCreateData {
     username: String,
     password: String,
 
-    wallet_address: String,
+    wallet_address: Option<String>,
     invite_code: Option<String>,
 }
 
@@ -204,7 +204,7 @@ mod tests {
             ..Default::default()
         };
         let user = User {
-            wallet_address: wallet_address.to_string(),
+            wallet_address: Some(wallet_address.to_string()),
             profile,
             ..Default::default()
         };

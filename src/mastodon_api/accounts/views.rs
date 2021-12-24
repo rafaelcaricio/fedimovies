@@ -58,7 +58,10 @@ pub async fn create_account(
         }
     }
     if config.ethereum_contract.is_some() {
-        let is_allowed = is_allowed_user(&config, &user_data.wallet_address).await
+        // Wallet address is required only if ethereum integration is enabled
+        let wallet_address = user_data.wallet_address.as_ref()
+            .ok_or(ValidationError("wallet address is required"))?;
+        let is_allowed = is_allowed_user(&config, wallet_address).await
             .map_err(|_| HttpError::InternalError)?;
         if !is_allowed {
             return Err(ValidationError("not allowed to sign up").into());

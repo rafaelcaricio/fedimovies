@@ -11,7 +11,7 @@ use crate::models::profiles::types::DbActorProfile;
 #[postgres(name = "user_account")]
 pub struct DbUser {
     pub id: Uuid,
-    pub wallet_address: String,
+    pub wallet_address: Option<String>,
     pub password_hash: String,
     pub private_key: String,
     pub invite_code: Option<String>,
@@ -23,7 +23,7 @@ pub struct DbUser {
 #[cfg_attr(test, derive(Default))]
 pub struct User {
     pub id: Uuid,
-    pub wallet_address: String,
+    pub wallet_address: Option<String>,
     pub password_hash: String,
     pub private_key: String,
     pub profile: DbActorProfile,
@@ -49,7 +49,7 @@ impl User {
 pub struct UserCreateData {
     pub username: String,
     pub password: String,
-    pub wallet_address: String,
+    pub wallet_address: Option<String>,
     pub invite_code: Option<String>,
 }
 

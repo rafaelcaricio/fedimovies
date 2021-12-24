@@ -4,7 +4,10 @@ use chrono::{Duration, Utc};
 use crate::database::{Pool, get_database_client};
 use crate::errors::{HttpError, ValidationError};
 use crate::models::oauth::queries::save_oauth_token;
-use crate::models::users::queries::get_user_by_wallet_address;
+use crate::models::users::queries::{
+    get_user_by_name,
+    get_user_by_wallet_address,
+};
 use crate::utils::crypto::verify_password;
 use super::types::{TokenRequest, TokenResponse};
 use super::utils::generate_access_token;
@@ -18,14 +21,22 @@ async fn token_view(
     db_pool: web::Data<Pool>,
     request_data: web::Json<TokenRequest>,
 ) -> Result<HttpResponse, HttpError> {
-    if &request_data.grant_type != "password" {
-        return Err(ValidationError("unsupported grant type").into());
-    }
     let db_client = &**get_database_client(&db_pool).await?;
-    let user = get_user_by_wallet_address(
-        db_client,
-        &request_data.username,
-    ).await?;
+    let user = match request_data.grant_type.as_str() {
+        "password" => {
+            let username = request_data.username.as_ref()
+                .ok_or(ValidationError("username is required"))?;
+            get_user_by_name(db_client, username).await?
+        },
+        "ethereum" => {
+            let wallet_address = request_data.wallet_address.as_ref()
+                .ok_or(ValidationError("wallet address is required"))?;
+            get_user_by_wallet_address(db_client, wallet_address).await?
+        },
+        _ => {
+            return Err(ValidationError("unsupported grant type").into());
+        },
+    };
     let password_correct = verify_password(
         &user.password_hash,
         &request_data.password,

@@ -477,6 +477,8 @@ async fn get_signature(
     let current_user = get_current_user(db_client, auth.token()).await?;
     let contract_config = config.ethereum_contract.as_ref()
         .ok_or(HttpError::NotSupported)?;
+    let wallet_address = current_user.wallet_address
+        .ok_or(HttpError::PermissionError)?;
     let post = get_post_by_id(db_client, &status_id).await?;
     if post.author.id != current_user.id || !post.is_public() {
         // Users can only tokenize their own public posts
@@ -488,7 +490,7 @@ async fn get_signature(
     let token_uri = get_ipfs_url(&ipfs_cid);
     let signature = create_mint_signature(
         contract_config,
-        &current_user.wallet_address,
+        &wallet_address,
         &token_uri,
     ).map_err(|_| HttpError::InternalError)?;
     Ok(HttpResponse::Ok().json(signature))

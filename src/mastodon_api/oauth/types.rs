@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize)]
 pub struct TokenRequest {
     pub grant_type: String,
-    pub username: String, // wallet address
+    pub username: Option<String>,
+    pub wallet_address: Option<String>,
     pub password: String,
 }
 
