@@ -258,6 +258,7 @@ async fn favourite(
                 &current_user.profile,
                 object_id,
                 &reaction.id,
+                &remote_actor.id,
             );
             deliver_activity(&config, &current_user, activity, vec![remote_actor]);
         }
@@ -302,6 +303,7 @@ async fn unfavourite(
                 &config.instance_url(),
                 &current_user.profile,
                 &reaction_id,
+                &remote_actor.id,
             );
             deliver_activity(&config, &current_user, activity, vec![remote_actor]);
         };
@@ -374,11 +376,7 @@ async fn unreblog(
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     // Federate
-    let activity = create_activity_undo_announce(
-        &config.instance_url(),
-        &current_user.profile,
-        &repost_id,
-    );
+    let mut primary_recipient = None;
     let mut recipients: Vec<Actor> = Vec::new();
     let followers = get_followers(db_client, &current_user.id).await?;
     for follower in followers {
@@ -391,8 +389,15 @@ async fn unreblog(
     let maybe_remote_author = post.author.remote_actor()
         .map_err(|_| HttpError::InternalError)?;
     if let Some(remote_actor) = maybe_remote_author {
+        primary_recipient = Some(remote_actor.id.clone());
         recipients.push(remote_actor);
     };
+    let activity = create_activity_undo_announce(
+        &config.instance_url(),
+        &current_user.profile,
+        &repost_id,
+        primary_recipient.as_ref(),
+    );
     deliver_activity(&config, &current_user, activity, recipients);
 
     let status = Status::from_post(post, &config.instance_url());

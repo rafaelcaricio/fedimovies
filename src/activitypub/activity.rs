@@ -256,6 +256,7 @@ pub fn create_activity_like(
     actor_profile: &DbActorProfile,
     note_id: &str,
     reaction_id: &Uuid,
+    recipient_id: &str,
 ) -> Activity {
     let activity = create_activity(
         instance_url,
@@ -263,7 +264,7 @@ pub fn create_activity_like(
         LIKE,
         Some(reaction_id),
         note_id,
-        vec![AP_PUBLIC.to_string()],
+        vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
     );
     activity
 }
@@ -272,6 +273,7 @@ pub fn create_activity_undo_like(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     reaction_id: &Uuid,
+    recipient_id: &str,
 ) -> Activity {
     let object_id = get_object_url(
         instance_url,
@@ -283,7 +285,7 @@ pub fn create_activity_undo_like(
         UNDO,
         None,
         object_id,
-        vec![AP_PUBLIC.to_string()],
+        vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
     )
 }
 
@@ -294,13 +296,14 @@ pub fn create_activity_announce(
     repost_id: &Uuid,
 ) -> Activity {
     let object_id = post.get_object_id(instance_url);
+    let recipient_id = post.author.actor_id(instance_url).unwrap();
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         ANNOUNCE,
         Some(repost_id),
         object_id,
-        vec![AP_PUBLIC.to_string()],
+        vec![AP_PUBLIC.to_string(), recipient_id],
     );
     activity
 }
@@ -309,18 +312,23 @@ pub fn create_activity_undo_announce(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     repost_id: &Uuid,
+    recipient_id: Option<&String>,
 ) -> Activity {
     let object_id = get_object_url(
         instance_url,
         repost_id,
     );
+    let mut recipients = vec![AP_PUBLIC.to_string()];
+    if let Some(recipient_id) = recipient_id {
+        recipients.push(recipient_id.to_string());
+    };
     create_activity(
         instance_url,
         &actor_profile.username,
         UNDO,
         None,
         object_id,
-        vec![AP_PUBLIC.to_string()],
+        recipients,
     )
 }
 
@@ -337,13 +345,20 @@ pub fn create_activity_delete_note(
         former_type: Some(NOTE.to_string()),
         ..Default::default()
     };
+    let mut recipients = vec![AP_PUBLIC.to_string()];
+    for profile in &post.mentions {
+        let actor_id = profile.actor_id(instance_url).unwrap();
+        if !profile.is_local() {
+            recipients.push(actor_id);
+        };
+    };
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         DELETE,
         None,
         object,
-        vec![AP_PUBLIC.to_string()],
+        recipients,
     );
     activity
 }
