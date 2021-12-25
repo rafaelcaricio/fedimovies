@@ -42,6 +42,7 @@ use super::activity::{Object, Activity, create_activity_accept_follow};
 use super::actor::{Actor, ActorAddress};
 use super::deliverer::deliver_activity;
 use super::fetcher::{
+    FetchError,
     fetch_avatar_and_banner,
     fetch_profile,
     fetch_profile_by_actor_id,
@@ -129,6 +130,15 @@ fn get_object_id(object: Value) -> Result<String, ValidationError> {
     Ok(object_id)
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum ImportError {
+    #[error(transparent)]
+    FetchError(#[from] FetchError),
+
+    #[error(transparent)]
+    DatabaseError(#[from] DatabaseError),
+}
+
 async fn get_or_fetch_profile_by_actor_id(
     db_client: &impl GenericClient,
     instance: &Instance,
@@ -161,13 +171,13 @@ pub async fn import_profile_by_actor_address(
     instance: &Instance,
     media_dir: &Path,
     actor_address: &ActorAddress,
-) -> Result<DbActorProfile, HttpError> {
+) -> Result<DbActorProfile, ImportError> {
     let profile_data = fetch_profile(
         instance,
         &actor_address.username,
         &actor_address.instance,
         media_dir,
-    ).await.map_err(|_| ValidationError("failed to fetch actor"))?;
+    ).await?;
     if profile_data.acct != actor_address.acct() {
         // Redirected to different server
         match get_profile_by_acct(db_client, &profile_data.acct).await {
@@ -311,12 +321,22 @@ pub async fn process_note(
                         ).await {
                             Ok(profile) => profile,
                             Err(DatabaseError::NotFound(_)) => {
-                                import_profile_by_actor_address(
+                                match import_profile_by_actor_address(
                                     db_client,
                                     &config.instance(),
                                     &config.media_dir(),
                                     &actor_address,
-                                ).await?
+                                ).await {
+                                    Ok(profile) => profile,
+                                    Err(ImportError::DatabaseError(error)) => {
+                                        return Err(error.into());
+                                    },
+                                    Err(ImportError::FetchError(error)) => {
+                                        // Ignore mention if fetcher fails
+                                        log::warn!("{}", error);
+                                        continue;
+                                    },
+                                }
                             },
                             Err(other_error) => return Err(other_error.into()),
                         };
