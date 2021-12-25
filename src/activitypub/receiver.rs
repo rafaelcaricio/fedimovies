@@ -492,12 +492,17 @@ pub async fn receive_activity(
                     post.id
                 },
             };
-            create_reaction(
+            match create_reaction(
                 db_client,
                 &author.id,
                 &post_id,
                 Some(&activity.id),
-            ).await?;
+            ).await {
+                Ok(_) => (),
+                // Ignore activity if reaction is already saved
+                Err(DatabaseError::AlreadyExists(_)) => return Ok(()),
+                Err(other_error) => return Err(other_error.into()),
+            };
             NOTE
         },
         (FOLLOW, _) => {
