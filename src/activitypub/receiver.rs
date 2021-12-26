@@ -549,24 +549,26 @@ pub async fn receive_activity(
             match get_reaction_by_activity_id(db_client, &object_id).await {
                 Ok(reaction) => {
                     // Undo(Like)
-                    match delete_reaction(
+                    delete_reaction(
                         db_client,
                         &reaction.author_id,
                         &reaction.post_id,
-                    ).await {
-                        Ok(_) => (),
-                        // Ignore undo if reaction is not found
-                        Err(DatabaseError::NotFound(_)) => return Ok(()),
-                        Err(other_error) => return Err(other_error.into()),
-                    };
+                    ).await?;
                     LIKE
                 },
                 Err(DatabaseError::NotFound(_)) => {
                     // Undo(Announce)
-                    let post = get_post_by_object_id(db_client, &object_id).await?;
+                    let post = match get_post_by_object_id(db_client, &object_id).await {
+                        Ok(post) => post,
+                        // Ignore undo if neither reaction nor repost is found
+                        Err(DatabaseError::NotFound(_)) => return Ok(()),
+                        Err(other_error) => return Err(other_error.into()),
+                    };
                     match post.repost_of_id {
+                        // Ignore returned data because reposts don't have attached files
                         Some(_) => delete_post(db_client, &post.id).await?,
-                        None => return Err(HttpError::NotFoundError("object")),
+                        // Can't undo regular post
+                        None => return Err(HttpError::ValidationError("object is not a repost".into())),
                     };
                     ANNOUNCE
                 },
