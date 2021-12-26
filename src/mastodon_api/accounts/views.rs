@@ -27,7 +27,14 @@ use crate::models::profiles::queries::{
     get_profile_by_id,
     update_profile,
 };
-use crate::models::relationships::queries as follows;
+use crate::models::relationships::queries::{
+    create_follow_request,
+    follow,
+    get_follow_request_by_path,
+    get_relationship,
+    get_relationships,
+    unfollow,
+};
 use crate::models::users::queries::{
     is_valid_invite_code,
     create_user,
@@ -171,14 +178,14 @@ pub struct RelationshipQueryParams {
 }
 
 #[get("/relationships")]
-async fn get_relationships(
+async fn get_relationships_view(
     auth: BearerAuth,
     db_pool: web::Data<Pool>,
     query_params: web::Query<RelationshipQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let relationships = follows::get_relationships(
+    let relationships = get_relationships(
         db_client,
         current_user.id,
         vec![query_params.into_inner().id],
@@ -187,7 +194,7 @@ async fn get_relationships(
 }
 
 #[post("/{account_id}/follow")]
-async fn follow(
+async fn follow_account(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
@@ -195,12 +202,12 @@ async fn follow(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let profile = get_profile_by_id(db_client, &account_id).await?;
-    let maybe_remote_actor = profile.remote_actor()
+    let target = get_profile_by_id(db_client, &account_id).await?;
+    let maybe_remote_actor = target.remote_actor()
         .map_err(|_| HttpError::InternalError)?;
     if let Some(remote_actor) = maybe_remote_actor {
         // Remote follow
-        let request = follows::create_follow_request(db_client, &current_user.id, &profile.id).await?;
+        let request = create_follow_request(db_client, &current_user.id, &target.id).await?;
         let activity = create_activity_follow(
             &config.instance_url(),
             &current_user.profile,
@@ -209,18 +216,18 @@ async fn follow(
         );
         deliver_activity(&config, &current_user, activity, vec![remote_actor]);
     } else {
-        follows::follow(db_client, &current_user.id, &profile.id).await?;
+        follow(db_client, &current_user.id, &target.id).await?;
     };
-    let relationship = follows::get_relationship(
+    let relationship = get_relationship(
         db_client,
         &current_user.id,
-        &profile.id,
+        &target.id,
     ).await?;
     Ok(HttpResponse::Ok().json(relationship))
 }
 
 #[post("/{account_id}/unfollow")]
-async fn unfollow(
+async fn unfollow_account(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
@@ -228,20 +235,20 @@ async fn unfollow(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let target_profile = get_profile_by_id(db_client, &account_id).await?;
-    let maybe_remote_actor = target_profile.remote_actor()
+    let target = get_profile_by_id(db_client, &account_id).await?;
+    let maybe_remote_actor = target.remote_actor()
         .map_err(|_| HttpError::InternalError)?;
     if let Some(remote_actor) = maybe_remote_actor {
         // Remote follow
-        let follow_request = follows::get_follow_request_by_path(
+        let follow_request = get_follow_request_by_path(
             db_client,
             &current_user.id,
-            &target_profile.id,
+            &target.id,
         ).await?;
-        follows::unfollow(
+        unfollow(
             db_client,
             &current_user.id,
-            &target_profile.id,
+            &target.id,
         ).await?;
         // Federate
         let activity = create_activity_undo_follow(
@@ -252,12 +259,12 @@ async fn unfollow(
         );
         deliver_activity(&config, &current_user, activity, vec![remote_actor]);
     } else {
-        follows::unfollow(db_client, &current_user.id, &target_profile.id).await?;
+        unfollow(db_client, &current_user.id, &target.id).await?;
     };
-    let relationship = follows::get_relationship(
+    let relationship = get_relationship(
         db_client,
         &current_user.id,
-        &target_profile.id,
+        &target.id,
     ).await?;
     Ok(HttpResponse::Ok().json(relationship))
 }
@@ -301,12 +308,12 @@ pub fn account_api_scope() -> Scope {
     web::scope("/api/v1/accounts")
         // Routes without account ID
         .service(create_account)
-        .service(get_relationships)
+        .service(get_relationships_view)
         .service(verify_credentials)
         .service(update_credentials)
         // Routes with account ID
         .service(get_account)
-        .service(follow)
-        .service(unfollow)
+        .service(follow_account)
+        .service(unfollow_account)
         .service(get_account_statuses)
 }
