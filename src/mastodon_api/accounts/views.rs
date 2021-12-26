@@ -198,7 +198,7 @@ async fn follow(
     let profile = get_profile_by_id(db_client, &account_id).await?;
     let maybe_remote_actor = profile.remote_actor()
         .map_err(|_| HttpError::InternalError)?;
-    let relationship = if let Some(remote_actor) = maybe_remote_actor {
+    if let Some(remote_actor) = maybe_remote_actor {
         // Remote follow
         let request = follows::create_follow_request(db_client, &current_user.id, &profile.id).await?;
         let activity = create_activity_follow(
@@ -208,10 +208,14 @@ async fn follow(
             &remote_actor.id,
         );
         deliver_activity(&config, &current_user, activity, vec![remote_actor]);
-        follows::get_relationship(db_client, &current_user.id, &profile.id).await?
     } else {
-        follows::follow(db_client, &current_user.id, &profile.id).await?
+        follows::follow(db_client, &current_user.id, &profile.id).await?;
     };
+    let relationship = follows::get_relationship(
+        db_client,
+        &current_user.id,
+        &profile.id,
+    ).await?;
     Ok(HttpResponse::Ok().json(relationship))
 }
 
@@ -227,14 +231,14 @@ async fn unfollow(
     let target_profile = get_profile_by_id(db_client, &account_id).await?;
     let maybe_remote_actor = target_profile.remote_actor()
         .map_err(|_| HttpError::InternalError)?;
-    let relationship = if let Some(remote_actor) = maybe_remote_actor {
+    if let Some(remote_actor) = maybe_remote_actor {
         // Remote follow
         let follow_request = follows::get_follow_request_by_path(
             db_client,
             &current_user.id,
             &target_profile.id,
         ).await?;
-        let relationship = follows::unfollow(
+        follows::unfollow(
             db_client,
             &current_user.id,
             &target_profile.id,
@@ -247,11 +251,14 @@ async fn unfollow(
             &remote_actor.id,
         );
         deliver_activity(&config, &current_user, activity, vec![remote_actor]);
-        // TODO: uncouple unfollow and get_relationship
-        relationship
     } else {
-        follows::unfollow(db_client, &current_user.id, &target_profile.id).await?
+        follows::unfollow(db_client, &current_user.id, &target_profile.id).await?;
     };
+    let relationship = follows::get_relationship(
+        db_client,
+        &current_user.id,
+        &target_profile.id,
+    ).await?;
     Ok(HttpResponse::Ok().json(relationship))
 }
 

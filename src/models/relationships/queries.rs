@@ -86,7 +86,7 @@ pub async fn follow(
     db_client: &mut impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
-) -> Result<Relationship, DatabaseError> {
+) -> Result<(), DatabaseError> {
     let transaction = db_client.transaction().await?;
     transaction.execute(
         "
@@ -99,17 +99,16 @@ pub async fn follow(
     update_following_count(&transaction, source_id, 1).await?;
     if target_profile.is_local() {
         create_follow_notification(&transaction, source_id, target_id).await?;
-    }
-    let relationship = get_relationship(&transaction, source_id, target_id).await?;
+    };
     transaction.commit().await?;
-    Ok(relationship)
+    Ok(())
 }
 
 pub async fn unfollow(
     db_client: &mut impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
-) -> Result<Relationship, DatabaseError> {
+) -> Result<(), DatabaseError> {
     let transaction = db_client.transaction().await?;
     let deleted_count = transaction.execute(
         "
@@ -133,9 +132,8 @@ pub async fn unfollow(
         update_follower_count(&transaction, target_id, -1).await?;
         update_following_count(&transaction, source_id, -1).await?;
     }
-    let relationship = get_relationship(&transaction, source_id, target_id).await?;
     transaction.commit().await?;
-    Ok(relationship)
+    Ok(())
 }
 
 pub async fn create_follow_request(
