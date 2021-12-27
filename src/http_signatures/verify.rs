@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use actix_web::{
     HttpRequest,
     http::{HeaderMap, Method, Uri},
@@ -44,6 +46,8 @@ pub struct SignatureData {
     pub signature: String, // base64-encoded signature
 }
 
+const SIGNATURE_PARAMETER_RE: &str = r#"^(?P<key>[a-zA-Z]+)="(?P<value>.+)"$"#;
+
 fn parse_http_signature(
     request_method: &Method,
     request_uri: &Uri,
@@ -53,27 +57,25 @@ fn parse_http_signature(
         .ok_or(VerificationError::HeaderError("missing signature header"))?
         .to_str()
         .map_err(|_| VerificationError::HeaderError("invalid signature header"))?;
-    // TODO: support arbitrary parameter order
-    let signature_header_regexp_raw = concat!(
-        r#"keyId="(?P<key_id>.+)","#,
-        r#"headers="(?P<headers>.+)","#,
-        r#"signature="(?P<signature>.+)""#,
-    );
-    let signature_header_regexp = Regex::new(signature_header_regexp_raw).unwrap();
-    let signature_header_caps = signature_header_regexp
-        .captures(signature_header)
-        .ok_or(VerificationError::HeaderError("invalid signature header"))?;
-    let key_id = signature_header_caps.name("key_id")
+
+    let signature_parameter_re = Regex::new(SIGNATURE_PARAMETER_RE).unwrap();
+    let mut signature_parameters = HashMap::new();
+    for item in signature_header.split(",") {
+        let caps = signature_parameter_re.captures(item)
+            .ok_or(VerificationError::HeaderError("invalid signature header"))?;
+        let key = caps["key"].to_string();
+        let value = caps["value"].to_string();
+        signature_parameters.insert(key, value);
+    };
+
+    let key_id = signature_parameters.get("keyId")
         .ok_or(VerificationError::ParseError("keyId parameter is missing"))?
-        .as_str()
         .to_owned();
-    let headers_parameter = signature_header_caps.name("headers")
+    let headers_parameter = signature_parameters.get("headers")
         .ok_or(VerificationError::ParseError("headers parameter is missing"))?
-        .as_str()
         .to_owned();
-    let signature = signature_header_caps.name("signature")
+    let signature = signature_parameters.get("signature")
         .ok_or(VerificationError::ParseError("signature is missing"))?
-        .as_str()
         .to_owned();
 
     let mut message = format!(

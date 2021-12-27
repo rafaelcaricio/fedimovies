@@ -63,7 +63,7 @@ pub fn create_http_signature(
         .collect::<Vec<String>>().join(" ");
     let signature_parameter = sign_message(actor_key, &message)?;
     let signature_header = format!(
-        r#"keyId="{}",headers="{}",signature="{}""#,
+        r#"keyId="{}",algorithm="rsa-sha256",headers="{}",signature="{}""#,
         actor_key_id,
         headers_parameter,
         signature_parameter,
@@ -100,6 +100,7 @@ mod tests {
         assert_eq!(headers.digest, None);
         let expected_signature_header = concat!(
             r#"keyId="https://myserver.org/actor#main-key","#,
+            r#"algorithm="rsa-sha256","#,
             r#"headers="(request-target) host date","#,
             r#"signature=""#,
         );
@@ -133,6 +134,7 @@ mod tests {
         );
         let expected_signature_header = concat!(
             r#"keyId="https://myserver.org/actor#main-key","#,
+            r#"algorithm="rsa-sha256","#,
             r#"headers="(request-target) host date digest","#,
             r#"signature=""#,
         );
