@@ -11,6 +11,10 @@ use uuid::Uuid;
 use crate::activitypub::views::get_actor_url;
 use crate::errors::{ConversionError, ValidationError};
 use crate::utils::html::clean_html;
+use super::validators::{
+    validate_username,
+    validate_display_name,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ExtraField {
@@ -137,6 +141,14 @@ pub struct ProfileCreateData {
     pub actor: Option<Value>,
 }
 
+impl ProfileCreateData {
+    pub fn clean(&self) -> Result<(), ValidationError> {
+        validate_username(&self.username)?;
+        validate_display_name(self.display_name.as_ref())?;
+        Ok(())
+    }
+}
+
 pub struct ProfileUpdateData {
     pub display_name: Option<String>,
     pub bio: Option<String>,
@@ -169,7 +181,7 @@ impl ProfileUpdateData {
         unique_labels.dedup();
         if unique_labels.len() < self.extra_fields.len() {
             return Err(ValidationError("duplicate labels"));
-        }
+        };
         Ok(())
     }
 }

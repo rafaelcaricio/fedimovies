@@ -1,7 +1,7 @@
 CREATE TABLE actor_profile (
     id UUID PRIMARY KEY,
     username VARCHAR(100) NOT NULL,
-    display_name VARCHAR(100),
+    display_name VARCHAR(200),
     acct VARCHAR(200) UNIQUE NOT NULL,
     bio TEXT,
     bio_source TEXT,

@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::errors::ValidationError;
 use crate::models::profiles::types::DbActorProfile;
+use crate::models::profiles::validators::validate_username;
 
 #[derive(FromSql)]
 #[postgres(name = "user_account")]
@@ -53,7 +54,7 @@ pub struct UserCreateData {
     pub invite_code: Option<String>,
 }
 
-fn validate_username(username: &str) -> Result<(), ValidationError> {
+fn validate_local_username(username: &str) -> Result<(), ValidationError> {
     // The username regexp should not allow domain names and IP addresses
     let username_regexp = Regex::new(r"^[a-z0-9_]+$").unwrap();
     if !username_regexp.is_match(username) {
@@ -66,6 +67,7 @@ impl UserCreateData {
     /// Validate and clean.
     pub fn clean(&self) -> Result<(), ValidationError> {
         validate_username(&self.username)?;
+        validate_local_username(&self.username)?;
         Ok(())
     }
 }
@@ -75,10 +77,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_validate_username() {
-        let result_1 = validate_username("name_1");
+    fn test_validate_local_username() {
+        let result_1 = validate_local_username("name_1");
         assert_eq!(result_1.is_ok(), true);
-        let result_2 = validate_username("name&");
+        let result_2 = validate_local_username("name&");
         assert_eq!(result_2.is_ok(), false);
     }
 }

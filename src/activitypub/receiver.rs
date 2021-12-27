@@ -136,7 +136,22 @@ pub enum ImportError {
     FetchError(#[from] FetchError),
 
     #[error(transparent)]
+    ValidationError(#[from] ValidationError),
+
+    #[error(transparent)]
     DatabaseError(#[from] DatabaseError),
+}
+
+impl From<ImportError> for HttpError {
+    fn from(error: ImportError) -> Self {
+        match error {
+            ImportError::FetchError(error) => {
+                HttpError::ValidationError(error.to_string())
+            },
+            ImportError::ValidationError(error) => error.into(),
+            ImportError::DatabaseError(error) => error.into(),
+        }
+    }
 }
 
 async fn get_or_fetch_profile_by_actor_id(
@@ -187,6 +202,7 @@ pub async fn import_profile_by_actor_address(
         };
     };
     log::info!("fetched profile {}", profile_data.acct);
+    profile_data.clean()?;
     let profile = create_profile(db_client, &profile_data).await?;
     Ok(profile)
 }
@@ -328,13 +344,13 @@ pub async fn process_note(
                                     &actor_address,
                                 ).await {
                                     Ok(profile) => profile,
-                                    Err(ImportError::DatabaseError(error)) => {
-                                        return Err(error.into());
-                                    },
                                     Err(ImportError::FetchError(error)) => {
                                         // Ignore mention if fetcher fails
                                         log::warn!("{}", error);
                                         continue;
+                                    },
+                                    Err(other_error) => {
+                                        return Err(other_error.into());
                                     },
                                 }
                             },
