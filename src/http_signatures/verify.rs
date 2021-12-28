@@ -6,14 +6,13 @@ use actix_web::{
 };
 use regex::Regex;
 
-use crate::activitypub::fetcher::fetchers::fetch_profile_by_actor_id;
+use crate::activitypub::fetcher::helpers::{
+    get_or_import_profile_by_actor_id,
+    ImportError,
+};
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::DatabaseError;
-use crate::models::profiles::queries::{
-    get_profile_by_actor_id,
-    create_profile,
-};
 use crate::utils::crypto::{deserialize_public_key, verify_signature};
 
 #[derive(thiserror::Error, Debug)]
@@ -60,7 +59,7 @@ fn parse_http_signature(
 
     let signature_parameter_re = Regex::new(SIGNATURE_PARAMETER_RE).unwrap();
     let mut signature_parameters = HashMap::new();
-    for item in signature_header.split(",") {
+    for item in signature_header.split(',') {
         let caps = signature_parameter_re.captures(item)
             .ok_or(VerificationError::HeaderError("invalid signature header"))?;
         let key = caps["key"].to_string();
@@ -123,23 +122,16 @@ pub async fn verify_http_signature(
     )?;
 
     let db_client = &**get_database_client(db_pool).await?;
-    let actor_profile = match get_profile_by_actor_id(db_client, &signature_data.actor_id).await {
+    let actor_profile = match get_or_import_profile_by_actor_id(
+        db_client,
+        &config.instance(),
+        &config.media_dir(),
+        &signature_data.actor_id,
+    ).await {
         Ok(profile) => profile,
-        Err(err) => match err {
-            DatabaseError::NotFound(_) => {
-                let profile_data = fetch_profile_by_actor_id(
-                    &config.instance(),
-                    &signature_data.actor_id,
-                    &config.media_dir(),
-                ).await.map_err(|err| {
-                    VerificationError::ActorError(err.to_string())
-                })?;
-                let profile = create_profile(db_client, &profile_data).await?;
-                profile
-            },
-            other_error => {
-                return Err(other_error.into());
-            },
+        Err(ImportError::DatabaseError(error)) => return Err(error.into()),
+        Err(other_error) => {
+            return Err(VerificationError::ActorError(other_error.to_string()));
         },
     };
     let actor = actor_profile.remote_actor().ok().flatten()

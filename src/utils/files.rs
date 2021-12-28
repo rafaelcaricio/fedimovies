@@ -22,7 +22,7 @@ pub fn save_file(data: Vec<u8>, output_dir: &Path) -> Result<String, FileError> 
     let digest = Sha256::digest(&data);
     let mut file_name = hex::encode(digest);
     let maybe_extension = data.sniff_mime_type()
-        .and_then(|media_type| get_mime_extensions_str(media_type))
+        .and_then(get_mime_extensions_str)
         .and_then(|extensions| extensions.first());
     if let Some(extension) = maybe_extension {
         // Append extension for known media types

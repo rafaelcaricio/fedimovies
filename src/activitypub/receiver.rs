@@ -45,7 +45,7 @@ use super::fetcher::fetchers::{
     fetch_object,
 };
 use super::fetcher::helpers::{
-    get_or_fetch_profile_by_actor_id,
+    get_or_import_profile_by_actor_id,
     import_profile_by_actor_address,
     ImportError,
 };
@@ -211,11 +211,11 @@ pub async fn process_note(
             .get(0)
             .ok_or(ValidationError("invalid attributedTo property"))?
             .to_string();
-        let author = get_or_fetch_profile_by_actor_id(
+        let author = get_or_import_profile_by_actor_id(
             db_client,
             &instance,
-            &author_id,
             &config.media_dir(),
+            &author_id,
         ).await?;
         let content = object.content
             .ok_or(ValidationError("no content"))?;
@@ -378,11 +378,11 @@ pub async fn receive_activity(
                 Err(DatabaseError::NotFound(_)) => (),
                 Err(other_error) => return Err(other_error.into()),
             };
-            let author = get_or_fetch_profile_by_actor_id(
+            let author = get_or_import_profile_by_actor_id(
                 db_client,
                 &config.instance(),
-                &activity.actor,
                 &config.media_dir(),
+                &activity.actor,
             ).await?;
             let object_id = get_object_id(activity.object)?;
             let post_id = match parse_object_id(&config.instance_url(), &object_id) {
@@ -417,11 +417,11 @@ pub async fn receive_activity(
             NOTE
         },
         (LIKE, _) | (EMOJI_REACT, _) => {
-            let author = get_or_fetch_profile_by_actor_id(
+            let author = get_or_import_profile_by_actor_id(
                 db_client,
                 &config.instance(),
-                &activity.actor,
                 &config.media_dir(),
+                &activity.actor,
             ).await?;
             let object_id = get_object_id(activity.object)?;
             let post_id = match parse_object_id(&config.instance_url(), &object_id) {
@@ -450,11 +450,11 @@ pub async fn receive_activity(
             NOTE
         },
         (FOLLOW, _) => {
-            let source_profile = get_or_fetch_profile_by_actor_id(
+            let source_profile = get_or_import_profile_by_actor_id(
                 db_client,
                 &config.instance(),
-                &activity.actor,
                 &config.media_dir(),
+                &activity.actor,
             ).await?;
             let source_actor = source_profile.remote_actor().ok().flatten()
                 .ok_or(HttpError::InternalError)?;

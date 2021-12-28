@@ -82,7 +82,7 @@ impl Status {
             .map(|item| Mention::from_profile(item, instance_url))
             .collect();
         let tags: Vec<Tag> = post.tags.into_iter()
-            .map(|tag_name| Tag::from_tag_name(tag_name))
+            .map(Tag::from_tag_name)
             .collect();
         let account = Account::from_profile(post.author, instance_url);
         let reblog = if let Some(repost_of) = post.repost_of {

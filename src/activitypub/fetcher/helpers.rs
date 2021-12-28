@@ -41,12 +41,12 @@ impl From<ImportError> for HttpError {
     }
 }
 
-pub async fn get_or_fetch_profile_by_actor_id(
+pub async fn get_or_import_profile_by_actor_id(
     db_client: &impl GenericClient,
     instance: &Instance,
-    actor_id: &str,
     media_dir: &Path,
-) -> Result<DbActorProfile, HttpError> {
+    actor_id: &str,
+) -> Result<DbActorProfile, ImportError> {
     let profile = match get_profile_by_actor_id(db_client, actor_id).await {
         Ok(profile) => profile,
         Err(DatabaseError::NotFound(_)) => {
@@ -56,7 +56,7 @@ pub async fn get_or_fetch_profile_by_actor_id(
                 .await
                 .map_err(|err| {
                     log::warn!("{}", err);
-                    ValidationError("failed to fetch actor")
+                    err
                 })?;
             log::info!("fetched profile {}", profile_data.acct);
             let profile = create_profile(db_client, &profile_data).await?;

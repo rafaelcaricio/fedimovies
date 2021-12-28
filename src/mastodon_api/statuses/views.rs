@@ -395,7 +395,7 @@ async fn unreblog(
     let activity = create_activity_undo_announce(
         &config.instance_url(),
         &current_user.profile,
-        &repost_id,
+        repost_id,
         primary_recipient.as_ref(),
     );
     deliver_activity(&config, &current_user, activity, recipients);
