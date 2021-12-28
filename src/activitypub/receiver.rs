@@ -480,6 +480,11 @@ pub async fn receive_activity(
         },
         (DELETE, _) => {
             let object_id = get_object_id(activity.object)?;
+            if object_id == activity.actor {
+                log::info!("received deletion request for {}", object_id);
+                // Ignore Delete(Person)
+                return Ok(());
+            };
             let post = get_post_by_object_id(db_client, &object_id).await?;
             let deletion_queue = delete_post(db_client, &post.id).await?;
             let config = config.clone();
