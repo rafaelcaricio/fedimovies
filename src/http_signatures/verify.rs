@@ -6,7 +6,7 @@ use actix_web::{
 };
 use regex::Regex;
 
-use crate::activitypub::fetcher::fetch_profile_by_actor_id;
+use crate::activitypub::fetcher::fetchers::fetch_profile_by_actor_id;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::DatabaseError;

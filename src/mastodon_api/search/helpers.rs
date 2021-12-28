@@ -2,10 +2,8 @@ use regex::Regex;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::actor::ActorAddress;
-use crate::activitypub::receiver::{
-    import_profile_by_actor_address,
-    process_note,
-};
+use crate::activitypub::receiver::process_note;
+use crate::activitypub::fetcher::helpers::import_profile_by_actor_address;
 use crate::config::Config;
 use crate::errors::{ValidationError, HttpError};
 use crate::mastodon_api::accounts::types::Account;

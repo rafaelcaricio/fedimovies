@@ -1,12 +1,11 @@
 use std::collections::HashMap;
-use std::path::Path;
 
 use regex::Regex;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::config::{Config, Instance};
+use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{ConversionError, DatabaseError, HttpError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
@@ -22,10 +21,9 @@ use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
-    create_profile,
     update_profile,
 };
-use crate::models::profiles::types::{DbActorProfile, ProfileUpdateData};
+use crate::models::profiles::types::ProfileUpdateData;
 use crate::models::reactions::queries::{
     create_reaction,
     get_reaction_by_activity_id,
@@ -39,15 +37,17 @@ use crate::models::relationships::queries::{
 };
 use crate::models::users::queries::get_user_by_id;
 use super::activity::{Object, Activity, create_activity_accept_follow};
-use super::actor::{Actor, ActorAddress};
+use super::actor::Actor;
 use super::deliverer::deliver_activity;
-use super::fetcher::{
-    FetchError,
+use super::fetcher::fetchers::{
     fetch_avatar_and_banner,
-    fetch_profile,
-    fetch_profile_by_actor_id,
     fetch_attachment,
     fetch_object,
+};
+use super::fetcher::helpers::{
+    get_or_fetch_profile_by_actor_id,
+    import_profile_by_actor_address,
+    ImportError,
 };
 use super::vocabulary::*;
 
@@ -128,83 +128,6 @@ fn get_object_id(object: Value) -> Result<String, ValidationError> {
         },
     };
     Ok(object_id)
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum ImportError {
-    #[error(transparent)]
-    FetchError(#[from] FetchError),
-
-    #[error(transparent)]
-    ValidationError(#[from] ValidationError),
-
-    #[error(transparent)]
-    DatabaseError(#[from] DatabaseError),
-}
-
-impl From<ImportError> for HttpError {
-    fn from(error: ImportError) -> Self {
-        match error {
-            ImportError::FetchError(error) => {
-                HttpError::ValidationError(error.to_string())
-            },
-            ImportError::ValidationError(error) => error.into(),
-            ImportError::DatabaseError(error) => error.into(),
-        }
-    }
-}
-
-async fn get_or_fetch_profile_by_actor_id(
-    db_client: &impl GenericClient,
-    instance: &Instance,
-    actor_id: &str,
-    media_dir: &Path,
-) -> Result<DbActorProfile, HttpError> {
-    let profile = match get_profile_by_actor_id(db_client, actor_id).await {
-        Ok(profile) => profile,
-        Err(DatabaseError::NotFound(_)) => {
-            let profile_data = fetch_profile_by_actor_id(
-                instance, actor_id, media_dir,
-            )
-                .await
-                .map_err(|err| {
-                    log::warn!("{}", err);
-                    ValidationError("failed to fetch actor")
-                })?;
-            log::info!("fetched profile {}", profile_data.acct);
-            let profile = create_profile(db_client, &profile_data).await?;
-            profile
-        },
-        Err(other_error) => return Err(other_error.into()),
-    };
-    Ok(profile)
-}
-
-/// Fetches actor profile and saves it into database
-pub async fn import_profile_by_actor_address(
-    db_client: &impl GenericClient,
-    instance: &Instance,
-    media_dir: &Path,
-    actor_address: &ActorAddress,
-) -> Result<DbActorProfile, ImportError> {
-    let profile_data = fetch_profile(
-        instance,
-        &actor_address.username,
-        &actor_address.instance,
-        media_dir,
-    ).await?;
-    if profile_data.acct != actor_address.acct() {
-        // Redirected to different server
-        match get_profile_by_acct(db_client, &profile_data.acct).await {
-            Ok(profile) => return Ok(profile),
-            Err(DatabaseError::NotFound(_)) => (),
-            Err(other_error) => return Err(other_error.into()),
-        };
-    };
-    log::info!("fetched profile {}", profile_data.acct);
-    profile_data.clean()?;
-    let profile = create_profile(db_client, &profile_data).await?;
-    Ok(profile)
 }
 
 pub async fn process_note(
