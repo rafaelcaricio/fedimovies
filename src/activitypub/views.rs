@@ -1,6 +1,7 @@
 use actix_web::{
     get, post, web,
     HttpRequest, HttpResponse, Scope,
+    http::HeaderMap,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -51,16 +52,18 @@ pub fn get_object_url(instance_url: &str, internal_object_id: &Uuid) -> String {
     format!("{}/objects/{}", instance_url, internal_object_id)
 }
 
-fn is_activitypub_request(request: &HttpRequest) -> bool {
-    const CONTENT_TYPES: [&str; 5] = [
+fn is_activitypub_request(headers: &HeaderMap) -> bool {
+    const CONTENT_TYPES: [&str; 4] = [
         ACTIVITY_CONTENT_TYPE,
-        "application/activity+json, application/ld+json",  // Mastodon
         "application/activity+json",
         "application/ld+json",
         "application/json",
     ];
-    if let Some(content_type) = request.headers().get("Accept") {
-        let content_type_str = content_type.to_str().unwrap_or("");
+    if let Some(content_type) = headers.get("Accept") {
+        let content_type_str = content_type.to_str().ok()
+            // Take first content type if there are many
+            .and_then(|value| value.split(",").next())
+            .unwrap_or("");
         return CONTENT_TYPES.contains(&content_type_str);
     };
     false
@@ -75,7 +78,7 @@ async fn actor_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
-    if !is_activitypub_request(&request) {
+    if !is_activitypub_request(&request.headers()) {
         let page_url = get_profile_page_url(&config.instance_url(), &user.id);
         let response = HttpResponse::Found()
             .header("Location", page_url)
@@ -263,7 +266,7 @@ pub async fn object_view(
     let post = thread.iter()
         .find(|post| post.id == internal_object_id && post.author.is_local())
         .ok_or(HttpError::NotFoundError("post"))?;
-    if !is_activitypub_request(&request) {
+    if !is_activitypub_request(&request.headers()) {
         let page_url = get_post_page_url(&config.instance_url(), &post.id);
         let response = HttpResponse::Found()
             .header("Location", page_url)
@@ -286,4 +289,43 @@ pub async fn object_view(
         .content_type(ACTIVITY_CONTENT_TYPE)
         .json(object);
     Ok(response)
+}
+
+#[cfg(test)]
+mod tests {
+    use actix_web::http::{header, HeaderMap, HeaderValue};
+    use super::*;
+
+    #[test]
+    fn test_is_activitypub_request_mastodon() {
+        let mut request_headers = HeaderMap::new();
+        request_headers.insert(
+            header::ACCEPT,
+            HeaderValue::from_static(r#"application/activity+json, application/ld+json; profile="https://www.w3.org/ns/activitystreams", text/html;q=0.1"#),
+        );
+        let result = is_activitypub_request(&request_headers);
+        assert_eq!(result, true);
+    }
+
+    #[test]
+    fn test_is_activitypub_request_pleroma() {
+        let mut request_headers = HeaderMap::new();
+        request_headers.insert(
+            header::ACCEPT,
+            HeaderValue::from_static("application/activity+json"),
+        );
+        let result = is_activitypub_request(&request_headers);
+        assert_eq!(result, true);
+    }
+
+    #[test]
+    fn test_is_activitypub_request_browser() {
+        let mut request_headers = HeaderMap::new();
+        request_headers.insert(
+            header::ACCEPT,
+            HeaderValue::from_static("text/html"),
+        );
+        let result = is_activitypub_request(&request_headers);
+        assert_eq!(result, false);
+    }
 }
