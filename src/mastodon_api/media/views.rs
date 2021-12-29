@@ -28,8 +28,8 @@ async fn create_attachment_view(
     let db_attachment = create_attachment(
         db_client,
         &current_user.id,
-        media_type,
         file_name,
+        media_type,
     ).await?;
     let attachment = Attachment::from_db(
         db_attachment,

@@ -22,7 +22,7 @@ pub struct Attachment {
     #[serde(rename = "type")]
     pub attachment_type: String,
 
-    pub media_type: String,
+    pub media_type: Option<String>,
     pub url: String,
 }
 
@@ -169,7 +169,7 @@ pub fn create_note(
     );
     let attachments: Vec<Attachment> = post.attachments.iter().map(|db_item| {
         let url = get_file_url(instance_url, &db_item.file_name);
-        let media_type = db_item.media_type.clone().unwrap_or("".to_string());
+        let media_type = db_item.media_type.clone();
         Attachment {
             name: None,
             attachment_type: DOCUMENT.to_string(),

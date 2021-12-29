@@ -18,6 +18,10 @@ pub enum FileError {
     InvalidMediaType,
 }
 
+fn sniff_media_type(data: &[u8]) -> Option<String> {
+    data.sniff_mime_type().map(|val| val.to_string())
+}
+
 /// Generates unique file name based on file contents
 fn get_file_name(data: &[u8], media_type: Option<&str>) -> String {
     let digest = Sha256::digest(data);
@@ -38,15 +42,15 @@ fn write_file(data: Vec<u8>, file_path: &Path) -> Result<(), FileError> {
     Ok(())
 }
 
-pub fn save_file(data: Vec<u8>, output_dir: &Path) -> Result<String, FileError> {
-    let file_name = get_file_name(&data, data.sniff_mime_type());
+pub fn save_file(
+    data: Vec<u8>,
+    output_dir: &Path,
+) -> Result<(String, Option<String>), FileError> {
+    let media_type = sniff_media_type(&data);
+    let file_name = get_file_name(&data, media_type.as_deref());
     let file_path = output_dir.join(&file_name);
     write_file(data, &file_path)?;
-    Ok(file_name)
-}
-
-fn sniff_media_type(data: &[u8]) -> Option<String> {
-    data.sniff_mime_type().map(|val| val.to_string())
+    Ok((file_name, media_type))
 }
 
 pub fn save_b64_file(

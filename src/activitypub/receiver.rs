@@ -221,20 +221,23 @@ pub async fn process_note(
             .ok_or(ValidationError("no content"))?;
         let mut attachments: Vec<Uuid> = Vec::new();
         if let Some(list) = object.attachment {
-            let mut downloaded: Vec<(String, String)> = Vec::new();
+            let mut downloaded = vec![];
             let output_dir = config.media_dir();
             for attachment in list {
-                let file_name = fetch_attachment(&attachment.url, &output_dir).await
+                let (file_name, media_type) = fetch_attachment(&attachment.url, &output_dir).await
                     .map_err(|_| ValidationError("failed to fetch attachment"))?;
                 log::info!("downloaded attachment {}", attachment.url);
-                downloaded.push((file_name, attachment.media_type));
+                downloaded.push((
+                    file_name,
+                    attachment.media_type.or(media_type),
+                ));
             }
             for (file_name, media_type) in downloaded {
                 let db_attachment = create_attachment(
                     db_client,
                     &author.id,
-                    Some(media_type),
                     file_name,
+                    media_type,
                 ).await?;
                 attachments.push(db_attachment.id);
             }

@@ -74,7 +74,7 @@ pub async fn fetch_avatar_and_banner(
 ) -> Result<(Option<String>, Option<String>), FetchError> {
     let avatar = match &actor.icon {
         Some(icon) => {
-            let file_name = fetch_attachment(
+            let (file_name, _) = fetch_attachment(
                 &icon.url,
                 media_dir,
             ).await?;
@@ -84,7 +84,7 @@ pub async fn fetch_avatar_and_banner(
     };
     let banner = match &actor.image {
         Some(image) => {
-            let file_name = fetch_attachment(
+            let (file_name, _) = fetch_attachment(
                 &image.url,
                 media_dir,
             ).await?;
@@ -158,11 +158,11 @@ pub async fn fetch_profile_by_actor_id(
 pub async fn fetch_attachment(
     url: &str,
     output_dir: &Path,
-) -> Result<String, FetchError> {
+) -> Result<(String, Option<String>), FetchError> {
     let response = reqwest::get(url).await?;
     let file_data = response.bytes().await?;
-    let file_name = save_file(file_data.to_vec(), output_dir)?;
-    Ok(file_name)
+    let (file_name, media_type) = save_file(file_data.to_vec(), output_dir)?;
+    Ok((file_name, media_type))
 }
 
 pub async fn fetch_object(

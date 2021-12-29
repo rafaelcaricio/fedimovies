@@ -8,8 +8,8 @@ use super::types::DbMediaAttachment;
 pub async fn create_attachment(
     db_client: &impl GenericClient,
     owner_id: &Uuid,
-    media_type: Option<String>,
     file_name: String,
+    media_type: Option<String>,
 ) -> Result<DbMediaAttachment, DatabaseError> {
     let attachment_id = new_uuid();
     let inserted_row = db_client.query_one(
