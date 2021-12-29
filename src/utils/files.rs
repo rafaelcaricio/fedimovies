@@ -18,19 +18,30 @@ pub enum FileError {
     InvalidMediaType,
 }
 
-pub fn save_file(data: Vec<u8>, output_dir: &Path) -> Result<String, FileError> {
-    let digest = Sha256::digest(&data);
+/// Generates unique file name based on file contents
+fn get_file_name(data: &[u8], media_type: Option<&str>) -> String {
+    let digest = Sha256::digest(data);
     let mut file_name = hex::encode(digest);
-    let maybe_extension = data.sniff_mime_type()
+    let maybe_extension = media_type
         .and_then(get_mime_extensions_str)
         .and_then(|extensions| extensions.first());
     if let Some(extension) = maybe_extension {
         // Append extension for known media types
         file_name = format!("{}.{}", file_name, extension);
-    }
-    let file_path = output_dir.join(&file_name);
-    let mut file = File::create(&file_path)?;
+    };
+    file_name
+}
+
+fn write_file(data: Vec<u8>, file_path: &Path) -> Result<(), FileError> {
+    let mut file = File::create(file_path)?;
     file.write_all(&data)?;
+    Ok(())
+}
+
+pub fn save_file(data: Vec<u8>, output_dir: &Path) -> Result<String, FileError> {
+    let file_name = get_file_name(&data, data.sniff_mime_type());
+    let file_path = output_dir.join(&file_name);
+    write_file(data, &file_path)?;
     Ok(file_name)
 }
 
@@ -44,7 +55,9 @@ pub fn save_b64_file(
 ) -> Result<(String, Option<String>), FileError> {
     let data = base64::decode(b64data)?;
     let media_type = sniff_media_type(&data);
-    let file_name = save_file(data, output_dir)?;
+    let file_name = get_file_name(&data, media_type.as_deref());
+    let file_path = output_dir.join(&file_name);
+    write_file(data, &file_path)?;
     Ok((file_name, media_type))
 }
 
@@ -59,7 +72,9 @@ pub fn save_validated_b64_file(
     if !media_type.starts_with(media_type_prefix) {
         return Err(FileError::InvalidMediaType);
     }
-    let file_name = save_file(data, output_dir)?;
+    let file_name = get_file_name(&data, Some(&media_type));
+    let file_path = output_dir.join(&file_name);
+    write_file(data, &file_path)?;
     Ok((file_name, media_type))
 }
 
@@ -75,5 +90,23 @@ pub fn remove_files(files: Vec<String>, from_dir: &Path) -> () {
             Ok(_) => log::info!("removed file {}", file_path_str),
             Err(_) => log::warn!("failed to remove file {}", file_path_str),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_file_name() {
+        let mut data = vec![];
+        data.extend_from_slice(b"\x89PNG\x0D\x0A\x1A\x0A");
+        let media_type = data.sniff_mime_type();
+        let file_name = get_file_name(&data, media_type);
+
+        assert_eq!(
+            file_name,
+            "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6.png",
+        );
     }
 }
