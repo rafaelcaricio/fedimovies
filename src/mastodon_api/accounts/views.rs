@@ -31,6 +31,7 @@ use crate::models::relationships::queries::{
     follow,
     get_follow_request_by_path,
     get_followers,
+    get_following,
     get_relationship,
     get_relationships,
     unfollow,
@@ -45,7 +46,12 @@ use crate::utils::crypto::{
     serialize_private_key,
 };
 use crate::utils::files::FileError;
-use super::types::{Account, AccountCreateData, AccountUpdateData};
+use super::types::{
+    Account,
+    AccountCreateData,
+    AccountUpdateData,
+    FollowListQueryParams,
+};
 
 #[post("")]
 pub async fn create_account(
@@ -154,7 +160,7 @@ async fn update_credentials(
     // Federate
     let activity = create_activity_update_person(&current_user, &config.instance_url())
         .map_err(|_| HttpError::InternalError)?;
-    let followers = get_followers(db_client, &current_user.id).await?;
+    let followers = get_followers(db_client, &current_user.id, None, None).await?;
     let mut recipients: Vec<Actor> = Vec::new();
     for follower in followers {
         if let Some(remote_actor) = follower.actor_json {
@@ -298,6 +304,62 @@ async fn get_account_statuses(
     Ok(HttpResponse::Ok().json(statuses))
 }
 
+#[get("/{account_id}/followers")]
+async fn get_account_followers(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(account_id): web::Path<Uuid>,
+    query_params: web::Query<FollowListQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let profile = get_profile_by_id(db_client, &account_id).await?;
+    if profile.id != current_user.id {
+        // Social graph is hidden
+        let accounts: Vec<Account> = vec![];
+        return Ok(HttpResponse::Ok().json(accounts));
+    };
+    let followers = get_followers(
+        db_client,
+        &profile.id,
+        query_params.max_id,
+        Some(query_params.limit),
+    ).await?;
+    let accounts: Vec<Account> = followers.into_iter()
+        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .collect();
+    Ok(HttpResponse::Ok().json(accounts))
+}
+
+#[get("/{account_id}/following")]
+async fn get_account_following(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    web::Path(account_id): web::Path<Uuid>,
+    query_params: web::Query<FollowListQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let profile = get_profile_by_id(db_client, &account_id).await?;
+    if profile.id != current_user.id {
+        // Social graph is hidden
+        let accounts: Vec<Account> = vec![];
+        return Ok(HttpResponse::Ok().json(accounts));
+    };
+    let following = get_following(
+        db_client,
+        &profile.id,
+        query_params.max_id,
+        Some(query_params.limit),
+    ).await?;
+    let accounts: Vec<Account> = following.into_iter()
+        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .collect();
+    Ok(HttpResponse::Ok().json(accounts))
+}
+
 pub fn account_api_scope() -> Scope {
     web::scope("/api/v1/accounts")
         // Routes without account ID
@@ -310,4 +372,6 @@ pub fn account_api_scope() -> Scope {
         .service(follow_account)
         .service(unfollow_account)
         .service(get_account_statuses)
+        .service(get_account_followers)
+        .service(get_account_following)
 }

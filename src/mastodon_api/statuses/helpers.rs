@@ -12,7 +12,7 @@ pub async fn get_note_audience(
     current_user: &User,
     post: &Post,
 ) -> Result<Vec<Actor>, DatabaseError> {
-    let mut audience = get_followers(db_client, &current_user.id).await?;
+    let mut audience = get_followers(db_client, &current_user.id, None, None).await?;
     if let Some(in_reply_to_id) = post.in_reply_to_id {
         // TODO: use post.in_reply_to ?
         let in_reply_to_author = get_post_author(db_client, &in_reply_to_id).await?;
@@ -51,7 +51,7 @@ pub async fn get_announce_audience(
     current_user: &User,
     post: &Post,
 ) -> Result<Audience, DatabaseError> {
-    let followers = get_followers(db_client, &current_user.id).await?;
+    let followers = get_followers(db_client, &current_user.id, None, None).await?;
     let mut recipients: Vec<Actor> = Vec::new();
     for profile in followers {
         if let Some(remote_actor) = profile.actor_json {

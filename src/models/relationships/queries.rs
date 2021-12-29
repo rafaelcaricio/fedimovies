@@ -242,6 +242,8 @@ pub async fn get_follow_request_by_path(
 pub async fn get_followers(
     db_client: &impl GenericClient,
     profile_id: &Uuid,
+    max_relationship_id: Option<i32>,
+    limit: Option<i64>,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -249,10 +251,39 @@ pub async fn get_followers(
         FROM actor_profile
         JOIN relationship
         ON (actor_profile.id = relationship.source_id)
-        WHERE relationship.target_id = $1
+        WHERE
+            relationship.target_id = $1
+            AND ($2::integer IS NULL OR relationship.id < $2)
         ORDER BY relationship.id DESC
+        LIMIT $3
         ",
-        &[&profile_id],
+        &[&profile_id, &max_relationship_id, &limit],
+    ).await?;
+    let profiles = rows.iter()
+        .map(|row| row.try_get("actor_profile"))
+        .collect::<Result<_, _>>()?;
+    Ok(profiles)
+}
+
+pub async fn get_following(
+    db_client: &impl GenericClient,
+    profile_id: &Uuid,
+    max_relationship_id: Option<i32>,
+    limit: Option<i64>,
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT actor_profile
+        FROM actor_profile
+        JOIN relationship
+        ON (actor_profile.id = relationship.target_id)
+        WHERE
+            relationship.source_id = $1
+            AND ($2::integer IS NULL OR relationship.id < $2)
+        ORDER BY relationship.id DESC
+        LIMIT $3
+        ",
+        &[&profile_id, &max_relationship_id, &limit],
     ).await?;
     let profiles = rows.iter()
         .map(|row| row.try_get("actor_profile"))

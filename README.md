@@ -118,6 +118,9 @@ PATCH /api/v1/accounts/update_credentials
 GET /api/v1/accounts/relationships
 POST /api/v1/accounts/{account_id}/follow
 POST /api/v1/accounts/{account_id}/unfollow
+GET /api/v1/accounts/{account_id}/statuses
+GET /api/v1/accounts/{account_id}/followers
+GET /api/v1/accounts/{account_id}/following
 GET /api/v1/directory
 GET /api/v1/instance
 GET /api/v1/markers
@@ -145,7 +148,7 @@ GET /api/v1/statuses/{status_id}/signature
 POST /api/v1/statuses/{status_id}/token_minted
 ```
 
-[OpenAPI spec](./docs/openapi.yaml)
+[OpenAPI spec](./docs/openapi.yaml) (incomplete)
 
 ## CLI commands
 

@@ -174,6 +174,16 @@ impl AccountUpdateData {
     }
 }
 
+fn default_page_size() -> i64 { 40 }
+
+#[derive(Deserialize)]
+pub struct FollowListQueryParams {
+    pub max_id: Option<i32>,
+
+    #[serde(default = "default_page_size")]
+    pub limit: i64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
