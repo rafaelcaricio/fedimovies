@@ -411,7 +411,12 @@ pub async fn receive_activity(
                 // Ignore Delete(Person)
                 return Ok(());
             };
-            let post = get_post_by_object_id(db_client, &object_id).await?;
+            let post = match get_post_by_object_id(db_client, &object_id).await {
+                Ok(post) => post,
+                // Ignore Delete(Note) if post is not found
+                Err(DatabaseError::NotFound(_)) => return Ok(()),
+                Err(other_error) => return Err(other_error.into()),
+            };
             let deletion_queue = delete_post(db_client, &post.id).await?;
             let config = config.clone();
             actix_rt::spawn(async move {
