@@ -346,10 +346,18 @@ pub async fn process_note(
 pub async fn receive_activity(
     config: &Config,
     db_pool: &Pool,
+    signer_id: &str,
     activity_raw: &Value,
 ) -> Result<(), HttpError> {
     let activity: Activity = serde_json::from_value(activity_raw.clone())
         .map_err(|_| ValidationError("invalid activity"))?;
+    if activity.actor != signer_id {
+        log::warn!(
+            "request signer {} does not match actor {}",
+            signer_id,
+            activity.actor,
+        );
+    };
     let activity_type = activity.activity_type;
     let maybe_object_type = activity.object.get("type")
         .and_then(|val| val.as_str())

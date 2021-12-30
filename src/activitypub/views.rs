@@ -110,12 +110,17 @@ async fn inbox(
         log::info!("received in {}: {}", request.uri().path(), activity_type);
     };
     let signature_verified = verify_http_signature(&config, &db_pool, &request).await;
-    match signature_verified {
-        Ok(signer_id) => log::debug!("activity signed by {}", signer_id),
-        // TODO: return error 401
-        Err(err) => log::warn!("invalid signature: {}", err),
+    let signer_id = match signature_verified {
+        Ok(signer_id) => {
+            log::debug!("activity signed by {}", signer_id);
+            signer_id
+        },
+        Err(err) => {
+            log::warn!("invalid signature: {}", err);
+            return Err(HttpError::AuthError("invalid signature"));
+        },
     };
-    receive_activity(&config, &db_pool, &activity).await
+    receive_activity(&config, &db_pool, &signer_id, &activity).await
         .map_err(|err| {
             log::warn!("failed to process activity ({}): {}", err, activity);
             err
