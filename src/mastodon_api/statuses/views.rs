@@ -12,7 +12,6 @@ use crate::activitypub::activity::{
     create_activity_undo_announce,
     create_activity_delete_note,
 };
-use crate::activitypub::actor::Actor;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::activitypub::views::get_object_url;
 use crate::config::Config;
@@ -26,7 +25,6 @@ use crate::models::attachments::queries::set_attachment_ipfs_cid;
 use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
 use crate::models::posts::tags::{find_tags, replace_tags};
-use crate::models::profiles::queries::get_followers;
 use crate::models::posts::helpers::{
     get_actions_for_posts,
     get_reposted_posts,
@@ -35,7 +33,6 @@ use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
     get_thread,
-    get_post_author,
     find_reposts_by_user,
     update_post,
     delete_post,
@@ -44,6 +41,12 @@ use crate::models::posts::types::PostCreateData;
 use crate::models::reactions::queries::{
     create_reaction,
     delete_reaction,
+};
+use super::helpers::{
+    get_announce_audience,
+    get_like_audience,
+    get_note_audience,
+    Audience,
 };
 use super::types::{Status, StatusData, TransactionData};
 
@@ -93,29 +96,7 @@ async fn create_status(
         &instance.url(),
         &post,
     );
-    let followers = get_followers(db_client, &current_user.id).await?;
-    let mut recipients: Vec<Actor> = Vec::new();
-    for follower in followers {
-        let maybe_remote_actor = follower.remote_actor()
-            .map_err(|_| HttpError::InternalError)?;
-        if let Some(remote_actor) = maybe_remote_actor {
-            recipients.push(remote_actor);
-        };
-    };
-    if let Some(ref in_reply_to) = post.in_reply_to {
-        let maybe_remote_actor = in_reply_to.author.remote_actor()
-            .map_err(|_| HttpError::InternalError)?;
-        if let Some(remote_actor) = maybe_remote_actor {
-            recipients.push(remote_actor);
-        }
-    }
-    for profile in post.mentions.iter() {
-        let maybe_remote_actor = profile.remote_actor()
-            .map_err(|_| HttpError::InternalError)?;
-        if let Some(remote_actor) = maybe_remote_actor {
-            recipients.push(remote_actor);
-        };
-    };
+    let recipients = get_note_audience(db_client, &current_user, &post).await?;
     deliver_activity(&config, &current_user, activity, recipients);
     let status = Status::from_post(post, &instance.url());
     Ok(HttpResponse::Created().json(status))
@@ -169,20 +150,7 @@ async fn delete_status(
         &current_user.profile,
         &post,
     );
-    let mut audience = get_followers(db_client, &current_user.id).await?;
-    if let Some(in_reply_to_id) = post.in_reply_to_id {
-        let in_reply_to_author = get_post_author(db_client, &in_reply_to_id).await?;
-        audience.push(in_reply_to_author);
-    };
-    audience.extend(post.mentions);
-    let mut recipients: Vec<Actor> = Vec::new();
-    for profile in audience {
-        let maybe_remote_actor = profile.remote_actor()
-            .map_err(|_| HttpError::InternalError)?;
-        if let Some(remote_actor) = maybe_remote_actor {
-            recipients.push(remote_actor);
-        };
-    };
+    let recipients = get_note_audience(db_client, &current_user, &post).await?;
     deliver_activity(&config, &current_user, activity, recipients);
 
     Ok(HttpResponse::NoContent().finish())
@@ -247,9 +215,9 @@ async fn favourite(
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     if let Some(reaction) = maybe_reaction_created {
-        let maybe_remote_actor = post.author.remote_actor()
-            .map_err(|_| HttpError::InternalError)?;
-        if let Some(remote_actor) = maybe_remote_actor {
+        let Audience { recipients, primary_recipient } =
+            get_like_audience(db_client, &post).await?;
+        if let Some(remote_actor_id) = primary_recipient {
             // Federate
             let object_id = post.object_id.as_ref().ok_or(HttpError::InternalError)?;
             let activity = create_activity_like(
@@ -257,9 +225,9 @@ async fn favourite(
                 &current_user.profile,
                 object_id,
                 &reaction.id,
-                &remote_actor.id,
+                &remote_actor_id,
             );
-            deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+            deliver_activity(&config, &current_user, activity, recipients);
         }
     }
 
@@ -294,17 +262,17 @@ async fn unfavourite(
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     if let Some(reaction_id) = maybe_reaction_deleted {
-        let maybe_remote_actor = post.author.remote_actor()
-            .map_err(|_| HttpError::InternalError)?;
-        if let Some(remote_actor) = maybe_remote_actor {
+        let Audience { recipients, primary_recipient } =
+            get_like_audience(db_client, &post).await?;
+        if let Some(remote_actor_id) = primary_recipient {
             // Federate
             let activity = create_activity_undo_like(
                 &config.instance_url(),
                 &current_user.profile,
                 &reaction_id,
-                &remote_actor.id,
+                &remote_actor_id,
             );
-            deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+            deliver_activity(&config, &current_user, activity, recipients);
         };
     };
 
@@ -331,26 +299,14 @@ async fn reblog(
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     // Federate
+    let Audience { recipients, .. } =
+        get_announce_audience(db_client, &current_user, &post).await?;
     let activity = create_activity_announce(
         &config.instance_url(),
         &current_user.profile,
         &post,
         &repost.id,
     );
-    let mut recipients: Vec<Actor> = Vec::new();
-    let followers = get_followers(db_client, &current_user.id).await?;
-    for follower in followers {
-        let maybe_remote_follower = follower.remote_actor()
-            .map_err(|_| HttpError::InternalError)?;
-        if let Some(remote_actor) = maybe_remote_follower {
-            recipients.push(remote_actor);
-        };
-    };
-    let maybe_remote_author = post.author.remote_actor()
-        .map_err(|_| HttpError::InternalError)?;
-    if let Some(remote_actor) = maybe_remote_author {
-        recipients.push(remote_actor);
-    };
     deliver_activity(&config, &current_user, activity, recipients);
 
     let status = Status::from_post(post, &config.instance_url());
@@ -375,22 +331,8 @@ async fn unreblog(
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     // Federate
-    let mut primary_recipient = None;
-    let mut recipients: Vec<Actor> = Vec::new();
-    let followers = get_followers(db_client, &current_user.id).await?;
-    for follower in followers {
-        let maybe_remote_follower = follower.remote_actor()
-            .map_err(|_| HttpError::InternalError)?;
-        if let Some(remote_actor) = maybe_remote_follower {
-            recipients.push(remote_actor);
-        };
-    };
-    let maybe_remote_author = post.author.remote_actor()
-        .map_err(|_| HttpError::InternalError)?;
-    if let Some(remote_actor) = maybe_remote_author {
-        primary_recipient = Some(remote_actor.id.clone());
-        recipients.push(remote_actor);
-    };
+    let Audience { recipients, primary_recipient } =
+        get_announce_audience(db_client, &current_user, &post).await?;
     let activity = create_activity_undo_announce(
         &config.instance_url(),
         &current_user.profile,
