@@ -179,11 +179,11 @@ pub fn create_note(
     let mut recipients = vec![AP_PUBLIC.to_string()];
     let mut tags = vec![];
     for profile in &post.mentions {
-        let actor_id = profile.actor_id(instance_url).unwrap();
+        let actor_id = profile.actor_id(instance_url);
         if !profile.is_local() {
             recipients.push(actor_id);
         };
-        let actor_url = profile.actor_url(instance_url).unwrap();
+        let actor_url = profile.actor_url(instance_url);
         let tag = Tag {
             name: format!("@{}", profile.actor_address(instance_host)),
             tag_type: MENTION.to_string(),
@@ -208,7 +208,7 @@ pub fn create_note(
                 Some(get_object_url(instance_url, &post.id))
             } else {
                 // Replying to remote post
-                let remote_actor_id = post.author.actor_id(instance_url).unwrap();
+                let remote_actor_id = post.author.actor_id(instance_url);
                 if !recipients.contains(&remote_actor_id) {
                     recipients.push(remote_actor_id);
                 };
@@ -294,7 +294,7 @@ pub fn create_activity_announce(
     repost_id: &Uuid,
 ) -> Activity {
     let object_id = post.get_object_id(instance_url);
-    let recipient_id = post.author.actor_id(instance_url).unwrap();
+    let recipient_id = post.author.actor_id(instance_url);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
@@ -345,7 +345,7 @@ pub fn create_activity_delete_note(
     };
     let mut recipients = vec![AP_PUBLIC.to_string()];
     for profile in &post.mentions {
-        let actor_id = profile.actor_id(instance_url).unwrap();
+        let actor_id = profile.actor_id(instance_url);
         if !profile.is_local() {
             recipients.push(actor_id);
         };
@@ -460,6 +460,7 @@ pub fn create_activity_update_person(
 
 #[cfg(test)]
 mod tests {
+    use crate::activitypub::actor::Actor;
     use super::*;
 
     const INSTANCE_HOST: &str = "example.com";
@@ -511,10 +512,11 @@ mod tests {
         let parent_author_actor_url = "https://test.net/@test";
         let parent_author = DbActorProfile {
             acct: parent_author_acct.to_string(),
-            actor_json: Some(json!({
-                "id": parent_author_actor_id,
-                "url": parent_author_actor_url,
-            })),
+            actor_json: Some(Actor {
+                id: parent_author_actor_id.to_string(),
+                url: Some(parent_author_actor_url.to_string()),
+                ..Default::default()
+            }),
             ..Default::default()
         };
         let parent = Post {

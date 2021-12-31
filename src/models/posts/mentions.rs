@@ -69,7 +69,7 @@ pub fn replace_mentions(
             if let Some(profile) = mention_map.get(&acct) {
                 // Replace with a link to profile.
                 // Actor URL may differ from actor ID.
-                let url = profile.actor_url(instance_url).unwrap();
+                let url = profile.actor_url(instance_url);
                 return format!(
                     // https://microformats.org/wiki/h-card
                     r#"{}<span class="h-card"><a class="u-url mention" href="{}">@{}</a></span>{}"#,
@@ -103,7 +103,7 @@ pub fn mention_to_address(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
+    use crate::activitypub::actor::Actor;
     use super::*;
 
     const INSTANCE_HOST: &str = "server1.com";
@@ -137,10 +137,11 @@ mod tests {
         // Remote actor
         let profile_2 = DbActorProfile {
             username: "user2".to_string(),
-            actor_json: Some(json!({
-                "id": "https://server2.com/actors/user2",
-                "url": "https://server2.com/@user2",
-            })),
+            actor_json: Some(Actor {
+                id: "https://server2.com/actors/user2".to_string(),
+                url: Some("https://server2.com/@user2".to_string()),
+                ..Default::default()
+            }),
             ..Default::default()
         };
         let text = concat!(

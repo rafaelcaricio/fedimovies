@@ -21,8 +21,7 @@ pub async fn get_note_audience(
     audience.extend(post.mentions.clone());
     let mut recipients: Vec<Actor> = Vec::new();
     for profile in audience {
-        let maybe_remote_actor = profile.remote_actor()?;
-        if let Some(remote_actor) = maybe_remote_actor {
+        if let Some(remote_actor) = profile.actor_json {
             recipients.push(remote_actor);
         };
     };
@@ -40,10 +39,9 @@ pub async fn get_like_audience(
 ) -> Result<Audience, DatabaseError> {
     let mut recipients: Vec<Actor> = Vec::new();
     let mut primary_recipient = None;
-    let maybe_remote_author = post.author.remote_actor()?;
-    if let Some(remote_actor) = maybe_remote_author {
+    if let Some(remote_actor) = post.author.actor_json.as_ref() {
         primary_recipient = Some(remote_actor.id.clone());
-        recipients.push(remote_actor);
+        recipients.push(remote_actor.clone());
     };
     Ok(Audience { recipients, primary_recipient })
 }
@@ -56,16 +54,14 @@ pub async fn get_announce_audience(
     let followers = get_followers(db_client, &current_user.id).await?;
     let mut recipients: Vec<Actor> = Vec::new();
     for profile in followers {
-        let maybe_remote_actor = profile.remote_actor()?;
-        if let Some(remote_actor) = maybe_remote_actor {
+        if let Some(remote_actor) = profile.actor_json {
             recipients.push(remote_actor);
         };
     };
     let mut primary_recipient = None;
-    let maybe_remote_author = post.author.remote_actor()?;
-    if let Some(remote_actor) = maybe_remote_author {
+    if let Some(remote_actor) = post.author.actor_json.as_ref() {
         primary_recipient = Some(remote_actor.id.clone());
-        recipients.push(remote_actor);
+        recipients.push(remote_actor.clone());
     };
     Ok(Audience { recipients, primary_recipient })
 }

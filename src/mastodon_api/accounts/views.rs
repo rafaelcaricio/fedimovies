@@ -157,9 +157,7 @@ async fn update_credentials(
     let followers = get_followers(db_client, &current_user.id).await?;
     let mut recipients: Vec<Actor> = Vec::new();
     for follower in followers {
-        let maybe_remote_actor = follower.remote_actor()
-            .map_err(|_| HttpError::InternalError)?;
-        if let Some(remote_actor) = maybe_remote_actor {
+        if let Some(remote_actor) = follower.actor_json {
             recipients.push(remote_actor);
         };
     };
@@ -203,9 +201,7 @@ async fn follow_account(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target = get_profile_by_id(db_client, &account_id).await?;
-    let maybe_remote_actor = target.remote_actor()
-        .map_err(|_| HttpError::InternalError)?;
-    if let Some(remote_actor) = maybe_remote_actor {
+    if let Some(remote_actor) = target.actor_json {
         // Remote follow
         let request = create_follow_request(db_client, &current_user.id, &target.id).await?;
         let activity = create_activity_follow(
@@ -236,9 +232,7 @@ async fn unfollow_account(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target = get_profile_by_id(db_client, &account_id).await?;
-    let maybe_remote_actor = target.remote_actor()
-        .map_err(|_| HttpError::InternalError)?;
-    if let Some(remote_actor) = maybe_remote_actor {
+    if let Some(remote_actor) = target.actor_json {
         // Remote follow
         let follow_request = get_follow_request_by_path(
             db_client,

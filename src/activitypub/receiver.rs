@@ -472,7 +472,7 @@ pub async fn receive_activity(
                 &config.media_dir(),
                 &activity.actor,
             ).await?;
-            let source_actor = source_profile.remote_actor().ok().flatten()
+            let source_actor = source_profile.actor_json
                 .ok_or(HttpError::InternalError)?;
             let target_actor_id = get_object_id(activity.object)?;
             let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
@@ -543,8 +543,7 @@ pub async fn receive_activity(
             let (avatar, banner) = fetch_avatar_and_banner(&actor, &config.media_dir()).await
                 .map_err(|_| ValidationError("failed to fetch image"))?;
             let extra_fields = actor.extra_fields();
-            let actor_old = profile.remote_actor()
-                .map_err(|_| HttpError::InternalError)?.unwrap();
+            let actor_old = profile.actor_json.unwrap();
             if actor_old.id != actor.id {
                 log::warn!(
                     "actor ID changed from {} to {}",

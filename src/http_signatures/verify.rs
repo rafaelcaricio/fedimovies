@@ -134,7 +134,7 @@ pub async fn verify_http_signature(
             return Err(VerificationError::ActorError(other_error.to_string()));
         },
     };
-    let actor = actor_profile.remote_actor().ok().flatten()
+    let actor = actor_profile.actor_json.as_ref()
         .ok_or(VerificationError::ActorError("invalid profile".to_string()))?;
 
     let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
@@ -146,8 +146,7 @@ pub async fn verify_http_signature(
     if !is_valid_signature {
         return Err(VerificationError::InvalidSignature);
     }
-    let signer_id = actor_profile.actor_id(&config.instance_url())
-        .map_err(|_| VerificationError::ActorError("invalid profile".to_string()))?;
+    let signer_id = actor_profile.actor_id(&config.instance_url());
     Ok(signer_id)
 }
 

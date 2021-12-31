@@ -53,7 +53,7 @@ async fn send_activity(
         .body(activity_json.to_owned());
 
     if instance.is_private {
-        log::debug!(
+        log::info!(
             "private mode: not sending activity to {}",
             inbox_url,
         );

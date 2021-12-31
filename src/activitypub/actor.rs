@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::config::Instance;
-use crate::errors::ConversionError;
-use crate::models::profiles::types::{DbActorProfile, ExtraField};
+use crate::models::profiles::types::ExtraField;
 use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
@@ -19,7 +18,8 @@ use super::vocabulary::{IMAGE, PERSON, PROPERTY_VALUE, SERVICE};
 
 const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKey {
     id: String,
@@ -27,7 +27,7 @@ pub struct PublicKey {
     pub public_key_pem: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Image {
     #[serde(rename = "type")]
@@ -35,13 +35,13 @@ pub struct Image {
     pub url: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActorCapabilities {
     accepts_chat_messages: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ActorProperty {
     name: String,
     #[serde(rename = "type")]
@@ -49,16 +49,18 @@ pub struct ActorProperty {
     value: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+// Clone trait is required by FromSql
+#[derive(Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
 pub struct Actor {
     #[serde(rename = "@context")]
-    context: Option<Value>,
+    pub context: Option<Value>,
 
     pub id: String,
 
     #[serde(rename = "type")]
-    object_type: String,
+    pub object_type: String,
 
     pub name: Option<String>,
 
@@ -113,20 +115,6 @@ impl Actor {
             };
         };
         extra_fields
-    }
-}
-
-impl DbActorProfile {
-    pub fn remote_actor(&self) -> Result<Option<Actor>, ConversionError> {
-        let actor = match self.actor_json {
-            Some(ref value) => {
-                let actor: Actor = serde_json::from_value(value.clone())
-                    .map_err(|_| ConversionError)?;
-                Some(actor)
-            },
-            None => None,
-        };
-        Ok(actor)
     }
 }
 

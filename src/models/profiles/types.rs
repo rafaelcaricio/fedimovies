@@ -8,8 +8,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::activitypub::actor::Actor;
 use crate::activitypub::views::get_actor_url;
-use crate::errors::{ConversionError, ValidationError};
+use crate::errors::ValidationError;
 use crate::utils::html::clean_html;
 use super::validators::{
     validate_username,
@@ -41,7 +42,7 @@ impl<'a> FromSql<'a> for ExtraFields {
         let fields: Self = serde_json::from_value(json_value)?;
         Ok(fields)
     }
-    accepts!(JSON,JSONB);
+    accepts!(JSON, JSONB);
 }
 
 impl ToSql for ExtraFields {
@@ -52,6 +53,15 @@ impl ToSql for ExtraFields {
 
     accepts!(JSON, JSONB);
     to_sql_checked!();
+}
+
+impl<'a> FromSql<'a> for Actor {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, SqlError> {
+        let Json(json_value) = Json::<Value>::from_sql(ty, raw)?;
+        let actor: Self = serde_json::from_value(json_value)?;
+        Ok(actor)
+    }
+    accepts!(JSON, JSONB);
 }
 
 #[derive(Clone, FromSql)]
@@ -70,7 +80,7 @@ pub struct DbActorProfile {
     pub following_count: i32,
     pub post_count: i32,
     pub created_at: DateTime<Utc>,
-    pub actor_json: Option<Value>,
+    pub actor_json: Option<Actor>,
 }
 
 impl DbActorProfile {
@@ -78,22 +88,17 @@ impl DbActorProfile {
         self.actor_json.is_none()
     }
 
-    pub fn actor_id(&self, instance_url: &str) -> Result<String, ConversionError> {
-        let actor_id = match self.actor_json {
-            Some(ref actor_value) => {
-                actor_value["id"].as_str()
-                    .ok_or(ConversionError)?
-                    .to_string()
-            },
+    pub fn actor_id(&self, instance_url: &str) -> String {
+        match self.actor_json {
+            Some(ref actor) => actor.id.clone(),
             None => get_actor_url(instance_url, &self.username),
-        };
-        Ok(actor_id)
+        }
     }
 
-    pub fn actor_url(&self, instance_url: &str) -> Result<String, ConversionError> {
-        if let Some(ref actor_value) = self.actor_json {
-            if let Some(actor_url) = actor_value["url"].as_str() {
-                return Ok(actor_url.to_string());
+    pub fn actor_url(&self, instance_url: &str) -> String {
+        if let Some(ref actor) = self.actor_json {
+            if let Some(ref actor_url) = actor.url {
+                return actor_url.to_string();
             };
         };
         self.actor_id(instance_url)
@@ -189,7 +194,7 @@ impl ProfileUpdateData {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
+    use crate::activitypub::actor::Actor;
     use super::*;
 
     const INSTANCE_HOST: &str = "example.com";
@@ -211,7 +216,10 @@ mod tests {
     fn test_remote_actor_address() {
         let remote_profile = DbActorProfile {
             acct: "test@remote.com".to_string(),
-            actor_json: Some(json!({"id": "https://test"})),
+            actor_json: Some(Actor {
+                id: "https://test".to_string(),
+                ..Default::default()
+            }),
             ..Default::default()
         };
         assert_eq!(
