@@ -62,7 +62,7 @@ fn is_activitypub_request(headers: &HeaderMap) -> bool {
     if let Some(content_type) = headers.get("Accept") {
         let content_type_str = content_type.to_str().ok()
             // Take first content type if there are many
-            .and_then(|value| value.split(",").next())
+            .and_then(|value| value.split(',').next())
             .unwrap_or("");
         return CONTENT_TYPES.contains(&content_type_str);
     };
@@ -78,7 +78,7 @@ async fn actor_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
-    if !is_activitypub_request(&request.headers()) {
+    if !is_activitypub_request(request.headers()) {
         let page_url = get_profile_page_url(&config.instance_url(), &user.id);
         let response = HttpResponse::Found()
             .header("Location", page_url)
@@ -166,11 +166,12 @@ async fn outbox(
         match post.repost_of_id {
             Some(_) => None,
             None => {
+                // Replies are not included so post.in_reply_to
+                // does not need to be populated
                 let activity = create_activity_note(
                     &instance.host(),
                     &instance.url(),
                     post,
-                    None,
                 );
                 Some(activity)
             },
@@ -270,27 +271,32 @@ pub async fn object_view(
     let db_client = &**get_database_client(&db_pool).await?;
     // Try to find local post by ID, return 404 if not found
     let thread = get_thread(db_client, &internal_object_id, None).await?;
-    let post = thread.iter()
+    let mut post = thread.iter()
         .find(|post| post.id == internal_object_id && post.author.is_local())
-        .ok_or(HttpError::NotFoundError("post"))?;
-    if !is_activitypub_request(&request.headers()) {
+        .ok_or(HttpError::NotFoundError("post"))?
+        .clone();
+    if !is_activitypub_request(request.headers()) {
         let page_url = get_post_page_url(&config.instance_url(), &post.id);
         let response = HttpResponse::Found()
             .header("Location", page_url)
             .finish();
         return Ok(response);
     };
-    let in_reply_to = match post.in_reply_to_id {
+    post.in_reply_to = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
-            thread.iter().find(|post| post.id == in_reply_to_id)
+            let in_reply_to = thread.iter()
+                .find(|post| post.id == in_reply_to_id)
+                // Parent post must be present in thread
+                .ok_or(HttpError::InternalError)?
+                .clone();
+            Some(Box::new(in_reply_to))
         },
         None => None,
     };
     let object = create_note(
         &config.instance().host(),
         &config.instance().url(),
-        post,
-        in_reply_to,
+        &post,
     );
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)

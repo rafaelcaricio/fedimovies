@@ -93,7 +93,10 @@ pub struct Post {
     pub token_tx_id: Option<String>,
     pub created_at: DateTime<Utc>,
 
+    // These fields are not populated automatically
+    // by functions in posts::queries module
     pub actions: Option<PostActions>,
+    pub in_reply_to: Option<Box<Post>>,
     pub repost_of: Option<Box<Post>>,
 }
 
@@ -131,6 +134,7 @@ impl Post {
             token_tx_id: db_post.token_tx_id,
             created_at: db_post.created_at,
             actions: None,
+            in_reply_to: None,
             repost_of: None,
         };
         Ok(post)
@@ -170,6 +174,7 @@ impl Default for Post {
             token_tx_id: None,
             created_at: Utc::now(),
             actions: None,
+            in_reply_to: None,
             repost_of: None,
         }
     }

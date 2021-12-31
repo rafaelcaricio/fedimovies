@@ -157,7 +157,6 @@ pub fn create_note(
     instance_host: &str,
     instance_url: &str,
     post: &Post,
-    in_reply_to: Option<&Post>,
 ) -> Note {
     let object_id = get_object_url(
         instance_url,
@@ -203,7 +202,7 @@ pub fn create_note(
     };
     let in_reply_to_object_id = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
-            let post = in_reply_to.unwrap();
+            let post = post.in_reply_to.as_ref().unwrap();
             assert_eq!(post.id, in_reply_to_id);
             if post.author.is_local() {
                 Some(get_object_url(instance_url, &post.id))
@@ -236,9 +235,8 @@ pub fn create_activity_note(
     instance_host: &str,
     instance_url: &str,
     post: &Post,
-    in_reply_to: Option<&Post>,
 ) -> Activity {
-    let object = create_note(instance_host, instance_url, post, in_reply_to);
+    let object = create_note(instance_host, instance_url, post);
     let recipients = object.to.clone();
     let activity = create_activity(
         instance_url,
@@ -474,7 +472,7 @@ mod tests {
             ..Default::default()
         };
         let post = Post { author, ..Default::default() };
-        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post, None);
+        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post);
 
         assert_eq!(
             note.id,
@@ -494,9 +492,10 @@ mod tests {
         let parent = Post::default();
         let post = Post {
             in_reply_to_id: Some(parent.id),
+            in_reply_to: Some(Box::new(parent.clone())),
             ..Default::default()
         };
-        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post, Some(&parent));
+        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post);
 
         assert_eq!(
             note.in_reply_to.unwrap(),
@@ -525,10 +524,11 @@ mod tests {
         };
         let post = Post {
             in_reply_to_id: Some(parent.id),
+            in_reply_to: Some(Box::new(parent.clone())),
             mentions: vec![parent_author],
             ..Default::default()
         };
-        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post, Some(&parent));
+        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post);
 
         assert_eq!(
             note.in_reply_to.unwrap(),

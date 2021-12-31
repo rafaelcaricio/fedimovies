@@ -79,12 +79,12 @@ async fn create_status(
         &post_data.content,
         &post_data.tags,
     );
-    let post = create_post(db_client, &current_user.id, post_data).await?;
+    let mut post = create_post(db_client, &current_user.id, post_data).await?;
     // Federate
-    let maybe_in_reply_to = match post.in_reply_to_id {
+    post.in_reply_to = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
             let in_reply_to = get_post_by_id(db_client, &in_reply_to_id).await?;
-            Some(in_reply_to)
+            Some(Box::new(in_reply_to))
         },
         None => None,
     };
@@ -92,7 +92,6 @@ async fn create_status(
         &instance.host(),
         &instance.url(),
         &post,
-        maybe_in_reply_to.as_ref(),
     );
     let followers = get_followers(db_client, &current_user.id).await?;
     let mut recipients: Vec<Actor> = Vec::new();
@@ -103,7 +102,7 @@ async fn create_status(
             recipients.push(remote_actor);
         };
     };
-    if let Some(in_reply_to) = maybe_in_reply_to {
+    if let Some(ref in_reply_to) = post.in_reply_to {
         let maybe_remote_actor = in_reply_to.author.remote_actor()
             .map_err(|_| HttpError::InternalError)?;
         if let Some(remote_actor) = maybe_remote_actor {
