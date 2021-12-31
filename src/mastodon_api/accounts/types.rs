@@ -168,6 +168,7 @@ impl AccountUpdateData {
             avatar,
             banner,
             extra_fields,
+            actor_json: None,
         };
         Ok(profile_data)
     }

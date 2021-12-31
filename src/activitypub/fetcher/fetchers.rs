@@ -150,7 +150,7 @@ pub async fn fetch_profile_by_actor_id(
         avatar,
         banner,
         extra_fields,
-        actor: Some(actor_value),
+        actor_json: Some(actor_value),
     };
     Ok(profile_data)
 }

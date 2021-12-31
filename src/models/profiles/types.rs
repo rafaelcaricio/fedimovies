@@ -138,7 +138,7 @@ pub struct ProfileCreateData {
     pub avatar: Option<String>,
     pub banner: Option<String>,
     pub extra_fields: Vec<ExtraField>,
-    pub actor: Option<Value>,
+    pub actor_json: Option<Value>,
 }
 
 impl ProfileCreateData {
@@ -156,6 +156,7 @@ pub struct ProfileUpdateData {
     pub avatar: Option<String>,
     pub banner: Option<String>,
     pub extra_fields: Vec<ExtraField>,
+    pub actor_json: Option<Value>,
 }
 
 impl ProfileUpdateData {

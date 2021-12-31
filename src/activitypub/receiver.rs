@@ -536,12 +536,29 @@ pub async fn receive_activity(
             }
         },
         (UPDATE, PERSON) => {
+            let actor_value = activity.object.clone();
             let actor: Actor = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid actor data"))?;
             let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
             let (avatar, banner) = fetch_avatar_and_banner(&actor, &config.media_dir()).await
                 .map_err(|_| ValidationError("failed to fetch image"))?;
             let extra_fields = actor.extra_fields();
+            let actor_old = profile.remote_actor()
+                .map_err(|_| HttpError::InternalError)?.unwrap();
+            if actor_old.id != actor.id {
+                log::warn!(
+                    "actor ID changed from {} to {}",
+                    actor_old.id,
+                    actor.id,
+                );
+            };
+            if actor_old.public_key.public_key_pem != actor.public_key.public_key_pem {
+                log::warn!(
+                    "actor public key changed from {} to {}",
+                    actor_old.public_key.public_key_pem,
+                    actor.public_key.public_key_pem,
+                );
+            };
             let mut profile_data = ProfileUpdateData {
                 display_name: actor.name,
                 bio: actor.summary.clone(),
@@ -549,6 +566,7 @@ pub async fn receive_activity(
                 avatar,
                 banner,
                 extra_fields,
+                actor_json: Some(actor_value),
             };
             profile_data.clean()?;
             update_profile(db_client, &profile.id, profile_data).await?;

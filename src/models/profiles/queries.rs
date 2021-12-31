@@ -43,7 +43,7 @@ pub async fn create_profile(
             &profile_data.avatar,
             &profile_data.banner,
             &extra_fields,
-            &profile_data.actor,
+            &profile_data.actor_json,
         ],
     ).await.map_err(catch_unique_violation("profile"))?;
     let profile = row.try_get("actor_profile")?;
@@ -64,8 +64,9 @@ pub async fn update_profile(
             bio_source = $3,
             avatar_file_name = $4,
             banner_file_name = $5,
-            extra_fields = $6
-        WHERE id = $7
+            extra_fields = $6,
+            actor_json = $7
+        WHERE id = $8
         RETURNING actor_profile
         ",
         &[
@@ -75,6 +76,7 @@ pub async fn update_profile(
             &data.avatar,
             &data.banner,
             &ExtraFields(data.extra_fields),
+            &data.actor_json,
             &profile_id,
         ],
     ).await?;
