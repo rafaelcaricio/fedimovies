@@ -182,26 +182,6 @@ pub async fn get_profiles_by_accts(
     Ok(profiles)
 }
 
-pub async fn get_followers(
-    db_client: &impl GenericClient,
-    profile_id: &Uuid,
-) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let rows = db_client.query(
-        "
-        SELECT actor_profile
-        FROM actor_profile
-        JOIN relationship
-        ON (actor_profile.id = relationship.source_id)
-        WHERE relationship.target_id = $1
-        ",
-        &[&profile_id],
-    ).await?;
-    let profiles = rows.iter()
-        .map(|row| row.try_get("actor_profile"))
-        .collect::<Result<Vec<DbActorProfile>, _>>()?;
-    Ok(profiles)
-}
-
 /// Deletes profile from database and returns collection of orphaned objects.
 pub async fn delete_profile(
     db_client: &mut impl GenericClient,

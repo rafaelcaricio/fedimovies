@@ -10,6 +10,7 @@ use crate::models::profiles::queries::{
     update_follower_count,
     update_following_count,
 };
+use crate::models::profiles::types::DbActorProfile;
 use crate::utils::id::new_uuid;
 use super::types::{
     DbFollowRequest,
@@ -236,4 +237,24 @@ pub async fn get_follow_request_by_path(
     let row = maybe_row.ok_or(DatabaseError::NotFound("follow request"))?;
     let request: DbFollowRequest = row.try_get("follow_request")?;
     Ok(request)
+}
+
+pub async fn get_followers(
+    db_client: &impl GenericClient,
+    profile_id: &Uuid,
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT actor_profile
+        FROM actor_profile
+        JOIN relationship
+        ON (actor_profile.id = relationship.source_id)
+        WHERE relationship.target_id = $1
+        ",
+        &[&profile_id],
+    ).await?;
+    let profiles = rows.iter()
+        .map(|row| row.try_get("actor_profile"))
+        .collect::<Result<_, _>>()?;
+    Ok(profiles)
 }

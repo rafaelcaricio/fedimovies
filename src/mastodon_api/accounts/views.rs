@@ -23,7 +23,6 @@ use crate::mastodon_api::statuses::types::Status;
 use crate::mastodon_api::timelines::types::TimelineQueryParams;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
-    get_followers,
     get_profile_by_id,
     update_profile,
 };
@@ -31,6 +30,7 @@ use crate::models::relationships::queries::{
     create_follow_request,
     follow,
     get_follow_request_by_path,
+    get_followers,
     get_relationship,
     get_relationships,
     unfollow,

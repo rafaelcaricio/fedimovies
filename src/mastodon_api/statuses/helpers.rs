@@ -2,9 +2,9 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::actor::Actor;
 use crate::errors::DatabaseError;
-use crate::models::profiles::queries::get_followers;
 use crate::models::posts::queries::get_post_author;
 use crate::models::posts::types::Post;
+use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;
 
 pub async fn get_note_audience(
