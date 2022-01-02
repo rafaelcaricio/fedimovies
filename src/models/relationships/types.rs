@@ -22,7 +22,7 @@ impl TryFrom<&Row> for Relationship {
 
     fn try_from(row: &Row) -> Result<Self, Self::Error> {
         let relationship = Relationship {
-            id: row.try_get("id")?,
+            id: row.try_get("profile_id")?,
             following: row.try_get("following")?,
             followed_by: row.try_get("followed_by")?,
             requested: row.try_get("requested")?,

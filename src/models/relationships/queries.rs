@@ -26,7 +26,7 @@ pub async fn get_relationships(
     let rows = db_client.query(
         "
         SELECT
-            actor_profile.id,
+            actor_profile.id AS profile_id,
             EXISTS (
                 SELECT 1 FROM relationship
                 WHERE source_id = $1 AND target_id = actor_profile.id
@@ -59,7 +59,7 @@ pub async fn get_relationship(
     let maybe_row = db_client.query_opt(
         "
         SELECT
-            actor_profile.id,
+            actor_profile.id AS profile_id,
             EXISTS (
                 SELECT 1 FROM relationship
                 WHERE source_id = $1 AND target_id = actor_profile.id
@@ -250,6 +250,7 @@ pub async fn get_followers(
         JOIN relationship
         ON (actor_profile.id = relationship.source_id)
         WHERE relationship.target_id = $1
+        ORDER BY relationship.id DESC
         ",
         &[&profile_id],
     ).await?;
