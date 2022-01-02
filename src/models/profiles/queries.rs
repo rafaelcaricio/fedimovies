@@ -336,7 +336,7 @@ pub async fn search_profile(
         "
         SELECT actor_profile
         FROM actor_profile
-        WHERE acct LIKE $1
+        WHERE acct ILIKE $1
         ",
         &[&db_search_query],
     ).await?;
