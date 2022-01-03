@@ -398,7 +398,7 @@ pub async fn receive_activity(
             let object_received = if activity.actor == signer_id {
                 Some(object)
             } else {
-                // Fetch forwarded note
+                // Fetch forwarded note, don't trust the sender
                 None
             };
             process_note(config, db_client, object_id, object_received).await?;
@@ -448,6 +448,10 @@ pub async fn receive_activity(
                 // Ignore Delete(Note) if post is not found
                 Err(DatabaseError::NotFound(_)) => return Ok(()),
                 Err(other_error) => return Err(other_error.into()),
+            };
+            let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
+            if post.author.id != actor_profile.id {
+                return Err(HttpError::ValidationError("actor is not an author".into()));
             };
             let deletion_queue = delete_post(db_client, &post.id).await?;
             let config = config.clone();
@@ -535,10 +539,14 @@ pub async fn receive_activity(
         },
         (UNDO, _) => {
             require_actor_signature(&activity.actor, signer_id)?;
+            let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
             let object_id = get_object_id(activity.object)?;
             match get_reaction_by_activity_id(db_client, &object_id).await {
                 Ok(reaction) => {
                     // Undo(Like)
+                    if reaction.author_id != actor_profile.id {
+                        return Err(HttpError::ValidationError("actor is not an author".into()));
+                    };
                     delete_reaction(
                         db_client,
                         &reaction.author_id,
@@ -553,6 +561,9 @@ pub async fn receive_activity(
                         // Ignore undo if neither reaction nor repost is found
                         Err(DatabaseError::NotFound(_)) => return Ok(()),
                         Err(other_error) => return Err(other_error.into()),
+                    };
+                    if post.author.id != actor_profile.id {
+                        return Err(HttpError::ValidationError("actor is not an author".into()));
                     };
                     match post.repost_of_id {
                         // Ignore returned data because reposts don't have attached files
