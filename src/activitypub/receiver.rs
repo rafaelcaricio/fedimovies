@@ -581,6 +581,9 @@ pub async fn receive_activity(
             let actor_value = activity.object.clone();
             let actor: Actor = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid actor data"))?;
+            if actor.id != activity.actor {
+                return Err(HttpError::ValidationError("actor ID mismatch".into()));
+            };
             let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
             let (avatar, banner) = fetch_avatar_and_banner(&actor, &config.media_dir()).await
                 .map_err(|_| ValidationError("failed to fetch image"))?;
