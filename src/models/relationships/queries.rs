@@ -221,6 +221,23 @@ pub async fn delete_follow_request(
     Ok(is_success)
 }
 
+pub async fn get_follow_request_by_id(
+    db_client:  &impl GenericClient,
+    request_id: &Uuid,
+) -> Result<DbFollowRequest, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT follow_request
+        FROM follow_request
+        WHERE id = $1
+        ",
+        &[&request_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("follow request"))?;
+    let request = row.try_get("follow_request")?;
+    Ok(request)
+}
+
 pub async fn get_follow_request_by_path(
     db_client: &impl GenericClient,
     source_id: &Uuid,

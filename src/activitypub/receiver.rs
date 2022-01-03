@@ -33,6 +33,7 @@ use crate::models::relationships::queries::{
     follow_request_accepted,
     follow_request_rejected,
     follow,
+    get_follow_request_by_id,
     unfollow,
 };
 use crate::models::users::queries::get_user_by_name;
@@ -368,15 +369,25 @@ pub async fn receive_activity(
     let object_type = match (activity_type.as_str(), maybe_object_type) {
         (ACCEPT, FOLLOW) => {
             require_actor_signature(&activity.actor, signer_id)?;
+            let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
             let object_id = get_object_id(activity.object)?;
             let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
+            let follow_request = get_follow_request_by_id(db_client, &follow_request_id).await?;
+            if follow_request.target_id != actor_profile.id {
+                return Err(HttpError::ValidationError("actor is not a target".into()));
+            };
             follow_request_accepted(db_client, &follow_request_id).await?;
             FOLLOW
         },
         (REJECT, FOLLOW) => {
             require_actor_signature(&activity.actor, signer_id)?;
+            let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
             let object_id = get_object_id(activity.object)?;
             let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
+            let follow_request = get_follow_request_by_id(db_client, &follow_request_id).await?;
+            if follow_request.target_id != actor_profile.id {
+                return Err(HttpError::ValidationError("actor is not a target".into()));
+            };
             follow_request_rejected(db_client, &follow_request_id).await?;
             FOLLOW
         },
