@@ -12,7 +12,7 @@ use crate::activitypub::actor::Actor;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
-use crate::errors::{HttpError, ValidationError};
+use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::gate::is_allowed_user;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::posts::helpers::{
@@ -209,16 +209,25 @@ async fn follow_account(
     let target = get_profile_by_id(db_client, &account_id).await?;
     if let Some(remote_actor) = target.actor_json {
         // Remote follow
-        let request = create_follow_request(db_client, &current_user.id, &target.id).await?;
-        let activity = create_activity_follow(
-            &config.instance_url(),
-            &current_user.profile,
-            &request.id,
-            &remote_actor.id,
-        );
-        deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+        match create_follow_request(db_client, &current_user.id, &target.id).await {
+            Ok(request) => {
+                let activity = create_activity_follow(
+                    &config.instance_url(),
+                    &current_user.profile,
+                    &request.id,
+                    &remote_actor.id,
+                );
+                deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+            },
+            Err(DatabaseError::AlreadyExists(_)) => (), // already following
+            Err(other_error) => return Err(other_error.into()),
+        };
     } else {
-        follow(db_client, &current_user.id, &target.id).await?;
+        match follow(db_client, &current_user.id, &target.id).await {
+            Ok(_) => (),
+            Err(DatabaseError::AlreadyExists(_)) => (), // already following
+            Err(other_error) => return Err(other_error.into()),
+        };
     };
     let relationship = get_relationship(
         db_client,
@@ -240,26 +249,35 @@ async fn unfollow_account(
     let target = get_profile_by_id(db_client, &account_id).await?;
     if let Some(remote_actor) = target.actor_json {
         // Remote follow
-        let follow_request = get_follow_request_by_path(
+        match get_follow_request_by_path(
             db_client,
             &current_user.id,
             &target.id,
-        ).await?;
-        unfollow(
-            db_client,
-            &current_user.id,
-            &target.id,
-        ).await?;
-        // Federate
-        let activity = create_activity_undo_follow(
-            &config.instance_url(),
-            &current_user.profile,
-            &follow_request.id,
-            &remote_actor.id,
-        );
-        deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+        ).await {
+            Ok(follow_request) => {
+                unfollow(
+                    db_client,
+                    &current_user.id,
+                    &target.id,
+                ).await?;
+                // Federate
+                let activity = create_activity_undo_follow(
+                    &config.instance_url(),
+                    &current_user.profile,
+                    &follow_request.id,
+                    &remote_actor.id,
+                );
+                deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+            },
+            Err(DatabaseError::NotFound(_)) => (), // not following
+            Err(other_error) => return Err(other_error.into()),
+        };
     } else {
-        unfollow(db_client, &current_user.id, &target.id).await?;
+        match unfollow(db_client, &current_user.id, &target.id).await {
+            Ok(_) => (),
+            Err(DatabaseError::NotFound(_)) => (), // not following
+            Err(other_error) => return Err(other_error.into()),
+        };
     };
     let relationship = get_relationship(
         db_client,

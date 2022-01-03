@@ -161,7 +161,7 @@ pub async fn create_follow_request(
             &request.target_id,
             &request.request_status,
         ],
-    ).await?;
+    ).await.map_err(catch_unique_violation("follow request"))?;
     Ok(request)
 }
 
