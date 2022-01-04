@@ -11,7 +11,7 @@ use crate::utils::files::get_file_url;
 use crate::utils::id::new_uuid;
 use super::actor::{get_local_actor, ActorKeyError};
 use super::constants::{AP_CONTEXT, AP_PUBLIC};
-use super::views::{get_actor_url, get_object_url};
+use super::views::{get_actor_url, get_followers_url, get_object_url};
 use super::vocabulary::*;
 
 #[derive(Deserialize, Serialize)]
@@ -53,6 +53,9 @@ pub struct Object {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attachment: Option<Vec<Attachment>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cc: Option<Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub former_type: Option<String>,
@@ -106,6 +109,7 @@ pub struct Note {
     tag: Vec<Tag>,
 
     to: Vec<String>,
+    cc: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -122,6 +126,7 @@ pub struct Activity {
     pub actor: String,
     pub object: Value,
     pub to: Option<Value>,
+    pub cc: Option<Value>,
 }
 
 fn create_activity(
@@ -130,7 +135,8 @@ fn create_activity(
     activity_type: &str,
     internal_activity_id: Option<&Uuid>,
     object: impl Serialize,
-    recipients: Vec<String>,
+    primary_audience: Vec<String>,
+    secondary_audience: Vec<String>,
 ) -> Activity {
     let actor_id = get_actor_url(
         instance_url,
@@ -149,7 +155,8 @@ fn create_activity(
         activity_type: activity_type.to_string(),
         actor: actor_id,
         object: serde_json::to_value(object).unwrap(),
-        to: Some(json!(recipients)),
+        to: Some(json!(primary_audience)),
+        cc: Some(json!(secondary_audience)),
     }
 }
 
@@ -176,13 +183,15 @@ pub fn create_note(
             url,
         }
     }).collect();
-    let mut recipients = vec![AP_PUBLIC.to_string()];
+    // Notes are public; direct messages are not supported yet
+    let mut primary_audience = vec![AP_PUBLIC.to_string()];
+    let secondary_audience = vec![
+        get_followers_url(instance_url, &post.author.username),
+    ];
     let mut tags = vec![];
     for profile in &post.mentions {
         let actor_id = profile.actor_id(instance_url);
-        if !profile.is_local() {
-            recipients.push(actor_id);
-        };
+        primary_audience.push(actor_id);
         let actor_url = profile.actor_url(instance_url);
         let tag = Tag {
             name: format!("@{}", profile.actor_address(instance_host)),
@@ -202,18 +211,13 @@ pub fn create_note(
     };
     let in_reply_to_object_id = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
-            let post = post.in_reply_to.as_ref().unwrap();
-            assert_eq!(post.id, in_reply_to_id);
-            if post.author.is_local() {
-                Some(get_object_url(instance_url, &post.id))
-            } else {
-                // Replying to remote post
-                let remote_actor_id = post.author.actor_id(instance_url);
-                if !recipients.contains(&remote_actor_id) {
-                    recipients.push(remote_actor_id);
-                };
-                post.object_id.clone()
-            }
+            let in_reply_to = post.in_reply_to.as_ref().unwrap();
+            assert_eq!(in_reply_to.id, in_reply_to_id);
+            let in_reply_to_actor_id = in_reply_to.author.actor_id(instance_url);
+            if !primary_audience.contains(&in_reply_to_actor_id) {
+                primary_audience.push(in_reply_to_actor_id);
+            };
+            Some(in_reply_to.get_object_id(instance_url))
         },
         None => None,
     };
@@ -227,7 +231,8 @@ pub fn create_note(
         in_reply_to: in_reply_to_object_id,
         content: post.content.clone(),
         tag: tags,
-        to: recipients,
+        to: primary_audience,
+        cc: secondary_audience,
     }
 }
 
@@ -237,14 +242,16 @@ pub fn create_activity_note(
     post: &Post,
 ) -> Activity {
     let object = create_note(instance_host, instance_url, post);
-    let recipients = object.to.clone();
+    let primary_audience = object.to.clone();
+    let secondary_audience = object.cc.clone();
     let activity = create_activity(
         instance_url,
         &post.author.username,
         CREATE,
         Some(&post.id),
         object,
-        recipients,
+        primary_audience,
+        secondary_audience,
     );
     activity
 }
@@ -263,6 +270,7 @@ pub fn create_activity_like(
         Some(reaction_id),
         note_id,
         vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
+        vec![],
     );
     activity
 }
@@ -284,6 +292,7 @@ pub fn create_activity_undo_like(
         None,
         object_id,
         vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
+        vec![],
     )
 }
 
@@ -302,6 +311,7 @@ pub fn create_activity_announce(
         Some(repost_id),
         object_id,
         vec![AP_PUBLIC.to_string(), recipient_id],
+        vec![],
     );
     activity
 }
@@ -327,6 +337,7 @@ pub fn create_activity_undo_announce(
         None,
         object_id,
         recipients,
+        vec![],
     )
 }
 
@@ -357,6 +368,7 @@ pub fn create_activity_delete_note(
         None,
         object,
         recipients,
+        vec![],
     );
     activity
 }
@@ -380,6 +392,7 @@ pub fn create_activity_follow(
         Some(follow_request_id),
         object,
         vec![target_actor_id.to_string()],
+        vec![],
     );
     activity
 }
@@ -404,6 +417,7 @@ pub fn create_activity_accept_follow(
         None,
         object,
         vec![source_actor_id.to_string()],
+        vec![],
     );
     activity
 }
@@ -438,6 +452,7 @@ pub fn create_activity_undo_follow(
         None,
         object,
         vec![target_actor_id.to_string()],
+        vec![],
     );
     activity
 }
@@ -454,6 +469,7 @@ pub fn create_activity_update_person(
         None,
         actor,
         vec![AP_PUBLIC.to_string()],
+        vec![],
     );
     Ok(activity)
 }
@@ -486,6 +502,10 @@ mod tests {
         );
         assert_eq!(note.in_reply_to.is_none(), true);
         assert_eq!(note.content, post.content);
+        assert_eq!(note.to, vec![AP_PUBLIC]);
+        assert_eq!(note.cc, vec![
+            get_followers_url(INSTANCE_URL, "author"),
+        ]);
     }
 
     #[test]
@@ -502,7 +522,10 @@ mod tests {
             note.in_reply_to.unwrap(),
             format!("{}/objects/{}", INSTANCE_URL, parent.id),
         );
-        assert_eq!(note.to, vec![AP_PUBLIC]);
+        assert_eq!(note.to, vec![
+            AP_PUBLIC.to_string(),
+            get_actor_url(INSTANCE_URL, &parent.author.username),
+        ]);
     }
 
     #[test]
