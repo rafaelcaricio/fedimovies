@@ -311,7 +311,7 @@ pub fn create_activity_announce(
         Some(repost_id),
         object_id,
         vec![AP_PUBLIC.to_string(), recipient_id],
-        vec![],
+        vec![get_followers_url(instance_url, &actor_profile.username)],
     );
     activity
 }
@@ -320,24 +320,24 @@ pub fn create_activity_undo_announce(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     repost_id: &Uuid,
-    recipient_id: Option<&String>,
+    recipient_id: &str,
 ) -> Activity {
     let object_id = get_object_url(
         instance_url,
         repost_id,
     );
-    let mut recipients = vec![AP_PUBLIC.to_string()];
-    if let Some(recipient_id) = recipient_id {
-        recipients.push(recipient_id.to_string());
-    };
+    let primary_audience = vec![
+        AP_PUBLIC.to_string(),
+        recipient_id.to_string(),
+    ];
     create_activity(
         instance_url,
         &actor_profile.username,
         UNDO,
         None,
         object_id,
-        recipients,
-        vec![],
+        primary_audience,
+        vec![get_followers_url(instance_url, &actor_profile.username)],
     )
 }
 

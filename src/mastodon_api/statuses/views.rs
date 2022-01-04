@@ -215,20 +215,18 @@ async fn favourite(
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     if let Some(reaction) = maybe_reaction_created {
+        // Federate
         let Audience { recipients, primary_recipient } =
-            get_like_audience(db_client, &post).await?;
-        if let Some(remote_actor_id) = primary_recipient {
-            // Federate
-            let object_id = post.object_id.as_ref().ok_or(HttpError::InternalError)?;
-            let activity = create_activity_like(
-                &config.instance_url(),
-                &current_user.profile,
-                object_id,
-                &reaction.id,
-                &remote_actor_id,
-            );
-            deliver_activity(&config, &current_user, activity, recipients);
-        }
+            get_like_audience(db_client, &config.instance_url(), &post).await?;
+        let note_id = post.object_id.as_ref().ok_or(HttpError::InternalError)?;
+        let activity = create_activity_like(
+            &config.instance_url(),
+            &current_user.profile,
+            note_id,
+            &reaction.id,
+            &primary_recipient,
+        );
+        deliver_activity(&config, &current_user, activity, recipients);
     }
 
     let status = Status::from_post(post, &config.instance_url());
@@ -262,18 +260,16 @@ async fn unfavourite(
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     if let Some(reaction_id) = maybe_reaction_deleted {
+        // Federate
         let Audience { recipients, primary_recipient } =
-            get_like_audience(db_client, &post).await?;
-        if let Some(remote_actor_id) = primary_recipient {
-            // Federate
-            let activity = create_activity_undo_like(
-                &config.instance_url(),
-                &current_user.profile,
-                &reaction_id,
-                &remote_actor_id,
-            );
-            deliver_activity(&config, &current_user, activity, recipients);
-        };
+            get_like_audience(db_client, &config.instance_url(), &post).await?;
+        let activity = create_activity_undo_like(
+            &config.instance_url(),
+            &current_user.profile,
+            &reaction_id,
+            &primary_recipient,
+        );
+        deliver_activity(&config, &current_user, activity, recipients);
     };
 
     let status = Status::from_post(post, &config.instance_url());
@@ -300,7 +296,7 @@ async fn reblog(
 
     // Federate
     let Audience { recipients, .. } =
-        get_announce_audience(db_client, &current_user, &post).await?;
+        get_announce_audience(db_client, &config.instance_url(), &current_user, &post).await?;
     let activity = create_activity_announce(
         &config.instance_url(),
         &current_user.profile,
@@ -332,12 +328,12 @@ async fn unreblog(
 
     // Federate
     let Audience { recipients, primary_recipient } =
-        get_announce_audience(db_client, &current_user, &post).await?;
+        get_announce_audience(db_client, &config.instance_url(), &current_user, &post).await?;
     let activity = create_activity_undo_announce(
         &config.instance_url(),
         &current_user.profile,
         repost_id,
-        primary_recipient.as_ref(),
+        &primary_recipient,
     );
     deliver_activity(&config, &current_user, activity, recipients);
 

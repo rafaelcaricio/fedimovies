@@ -30,17 +30,17 @@ pub async fn get_note_audience(
 
 pub struct Audience {
     pub recipients: Vec<Actor>,
-    pub primary_recipient: Option<String>,
+    pub primary_recipient: String,
 }
 
 pub async fn get_like_audience(
     _db_client: &impl GenericClient,
+    instance_url: &str,
     post: &Post,
 ) -> Result<Audience, DatabaseError> {
     let mut recipients: Vec<Actor> = Vec::new();
-    let mut primary_recipient = None;
+    let primary_recipient = post.author.actor_id(instance_url);
     if let Some(remote_actor) = post.author.actor_json.as_ref() {
-        primary_recipient = Some(remote_actor.id.clone());
         recipients.push(remote_actor.clone());
     };
     Ok(Audience { recipients, primary_recipient })
@@ -48,6 +48,7 @@ pub async fn get_like_audience(
 
 pub async fn get_announce_audience(
     db_client: &impl GenericClient,
+    instance_url: &str,
     current_user: &User,
     post: &Post,
 ) -> Result<Audience, DatabaseError> {
@@ -58,9 +59,8 @@ pub async fn get_announce_audience(
             recipients.push(remote_actor);
         };
     };
-    let mut primary_recipient = None;
+    let primary_recipient = post.author.actor_id(instance_url);
     if let Some(remote_actor) = post.author.actor_json.as_ref() {
-        primary_recipient = Some(remote_actor.id.clone());
         recipients.push(remote_actor.clone());
     };
     Ok(Audience { recipients, primary_recipient })
