@@ -147,7 +147,6 @@ async fn delete_status(
 
     let activity = create_activity_delete_note(
         &config.instance_url(),
-        &current_user.profile,
         &post,
     );
     let recipients = get_note_audience(db_client, &current_user, &post).await?;

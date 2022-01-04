@@ -343,7 +343,6 @@ pub fn create_activity_undo_announce(
 
 pub fn create_activity_delete_note(
     instance_url: &str,
-    actor_profile: &DbActorProfile,
     post: &Post,
 ) -> Activity {
     let object_id = post.get_object_id(instance_url);
@@ -354,20 +353,13 @@ pub fn create_activity_delete_note(
         former_type: Some(NOTE.to_string()),
         ..Default::default()
     };
-    let mut recipients = vec![AP_PUBLIC.to_string()];
-    for profile in &post.mentions {
-        let actor_id = profile.actor_id(instance_url);
-        if !profile.is_local() {
-            recipients.push(actor_id);
-        };
-    };
     let activity = create_activity(
         instance_url,
-        &actor_profile.username,
+        &post.author.username,
         DELETE,
         None,
         object,
-        recipients,
+        vec![AP_PUBLIC.to_string()],
         vec![],
     );
     activity
