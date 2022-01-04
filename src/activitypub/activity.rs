@@ -460,7 +460,10 @@ pub fn create_activity_update_person(
         UPDATE,
         None,
         actor,
-        vec![AP_PUBLIC.to_string()],
+        vec![
+            AP_PUBLIC.to_string(),
+            get_followers_url(instance_url, &user.profile.username),
+        ],
         vec![],
     );
     Ok(activity)
@@ -588,5 +591,6 @@ mod tests {
         assert_eq!(activity.object["object"], Value::Null);
         assert_eq!(activity.object["content"], Value::Null);
         assert_eq!(activity.to.unwrap(), json!([target_actor_id]));
+        assert_eq!(activity.cc.unwrap(), json!([]));
     }
 }
