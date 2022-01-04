@@ -348,6 +348,11 @@ fn require_actor_signature(actor_id: &str, signer_id: &str)
     -> Result<(), HttpError>
 {
     if actor_id != signer_id {
+        log::warn!(
+            "request signer {} does not match actor {}",
+            signer_id,
+            actor_id,
+        );
         return Err(HttpError::AuthError("actor and request signer do not match"));
     };
     Ok(())
