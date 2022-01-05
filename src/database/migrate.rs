@@ -1,16 +1,13 @@
-use crate::database::Pool;
+use tokio_postgres::Client;
 
 mod embedded {
     use refinery::embed_migrations;
     embed_migrations!("migrations");
 }
 
-pub async fn apply_migrations(pool: &Pool) {
-    // https://github.com/rust-db/refinery/issues/105
-    let mut client_object = pool.get().await.unwrap();
-    let client = &mut *(*client_object);
+pub async fn apply_migrations(db_client: &mut Client) {
     let migration_report = embedded::migrations::runner()
-        .run_async(client)
+        .run_async(db_client)
         .await.unwrap();
 
     for migration in migration_report.applied_migrations() {

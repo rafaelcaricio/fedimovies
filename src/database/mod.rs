@@ -1,7 +1,20 @@
+use tokio_postgres::config::{Config as DbConfig};
+
 pub mod int_enum;
 pub mod migrate;
 
 pub type Pool = deadpool_postgres::Pool;
+
+pub async fn create_database_client(db_config: &DbConfig) -> tokio_postgres::Client {
+    let (client, connection) = db_config.connect(tokio_postgres::NoTls)
+        .await.unwrap();
+    tokio::spawn(async move {
+        if let Err(err) = connection.await {
+            log::error!("connection error: {}", err);
+        };
+    });
+    client
+}
 
 pub fn create_pool(database_url: &str) -> Pool {
     deadpool_postgres::Pool::new(

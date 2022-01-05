@@ -2,7 +2,7 @@ use clap::Clap;
 use uuid::Uuid;
 
 use mitra::config;
-use mitra::database::{create_pool, get_database_client};
+use mitra::database::create_database_client;
 use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::utils::generate_ethereum_address;
 use mitra::logger::configure_logger;
@@ -87,9 +87,9 @@ async fn main() {
             // Other commands require initialized app
             let config = config::parse_config();
             configure_logger(config.log_level);
-            let db_pool = create_pool(&config.database_url);
-            apply_migrations(&db_pool).await;
-            let db_client = &mut **get_database_client(&db_pool).await.unwrap();
+            let db_config = config.database_url.parse().unwrap();
+            let db_client = &mut create_database_client(&db_config).await;
+            apply_migrations(db_client).await;
 
             match subcmd {
                 SubCommand::GenerateInviteCode(_) => {

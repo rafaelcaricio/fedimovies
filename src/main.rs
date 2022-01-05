@@ -7,7 +7,7 @@ use actix_web::{
 
 use mitra::activitypub::views as activitypub;
 use mitra::config::{Environment, parse_config};
-use mitra::database::create_pool;
+use mitra::database::{get_database_client, create_pool};
 use mitra::database::migrate::apply_migrations;
 use mitra::logger::configure_logger;
 use mitra::mastodon_api::accounts::views::account_api_scope;
@@ -32,7 +32,8 @@ async fn main() -> std::io::Result<()> {
     let config = parse_config();
     configure_logger(config.log_level);
     let db_pool = create_pool(&config.database_url);
-    apply_migrations(&db_pool).await;
+    let db_client = &mut **get_database_client(&db_pool).await.unwrap();
+    apply_migrations(db_client).await;
     if !config.media_dir().exists() {
         std::fs::create_dir(config.media_dir())
             .expect("failed to created media directory");
