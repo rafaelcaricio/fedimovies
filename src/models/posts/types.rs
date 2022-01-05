@@ -16,6 +16,7 @@ use crate::utils::html::clean_html;
 pub enum Visibility {
     Public,
     Direct,
+    Followers,
 }
 
 impl Default for Visibility {
@@ -27,6 +28,7 @@ impl From<&Visibility> for i16 {
         match value {
             Visibility::Public => 1,
             Visibility::Direct => 2,
+            Visibility::Followers => 3,
         }
     }
 }
@@ -38,6 +40,7 @@ impl TryFrom<i16> for Visibility {
         let visibility = match value {
             1 => Self::Public,
             2 => Self::Direct,
+            3 => Self::Followers,
             _ => return Err(ConversionError),
         };
         Ok(visibility)

@@ -13,7 +13,7 @@ pub async fn get_note_recipients(
     post: &Post,
 ) -> Result<Vec<Actor>, DatabaseError> {
     let mut audience = vec![];
-    if matches!(post.visibility, Visibility::Public) {
+    if matches!(post.visibility, Visibility::Public | Visibility::Followers) {
         let followers = get_followers(db_client, &current_user.id, None, None).await?;
         audience.extend(followers);
     };

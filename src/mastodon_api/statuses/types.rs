@@ -97,6 +97,7 @@ impl Status {
         let visibility = match post.visibility {
             Visibility::Public => "public",
             Visibility::Direct => "direct",
+            Visibility::Followers => "private",
         };
         Self {
             id: post.id,
@@ -145,6 +146,7 @@ impl TryFrom<StatusData> for PostCreateData {
         let visibility = match value.visibility.as_deref() {
             Some("public") => Visibility::Public,
             Some("direct") => Visibility::Direct,
+            Some("private") => Visibility::Followers,
             Some(_) => return Err(ValidationError("invalid visibility parameter")),
             None => Visibility::Public,
         };

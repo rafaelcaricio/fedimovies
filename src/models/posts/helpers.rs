@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::errors::DatabaseError;
 use crate::models::reactions::queries::find_favourited_by_user;
+use crate::models::relationships::queries::get_relationship;
 use crate::models::users::types::User;
 use super::queries::{get_posts, find_reposted_by_user};
 use super::types::{Post, PostActions, Visibility};
@@ -60,7 +61,7 @@ pub async fn get_actions_for_posts(
 }
 
 pub async fn can_view_post(
-    _db_client: &impl GenericClient,
+    db_client: &impl GenericClient,
     user: Option<&User>,
     post: &Post,
 ) -> Result<bool, DatabaseError> {
@@ -75,6 +76,20 @@ pub async fn can_view_post(
                 false
             }
         },
+        Visibility::Followers => {
+            if let Some(user) = user {
+                let relationship = get_relationship(
+                    db_client,
+                    &post.author.id,
+                    &user.id,
+                ).await?;
+                let is_mentioned = post.mentions.iter()
+                    .any(|profile| profile.id == user.profile.id);
+                relationship.followed_by || is_mentioned
+            } else {
+                false
+            }
+        },
     };
     Ok(result)
 }
@@ -82,7 +97,11 @@ pub async fn can_view_post(
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
+    use tokio_postgres::Client;
     use crate::database::test_utils::create_test_database;
+    use crate::models::relationships::queries::follow;
+    use crate::models::users::queries::create_user;
+    use crate::models::users::types::UserCreateData;
     use super::*;
 
     #[tokio::test]
@@ -121,6 +140,44 @@ mod tests {
         };
         let db_client = &create_test_database().await;
         let result = can_view_post(db_client, Some(&user), &post).await.unwrap();
+        assert_eq!(result, true);
+    }
+
+    async fn create_test_user(db_client: &mut Client, username: &str) -> User {
+        let user_data = UserCreateData {
+            username: username.to_string(),
+            ..Default::default()
+        };
+        create_user(db_client, user_data).await.unwrap()
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_can_view_post_followers_only_anonymous() {
+        let db_client = &mut create_test_database().await;
+        let author = create_test_user(db_client, "author").await;
+        let post = Post {
+            author: author.profile,
+            visibility: Visibility::Followers,
+            ..Default::default()
+        };
+        let result = can_view_post(db_client, None, &post).await.unwrap();
+        assert_eq!(result, false);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_can_view_post_followers_only_follower() {
+        let db_client = &mut create_test_database().await;
+        let author = create_test_user(db_client, "author").await;
+        let follower = create_test_user(db_client, "follower").await;
+        follow(db_client, &follower.id, &author.id).await.unwrap();
+        let post = Post {
+            author: author.profile,
+            visibility: Visibility::Followers,
+            ..Default::default()
+        };
+        let result = can_view_post(db_client, Some(&follower), &post).await.unwrap();
         assert_eq!(result, true);
     }
 }

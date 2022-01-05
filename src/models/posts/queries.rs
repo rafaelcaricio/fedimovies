@@ -208,14 +208,20 @@ pub const RELATED_TAGS: &str =
 fn build_visibility_filter() -> String {
     format!(
         "(
-            post.visibility = {visibility_public}
-            OR post.author_id = $current_user_id
-            OR EXISTS (
+            post.author_id = $current_user_id
+            OR post.visibility = {visibility_public}
+            OR post.visibility = {visibility_direct} AND EXISTS (
                 SELECT 1 FROM mention
                 WHERE post_id = post.id AND profile_id = $current_user_id
             )
+            OR post.visibility = {visibility_followers} AND EXISTS (
+                SELECT 1 FROM relationship
+                WHERE source_id = $current_user_id AND target_id = post.author_id
+            )
         )",
         visibility_public=i16::from(&Visibility::Public),
+        visibility_direct=i16::from(&Visibility::Direct),
+        visibility_followers=i16::from(&Visibility::Followers),
     )
 }
 
@@ -227,7 +233,6 @@ pub async fn get_home_timeline(
 ) -> Result<Vec<Post>, DatabaseError> {
     // Select posts from follows, posts where current user is mentioned
     // and user's own posts.
-    // Exclude direct messages where current user is not mentioned.
     let statement = format!(
         "
         SELECT
@@ -815,7 +820,7 @@ mod tests {
             ..Default::default()
         };
         let post_2 = create_post(db_client, &current_user.id, post_data_2).await.unwrap();
-        // Another user
+        // Another user's public post
         let user_data_1 = UserCreateData {
             username: "another-user".to_string(),
             ..Default::default()
@@ -834,35 +839,51 @@ mod tests {
             ..Default::default()
         };
         let post_4 = create_post(db_client, &user_1.id, post_data_4).await.unwrap();
-        // Followed
+        // Followers-only post from another user
+        let post_data_5 = PostCreateData {
+            content: "followers only".to_string(),
+            visibility: Visibility::Followers,
+            ..Default::default()
+        };
+        let post_5 = create_post(db_client, &user_1.id, post_data_5).await.unwrap();
+        // Followed user's public post
         let user_data_2 = UserCreateData {
             username: "followed".to_string(),
             ..Default::default()
         };
         let user_2 = create_user(db_client, user_data_2).await.unwrap();
         follow(db_client, &current_user.id, &user_2.id).await.unwrap();
-        let post_data_5 = PostCreateData {
+        let post_data_6 = PostCreateData {
             content: "test post".to_string(),
             ..Default::default()
         };
-        let post_5 = create_post(db_client, &user_2.id, post_data_5).await.unwrap();
+        let post_6 = create_post(db_client, &user_2.id, post_data_6).await.unwrap();
         // Direct message from followed user sent to another user
-        let post_data_6 = PostCreateData {
+        let post_data_7 = PostCreateData {
             content: "test post".to_string(),
             visibility: Visibility::Direct,
             mentions: vec![user_1.id],
             ..Default::default()
         };
-        let post_6 = create_post(db_client, &user_2.id, post_data_6).await.unwrap();
+        let post_7 = create_post(db_client, &user_2.id, post_data_7).await.unwrap();
+        // Followers-only post from followed user
+        let post_data_8 = PostCreateData {
+            content: "followers only".to_string(),
+            visibility: Visibility::Followers,
+            ..Default::default()
+        };
+        let post_8 = create_post(db_client, &user_2.id, post_data_8).await.unwrap();
 
         let timeline = get_home_timeline(db_client, &current_user.id, None, 10).await.unwrap();
-        assert_eq!(timeline.len(), 4);
+        assert_eq!(timeline.len(), 5);
         assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_2.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_3.id), false);
         assert_eq!(timeline.iter().any(|post| post.id == post_4.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_5.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_6.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_5.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_6.id), true);
+        assert_eq!(timeline.iter().any(|post| post.id == post_7.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_8.id), true);
     }
 
     #[tokio::test]

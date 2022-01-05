@@ -185,12 +185,14 @@ pub fn create_note(
     }).collect();
     let mut primary_audience = vec![];
     let mut secondary_audience = vec![];
+    let followers_collection_url =
+        get_followers_url(instance_url, &post.author.username);
     let mut tags = vec![];
     if matches!(post.visibility, Visibility::Public) {
         primary_audience.push(AP_PUBLIC.to_string());
-        secondary_audience.push(get_followers_url(
-            instance_url, &post.author.username,
-        ));
+        secondary_audience.push(followers_collection_url);
+    } else if matches!(post.visibility, Visibility::Followers) {
+        primary_audience.push(followers_collection_url);
     };
     for profile in &post.mentions {
         let actor_id = profile.actor_id(instance_url);
@@ -504,6 +506,20 @@ mod tests {
         assert_eq!(note.cc, vec![
             get_followers_url(INSTANCE_URL, "author"),
         ]);
+    }
+
+    #[test]
+    fn test_create_note_followers_only() {
+        let post = Post {
+            visibility: Visibility::Followers,
+            ..Default::default()
+        };
+        let note = create_note(INSTANCE_HOST, INSTANCE_URL, &post);
+
+        assert_eq!(note.to, vec![
+            get_followers_url(INSTANCE_URL, &post.author.username),
+        ]);
+        assert_eq!(note.cc.is_empty(), true);
     }
 
     #[test]
