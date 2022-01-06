@@ -382,3 +382,34 @@ pub async fn update_post_count(
     let profile = row.try_get("actor_profile")?;
     Ok(profile)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use serial_test::serial;
+    use crate::database::test_utils::create_test_database;
+    use super::*;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_create_profile() {
+        let profile_data = ProfileCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let db_client = create_test_database().await;
+        let profile = create_profile(&db_client, &profile_data).await.unwrap();
+        assert_eq!(profile.username, profile_data.username);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_delete_profile() {
+        let profile_data = ProfileCreateData::default();
+        let mut db_client = create_test_database().await;
+        let profile = create_profile(&db_client, &profile_data).await.unwrap();
+        let deletion_queue = delete_profile(&mut db_client, &profile.id).await.unwrap();
+        assert_eq!(deletion_queue.files.len(), 0);
+        assert_eq!(deletion_queue.ipfs_objects.len(), 0);
+    }
+}

@@ -3,6 +3,9 @@ use tokio_postgres::config::{Config as DbConfig};
 pub mod int_enum;
 pub mod migrate;
 
+#[cfg(test)]
+pub mod test_utils;
+
 pub type Pool = deadpool_postgres::Pool;
 
 pub async fn create_database_client(db_config: &DbConfig) -> tokio_postgres::Client {

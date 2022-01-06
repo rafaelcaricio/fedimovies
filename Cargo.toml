@@ -79,3 +79,6 @@ ulid = { version = "0.4.1", features = ["uuid"] }
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 # Used to query ethereum node
 web3 = { version = "0.15.0", default-features = false, features = ["http", "http-tls", "signing"] }
+
+[dev-dependencies]
+serial_test = "0.5.1"

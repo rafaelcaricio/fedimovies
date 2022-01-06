@@ -135,6 +135,7 @@ impl Default for DbActorProfile {
     }
 }
 
+#[cfg_attr(test, derive(Default))]
 pub struct ProfileCreateData {
     pub username: String,
     pub display_name: Option<String>,
