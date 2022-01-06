@@ -281,12 +281,16 @@ async fn reblog(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    let mut post = get_post_by_id(db_client, &status_id).await?;
+    if !can_view_post(db_client, Some(&current_user), &post).await? {
+        return Err(HttpError::NotFoundError("post"));
+    };
     let repost_data = PostCreateData {
         repost_of_id: Some(status_id),
         ..Default::default()
     };
     let repost = create_post(db_client, &current_user.id, repost_data).await?;
-    let mut post = get_post_by_id(db_client, &status_id).await?;
+    post.repost_count += 1;
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
