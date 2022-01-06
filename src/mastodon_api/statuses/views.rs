@@ -115,7 +115,7 @@ async fn get_status(
         None => None,
     };
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    if !can_view_post(maybe_current_user.as_ref(), &post) {
+    if !can_view_post(db_client, maybe_current_user.as_ref(), &post).await? {
         return Err(HttpError::NotFoundError("post"));
     };
     get_reposted_posts(db_client, vec![&mut post]).await?;
@@ -197,7 +197,7 @@ async fn favourite(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    if !can_view_post(Some(&current_user), &post) {
+    if !can_view_post(db_client, Some(&current_user), &post).await? {
         return Err(HttpError::NotFoundError("post"));
     };
     let maybe_reaction_created = match create_reaction(
@@ -242,9 +242,6 @@ async fn unfavourite(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    if !can_view_post(Some(&current_user), &post) {
-        return Err(HttpError::NotFoundError("post"));
-    };
     let maybe_reaction_deleted = match delete_reaction(
         db_client, &current_user.id, &status_id,
     ).await {

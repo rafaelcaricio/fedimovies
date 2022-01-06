@@ -59,8 +59,12 @@ pub async fn get_actions_for_posts(
     Ok(())
 }
 
-pub fn can_view_post(user: Option<&User>, post: &Post) -> bool {
-    match post.visibility {
+pub async fn can_view_post(
+    _db_client: &impl GenericClient,
+    user: Option<&User>,
+    post: &Post,
+) -> Result<bool, DatabaseError> {
+    let result = match post.visibility {
         Visibility::Public => true,
         Visibility::Direct => {
             if let Some(user) = user {
@@ -71,40 +75,52 @@ pub fn can_view_post(user: Option<&User>, post: &Post) -> bool {
                 false
             }
         },
-    }
+    };
+    Ok(result)
 }
 
 #[cfg(test)]
 mod tests {
+    use serial_test::serial;
+    use crate::database::test_utils::create_test_database;
     use super::*;
 
-    #[test]
-    fn test_can_view_post_anonymous() {
+    #[tokio::test]
+    #[serial]
+    async fn test_can_view_post_anonymous() {
         let post = Post {
             visibility: Visibility::Public,
             ..Default::default()
         };
-        assert!(can_view_post(None, &post));
+        let db_client = &create_test_database().await;
+        let result = can_view_post(db_client, None, &post).await.unwrap();
+        assert_eq!(result, true);
     }
 
-    #[test]
-    fn test_can_view_post_direct() {
+    #[tokio::test]
+    #[serial]
+    async fn test_can_view_post_direct() {
         let user = User::default();
         let post = Post {
             visibility: Visibility::Direct,
             ..Default::default()
         };
-        assert!(!can_view_post(Some(&user), &post));
+        let db_client = &create_test_database().await;
+        let result = can_view_post(db_client, Some(&user), &post).await.unwrap();
+        assert_eq!(result, false);
     }
 
-    #[test]
-    fn test_can_view_post_direct_mentioned() {
+    #[tokio::test]
+    #[serial]
+    async fn test_can_view_post_direct_mentioned() {
         let user = User::default();
         let post = Post {
             visibility: Visibility::Direct,
             mentions: vec![user.profile.clone()],
             ..Default::default()
         };
-        assert!(can_view_post(Some(&user), &post));
+        let db_client = &create_test_database().await;
+        let result = can_view_post(db_client, Some(&user), &post).await.unwrap();
+        assert_eq!(result, true);
     }
 }
