@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use postgres_types::FromSql;
 use regex::Regex;
-use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
@@ -46,10 +45,10 @@ impl User {
     }
 }
 
-#[derive(Deserialize)]
 pub struct UserCreateData {
     pub username: String,
-    pub password: String,
+    pub password_hash: String,
+    pub private_key_pem: String,
     pub wallet_address: Option<String>,
     pub invite_code: Option<String>,
 }
@@ -65,9 +64,9 @@ fn validate_local_username(username: &str) -> Result<(), ValidationError> {
 
 impl UserCreateData {
     /// Validate and clean.
-    pub fn clean(&self) -> Result<(), ValidationError> {
-        validate_username(&self.username)?;
-        validate_local_username(&self.username)?;
+    pub fn clean(username: &str) -> Result<(), ValidationError> {
+        validate_username(username)?;
+        validate_local_username(username)?;
         Ok(())
     }
 }

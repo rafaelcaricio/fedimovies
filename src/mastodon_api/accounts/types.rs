@@ -95,18 +95,23 @@ impl Account {
 /// https://docs.joinmastodon.org/methods/accounts/
 #[derive(Deserialize)]
 pub struct AccountCreateData {
-    username: String,
-    password: String,
+    pub username: String,
+    pub password: String,
 
-    wallet_address: Option<String>,
-    invite_code: Option<String>,
+    pub wallet_address: Option<String>,
+    pub invite_code: Option<String>,
 }
 
 impl AccountCreateData {
-    pub fn into_user_data(self) -> UserCreateData {
+    pub fn into_user_data(
+        self,
+        password_hash: String,
+        private_key_pem: String,
+    ) -> UserCreateData {
         UserCreateData {
             username: self.username,
-            password: self.password,
+            password_hash,
+            private_key_pem,
             wallet_address: self.wallet_address,
             invite_code: self.invite_code,
         }

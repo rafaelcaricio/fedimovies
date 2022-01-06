@@ -40,6 +40,7 @@ use crate::models::users::queries::{
     is_valid_invite_code,
     create_user,
 };
+use crate::models::users::types::UserCreateData;
 use crate::utils::crypto::{
     hash_password,
     generate_private_key,
@@ -60,11 +61,10 @@ pub async fn create_account(
     account_data: web::Json<AccountCreateData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
-    let user_data = account_data.into_inner().into_user_data();
     // Validate
-    user_data.clean()?;
+    UserCreateData::clean(&account_data.username)?;
     if !config.registrations_open {
-        let invite_code = user_data.invite_code.as_ref()
+        let invite_code = account_data.invite_code.as_ref()
             .ok_or(ValidationError("invite code is required"))?;
         if !is_valid_invite_code(db_client, invite_code).await? {
             return Err(ValidationError("invalid invite code").into());
@@ -72,7 +72,7 @@ pub async fn create_account(
     }
     if config.ethereum_contract.is_some() {
         // Wallet address is required only if ethereum integration is enabled
-        let wallet_address = user_data.wallet_address.as_ref()
+        let wallet_address = account_data.wallet_address.as_ref()
             .ok_or(ValidationError("wallet address is required"))?;
         let is_allowed = is_allowed_user(&config, wallet_address).await
             .map_err(|_| HttpError::InternalError)?;
@@ -81,7 +81,7 @@ pub async fn create_account(
         }
     }
     // Hash password and generate private key
-    let password_hash = hash_password(&user_data.password)
+    let password_hash = hash_password(&account_data.password)
         .map_err(|_| HttpError::InternalError)?;
     let private_key = match web::block(generate_private_key).await {
         Ok(private_key) => private_key,
@@ -90,12 +90,9 @@ pub async fn create_account(
     let private_key_pem = serialize_private_key(private_key)
         .map_err(|_| HttpError::InternalError)?;
 
-    let user = create_user(
-        db_client,
-        user_data,
-        password_hash,
-        private_key_pem,
-    ).await?;
+    let user_data = account_data.into_inner()
+        .into_user_data(password_hash, private_key_pem);
+    let user = create_user(db_client, user_data).await?;
     let account = Account::from_user(user, &config.instance_url());
     Ok(HttpResponse::Created().json(account))
 }

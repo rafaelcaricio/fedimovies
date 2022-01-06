@@ -56,8 +56,6 @@ pub async fn is_valid_invite_code(
 pub async fn create_user(
     db_client: &mut impl GenericClient,
     user_data: UserCreateData,
-    password_hash: String,
-    private_key_pem: String,
 ) -> Result<User, DatabaseError> {
     let transaction = db_client.transaction().await?;
     // Use invite code
@@ -98,8 +96,8 @@ pub async fn create_user(
         &[
             &profile.id,
             &user_data.wallet_address,
-            &password_hash,
-            &private_key_pem,
+            &user_data.password_hash,
+            &user_data.private_key_pem,
             &user_data.invite_code,
         ],
     ).await.map_err(catch_unique_violation("user"))?;
