@@ -19,6 +19,9 @@ pub enum DatabaseError {
     #[error("database pool error")]
     DatabasePoolError(#[from] deadpool_postgres::PoolError),
 
+    #[error("database query error")]
+    DatabaseQueryError(#[from] postgres_query::Error),
+
     #[error("database client error")]
     DatabaseClientError(#[from] tokio_postgres::Error),
 

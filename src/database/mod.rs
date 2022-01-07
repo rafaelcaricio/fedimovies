@@ -2,6 +2,7 @@ use tokio_postgres::config::{Config as DbConfig};
 
 pub mod int_enum;
 pub mod migrate;
+pub mod query_macro;
 
 #[cfg(test)]
 pub mod test_utils;

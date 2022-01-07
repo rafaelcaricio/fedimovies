@@ -5,6 +5,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::database::catch_unique_violation;
+use crate::database::query_macro::query;
 use crate::errors::DatabaseError;
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::cleanup::{
@@ -223,33 +224,36 @@ pub async fn get_home_timeline(
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
             (
-                post.author_id = $1
+                post.author_id = $current_user_id
                 OR EXISTS (
                     SELECT 1 FROM relationship
-                    WHERE source_id = $1 AND target_id = post.author_id
+                    WHERE source_id = $current_user_id AND target_id = post.author_id
                 )
             )
             AND (
                 post.visibility = {visibility_public}
-                OR post.author_id = $1
+                OR post.author_id = $current_user_id
                 OR EXISTS (
                     SELECT 1 FROM mention
-                    WHERE post_id = post.id AND profile_id = $1
+                    WHERE post_id = post.id AND profile_id = $current_user_id
                 )
             )
-            AND ($2::uuid IS NULL OR post.id < $2)
+            AND ($max_post_id::uuid IS NULL OR post.id < $max_post_id)
         ORDER BY post.id DESC
-        LIMIT $3
+        LIMIT $limit
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         visibility_public=i16::from(&Visibility::Public),
     );
-    let rows = db_client.query(
-        statement.as_str(),
-        &[&current_user_id, &max_post_id, &limit],
-    ).await?;
+    let query = query!(
+        &statement,
+        current_user_id=current_user_id,
+        max_post_id=max_post_id,
+        limit=limit,
+    )?;
+    let rows = db_client.query(query.sql(), query.parameters()).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)
         .collect::<Result<_, _>>()?;
@@ -293,19 +297,19 @@ pub async fn get_posts_by_author(
     max_post_id: Option<Uuid>,
     limit: i64,
 ) -> Result<Vec<Post>, DatabaseError> {
-    let mut condition = "post.author_id = $1
-        AND ($2::uuid IS NULL OR post.id < $2)".to_string();
+    let mut condition = "post.author_id = $profile_id
+        AND ($max_post_id::uuid IS NULL OR post.id < $max_post_id)".to_string();
     if !include_replies {
         condition.push_str(" AND post.in_reply_to_id IS NULL");
     };
     let visibility_filter = format!(
         " AND (
             post.visibility = {visibility_public}
-            OR $4::uuid IS NULL
-            OR post.author_id = $4
+            OR $current_user_id::uuid IS NULL
+            OR post.author_id = $current_user_id
             OR EXISTS (
                 SELECT 1 FROM mention
-                WHERE post_id = post.id AND profile_id = $4
+                WHERE post_id = post.id AND profile_id = $current_user_id
             )
         )",
         visibility_public=i16::from(&Visibility::Public),
@@ -322,17 +326,21 @@ pub async fn get_posts_by_author(
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE {condition}
         ORDER BY post.created_at DESC
-        LIMIT $3
+        LIMIT $limit
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         condition=condition,
     );
-    let rows = db_client.query(
-        statement.as_str(),
-        &[&profile_id, &max_post_id, &limit, &current_user_id],
-    ).await?;
+    let query = query!(
+        &statement,
+        profile_id=profile_id,
+        current_user_id=current_user_id,
+        max_post_id=max_post_id,
+        limit=limit,
+    )?;
+    let rows = db_client.query(query.sql(), query.parameters()).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)
         .collect::<Result<_, _>>()?;
@@ -346,6 +354,7 @@ pub async fn get_posts_by_tag(
     max_post_id: Option<Uuid>,
     limit: i64,
 ) -> Result<Vec<Post>, DatabaseError> {
+    let tag_name = tag_name.to_lowercase();
     let statement = format!(
         "
         SELECT
@@ -358,30 +367,34 @@ pub async fn get_posts_by_tag(
         WHERE
             (
                 post.visibility = {visibility_public}
-                OR $4::uuid IS NULL
-                OR post.author_id = $4
+                OR $current_user_id::uuid IS NULL
+                OR post.author_id = $current_user_id
                 OR EXISTS (
                     SELECT 1 FROM mention
-                    WHERE post_id = post.id AND profile_id = $4
+                    WHERE post_id = post.id AND profile_id = $current_user_id
                 )
             )
             AND EXISTS (
                 SELECT 1 FROM post_tag JOIN tag ON post_tag.tag_id = tag.id
-                WHERE post_tag.post_id = post.id AND tag.tag_name = $1
+                WHERE post_tag.post_id = post.id AND tag.tag_name = $tag_name
             )
-            AND ($2::uuid IS NULL OR post.id < $2)
+            AND ($max_post_id::uuid IS NULL OR post.id < $max_post_id)
         ORDER BY post.id DESC
-        LIMIT $3
+        LIMIT $limit
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         visibility_public=i16::from(&Visibility::Public),
     );
-    let rows = db_client.query(
-        statement.as_str(),
-        &[&tag_name.to_lowercase(), &max_post_id, &limit, &current_user_id],
-    ).await?;
+    let query = query!(
+        &statement,
+        tag_name=tag_name,
+        current_user_id=current_user_id,
+        max_post_id=max_post_id,
+        limit=limit,
+    )?;
+    let rows = db_client.query(query.sql(), query.parameters()).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)
         .collect::<Result<_, _>>()?;
@@ -428,11 +441,11 @@ pub async fn get_thread(
     let condition = format!(
         "
         post.visibility = {visibility_public}
-        OR $2::uuid IS NULL
-        OR post.author_id = $2
+        OR $current_user_id::uuid IS NULL
+        OR post.author_id = $current_user_id
         OR EXISTS (
             SELECT 1 FROM mention
-            WHERE post_id = post.id AND profile_id = $2
+            WHERE post_id = post.id AND profile_id = $current_user_id
         )
         ",
         visibility_public=i16::from(&Visibility::Public),
@@ -443,7 +456,7 @@ pub async fn get_thread(
         WITH RECURSIVE
         ancestors (id, in_reply_to_id) AS (
             SELECT post.id, post.in_reply_to_id FROM post
-            WHERE post.id = $1 AND ({condition})
+            WHERE post.id = $post_id AND ({condition})
             UNION ALL
             SELECT post.id, post.in_reply_to_id FROM post
             JOIN ancestors ON post.id = ancestors.in_reply_to_id
@@ -471,10 +484,12 @@ pub async fn get_thread(
         related_tags=RELATED_TAGS,
         condition=condition,
     );
-    let rows = db_client.query(
-        statement.as_str(),
-        &[&post_id, &current_user_id],
-    ).await?;
+    let query = query!(
+        &statement,
+        post_id=post_id,
+        current_user_id=current_user_id,
+    )?;
+    let rows = db_client.query(query.sql(), query.parameters()).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)
         .collect::<Result<_, _>>()?;
