@@ -58,6 +58,7 @@ async fn hashtag_timeline(
     let mut posts = get_posts_by_tag(
         db_client,
         &hashtag,
+        maybe_current_user.as_ref().map(|user| &user.id),
         query_params.max_id,
         query_params.limit,
     ).await?;

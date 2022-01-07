@@ -1,7 +1,6 @@
 use std::convert::TryFrom;
 
 use chrono::Utc;
-use postgres_types::ToSql;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
@@ -232,6 +231,7 @@ pub async fn get_home_timeline(
             )
             AND (
                 post.visibility = {visibility_public}
+                OR post.author_id = $1
                 OR EXISTS (
                     SELECT 1 FROM mention
                     WHERE post_id = post.id AND profile_id = $1
@@ -287,9 +287,9 @@ pub async fn get_posts(
 
 pub async fn get_posts_by_author(
     db_client: &impl GenericClient,
-    account_id: &Uuid,
+    profile_id: &Uuid,
+    current_user_id: Option<&Uuid>,
     include_replies: bool,
-    include_private: bool,
     max_post_id: Option<Uuid>,
     limit: i64,
 ) -> Result<Vec<Post>, DatabaseError> {
@@ -298,13 +298,19 @@ pub async fn get_posts_by_author(
     if !include_replies {
         condition.push_str(" AND post.in_reply_to_id IS NULL");
     };
-    if !include_private {
-        let only_public = format!(
-            " AND visibility = {}",
-            i16::from(&Visibility::Public),
-        );
-        condition.push_str(&only_public);
-    };
+    let visibility_filter = format!(
+        " AND (
+            post.visibility = {visibility_public}
+            OR $4::uuid IS NULL
+            OR post.author_id = $4
+            OR EXISTS (
+                SELECT 1 FROM mention
+                WHERE post_id = post.id AND profile_id = $4
+            )
+        )",
+        visibility_public=i16::from(&Visibility::Public),
+    );
+    condition.push_str(&visibility_filter);
     let statement = format!(
         "
         SELECT
@@ -325,7 +331,7 @@ pub async fn get_posts_by_author(
     );
     let rows = db_client.query(
         statement.as_str(),
-        &[&account_id, &max_post_id, &limit],
+        &[&profile_id, &max_post_id, &limit, &current_user_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)
@@ -336,6 +342,7 @@ pub async fn get_posts_by_author(
 pub async fn get_posts_by_tag(
     db_client: &impl GenericClient,
     tag_name: &str,
+    current_user_id: Option<&Uuid>,
     max_post_id: Option<Uuid>,
     limit: i64,
 ) -> Result<Vec<Post>, DatabaseError> {
@@ -349,7 +356,15 @@ pub async fn get_posts_by_tag(
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
-            post.visibility = {visibility_public}
+            (
+                post.visibility = {visibility_public}
+                OR $4::uuid IS NULL
+                OR post.author_id = $4
+                OR EXISTS (
+                    SELECT 1 FROM mention
+                    WHERE post_id = post.id AND profile_id = $4
+                )
+            )
             AND EXISTS (
                 SELECT 1 FROM post_tag JOIN tag ON post_tag.tag_id = tag.id
                 WHERE post_tag.post_id = post.id AND tag.tag_name = $1
@@ -365,7 +380,7 @@ pub async fn get_posts_by_tag(
     );
     let rows = db_client.query(
         statement.as_str(),
-        &[&tag_name.to_lowercase(), &max_post_id, &limit],
+        &[&tag_name.to_lowercase(), &max_post_id, &limit, &current_user_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)
@@ -410,25 +425,18 @@ pub async fn get_thread(
     post_id: &Uuid,
     current_user_id: Option<&Uuid>,
 ) -> Result<Vec<Post>, DatabaseError> {
-    // Exclude direct messages
-    let mut condition = format!(
-        "post.visibility = {visibility_public}",
+    let condition = format!(
+        "
+        post.visibility = {visibility_public}
+        OR $2::uuid IS NULL
+        OR post.author_id = $2
+        OR EXISTS (
+            SELECT 1 FROM mention
+            WHERE post_id = post.id AND profile_id = $2
+        )
+        ",
         visibility_public=i16::from(&Visibility::Public),
     );
-    // Create mutable params array
-    // https://github.com/sfackler/rust-postgres/issues/712
-    let mut parameters: Vec<&(dyn ToSql + Sync)> = vec![post_id];
-    if let Some(current_user_id) = current_user_id {
-        condition.push_str(
-            "
-            OR EXISTS (
-                SELECT 1 FROM mention
-                WHERE post_id = post.id AND profile_id = $2
-            )
-            ",
-        );
-        parameters.push(current_user_id);
-    };
     // TODO: limit recursion depth
     let statement = format!(
         "
@@ -465,7 +473,7 @@ pub async fn get_thread(
     );
     let rows = db_client.query(
         statement.as_str(),
-        &parameters,
+        &[&post_id, &current_user_id],
     ).await?;
     let posts: Vec<Post> = rows.iter()
         .map(Post::try_from)

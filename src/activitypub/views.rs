@@ -157,8 +157,10 @@ async fn outbox(
     let user = get_user_by_name(db_client, &username).await?;
     // Post are ordered by creation date
     let posts = get_posts_by_author(
-        db_client, &user.id,
-        false, false,
+        db_client,
+        &user.id,
+        None, // include only public posts
+        false,
         None, COLLECTION_PAGE_SIZE,
     ).await?;
     // TODO: include reposts

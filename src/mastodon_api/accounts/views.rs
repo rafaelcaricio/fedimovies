@@ -300,7 +300,7 @@ async fn get_account_statuses(
     let mut posts = get_posts_by_author(
         db_client,
         &account_id,
-        false,
+        maybe_current_user.as_ref().map(|user| &user.id),
         false,
         query_params.max_id,
         query_params.limit,
