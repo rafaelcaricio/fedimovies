@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use uuid::Uuid;
 
 use crate::frontend::get_tag_page_url;
-use crate::models::posts::types::Post;
+use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
 use crate::utils::files::get_file_url;
@@ -183,12 +183,15 @@ pub fn create_note(
             url,
         }
     }).collect();
-    // Notes are public; direct messages are not supported yet
-    let mut primary_audience = vec![AP_PUBLIC.to_string()];
-    let secondary_audience = vec![
-        get_followers_url(instance_url, &post.author.username),
-    ];
+    let mut primary_audience = vec![];
+    let mut secondary_audience = vec![];
     let mut tags = vec![];
+    if matches!(post.visibility, Visibility::Public) {
+        primary_audience.push(AP_PUBLIC.to_string());
+        secondary_audience.push(get_followers_url(
+            instance_url, &post.author.username,
+        ));
+    };
     for profile in &post.mentions {
         let actor_id = profile.actor_id(instance_url);
         primary_audience.push(actor_id);
