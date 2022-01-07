@@ -1,4 +1,6 @@
 /// https://docs.joinmastodon.org/methods/statuses/
+use std::convert::TryFrom;
+
 use actix_web::{delete, get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use serde::Serialize;
@@ -60,7 +62,7 @@ async fn create_status(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let instance = config.instance();
-    let mut post_data = PostCreateData::from(data.into_inner());
+    let mut post_data = PostCreateData::try_from(data.into_inner())?;
     post_data.clean()?;
     // Mentions
     let mention_map = find_mentioned_profiles(

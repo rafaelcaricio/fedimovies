@@ -1,7 +1,10 @@
+use std::convert::TryFrom;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::errors::ValidationError;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::media::types::Attachment;
 use crate::models::posts::types::{Post, PostCreateData, Visibility};
@@ -128,22 +131,32 @@ pub struct StatusData {
     pub media_ids: Option<Vec<Uuid>>,
 
     pub in_reply_to_id: Option<Uuid>,
+    pub visibility: Option<String>,
 }
 
-impl From<StatusData> for PostCreateData {
+impl TryFrom<StatusData> for PostCreateData {
 
-    fn from(value: StatusData) -> Self {
-        Self {
+    type Error = ValidationError;
+
+    fn try_from(value: StatusData) -> Result<Self, Self::Error> {
+        let visibility = match value.visibility.as_deref() {
+            Some("public") => Visibility::Public,
+            Some("direct") => Visibility::Direct,
+            Some(_) => return Err(ValidationError("invalid visibility parameter")),
+            None => Visibility::Public,
+        };
+        let post_data = Self {
             content: value.status,
             in_reply_to_id: value.in_reply_to_id,
             repost_of_id: None,
-            visibility: Visibility::Public,
+            visibility: visibility,
             attachments: value.media_ids.unwrap_or(vec![]),
             mentions: vec![],
             tags: vec![],
             object_id: None,
             created_at: None,
-        }
+        };
+        Ok(post_data)
     }
 }
 

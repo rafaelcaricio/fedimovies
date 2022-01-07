@@ -236,6 +236,47 @@ paths:
                 $ref: '#/components/schemas/Relationship'
         404:
           description: Profile not found
+  /api/v1/statuses:
+    post:
+      summary: Create new post.
+      security:
+        - tokenAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  description: Text content of the post.
+                  type: string
+                'media_ids[]':
+                  description: Array of Attachment ids to be attached as media.
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                in_reply_to_id:
+                  description: ID of the post being replied to, if post is a reply.
+                  type: string
+                  format: uuid
+                visibility:
+                  description: Visibility of the post.
+                  type: string
+                  enum:
+                    - public
+                    - direct
+              required:
+                - status
+      responses:
+        201:
+          description: Post created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        400:
+          description: Invalid post data
   /api/v1/statuses/{status_id}:
     delete:
       summary: Delete post
@@ -426,8 +467,14 @@ components:
           type: string
           format: uuid
         content:
-          description: HTML-encoded status content.
+          description: HTML-encoded post content.
           type: string
+        visibility:
+          description: Visibility of this post.
+          type: string
+          enum:
+            - public
+            - direct
         tags:
           description: Hashtags used within the status content.
           type: array
