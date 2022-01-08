@@ -23,7 +23,7 @@ pub struct Attachment {
     pub attachment_type: String,
 
     pub media_type: Option<String>,
-    pub url: String,
+    pub url: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -180,7 +180,7 @@ pub fn create_note(
             name: None,
             attachment_type: DOCUMENT.to_string(),
             media_type,
-            url,
+            url: Some(url),
         }
     }).collect();
     let mut primary_audience = vec![];

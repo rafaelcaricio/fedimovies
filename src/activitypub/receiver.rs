@@ -226,9 +226,18 @@ pub async fn process_note(
             let mut downloaded = vec![];
             let output_dir = config.media_dir();
             for attachment in list {
-                let (file_name, media_type) = fetch_attachment(&attachment.url, &output_dir).await
+                if attachment.attachment_type != DOCUMENT {
+                    log::warn!(
+                        "skipping attachment of type {}",
+                        attachment.attachment_type,
+                    );
+                    continue;
+                };
+                let attachment_url = attachment.url
+                    .ok_or(ValidationError("attachment URL is missing"))?;
+                let (file_name, media_type) = fetch_attachment(&attachment_url, &output_dir).await
                     .map_err(|_| ValidationError("failed to fetch attachment"))?;
-                log::info!("downloaded attachment {}", attachment.url);
+                log::info!("downloaded attachment {}", attachment_url);
                 downloaded.push((
                     file_name,
                     attachment.media_type.or(media_type),
