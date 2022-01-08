@@ -45,6 +45,7 @@ impl User {
     }
 }
 
+#[cfg_attr(test, derive(Default))]
 pub struct UserCreateData {
     pub username: String,
     pub password_hash: String,

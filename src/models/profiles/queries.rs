@@ -19,7 +19,7 @@ use super::types::{
 /// Create new profile using given Client or Transaction.
 pub async fn create_profile(
     db_client: &impl GenericClient,
-    profile_data: &ProfileCreateData,
+    profile_data: ProfileCreateData,
 ) -> Result<DbActorProfile, DatabaseError> {
     let profile_id = new_uuid();
     let extra_fields = ExtraFields(profile_data.extra_fields.clone());
@@ -398,8 +398,8 @@ mod tests {
             ..Default::default()
         };
         let db_client = create_test_database().await;
-        let profile = create_profile(&db_client, &profile_data).await.unwrap();
-        assert_eq!(profile.username, profile_data.username);
+        let profile = create_profile(&db_client, profile_data).await.unwrap();
+        assert_eq!(profile.username, "test");
     }
 
     #[tokio::test]
@@ -407,7 +407,7 @@ mod tests {
     async fn test_delete_profile() {
         let profile_data = ProfileCreateData::default();
         let mut db_client = create_test_database().await;
-        let profile = create_profile(&db_client, &profile_data).await.unwrap();
+        let profile = create_profile(&db_client, profile_data).await.unwrap();
         let deletion_queue = delete_profile(&mut db_client, &profile.id).await.unwrap();
         assert_eq!(deletion_queue.files.len(), 0);
         assert_eq!(deletion_queue.ipfs_objects.len(), 0);

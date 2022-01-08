@@ -59,7 +59,7 @@ pub async fn get_or_import_profile_by_actor_id(
                     err
                 })?;
             log::info!("fetched profile {}", profile_data.acct);
-            let profile = create_profile(db_client, &profile_data).await?;
+            let profile = create_profile(db_client, profile_data).await?;
             profile
         },
         Err(other_error) => return Err(other_error.into()),
@@ -90,6 +90,6 @@ pub async fn import_profile_by_actor_address(
     };
     log::info!("fetched profile {}", profile_data.acct);
     profile_data.clean()?;
-    let profile = create_profile(db_client, &profile_data).await?;
+    let profile = create_profile(db_client, profile_data).await?;
     Ok(profile)
 }

@@ -83,7 +83,7 @@ pub async fn create_user(
         extra_fields: vec![],
         actor_json: None,
     };
-    let profile = create_profile(&transaction, &profile_data).await?;
+    let profile = create_profile(&transaction, profile_data).await?;
     // Create user
     let row = transaction.query_one(
         "
