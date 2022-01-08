@@ -39,6 +39,7 @@ use crate::models::relationships::queries::{
 use crate::models::users::queries::get_user_by_name;
 use super::activity::{Object, Activity, create_activity_accept_follow};
 use super::actor::Actor;
+use super::constants::AP_PUBLIC;
 use super::deliverer::deliver_activity;
 use super::fetcher::fetchers::{
     fetch_avatar_and_banner,
@@ -308,20 +309,27 @@ pub async fn process_note(
             },
             None => None,
         };
-        let visibility = match object.to {
+        let primary_audience = match object.to {
             Some(value) => {
-                let recipients = parse_array(&value)
-                    .map_err(|_| ValidationError("invalid 'to' property value"))?;
-                if recipients.len() == 1 &&
-                    parse_actor_id(&instance.url(), &recipients[0]).is_ok()
-                {
-                    // Single local recipient
-                    Visibility::Direct
-                } else {
-                    Visibility::Public
-                }
+                parse_array(&value)
+                    .map_err(|_| ValidationError("invalid 'to' property value"))?
             },
-            None => Visibility::Public,
+            None => vec![],
+        };
+        let secondary_audience = match object.cc {
+            Some(value) => {
+                parse_array(&value)
+                    .map_err(|_| ValidationError("invalid 'to' property value"))?
+            },
+            None => vec![],
+        };
+        let visibility = if primary_audience.contains(&AP_PUBLIC.to_string()) ||
+                secondary_audience.contains(&AP_PUBLIC.to_string()) {
+            Visibility::Public
+        } else {
+            // Treat all notes that aren't public-addressed as direct messages
+            log::warn!("received non-public note: {}", object.id);
+            Visibility::Direct
         };
         let post_data = PostCreateData {
             content,
