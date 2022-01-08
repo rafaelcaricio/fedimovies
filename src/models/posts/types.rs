@@ -12,7 +12,7 @@ use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::html::clean_html;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Visibility {
     Public,
     Direct,

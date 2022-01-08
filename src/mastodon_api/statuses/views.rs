@@ -18,7 +18,7 @@ use crate::activitypub::deliverer::deliver_activity;
 use crate::activitypub::views::get_object_url;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
-use crate::errors::{DatabaseError, HttpError};
+use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::nft::create_mint_signature;
 use crate::ipfs::store as ipfs_store;
 use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
@@ -39,7 +39,7 @@ use crate::models::posts::queries::{
     update_post,
     delete_post,
 };
-use crate::models::posts::types::PostCreateData;
+use crate::models::posts::types::{PostCreateData, Visibility};
 use crate::models::reactions::queries::{
     create_reaction,
     delete_reaction,
@@ -78,21 +78,43 @@ async fn create_status(
     );
     post_data.mentions = mention_map.values()
         .map(|profile| profile.id).collect();
+    // Tags
     post_data.tags = find_tags(&post_data.content);
     post_data.content = replace_tags(
         &instance.url(),
         &post_data.content,
         &post_data.tags,
     );
-    let mut post = create_post(db_client, &current_user.id, post_data).await?;
-    // Federate
-    post.in_reply_to = match post.in_reply_to_id {
-        Some(in_reply_to_id) => {
-            let in_reply_to = get_post_by_id(db_client, &in_reply_to_id).await?;
-            Some(Box::new(in_reply_to))
-        },
-        None => None,
+    // Reply validation
+    let maybe_in_reply_to = if let Some(in_reply_to_id) = post_data.in_reply_to_id.as_ref() {
+        let in_reply_to = match get_post_by_id(db_client, in_reply_to_id).await {
+            Ok(post) => post,
+            Err(DatabaseError::NotFound(_)) => {
+                return Err(ValidationError("parent post does not exist").into());
+            },
+            Err(other_error) => return Err(other_error.into()),
+        };
+        if post_data.visibility != in_reply_to.visibility {
+            return Err(ValidationError("post visibility doesn't match the parent").into());
+        };
+        if post_data.visibility != Visibility::Public {
+            let in_reply_to_mentions: Vec<_> = in_reply_to.mentions.iter()
+                .map(|profile| profile.id).collect();
+            if !post_data.mentions.iter().all(|id| in_reply_to_mentions.contains(id)) {
+                return Err(ValidationError("audience can't be expanded").into());
+            };
+        };
+        Some(in_reply_to)
+    } else {
+        None
     };
+    // Create post
+    let mut post = create_post(db_client, &current_user.id, post_data).await?;
+    post.in_reply_to = maybe_in_reply_to.map(|mut in_reply_to| {
+        in_reply_to.reply_count += 1;
+        Box::new(in_reply_to)
+    });
+    // Federate
     let activity = create_activity_note(
         &instance.host(),
         &instance.url(),
