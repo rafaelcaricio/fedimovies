@@ -209,7 +209,6 @@ fn build_visibility_filter() -> String {
     format!(
         "(
             post.visibility = {visibility_public}
-            OR $current_user_id::uuid IS NULL
             OR post.author_id = $current_user_id
             OR EXISTS (
                 SELECT 1 FROM mention
@@ -864,5 +863,37 @@ mod tests {
         assert_eq!(timeline.iter().any(|post| post.id == post_4.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_5.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_6.id), false);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_profile_timeline_public() {
+        let db_client = &mut create_test_database().await;
+        let user_data = UserCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let user = create_user(db_client, user_data).await.unwrap();
+        // Public post
+        let post_data_1 = PostCreateData {
+            content: "my post".to_string(),
+            ..Default::default()
+        };
+        let post_1 = create_post(db_client, &user.id, post_data_1).await.unwrap();
+        // Direct message
+        let post_data_2 = PostCreateData {
+            content: "my post".to_string(),
+            visibility: Visibility::Direct,
+            ..Default::default()
+        };
+        let post_2 = create_post(db_client, &user.id, post_data_2).await.unwrap();
+
+        // Anonymous viewer
+        let timeline = get_posts_by_author(
+            db_client, &user.id, None, false, None, 10
+        ).await.unwrap();
+        assert_eq!(timeline.len(), 1);
+        assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
+        assert_eq!(timeline.iter().any(|post| post.id == post_2.id), false);
     }
 }
