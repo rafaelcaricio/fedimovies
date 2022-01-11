@@ -297,9 +297,10 @@ async fn get_account_statuses(
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
         None => None,
     };
+    let profile = get_profile_by_id(db_client, &account_id).await?;
     let mut posts = get_posts_by_author(
         db_client,
-        &account_id,
+        &profile.id,
         maybe_current_user.as_ref().map(|user| &user.id),
         false,
         query_params.max_id,
