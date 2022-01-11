@@ -402,6 +402,7 @@ async fn make_permanent(
         &post.id,
         &post_url,
         &post.content,
+        &post.created_at,
         &post_image_cid,
     );
     let post_metadata_json = serde_json::to_string(&post_metadata)

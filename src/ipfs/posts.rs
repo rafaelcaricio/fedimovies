@@ -1,15 +1,29 @@
+use chrono::{DateTime, Utc};
 use serde::Serialize;
+use serde_json::{json, Value};
 use uuid::Uuid;
 
 use super::utils::get_ipfs_url;
 
-// https://docs.opensea.io/docs/metadata-standards
+/// ERC-721 custom attribute as defined by OpenSea guidelines.
+#[derive(Serialize)]
+struct Attribute {
+    trait_type: String,
+    value: Value,
+    display_type: String,
+}
+
+/// JSON representation of a post. Compatible with ERC-721 metadata standard.
+/// https://docs.opensea.io/docs/metadata-standards
 #[derive(Serialize)]
 pub struct PostMetadata {
+    // Fields required by ERC-721
     name: String,
     description: String,
     image: String,
+    // OpenSea custom fields
     external_url: String,
+    attributes: Vec<Attribute>,
 }
 
 impl PostMetadata {
@@ -17,13 +31,20 @@ impl PostMetadata {
         post_id: &Uuid,
         post_url: &str,
         content: &str,
+        created_at: &DateTime<Utc>,
         image_cid: &str,
     ) -> Self {
+        let created_at_attr = Attribute {
+            trait_type: "Created at".to_string(),
+            value: json!(created_at.timestamp()),
+            display_type: "date".to_string(),
+        };
         Self {
             name: format!("Post {}", post_id),
             description: content.to_string(),
             image: get_ipfs_url(image_cid),
             external_url: post_url.to_string(),
+            attributes: vec![created_at_attr],
         }
     }
 }
@@ -45,6 +66,7 @@ mod tests {
             &post.id,
             post_url,
             &post.content,
+            &post.created_at,
             image_cid,
         );
 
@@ -52,5 +74,8 @@ mod tests {
         assert_eq!(post_metadata.description, post.content);
         assert_eq!(post_metadata.image, format!("ipfs://{}", image_cid));
         assert_eq!(post_metadata.external_url, post_url);
+        let created_at_attr = &post_metadata.attributes[0];
+        assert_eq!(created_at_attr.display_type, "date");
+        assert_eq!(created_at_attr.value.as_i64().is_some(), true);
     }
 }
