@@ -3,7 +3,6 @@ use std::convert::TryFrom;
 
 use actix_web::{delete, get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use serde::Serialize;
 use uuid::Uuid;
 
 use crate::activitypub::activity::{
@@ -15,12 +14,12 @@ use crate::activitypub::activity::{
     create_activity_delete_note,
 };
 use crate::activitypub::deliverer::deliver_activity;
-use crate::activitypub::views::get_object_url;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::nft::create_mint_signature;
 use crate::ipfs::store as ipfs_store;
+use crate::ipfs::posts::PostMetadata;
 use crate::ipfs::utils::{IPFS_LOGO, get_ipfs_url};
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::attachments::queries::set_attachment_ipfs_cid;
@@ -365,15 +364,6 @@ async fn unreblog(
     Ok(HttpResponse::Ok().json(status))
 }
 
-// https://docs.opensea.io/docs/metadata-standards
-#[derive(Serialize)]
-struct PostMetadata {
-    name: String,
-    description: String,
-    image: String,
-    external_url: String,
-}
-
 #[post("/{status_id}/make_permanent")]
 async fn make_permanent(
     auth: BearerAuth,
@@ -407,16 +397,13 @@ async fn make_permanent(
         // Use IPFS logo if there's no image
         IPFS_LOGO.to_string()
     };
-    let post_url = get_object_url(
-        &config.instance_url(),
+    let post_url = post.get_object_id(&config.instance_url());
+    let post_metadata = PostMetadata::new(
         &post.id,
+        &post_url,
+        &post.content,
+        &post_image_cid,
     );
-    let post_metadata = PostMetadata {
-        name: format!("Post {}", post.id),
-        description: post.content.clone(),
-        image: get_ipfs_url(&post_image_cid),
-        external_url: post_url,
-    };
     let post_metadata_json = serde_json::to_string(&post_metadata)
         .map_err(|_| HttpError::InternalError)?
         .as_bytes().to_vec();
