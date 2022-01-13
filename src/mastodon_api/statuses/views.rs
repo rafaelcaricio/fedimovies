@@ -240,11 +240,11 @@ async fn favourite(
         // Federate
         let Audience { recipients, primary_recipient } =
             get_like_audience(db_client, &config.instance_url(), &post).await?;
-        let note_id = post.object_id.as_ref().ok_or(HttpError::InternalError)?;
+        let note_id = post.get_object_id(&config.instance_url());
         let activity = create_activity_like(
             &config.instance_url(),
             &current_user.profile,
-            note_id,
+            &note_id,
             &reaction.id,
             &primary_recipient,
         );
