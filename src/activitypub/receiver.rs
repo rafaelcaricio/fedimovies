@@ -263,7 +263,27 @@ pub async fn process_note(
                         tags.push(tag_name);
                     };
                 } else if tag.tag_type == MENTION {
-                    // Ignore invalid mentions
+                    // href attribute is not an actor ID but is a link to profile
+                    if let Some(href) = tag.href {
+                        // TODO: use actor_url
+                        match get_or_import_profile_by_actor_id(
+                            db_client,
+                            &instance,
+                            &config.media_dir(),
+                            &href,
+                        ).await {
+                            Ok(profile) => {
+                                if !mentions.contains(&profile.id) {
+                                    mentions.push(profile.id);
+                                };
+                                continue;
+                            },
+                            Err(error) => {
+                                log::warn!("failed to find mentioned profile {}: {}", href, error);
+                                // Try to parse tag name
+                            },
+                        };
+                    };
                     if let Ok(actor_address) = mention_to_address(
                         &instance.host(),
                         &tag.name,
@@ -296,6 +316,8 @@ pub async fn process_note(
                         if !mentions.contains(&profile.id) {
                             mentions.push(profile.id);
                         };
+                    } else {
+                        log::warn!("failed to parse mention {}", tag.name);
                     };
                 };
             };

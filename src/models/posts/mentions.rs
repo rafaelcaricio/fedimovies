@@ -170,5 +170,9 @@ mod tests {
 
         let address_2 = mention_to_address("server.info", mention).unwrap();
         assert_eq!(address_2.acct(), "user@example.com");
+
+        let short_mention = "@user";
+        let result = mention_to_address("example.com", short_mention);
+        assert_eq!(result.is_err(), true);
     }
 }
