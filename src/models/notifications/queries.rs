@@ -96,6 +96,8 @@ pub async fn create_repost_notification(
 pub async fn get_notifications(
     db_client: &impl GenericClient,
     recipient_id: &Uuid,
+    max_id: Option<i32>,
+    limit: i64,
 ) -> Result<Vec<Notification>, DatabaseError> {
     let statement = format!(
         "
@@ -111,8 +113,11 @@ pub async fn get_notifications(
         ON notification.post_id = post.id
         LEFT JOIN actor_profile AS post_author
         ON post.author_id = post_author.id
-        WHERE recipient_id = $1
-        ORDER BY notification.created_at DESC
+        WHERE
+            recipient_id = $1
+            AND ($2::integer IS NULL OR notification.id < $2)
+        ORDER BY notification.id DESC
+        LIMIT $3
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
@@ -120,7 +125,7 @@ pub async fn get_notifications(
     );
     let rows = db_client.query(
         statement.as_str(),
-        &[&recipient_id],
+        &[&recipient_id, &max_id, &limit],
     ).await?;
     let mut notifications: Vec<Notification> = rows.iter()
         .map(Notification::try_from)
