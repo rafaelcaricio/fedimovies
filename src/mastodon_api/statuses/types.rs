@@ -132,6 +132,9 @@ pub struct StatusData {
 
     pub in_reply_to_id: Option<Uuid>,
     pub visibility: Option<String>,
+
+    // Not supported by Mastodon
+    pub mentions: Option<Vec<Uuid>>,
 }
 
 impl TryFrom<StatusData> for PostCreateData {
@@ -151,7 +154,7 @@ impl TryFrom<StatusData> for PostCreateData {
             repost_of_id: None,
             visibility: visibility,
             attachments: value.media_ids.unwrap_or(vec![]),
-            mentions: vec![],
+            mentions: value.mentions.unwrap_or(vec![]),
             tags: vec![],
             object_id: None,
             created_at: None,

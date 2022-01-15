@@ -295,6 +295,12 @@ paths:
                   enum:
                     - public
                     - direct
+                mentions:
+                  description: Array of profile IDs to be mentioned
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
               required:
                 - status
       responses:
@@ -505,6 +511,21 @@ components:
           description: Ethereum wallet address.
           type: string
           example: '0xd8da6bf...'
+    Mention:
+      type: object
+      properties:
+        id:
+          description: The profile ID of the mentioned user.
+          type: string
+          format: uuid
+        username:
+          description: The username of the mentioned user.
+          type: string
+        acct:
+          type: string
+        url:
+          description: The location of the mentioned user's profile.
+          type: string
     Notification:
       type: object
       properties:
@@ -561,6 +582,11 @@ components:
           enum:
             - public
             - direct
+        mentions:
+          description: Mentions of users within the post.
+          type: array
+          items:
+            $ref: '#/components/schemas/Mention'
         tags:
           description: Hashtags used within the status content.
           type: array

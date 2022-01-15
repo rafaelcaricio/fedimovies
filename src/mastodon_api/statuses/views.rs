@@ -75,8 +75,10 @@ async fn create_status(
         &instance.url(),
         &post_data.content,
     );
-    post_data.mentions = mention_map.values()
-        .map(|profile| profile.id).collect();
+    post_data.mentions.extend(mention_map.values()
+        .map(|profile| profile.id));
+    post_data.mentions.sort();
+    post_data.mentions.dedup();
     // Tags
     post_data.tags = find_tags(&post_data.content);
     post_data.content = replace_tags(
