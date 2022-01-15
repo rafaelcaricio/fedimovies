@@ -44,9 +44,9 @@ use crate::models::reactions::queries::{
     delete_reaction,
 };
 use super::helpers::{
-    get_announce_audience,
-    get_like_audience,
-    get_note_audience,
+    get_announce_recipients,
+    get_like_recipients,
+    get_note_recipients,
     Audience,
 };
 use super::types::{Status, StatusData, TransactionData};
@@ -119,7 +119,7 @@ async fn create_status(
         &instance.url(),
         &post,
     );
-    let recipients = get_note_audience(db_client, &current_user, &post).await?;
+    let recipients = get_note_recipients(db_client, &current_user, &post).await?;
     deliver_activity(&config, &current_user, activity, recipients);
     let status = Status::from_post(post, &instance.url());
     Ok(HttpResponse::Created().json(status))
@@ -172,7 +172,7 @@ async fn delete_status(
         &config.instance_url(),
         &post,
     );
-    let recipients = get_note_audience(db_client, &current_user, &post).await?;
+    let recipients = get_note_recipients(db_client, &current_user, &post).await?;
     deliver_activity(&config, &current_user, activity, recipients);
 
     Ok(HttpResponse::NoContent().finish())
@@ -239,7 +239,7 @@ async fn favourite(
     if let Some(reaction) = maybe_reaction_created {
         // Federate
         let Audience { recipients, primary_recipient } =
-            get_like_audience(db_client, &config.instance_url(), &post).await?;
+            get_like_recipients(db_client, &config.instance_url(), &post).await?;
         let note_id = post.get_object_id(&config.instance_url());
         let activity = create_activity_like(
             &config.instance_url(),
@@ -281,7 +281,7 @@ async fn unfavourite(
     if let Some(reaction_id) = maybe_reaction_deleted {
         // Federate
         let Audience { recipients, primary_recipient } =
-            get_like_audience(db_client, &config.instance_url(), &post).await?;
+            get_like_recipients(db_client, &config.instance_url(), &post).await?;
         let activity = create_activity_undo_like(
             &config.instance_url(),
             &current_user.profile,
@@ -319,7 +319,7 @@ async fn reblog(
 
     // Federate
     let Audience { recipients, .. } =
-        get_announce_audience(db_client, &config.instance_url(), &current_user, &post).await?;
+        get_announce_recipients(db_client, &config.instance_url(), &current_user, &post).await?;
     let activity = create_activity_announce(
         &config.instance_url(),
         &current_user.profile,
@@ -351,7 +351,7 @@ async fn unreblog(
 
     // Federate
     let Audience { recipients, primary_recipient } =
-        get_announce_audience(db_client, &config.instance_url(), &current_user, &post).await?;
+        get_announce_recipients(db_client, &config.instance_url(), &current_user, &post).await?;
     let activity = create_activity_undo_announce(
         &config.instance_url(),
         &current_user.profile,
