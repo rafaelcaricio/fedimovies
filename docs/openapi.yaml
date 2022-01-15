@@ -469,6 +469,10 @@ components:
           description: The Webfinger account URI. Equal to username for local actors, or username@domain for remote actors.
           type: string
           example: user@example.com
+        url:
+          description: The location of the user's profile page.
+          type: string
+          example: https://example.com/@user
         wallet_address:
           description: Ethereum wallet address.
           type: string

@@ -95,6 +95,7 @@ impl DbActorProfile {
         }
     }
 
+    /// Profile URL
     pub fn actor_url(&self, instance_url: &str) -> String {
         if let Some(ref actor) = self.actor_json {
             if let Some(ref actor_url) = actor.url {

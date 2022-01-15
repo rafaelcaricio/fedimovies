@@ -31,6 +31,7 @@ pub struct Account {
     pub id: Uuid,
     pub username: String,
     pub acct: String,
+    pub url: String,
     pub display_name: Option<String>,
     pub created_at: DateTime<Utc>,
     pub note: Option<String>,
@@ -48,6 +49,7 @@ pub struct Account {
 
 impl Account {
     pub fn from_profile(profile: DbActorProfile, instance_url: &str) -> Self {
+        let profile_url = profile.actor_url(instance_url);
         let avatar_url = profile.avatar_file_name.as_ref()
             .map(|name| get_file_url(instance_url, name));
         let header_url = profile.banner_file_name.as_ref()
@@ -59,6 +61,7 @@ impl Account {
             id: profile.id,
             username: profile.username,
             acct: profile.acct,
+            url: profile_url,
             display_name: profile.display_name,
             created_at: profile.created_at,
             note: profile.bio,
