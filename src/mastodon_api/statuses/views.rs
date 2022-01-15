@@ -220,7 +220,7 @@ async fn favourite(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    if !can_view_post(db_client, Some(&current_user), &post).await? {
+    if !post.is_public() {
         return Err(HttpError::NotFoundError("post"));
     };
     let maybe_reaction_created = match create_reaction(
@@ -305,7 +305,7 @@ async fn reblog(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    if !can_view_post(db_client, Some(&current_user), &post).await? {
+    if !post.is_public() {
         return Err(HttpError::NotFoundError("post"));
     };
     let repost_data = PostCreateData {

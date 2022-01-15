@@ -319,6 +319,34 @@ paths:
           description: Post does not belong to user
         404:
           description: Post not found
+  /api/v1/statuses/{status_id}/favourite:
+    post:
+      summary: Add post to your favourites list
+      parameters:
+        - $ref: '#/components/parameters/status_id'
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        404:
+          description: Post does not exist or is not public
+  /api/v1/statuses/{status_id}/reblog:
+    post:
+      summary: Repost a post
+      parameters:
+        - $ref: '#/components/parameters/status_id'
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        404:
+          description: Post does not exist or is not public
   /api/v1/statuses/{status_id}/make_permanent:
     post:
       summary: Save post to IPFS
