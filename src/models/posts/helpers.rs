@@ -90,6 +90,20 @@ pub async fn can_view_post(
                 false
             }
         },
+        Visibility::Subscribers => {
+            if let Some(user) = user {
+                let relationship = get_relationship(
+                    db_client,
+                    &post.author.id,
+                    &user.id,
+                ).await?;
+                let is_mentioned = post.mentions.iter()
+                    .any(|profile| profile.id == user.profile.id);
+                relationship.subscription_from || is_mentioned
+            } else {
+                false
+            }
+        },
     };
     Ok(result)
 }
@@ -99,7 +113,7 @@ mod tests {
     use serial_test::serial;
     use tokio_postgres::Client;
     use crate::database::test_utils::create_test_database;
-    use crate::models::relationships::queries::follow;
+    use crate::models::relationships::queries::{follow, subscribe};
     use crate::models::users::queries::create_user;
     use crate::models::users::types::UserCreateData;
     use super::*;
@@ -179,5 +193,33 @@ mod tests {
         };
         let result = can_view_post(db_client, Some(&follower), &post).await.unwrap();
         assert_eq!(result, true);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_can_view_post_subscribers_only() {
+        let db_client = &mut create_test_database().await;
+        let author = create_test_user(db_client, "author").await;
+        let follower = create_test_user(db_client, "follower").await;
+        follow(db_client, &follower.id, &author.id).await.unwrap();
+        let subscriber = create_test_user(db_client, "subscriber").await;
+        subscribe(db_client, &subscriber.id, &author.id).await.unwrap();
+        let post = Post {
+            author: author.profile,
+            visibility: Visibility::Subscribers,
+            ..Default::default()
+        };
+        assert_eq!(
+            can_view_post(db_client, None, &post).await.unwrap(),
+            false,
+        );
+        assert_eq!(
+            can_view_post(db_client, Some(&follower), &post).await.unwrap(),
+            false,
+        );
+        assert_eq!(
+            can_view_post(db_client, Some(&subscriber), &post).await.unwrap(),
+            true,
+        );
     }
 }

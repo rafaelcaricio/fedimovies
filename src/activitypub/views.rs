@@ -44,6 +44,10 @@ pub fn get_following_url(instance_url: &str, username: &str) -> String {
     format!("{}/users/{}/following", instance_url, username)
 }
 
+pub fn get_subscribers_url(instance_url: &str, username: &str) -> String {
+    format!("{}/users/{}/subscribers", instance_url, username)
+}
+
 pub fn get_instance_actor_url(instance_url: &str) -> String {
     format!("{}/actor", instance_url)
 }
@@ -225,6 +229,24 @@ async fn following_collection(
     Ok(response)
 }
 
+#[get("/subscribers")]
+async fn subscribers_collection(
+    config: web::Data<Config>,
+    web::Path(username): web::Path<String>,
+    query_params: web::Query<CollectionQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    if query_params.page.is_some() {
+        // Subscriber list is hidden
+        return Err(HttpError::PermissionError);
+    }
+    let collection_id = get_subscribers_url(&config.instance_url(), &username);
+    let collection = OrderedCollection::new(collection_id, None);
+    let response = HttpResponse::Ok()
+        .content_type(ACTIVITY_CONTENT_TYPE)
+        .json(collection);
+    Ok(response)
+}
+
 pub fn actor_scope() -> Scope {
     web::scope("/users/{username}")
         .service(actor_view)
@@ -232,6 +254,7 @@ pub fn actor_scope() -> Scope {
         .service(outbox)
         .service(followers_collection)
         .service(following_collection)
+        .service(subscribers_collection)
 }
 
 #[get("")]

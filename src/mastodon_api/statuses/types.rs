@@ -98,6 +98,7 @@ impl Status {
             Visibility::Public => "public",
             Visibility::Direct => "direct",
             Visibility::Followers => "private",
+            Visibility::Subscribers => "subscribers",
         };
         Self {
             id: post.id,
@@ -147,6 +148,7 @@ impl TryFrom<StatusData> for PostCreateData {
             Some("public") => Visibility::Public,
             Some("direct") => Visibility::Direct,
             Some("private") => Visibility::Followers,
+            Some("subscribers") => Visibility::Subscribers,
             Some(_) => return Err(ValidationError("invalid visibility parameter")),
             None => Visibility::Public,
         };

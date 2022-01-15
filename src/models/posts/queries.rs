@@ -222,11 +222,20 @@ fn build_visibility_filter() -> String {
                     AND target_id = post.author_id
                     AND relationship_type = {relationship_follow}
             )
+            OR post.visibility = {visibility_subscribers} AND EXISTS (
+                SELECT 1 FROM relationship
+                WHERE
+                    source_id = $current_user_id
+                    AND target_id = post.author_id
+                    AND relationship_type = {relationship_subscription}
+            )
         )",
         visibility_public=i16::from(&Visibility::Public),
         visibility_direct=i16::from(&Visibility::Direct),
         visibility_followers=i16::from(&Visibility::Followers),
+        visibility_subscribers=i16::from(&Visibility::Subscribers),
         relationship_follow=i16::from(&RelationshipType::Follow),
+        relationship_subscription=i16::from(&RelationshipType::Subscription),
     )
 }
 
@@ -236,7 +245,8 @@ pub async fn get_home_timeline(
     max_post_id: Option<Uuid>,
     limit: i64,
 ) -> Result<Vec<Post>, DatabaseError> {
-    // Select posts from follows, posts where current user is mentioned
+    // Select posts from follows, subscriptions,
+    // posts where current user is mentioned
     // and user's own posts.
     let statement = format!(
         "
@@ -252,7 +262,9 @@ pub async fn get_home_timeline(
                 post.author_id = $current_user_id
                 OR EXISTS (
                     SELECT 1 FROM relationship
-                    WHERE source_id = $current_user_id AND target_id = post.author_id
+                    WHERE
+                        source_id = $current_user_id AND target_id = post.author_id
+                        AND relationship_type IN ({relationship_follow}, {relationship_subscription})
                 )
                 OR EXISTS (
                     SELECT 1 FROM mention
@@ -267,6 +279,8 @@ pub async fn get_home_timeline(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        relationship_follow=i16::from(&RelationshipType::Follow),
+        relationship_subscription=i16::from(&RelationshipType::Subscription),
         visibility_filter=build_visibility_filter(),
     );
     let query = query!(
@@ -780,7 +794,7 @@ mod tests {
     use crate::database::test_utils::create_test_database;
     use crate::models::profiles::queries::create_profile;
     use crate::models::profiles::types::ProfileCreateData;
-    use crate::models::relationships::queries::follow;
+    use crate::models::relationships::queries::{follow, subscribe};
     use crate::models::users::queries::create_user;
     use crate::models::users::types::UserCreateData;
     use super::*;
@@ -878,9 +892,29 @@ mod tests {
             ..Default::default()
         };
         let post_8 = create_post(db_client, &user_2.id, post_data_8).await.unwrap();
+        // Subscribers-only post by followed user
+        let post_data_9 = PostCreateData {
+            content: "subscribers only".to_string(),
+            visibility: Visibility::Subscribers,
+            ..Default::default()
+        };
+        let post_9 = create_post(db_client, &user_2.id, post_data_9).await.unwrap();
+        // Subscribers-only post by subscription
+        let user_data_3 = UserCreateData {
+            username: "subscription".to_string(),
+            ..Default::default()
+        };
+        let user_3 = create_user(db_client, user_data_3).await.unwrap();
+        subscribe(db_client, &current_user.id, &user_3.id).await.unwrap();
+        let post_data_10 = PostCreateData {
+            content: "subscribers only".to_string(),
+            visibility: Visibility::Subscribers,
+            ..Default::default()
+        };
+        let post_10 = create_post(db_client, &user_3.id, post_data_10).await.unwrap();
 
-        let timeline = get_home_timeline(db_client, &current_user.id, None, 10).await.unwrap();
-        assert_eq!(timeline.len(), 5);
+        let timeline = get_home_timeline(db_client, &current_user.id, None, 20).await.unwrap();
+        assert_eq!(timeline.len(), 6);
         assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_2.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_3.id), false);
@@ -889,6 +923,8 @@ mod tests {
         assert_eq!(timeline.iter().any(|post| post.id == post_6.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_7.id), false);
         assert_eq!(timeline.iter().any(|post| post.id == post_8.id), true);
+        assert_eq!(timeline.iter().any(|post| post.id == post_9.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_10.id), true);
     }
 
     #[tokio::test]
@@ -906,13 +942,27 @@ mod tests {
             ..Default::default()
         };
         let post_1 = create_post(db_client, &user.id, post_data_1).await.unwrap();
-        // Direct message
+        // Followers only post
         let post_data_2 = PostCreateData {
+            content: "my post".to_string(),
+            visibility: Visibility::Followers,
+            ..Default::default()
+        };
+        let post_2 = create_post(db_client, &user.id, post_data_2).await.unwrap();
+        // Subscribers only post
+        let post_data_3 = PostCreateData {
+            content: "my post".to_string(),
+            visibility: Visibility::Subscribers,
+            ..Default::default()
+        };
+        let post_3 = create_post(db_client, &user.id, post_data_3).await.unwrap();
+        // Direct message
+        let post_data_4 = PostCreateData {
             content: "my post".to_string(),
             visibility: Visibility::Direct,
             ..Default::default()
         };
-        let post_2 = create_post(db_client, &user.id, post_data_2).await.unwrap();
+        let post_4 = create_post(db_client, &user.id, post_data_4).await.unwrap();
 
         // Anonymous viewer
         let timeline = get_posts_by_author(
@@ -921,5 +971,7 @@ mod tests {
         assert_eq!(timeline.len(), 1);
         assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_2.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_3.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_4.id), false);
     }
 }

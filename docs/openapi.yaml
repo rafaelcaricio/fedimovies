@@ -351,11 +351,7 @@ paths:
                   format: uuid
                 visibility:
                   description: Visibility of the post.
-                  type: string
-                  enum:
-                    - public
-                    - private
-                    - direct
+                  $ref: '#/components/schemas/Visibility'
                 mentions:
                   description: Array of profile IDs to be mentioned
                   type: array
@@ -681,11 +677,7 @@ components:
           type: string
         visibility:
           description: Visibility of this post.
-          type: string
-          enum:
-            - public
-            - private
-            - direct
+          $ref: '#/components/schemas/Visibility'
         mentions:
           description: Mentions of users within the post.
           type: array
@@ -712,3 +704,10 @@ components:
           type: string
         url:
           description: A link to the hashtag on the instance.
+    Visibility:
+      type: string
+      enum:
+        - public
+        - private
+        - subscribers
+        - direct

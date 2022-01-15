@@ -17,6 +17,7 @@ pub enum Visibility {
     Public,
     Direct,
     Followers,
+    Subscribers,
 }
 
 impl Default for Visibility {
@@ -29,6 +30,7 @@ impl From<&Visibility> for i16 {
             Visibility::Public => 1,
             Visibility::Direct => 2,
             Visibility::Followers => 3,
+            Visibility::Subscribers => 4,
         }
     }
 }
@@ -41,6 +43,7 @@ impl TryFrom<i16> for Visibility {
             1 => Self::Public,
             2 => Self::Direct,
             3 => Self::Followers,
+            4 => Self::Subscribers,
             _ => return Err(ConversionError),
         };
         Ok(visibility)

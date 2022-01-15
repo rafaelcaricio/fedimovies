@@ -367,6 +367,29 @@ pub async fn unsubscribe(
     Ok(())
 }
 
+pub async fn get_subscribers(
+    db_client: &impl GenericClient,
+    profile_id: &Uuid,
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT actor_profile
+        FROM actor_profile
+        JOIN relationship
+        ON (actor_profile.id = relationship.source_id)
+        WHERE
+            relationship.target_id = $1
+            AND relationship.relationship_type = $2
+        ORDER BY relationship.id DESC
+        ",
+        &[&profile_id, &RelationshipType::Subscription],
+    ).await?;
+    let profiles = rows.iter()
+        .map(|row| row.try_get("actor_profile"))
+        .collect::<Result<_, _>>()?;
+    Ok(profiles)
+}
+
 #[cfg(test)]
 mod tests {
     use serial_test::serial;

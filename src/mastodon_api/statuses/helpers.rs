@@ -4,7 +4,7 @@ use crate::activitypub::actor::Actor;
 use crate::errors::DatabaseError;
 use crate::models::posts::queries::get_post_author;
 use crate::models::posts::types::{Post, Visibility};
-use crate::models::relationships::queries::get_followers;
+use crate::models::relationships::queries::{get_followers, get_subscribers};
 use crate::models::users::types::User;
 
 pub async fn get_note_recipients(
@@ -13,9 +13,16 @@ pub async fn get_note_recipients(
     post: &Post,
 ) -> Result<Vec<Actor>, DatabaseError> {
     let mut audience = vec![];
-    if matches!(post.visibility, Visibility::Public | Visibility::Followers) {
-        let followers = get_followers(db_client, &current_user.id, None, None).await?;
-        audience.extend(followers);
+    match post.visibility {
+        Visibility::Public | Visibility::Followers => {
+            let followers = get_followers(db_client, &current_user.id, None, None).await?;
+            audience.extend(followers);
+        },
+        Visibility::Subscribers => {
+            let subscribers = get_subscribers(db_client, &current_user.id).await?;
+            audience.extend(subscribers);
+        },
+        Visibility::Direct => (),
     };
     if let Some(in_reply_to_id) = post.in_reply_to_id {
         // TODO: use post.in_reply_to ?

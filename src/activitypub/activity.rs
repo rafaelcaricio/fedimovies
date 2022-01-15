@@ -11,7 +11,12 @@ use crate::utils::files::get_file_url;
 use crate::utils::id::new_uuid;
 use super::actor::{get_local_actor, ActorKeyError};
 use super::constants::{AP_CONTEXT, AP_PUBLIC};
-use super::views::{get_actor_url, get_followers_url, get_object_url};
+use super::views::{
+    get_actor_url,
+    get_followers_url,
+    get_subscribers_url,
+    get_object_url,
+};
 use super::vocabulary::*;
 
 #[derive(Deserialize, Serialize)]
@@ -187,13 +192,22 @@ pub fn create_note(
     let mut secondary_audience = vec![];
     let followers_collection_url =
         get_followers_url(instance_url, &post.author.username);
-    let mut tags = vec![];
-    if matches!(post.visibility, Visibility::Public) {
-        primary_audience.push(AP_PUBLIC.to_string());
-        secondary_audience.push(followers_collection_url);
-    } else if matches!(post.visibility, Visibility::Followers) {
-        primary_audience.push(followers_collection_url);
+    let subscribers_collection_url =
+        get_subscribers_url(instance_url, &post.author.username);
+    match post.visibility {
+        Visibility::Public => {
+            primary_audience.push(AP_PUBLIC.to_string());
+            secondary_audience.push(followers_collection_url);
+        },
+        Visibility::Followers => {
+            primary_audience.push(followers_collection_url);
+        },
+        Visibility::Subscribers => {
+            primary_audience.push(subscribers_collection_url);
+        },
+        Visibility::Direct => (),
     };
+    let mut tags = vec![];
     for profile in &post.mentions {
         let actor_id = profile.actor_id(instance_url);
         primary_audience.push(actor_id);
