@@ -226,7 +226,9 @@ pub async fn process_note(
             let mut downloaded = vec![];
             let output_dir = config.media_dir();
             for attachment in list {
-                if attachment.attachment_type != DOCUMENT {
+                if attachment.attachment_type != DOCUMENT &&
+                    attachment.attachment_type != IMAGE
+                {
                     log::warn!(
                         "skipping attachment of type {}",
                         attachment.attachment_type,
