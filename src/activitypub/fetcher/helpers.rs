@@ -19,6 +19,9 @@ use super::fetchers::{
 
 #[derive(thiserror::Error, Debug)]
 pub enum ImportError {
+    #[error("local object")]
+    LocalObject,
+
     #[error(transparent)]
     FetchError(#[from] FetchError),
 
@@ -32,6 +35,7 @@ pub enum ImportError {
 impl From<ImportError> for HttpError {
     fn from(error: ImportError) -> Self {
         match error {
+            ImportError::LocalObject => HttpError::InternalError,
             ImportError::FetchError(error) => {
                 HttpError::ValidationError(error.to_string())
             },
@@ -47,6 +51,9 @@ pub async fn get_or_import_profile_by_actor_id(
     media_dir: &Path,
     actor_id: &str,
 ) -> Result<DbActorProfile, ImportError> {
+    if actor_id.starts_with(&instance.url()) {
+        return Err(ImportError::LocalObject);
+    };
     let profile = match get_profile_by_actor_id(db_client, actor_id).await {
         Ok(profile) => profile,
         Err(DatabaseError::NotFound(_)) => {
@@ -74,6 +81,9 @@ pub async fn import_profile_by_actor_address(
     media_dir: &Path,
     actor_address: &ActorAddress,
 ) -> Result<DbActorProfile, ImportError> {
+    if actor_address.instance == instance.host() {
+        return Err(ImportError::LocalObject);
+    };
     let profile_data = fetch_profile(
         instance,
         &actor_address.username,

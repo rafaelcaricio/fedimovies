@@ -268,6 +268,16 @@ pub async fn process_note(
                     // href attribute is not an actor ID but is a link to profile
                     if let Some(href) = tag.href {
                         // TODO: use actor_url
+                        match parse_actor_id(&config.instance_url(), &href) {
+                            Ok(username) => {
+                                let user = get_user_by_name(db_client, &username).await?;
+                                if !mentions.contains(&user.id) {
+                                    mentions.push(user.id);
+                                };
+                                continue;
+                            },
+                            Err(_) => (), // remote profile
+                        };
                         match get_or_import_profile_by_actor_id(
                             db_client,
                             &instance,
