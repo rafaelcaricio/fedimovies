@@ -99,9 +99,10 @@ async fn create_status(
             return Err(ValidationError("post visibility doesn't match the parent").into());
         };
         if post_data.visibility != Visibility::Public {
-            let in_reply_to_mentions: Vec<_> = in_reply_to.mentions.iter()
+            let mut in_reply_to_audience: Vec<_> = in_reply_to.mentions.iter()
                 .map(|profile| profile.id).collect();
-            if !post_data.mentions.iter().all(|id| in_reply_to_mentions.contains(id)) {
+            in_reply_to_audience.push(in_reply_to.author.id);
+            if !post_data.mentions.iter().all(|id| in_reply_to_audience.contains(id)) {
                 return Err(ValidationError("audience can't be expanded").into());
             };
         };
