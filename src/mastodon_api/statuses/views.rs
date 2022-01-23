@@ -443,7 +443,7 @@ async fn get_signature(
     };
     let ipfs_cid = post.ipfs_cid
         // Post metadata is not immutable
-        .ok_or(HttpError::OperationError("post is not immutable"))?;
+        .ok_or(HttpError::PermissionError)?;
     let token_uri = get_ipfs_url(&ipfs_cid);
     let signature = create_mint_signature(
         contract_config,
