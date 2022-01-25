@@ -432,7 +432,7 @@ async fn get_signature(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let contract_config = config.ethereum_contract.as_ref()
+    let blockchain_config = config.blockchain.as_ref()
         .ok_or(HttpError::NotSupported)?;
     let wallet_address = current_user.wallet_address
         .ok_or(HttpError::PermissionError)?;
@@ -446,7 +446,7 @@ async fn get_signature(
         .ok_or(HttpError::PermissionError)?;
     let token_uri = get_ipfs_url(&ipfs_cid);
     let signature = create_mint_signature(
-        contract_config,
+        blockchain_config,
         &wallet_address,
         &token_uri,
     ).map_err(|_| HttpError::InternalError)?;

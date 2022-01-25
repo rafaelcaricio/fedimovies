@@ -8,6 +8,7 @@ use url::Url;
 
 use crate::activitypub::views::get_instance_actor_url;
 use crate::errors::ConversionError;
+use crate::ethereum::utils::{parse_caip2_chain_id, ChainIdError};
 use crate::utils::crypto::deserialize_private_key;
 
 #[derive(Clone, Debug)]
@@ -65,10 +66,23 @@ fn default_environment() -> Environment { Environment::Development }
 fn default_log_level() -> LogLevel { LogLevel::Info }
 
 #[derive(Clone, Deserialize)]
-pub struct EthereumContract {
-    pub address: String,
-    pub chain_id: u32,
+pub struct BlockchainConfig {
+    pub chain_id: String,
+    pub contract_address: String,
+    pub contract_dir: PathBuf,
+    pub api_url: String,
+    pub explorer_url: Option<String>,
     pub signing_key: String,
+}
+
+impl BlockchainConfig {
+    fn try_ethereum_chain_id(&self) -> Result<u32, ChainIdError> {
+        parse_caip2_chain_id(&self.chain_id)
+    }
+
+    pub fn ethereum_chain_id(&self) -> u32 {
+        self.try_ethereum_chain_id().unwrap()
+    }
 }
 
 #[derive(Clone, Deserialize)]
@@ -102,11 +116,10 @@ pub struct Config {
 
     pub login_message: String,
 
-    // Ethereum & IPFS
-    pub ethereum_contract_dir: Option<PathBuf>,
-    pub ethereum_json_rpc_url: Option<String>,
-    pub ethereum_explorer_url: Option<String>,
-    pub ethereum_contract: Option<EthereumContract>,
+    // Blockchain integration
+    pub blockchain: Option<BlockchainConfig>,
+
+    // IPFS
     pub ipfs_api_url: Option<String>,
     pub ipfs_gateway_url: Option<String>,
 }
@@ -186,8 +199,9 @@ pub fn parse_config() -> Config {
     if !config.storage_dir.exists() {
         panic!("storage directory does not exist");
     };
-    if let Some(contract_dir) = &config.ethereum_contract_dir {
-        if !contract_dir.exists() {
+    if let Some(blockchain_config) = config.blockchain.as_ref() {
+        blockchain_config.try_ethereum_chain_id().unwrap();
+        if !blockchain_config.contract_dir.exists() {
             panic!("contract directory does not exist");
         };
     };

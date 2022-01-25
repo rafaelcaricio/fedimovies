@@ -16,13 +16,16 @@ registrations_open: false
 # Login message must contain instance URL
 login_message: 'Sign this message to log in to https://myserver.net. Do not sign this message on other sites!'
 
-ethereum_contract_dir: contracts
-ethereum_json_rpc_url: 'http://127.0.0.1:8545'
-# Block explorer base URL (must be compatible with https://eips.ethereum.org/EIPS/eip-3091)
-ethereum_explorer_url: null
-ethereum_contract:
-  address: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0'
-  chain_id: 31337
+# To disable blockchain integration, set `blockchain` to `null`
+blockchain:
+  # CAIP-2 chain ID (https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md)
+  chain_id: eip155:31337
+  contract_address: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0'
+  contract_dir: contracts
+  api_url: 'http://127.0.0.1:8545'
+  # Block explorer base URL (should be compatible with https://eips.ethereum.org/EIPS/eip-3091)
+  explorer_url: null
+  # Instance private key
   signing_key: null
 
 ipfs_api_url: 'http://127.0.0.1:5001'

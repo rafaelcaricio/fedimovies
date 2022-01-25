@@ -29,11 +29,12 @@ impl From<&Config> for InstanceInfo {
             version: config.version.clone(),
             registrations: config.registrations_open,
             login_message: config.login_message.clone(),
-            ethereum_explorer_url: config.ethereum_explorer_url.clone(),
-            nft_contract_name: config.ethereum_contract.as_ref()
+            ethereum_explorer_url: config.blockchain.as_ref()
+                .and_then(|val| val.explorer_url.clone()),
+            nft_contract_name: config.blockchain.as_ref()
                 .and(Some(MANAGER.into())),
-            nft_contract_address: config.ethereum_contract.as_ref()
-                .map(|val| val.address.clone()),
+            nft_contract_address: config.blockchain.as_ref()
+                .map(|val| val.contract_address.clone()),
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),
         }
     }

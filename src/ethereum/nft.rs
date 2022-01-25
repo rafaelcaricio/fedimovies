@@ -11,7 +11,7 @@ use web3::{
     types::{BlockNumber, FilterBuilder, H256, U256},
 };
 
-use crate::config::{Config, EthereumContract};
+use crate::config::BlockchainConfig;
 use crate::database::{Pool, get_database_client};
 use crate::errors::DatabaseError;
 use crate::ipfs::utils::parse_ipfs_url;
@@ -28,18 +28,11 @@ use super::utils::{parse_address, sign_message, SignatureData};
 const TOKEN_WAIT_TIME: i64 = 10; // in minutes
 
 pub async fn get_nft_contract(
-    config: &Config,
+    config: &BlockchainConfig,
 ) -> Result<(Web3<Http>, Contract<Http>), EthereumError> {
-    let contract_dir = config.ethereum_contract_dir.as_ref()
-        .ok_or(EthereumError::ImproperlyConfigured)?;
-    let json_rpc_url = config.ethereum_json_rpc_url.as_ref()
-        .ok_or(EthereumError::ImproperlyConfigured)?;
-    let web3 = connect(json_rpc_url)?;
-    let ethereum_config = config.ethereum_contract.as_ref()
-        .ok_or(EthereumError::ImproperlyConfigured)?;
-
-    let manager_abi = load_abi(contract_dir, MANAGER)?;
-    let manager_address = parse_address(&ethereum_config.address)?;
+    let web3 = connect(&config.api_url)?;
+    let manager_abi = load_abi(&config.contract_dir, MANAGER)?;
+    let manager_address = parse_address(&config.contract_address)?;
     let manager = Contract::from_json(
         web3.eth(),
         manager_address,
@@ -50,7 +43,7 @@ pub async fn get_nft_contract(
         "collectible",
         (), None, Options::default(), None,
     ).await?;
-    let token_abi = load_abi(contract_dir, COLLECTIBLE)?;
+    let token_abi = load_abi(&config.contract_dir, COLLECTIBLE)?;
     let token = Contract::from_json(
         web3.eth(),
         token_address,
@@ -192,13 +185,13 @@ pub async fn process_events(
 }
 
 pub fn create_mint_signature(
-    contract_config: &EthereumContract,
+    blockchain_config: &BlockchainConfig,
     user_address: &str,
     token_uri: &str,
 ) -> Result<SignatureData, EthereumError> {
-    let contract_address = parse_address(&contract_config.address)?;
+    let contract_address = parse_address(&blockchain_config.contract_address)?;
     let user_address = parse_address(user_address)?;
-    let chain_id: U256 = contract_config.chain_id.into();
+    let chain_id: U256 = blockchain_config.ethereum_chain_id().into();
     let chain_id_token = Token::Uint(chain_id);
     let chain_id_bin = encode(&[chain_id_token]);
     let message = [
@@ -208,6 +201,6 @@ pub fn create_mint_signature(
         user_address.as_bytes(),
         token_uri.as_bytes(),
     ].concat();
-    let signature = sign_message(&contract_config.signing_key, &message)?;
+    let signature = sign_message(&blockchain_config.signing_key, &message)?;
     Ok(signature)
 }

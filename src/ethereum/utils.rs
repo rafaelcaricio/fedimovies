@@ -1,11 +1,38 @@
 use std::str::FromStr;
 
+use regex::Regex;
 use secp256k1::{Error as KeyError, SecretKey, rand::rngs::OsRng};
 use serde::Serialize;
 use web3::{
     signing::{keccak256, Key, SigningError},
     types::Address,
 };
+
+#[derive(thiserror::Error, Debug)]
+pub enum ChainIdError {
+    #[error("invalid chain ID")]
+    InvalidChainId,
+
+    #[error("unsupported chain")]
+    UnsupportedChain,
+
+    #[error("invalid EIP155 chain ID")]
+    InvalidEip155ChainId(#[from] std::num::ParseIntError),
+}
+
+/// Parses CAIP-2 chain ID
+/// https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md
+pub fn parse_caip2_chain_id(chain_id: &str) -> Result<u32, ChainIdError> {
+    // eip155 namespace: ethereum chain
+    let caip2_re = Regex::new(r"(?P<namespace>\w+):(?P<chain_id>\w+)").unwrap();
+    let caip2_caps = caip2_re.captures(chain_id)
+        .ok_or(ChainIdError::InvalidChainId)?;
+    if &caip2_caps["namespace"] != "eip155" {
+        return Err(ChainIdError::UnsupportedChain);
+    };
+    let eth_chain_id: u32 = caip2_caps["chain_id"].parse()?;
+    Ok(eth_chain_id)
+}
 
 pub fn generate_ethereum_address() -> (SecretKey, Address) {
     let mut rng = OsRng::new().expect("failed to initialize RNG");
@@ -56,4 +83,24 @@ pub fn sign_message(
         s: hex::encode(signature.s.as_bytes()),
     };
     Ok(signature_data)
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_caip2_chain_id() {
+        let chain_id = "eip155:1";
+        let result = parse_caip2_chain_id(chain_id).unwrap();
+        assert_eq!(result, 1);
+    }
+
+    #[test]
+    fn test_parse_caip2_chain_id_unsupported() {
+        let chain_id = "bip122:000000000019d6689c085ae165831e93";
+        let error = parse_caip2_chain_id(chain_id).err().unwrap();
+        assert!(matches!(error, ChainIdError::UnsupportedChain));
+    }
 }

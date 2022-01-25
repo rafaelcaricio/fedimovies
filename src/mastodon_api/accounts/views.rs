@@ -70,11 +70,11 @@ pub async fn create_account(
             return Err(ValidationError("invalid invite code").into());
         }
     }
-    if config.ethereum_contract.is_some() {
-        // Wallet address is required only if ethereum integration is enabled
+    if let Some(blockchain_config) = config.blockchain.as_ref() {
+        // Wallet address is required only if blockchain integration is enabled
         let wallet_address = account_data.wallet_address.as_ref()
             .ok_or(ValidationError("wallet address is required"))?;
-        let is_allowed = is_allowed_user(&config, wallet_address).await
+        let is_allowed = is_allowed_user(blockchain_config, wallet_address).await
             .map_err(|_| HttpError::InternalError)?;
         if !is_allowed {
             return Err(ValidationError("not allowed to sign up").into());

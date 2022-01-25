@@ -93,11 +93,11 @@ async fn main() -> std::io::Result<()> {
             .service(activitypub::object_view)
             .service(nodeinfo::get_nodeinfo)
             .service(nodeinfo::get_nodeinfo_2_0);
-        if let Some(contract_dir) = &config.ethereum_contract_dir {
+        if let Some(blockchain_config) = &config.blockchain {
             // Serve artifacts if available
             app = app.service(actix_files::Files::new(
                 "/contracts",
-                contract_dir,
+                &blockchain_config.contract_dir,
             ));
         }
         app
