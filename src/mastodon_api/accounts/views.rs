@@ -14,6 +14,7 @@ use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::gate::is_allowed_user;
+use crate::ethereum::subscriptions::create_subscription_signature;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::posts::helpers::{
     get_actions_for_posts,
@@ -169,6 +170,25 @@ async fn update_credentials(
 
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
+}
+
+#[get("/authorize_subscription")]
+async fn authorize_subscription(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let blockchain_config = config.blockchain.as_ref()
+        .ok_or(HttpError::NotSupported)?;
+    let wallet_address = current_user.wallet_address
+        .ok_or(HttpError::PermissionError)?;
+    let signature = create_subscription_signature(
+        blockchain_config,
+        &wallet_address,
+    ).map_err(|_| HttpError::InternalError)?;
+    Ok(HttpResponse::Ok().json(signature))
 }
 
 // TODO: actix currently doesn't support parameter arrays
@@ -384,6 +404,7 @@ pub fn account_api_scope() -> Scope {
         .service(get_relationships_view)
         .service(verify_credentials)
         .service(update_credentials)
+        .service(authorize_subscription)
         // Routes with account ID
         .service(get_account)
         .service(follow_account)

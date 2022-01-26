@@ -87,6 +87,20 @@ paths:
                 $ref: '#/components/schemas/Account'
         400:
           description: Invalid user data
+  /api/v1/accounts/authorize_subscription:
+    get:
+      summary: Get authorization for setting up paid subscription.
+      responses:
+        200:
+          description: Signature created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Signature'
+        403:
+          description: User's wallet address is not known
+        418:
+          description: Blockchain integration is not enabled
   /api/v1/accounts/relationships:
     get:
       summary: Find out whether a given actor is followed, blocked, muted, etc.
@@ -431,24 +445,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  v:
-                    type: integer
-                    format: int64
-                    example: 27
-                  r:
-                    type: string
-                    example: '6f61670e67bf72...'
-                  s:
-                    type: string
-                    example: '6a5cb313907cd3...'
+                $ref: '#/components/schemas/Signature'
         403:
           description: Post does not belong to user, is not public or not saved to IPFS, or user's wallet address is not known
         404:
           description: Post not found
         418:
-          description: Ethereum integration is not enabled
+          description: Blockchain integration is not enabled
   /api/v1/statuses/{status_id}/token_minted:
     post:
       summary: Register transaction that mints a token
@@ -648,6 +651,19 @@ components:
         requested:
           description: Do you have a pending follow request for this user?
           type: boolean
+    Signature:
+      type: object
+      properties:
+        v:
+          type: integer
+          format: int64
+          example: 27
+        r:
+          type: string
+          example: '6f61670e67bf72...'
+        s:
+          type: string
+          example: '6a5cb313907cd3...'
     Status:
       type: object
       properties:
