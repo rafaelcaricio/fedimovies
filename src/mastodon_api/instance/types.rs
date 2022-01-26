@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::config::Config;
-use crate::ethereum::contracts::MANAGER;
+use crate::ethereum::contracts::ADAPTER;
 
 #[derive(Serialize)]
 pub struct InstanceInfo {
@@ -32,7 +32,7 @@ impl From<&Config> for InstanceInfo {
             blockchain_explorer_url: config.blockchain.as_ref()
                 .and_then(|val| val.explorer_url.clone()),
             blockchain_contract_name: config.blockchain.as_ref()
-                .and(Some(MANAGER.into())),
+                .and(Some(ADAPTER.into())),
             blockchain_contract_address: config.blockchain.as_ref()
                 .map(|val| val.contract_address.clone()),
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),

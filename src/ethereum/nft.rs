@@ -21,7 +21,7 @@ use crate::models::posts::queries::{
     get_token_waitlist,
 };
 use super::api::connect;
-use super::contracts::{MANAGER, COLLECTIBLE, load_abi};
+use super::contracts::{ADAPTER, ERC721, load_abi};
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
 use super::utils::parse_address;
@@ -32,19 +32,19 @@ pub async fn get_nft_contract(
     config: &BlockchainConfig,
 ) -> Result<(Web3<Http>, Contract<Http>), EthereumError> {
     let web3 = connect(&config.api_url)?;
-    let manager_abi = load_abi(&config.contract_dir, MANAGER)?;
-    let manager_address = parse_address(&config.contract_address)?;
-    let manager = Contract::from_json(
+    let adapter_abi = load_abi(&config.contract_dir, ADAPTER)?;
+    let adapter_address = parse_address(&config.contract_address)?;
+    let adapter = Contract::from_json(
         web3.eth(),
-        manager_address,
-        &manager_abi,
+        adapter_address,
+        &adapter_abi,
     )?;
 
-    let token_address = manager.query(
+    let token_address = adapter.query(
         "collectible",
         (), None, Options::default(), None,
     ).await?;
-    let token_abi = load_abi(&config.contract_dir, COLLECTIBLE)?;
+    let token_abi = load_abi(&config.contract_dir, ERC721)?;
     let token = Contract::from_json(
         web3.eth(),
         token_address,
