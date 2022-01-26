@@ -6,7 +6,7 @@ use uuid::Uuid;
 use web3::{
     api::Web3,
     contract::{Contract, Options},
-    ethabi::{Event, EventParam, ParamType, RawLog, token::Token},
+    ethabi::{RawLog, token::Token},
     transports::Http,
     types::{BlockNumber, FilterBuilder, H256},
 };
@@ -95,28 +95,7 @@ pub async fn process_events(
     );
 
     // Search for Transfer events
-    let event_abi_params = vec![
-        EventParam {
-            name: "from".to_string(),
-            kind: ParamType::Address,
-            indexed: true,
-        },
-        EventParam {
-            name: "to".to_string(),
-            kind: ParamType::Address,
-            indexed: true,
-        },
-        EventParam {
-            name: "tokenId".to_string(),
-            kind: ParamType::Uint(256),
-            indexed: true,
-        },
-    ];
-    let event_abi = Event {
-        name: "Transfer".to_string(),
-        inputs: event_abi_params,
-        anonymous: false,
-    };
+    let event_abi = contract.abi().event("Transfer")?;
     let filter = FilterBuilder::default()
         .address(vec![contract.address()])
         .topics(Some(vec![event_abi.signature()]), None, None, None)
