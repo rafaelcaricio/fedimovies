@@ -4,7 +4,8 @@ use uuid::Uuid;
 use mitra::config;
 use mitra::database::create_database_client;
 use mitra::database::migrate::apply_migrations;
-use mitra::ethereum::utils::generate_ethereum_address;
+use mitra::ethereum::signatures::generate_ecdsa_key;
+use mitra::ethereum::utils::key_to_ethereum_address;
 use mitra::logger::configure_logger;
 use mitra::models::posts::queries::delete_post;
 use mitra::models::profiles::queries::delete_profile;
@@ -77,7 +78,8 @@ async fn main() {
     match opts.subcmd {
         SubCommand::GenerateRsaKey(cmd) => cmd.execute(),
         SubCommand::GenerateEthereumAddress(_) => {
-            let (private_key, address) = generate_ethereum_address();
+            let private_key = generate_ecdsa_key();
+            let address = key_to_ethereum_address(&private_key);
             println!(
                 "address {:?}; private key {}",
                 address, private_key,

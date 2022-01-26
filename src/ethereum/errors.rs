@@ -1,6 +1,7 @@
 use crate::errors::DatabaseError;
 use super::contracts::ArtifactError;
-use super::utils::{AddressError, SignatureError};
+use super::signatures::SignatureError;
+use super::utils::AddressError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum EthereumError {

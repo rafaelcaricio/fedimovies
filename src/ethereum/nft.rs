@@ -6,9 +6,9 @@ use uuid::Uuid;
 use web3::{
     api::Web3,
     contract::{Contract, Options},
-    ethabi::{Event, EventParam, ParamType, RawLog, token::Token, encode},
+    ethabi::{Event, EventParam, ParamType, RawLog, token::Token},
     transports::Http,
-    types::{BlockNumber, FilterBuilder, H256, U256},
+    types::{BlockNumber, FilterBuilder, H256},
 };
 
 use crate::config::BlockchainConfig;
@@ -23,7 +23,8 @@ use crate::models::posts::queries::{
 use super::api::connect;
 use super::contracts::{MANAGER, COLLECTIBLE, load_abi};
 use super::errors::EthereumError;
-use super::utils::{parse_address, sign_message, SignatureData};
+use super::signatures::{sign_contract_call, CallArgs, SignatureData};
+use super::utils::parse_address;
 
 const TOKEN_WAIT_TIME: i64 = 10; // in minutes
 
@@ -189,18 +190,17 @@ pub fn create_mint_signature(
     user_address: &str,
     token_uri: &str,
 ) -> Result<SignatureData, EthereumError> {
-    let contract_address = parse_address(&blockchain_config.contract_address)?;
     let user_address = parse_address(user_address)?;
-    let chain_id: U256 = blockchain_config.ethereum_chain_id().into();
-    let chain_id_token = Token::Uint(chain_id);
-    let chain_id_bin = encode(&[chain_id_token]);
-    let message = [
-        &chain_id_bin,
-        contract_address.as_bytes(),
-        "mint".as_bytes(),
-        user_address.as_bytes(),
-        token_uri.as_bytes(),
-    ].concat();
-    let signature = sign_message(&blockchain_config.signing_key, &message)?;
+    let call_args: CallArgs = vec![
+        Box::new(user_address),
+        Box::new(token_uri.to_string()),
+    ];
+    let signature = sign_contract_call(
+        &blockchain_config.signing_key,
+        blockchain_config.ethereum_chain_id(),
+        &blockchain_config.contract_address,
+        "mint",
+        call_args,
+    )?;
     Ok(signature)
 }
