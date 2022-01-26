@@ -13,9 +13,9 @@ pub struct InstanceInfo {
     registrations: bool,
 
     login_message: String,
-    ethereum_explorer_url: Option<String>,
-    nft_contract_name: Option<String>,
-    nft_contract_address: Option<String>,
+    blockchain_explorer_url: Option<String>,
+    blockchain_contract_name: Option<String>,
+    blockchain_contract_address: Option<String>,
     ipfs_gateway_url: Option<String>,
 }
 
@@ -29,11 +29,11 @@ impl From<&Config> for InstanceInfo {
             version: config.version.clone(),
             registrations: config.registrations_open,
             login_message: config.login_message.clone(),
-            ethereum_explorer_url: config.blockchain.as_ref()
+            blockchain_explorer_url: config.blockchain.as_ref()
                 .and_then(|val| val.explorer_url.clone()),
-            nft_contract_name: config.blockchain.as_ref()
+            blockchain_contract_name: config.blockchain.as_ref()
                 .and(Some(MANAGER.into())),
-            nft_contract_address: config.blockchain.as_ref()
+            blockchain_contract_address: config.blockchain.as_ref()
                 .map(|val| val.contract_address.clone()),
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),
         }

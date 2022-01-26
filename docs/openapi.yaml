@@ -238,6 +238,17 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Account'
+  /api/v1/instance:
+    get:
+      summary: Information about the instance.
+      security: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instance'
   /api/v1/notifications:
     get:
       summary: Notifications concerning the user.
@@ -510,6 +521,42 @@ components:
           description: Ethereum wallet address.
           type: string
           example: '0xd8da6bf...'
+    Instance:
+      type: object
+      properties:
+        uri:
+          description: The host name of the instance.
+          type: string
+        title:
+          description: The title of the website.
+          type: string
+        short_description:
+          description: A short description defined by the admin.
+          type: string
+        description:
+          description: Admin-defined description of the site.
+          type: string
+        version:
+          description: The version of Mitra server.
+          type: string
+        registrations:
+          description: Whether registrations are enabled.
+          type: boolean
+        login_message:
+          description: Login message for signer.
+          type: string
+        blockchain_explorer_url:
+          description: Blockchain explorer base URL.
+          type: string
+        blockchain_contract_name:
+          description: Blockchain contract name.
+          type: string
+        blockchain_contract_address:
+          description: Blockchain contract address.
+          type: string
+        ipfs_gateway_url:
+          description: IPFS gateway URL.
+          type: string
     Mention:
       type: object
       properties:
