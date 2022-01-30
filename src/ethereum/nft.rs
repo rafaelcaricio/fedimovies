@@ -20,39 +20,11 @@ use crate::models::posts::queries::{
     update_post,
     get_token_waitlist,
 };
-use super::api::connect;
-use super::contracts::{ADAPTER, ERC721, load_abi};
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
 use super::utils::parse_address;
 
 const TOKEN_WAIT_TIME: i64 = 10; // in minutes
-
-pub async fn get_nft_contract(
-    config: &BlockchainConfig,
-) -> Result<(Web3<Http>, Contract<Http>), EthereumError> {
-    let web3 = connect(&config.api_url)?;
-    let adapter_abi = load_abi(&config.contract_dir, ADAPTER)?;
-    let adapter_address = parse_address(&config.contract_address)?;
-    let adapter = Contract::from_json(
-        web3.eth(),
-        adapter_address,
-        &adapter_abi,
-    )?;
-
-    let token_address = adapter.query(
-        "collectible",
-        (), None, Options::default(), None,
-    ).await?;
-    let token_abi = load_abi(&config.contract_dir, ERC721)?;
-    let token = Contract::from_json(
-        web3.eth(),
-        token_address,
-        &token_abi,
-    )?;
-    log::info!("NFT contract address is {:?}", token.address());
-    Ok((web3, token))
-}
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -65,7 +37,7 @@ struct TokenTransfer {
 
 /// Finds posts awaiting tokenization
 /// and looks for corresponding Mint events
-pub async fn process_events(
+pub async fn process_nft_events(
     web3: &Web3<Http>,
     contract: &Contract<Http>,
     db_pool: &Pool,

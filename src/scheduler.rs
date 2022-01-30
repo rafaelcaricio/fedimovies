@@ -6,14 +6,15 @@ use uuid::Uuid;
 
 use crate::config::Config;
 use crate::database::Pool;
-use crate::ethereum::nft::{get_nft_contract, process_events};
+use crate::ethereum::contracts::get_contracts;
+use crate::ethereum::nft::process_nft_events;
 
 pub fn run(config: Config, db_pool: Pool) -> () {
     actix_rt::spawn(async move {
         let mut interval = actix_rt::time::interval(Duration::from_secs(30));
-        let web3_contract = if let Some(blockchain_config) = &config.blockchain {
-            // Verify config and create contract interface
-            get_nft_contract(blockchain_config).await
+        let maybe_contract_set = if let Some(blockchain_config) = &config.blockchain {
+            // Create blockchain interface
+            get_contracts(blockchain_config).await
                 .map_err(|err| log::error!("{}", err))
                 .ok()
         } else {
@@ -23,10 +24,11 @@ pub fn run(config: Config, db_pool: Pool) -> () {
         loop {
             interval.tick().await;
 
-            if let Some((web3, contract)) = web3_contract.as_ref() {
+            if let Some(contract_set) = maybe_contract_set.as_ref() {
                 // Monitor events only if ethereum integration is enabled
-                process_events(
-                    web3, contract,
+                process_nft_events(
+                    &contract_set.web3,
+                    &contract_set.collectible,
                     &db_pool,
                     &mut token_waitlist_map,
                 ).await.unwrap_or_else(|err| {
