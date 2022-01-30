@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::database::Pool;
 use crate::ethereum::contracts::get_contracts;
 use crate::ethereum::nft::process_nft_events;
+use crate::ethereum::subscriptions::check_subscriptions;
 
 pub fn run(config: Config, db_pool: Pool) -> () {
     actix_rt::spawn(async move {
@@ -31,6 +32,13 @@ pub fn run(config: Config, db_pool: Pool) -> () {
                     &contract_set.collectible,
                     &db_pool,
                     &mut token_waitlist_map,
+                ).await.unwrap_or_else(|err| {
+                    log::error!("{}", err);
+                });
+                check_subscriptions(
+                    &contract_set.web3,
+                    &contract_set.subscription,
+                    &db_pool,
                 ).await.unwrap_or_else(|err| {
                     log::error!("{}", err);
                 });

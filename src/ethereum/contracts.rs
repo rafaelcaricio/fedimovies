@@ -13,6 +13,8 @@ use super::errors::EthereumError;
 use super::utils::parse_address;
 
 pub const ADAPTER: &str = "IAdapter";
+pub const SUBSCRIPTION: &str = "ISubscription";
+pub const ERC20: &str = "IERC20";
 pub const ERC721: &str = "IERC721Metadata";
 
 #[derive(thiserror::Error, Debug)]
@@ -48,6 +50,7 @@ pub struct ContractSet {
     pub adapter: Contract<Http>,
 
     pub collectible: Contract<Http>,
+    pub subscription: Contract<Http>,
 }
 
 pub async fn get_contracts(
@@ -73,10 +76,24 @@ pub async fn get_contracts(
         &collectibe_abi,
     )?;
     log::info!("collectible item contract address is {:?}", collectible.address());
+
+    let subscription_address = adapter.query(
+        "subscription",
+        (), None, Options::default(), None,
+    ).await?;
+    let subscription_abi = load_abi(&config.contract_dir, SUBSCRIPTION)?;
+    let subscription = Contract::from_json(
+        web3.eth(),
+        subscription_address,
+        &subscription_abi,
+    )?;
+    log::info!("subscription contract address is {:?}", subscription.address());
+
     let contract_set = ContractSet {
         web3,
         adapter,
         collectible,
+        subscription,
     };
     Ok(contract_set)
 }
