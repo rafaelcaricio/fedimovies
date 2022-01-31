@@ -4,12 +4,19 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::errors::ValidationError;
 use crate::models::profiles::types::{
     DbActorProfile,
     ExtraField,
     ProfileUpdateData,
 };
-use crate::models::users::types::{User, UserCreateData};
+use crate::models::profiles::validators::validate_username;
+use crate::models::users::types::{
+    validate_local_username,
+    validate_wallet_address,
+    User,
+    UserCreateData,
+};
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
 
 #[derive(Serialize)]
@@ -106,6 +113,16 @@ pub struct AccountCreateData {
 }
 
 impl AccountCreateData {
+
+    pub fn clean(&self) -> Result<(), ValidationError> {
+        validate_username(&self.username)?;
+        validate_local_username(&self.username)?;
+        if let Some(wallet_address) = self.wallet_address.as_ref() {
+            validate_wallet_address(wallet_address)?;
+        };
+        Ok(())
+    }
+
     pub fn into_user_data(
         self,
         password_hash: String,

@@ -40,7 +40,6 @@ use crate::models::users::queries::{
     is_valid_invite_code,
     create_user,
 };
-use crate::models::users::types::UserCreateData;
 use crate::utils::crypto::{
     hash_password,
     generate_private_key,
@@ -62,7 +61,7 @@ pub async fn create_account(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     // Validate
-    UserCreateData::clean(&account_data.username)?;
+    account_data.clean()?;
     if !config.registrations_open {
         let invite_code = account_data.invite_code.as_ref()
             .ok_or(ValidationError("invite code is required"))?;

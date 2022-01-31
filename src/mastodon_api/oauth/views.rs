@@ -31,6 +31,7 @@ async fn token_view(
         "ethereum" => {
             let wallet_address = request_data.wallet_address.as_ref()
                 .ok_or(ValidationError("wallet address is required"))?;
+            // Wallet address must be in lowercase
             get_user_by_wallet_address(db_client, wallet_address).await?
         },
         _ => {
