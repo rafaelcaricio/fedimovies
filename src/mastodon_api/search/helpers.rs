@@ -10,13 +10,18 @@ use crate::errors::{ValidationError, HttpError};
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::types::Post;
-use crate::models::profiles::queries::search_profile;
+use crate::models::profiles::queries::{
+    search_profile,
+    search_profile_by_wallet_address,
+};
 use crate::models::profiles::types::DbActorProfile;
+use crate::models::users::types::validate_wallet_address;
 use super::types::SearchResults;
 
 enum SearchQuery {
     ProfileQuery(String, Option<String>),
     Url(String),
+    WalletAddress(String),
     Unknown,
 }
 
@@ -38,6 +43,9 @@ fn parse_search_query(search_query: &str) -> SearchQuery {
     let search_query = search_query.trim();
     if Url::parse(search_query).is_ok() {
         return SearchQuery::Url(search_query.to_string());
+    };
+    if validate_wallet_address(&search_query.to_lowercase()).is_ok() {
+        return SearchQuery::WalletAddress(search_query.to_string());
     };
     match parse_profile_query(search_query) {
         Ok((username, instance)) => {
@@ -121,6 +129,10 @@ pub async fn search(
             if let Some(post) = maybe_post {
                 posts = vec![post];
             };
+        },
+        SearchQuery::WalletAddress(address) => {
+            // Search is case insensitive
+            profiles = search_profile_by_wallet_address(db_client, "ETH", &address).await?;
         },
         SearchQuery::Unknown => (), // ignore
     };

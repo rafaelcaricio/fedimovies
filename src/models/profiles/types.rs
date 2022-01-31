@@ -34,6 +34,10 @@ impl ExtraFields {
     }
 }
 
+pub fn get_currency_field_name(currency_code: &str) -> String {
+    format!("${}", currency_code.to_uppercase())
+}
+
 type SqlError = Box<dyn std::error::Error + Sync + Send>;
 
 impl<'a> FromSql<'a> for ExtraFields {

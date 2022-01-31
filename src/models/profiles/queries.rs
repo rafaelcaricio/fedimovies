@@ -10,6 +10,7 @@ use crate::models::cleanup::{
 };
 use crate::utils::id::new_uuid;
 use super::types::{
+    get_currency_field_name,
     ExtraFields,
     DbActorProfile,
     ProfileCreateData,
@@ -303,12 +304,11 @@ pub async fn search_profile(
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let db_search_query = match instance {
         Some(instance) => {
-            // Search for exact profile name.
-            // Fetch from remote server if not found
+            // Search for exact actor address
             format!("{}@{}", username, instance)
         },
         None => {
-            // Search for username
+            // Fuzzy search for username
             format!("%{}%", username)
         },
     };
@@ -319,6 +319,34 @@ pub async fn search_profile(
         WHERE acct ILIKE $1
         ",
         &[&db_search_query],
+    ).await?;
+    let profiles: Vec<DbActorProfile> = rows.iter()
+        .map(|row| row.try_get("actor_profile"))
+        .collect::<Result<_, _>>()?;
+    Ok(profiles)
+}
+
+pub async fn search_profile_by_wallet_address(
+    db_client: &impl GenericClient,
+    currency_code: &str,
+    wallet_address: &str,
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    let field_name = get_currency_field_name(currency_code);
+    let rows = db_client.query(
+        "
+        SELECT actor_profile
+        FROM actor_profile LEFT JOIN user_account USING (id)
+        WHERE
+            user_account.wallet_address ILIKE $2
+            OR EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(actor_profile.extra_fields) AS field
+                WHERE
+                    field ->> 'name' ILIKE $1
+                    AND field ->> 'value' ILIKE $2
+            )
+        ",
+        &[&field_name, &wallet_address],
     ).await?;
     let profiles: Vec<DbActorProfile> = rows.iter()
         .map(|row| row.try_get("actor_profile"))
