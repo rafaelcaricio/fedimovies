@@ -15,7 +15,10 @@ use crate::models::profiles::queries::{
     search_profile_by_wallet_address,
 };
 use crate::models::profiles::types::DbActorProfile;
-use crate::models::users::types::validate_wallet_address;
+use crate::models::users::types::{
+    validate_wallet_address,
+    WALLET_CURRENCY_CODE,
+};
 use super::types::SearchResults;
 
 enum SearchQuery {
@@ -49,12 +52,12 @@ fn parse_search_query(search_query: &str) -> SearchQuery {
     };
     match parse_profile_query(search_query) {
         Ok((username, instance)) => {
-            return SearchQuery::ProfileQuery(username, instance);
+            SearchQuery::ProfileQuery(username, instance)
         },
         Err(_) => {
-            return SearchQuery::Unknown;
+            SearchQuery::Unknown
         },
-    };
+    }
 }
 
 async fn search_profiles(
@@ -132,7 +135,11 @@ pub async fn search(
         },
         SearchQuery::WalletAddress(address) => {
             // Search is case insensitive
-            profiles = search_profile_by_wallet_address(db_client, "ETH", &address).await?;
+            profiles = search_profile_by_wallet_address(
+                db_client,
+                WALLET_CURRENCY_CODE,
+                &address,
+            ).await?;
         },
         SearchQuery::Unknown => (), // ignore
     };
