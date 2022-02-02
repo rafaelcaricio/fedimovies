@@ -18,39 +18,6 @@ use super::types::{
     Relationship,
 };
 
-pub async fn get_relationships(
-    db_client: &impl GenericClient,
-    source_id: Uuid,
-    target_ids: Vec<Uuid>,
-) -> Result<Vec<Relationship>, DatabaseError> {
-    let rows = db_client.query(
-        "
-        SELECT
-            actor_profile.id AS profile_id,
-            EXISTS (
-                SELECT 1 FROM relationship
-                WHERE source_id = $1 AND target_id = actor_profile.id
-            ) AS following,
-            EXISTS (
-                SELECT 1 FROM relationship
-                WHERE source_id = actor_profile.id AND target_id = $1
-            ) AS followed_by,
-            EXISTS (
-                SELECT 1 FROM follow_request
-                WHERE source_id = $1 AND target_id = actor_profile.id
-                    AND request_status = $3
-            ) AS requested
-        FROM actor_profile
-        WHERE actor_profile.id = ANY($2)
-        ",
-        &[&source_id, &target_ids, &FollowRequestStatus::Pending],
-    ).await?;
-    let relationships = rows.iter()
-        .map(Relationship::try_from)
-        .collect::<Result<_, _>>()?;
-    Ok(relationships)
-}
-
 pub async fn get_relationship(
     db_client: &impl GenericClient,
     source_id: &Uuid,

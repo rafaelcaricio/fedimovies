@@ -87,6 +87,27 @@ paths:
                 $ref: '#/components/schemas/Account'
         400:
           description: Invalid user data
+  /api/v1/accounts/relationships:
+    get:
+      summary: Find out whether a given actor is followed, blocked, muted, etc.
+      parameters:
+        - name: 'id[]'
+          in: query
+          description: Actor IDs to check
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                description: Relationship list
+                type: array
+                items:
+                  $ref: '#/components/schemas/Relationship'
   /api/v1/accounts/{account_id}/statuses:
     get:
       summary: Posts created by the given actor.
@@ -601,7 +622,7 @@ components:
       type: object
       properties:
         id:
-          description: The account id.
+          description: Target profile id.
           type: string
           format: uuid
         following:

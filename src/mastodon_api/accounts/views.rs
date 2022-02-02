@@ -33,7 +33,6 @@ use crate::models::relationships::queries::{
     get_followers,
     get_following,
     get_relationship,
-    get_relationships,
     unfollow,
 };
 use crate::models::users::queries::{
@@ -185,12 +184,12 @@ async fn get_relationships_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let relationships = get_relationships(
+    let relationship = get_relationship(
         db_client,
-        current_user.id,
-        vec![query_params.into_inner().id],
+        &current_user.id,
+        &query_params.id,
     ).await?;
-    Ok(HttpResponse::Ok().json(relationships))
+    Ok(HttpResponse::Ok().json(vec![relationship]))
 }
 
 #[post("/{account_id}/follow")]
