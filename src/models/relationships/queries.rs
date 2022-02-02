@@ -14,40 +14,71 @@ use crate::models::profiles::types::DbActorProfile;
 use crate::utils::id::new_uuid;
 use super::types::{
     DbFollowRequest,
+    DbRelationship,
     FollowRequestStatus,
-    Relationship,
+    RelationshipMap,
+    RelationshipType,
 };
+
+async fn get_relationships(
+    db_client: &impl GenericClient,
+    source_id: &Uuid,
+    target_id: &Uuid,
+) -> Result<Vec<DbRelationship>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT source_id, target_id, $4::smallint AS relationship_type
+        FROM relationship
+        WHERE
+            source_id = $1 AND target_id = $2
+            OR
+            source_id = $2 AND target_id = $1
+        UNION ALL
+        SELECT source_id, target_id, $5 AS relationship_type
+        FROM follow_request
+        WHERE
+            source_id = $1 AND target_id = $2
+            AND request_status = $3
+        ",
+        &[
+            &source_id,
+            &target_id,
+            &FollowRequestStatus::Pending,
+            &RelationshipType::Follow,
+            &RelationshipType::FollowRequest,
+        ],
+    ).await?;
+     let relationships = rows.iter()
+        .map(DbRelationship::try_from)
+        .collect::<Result<_, _>>()?;
+    Ok(relationships)
+}
 
 pub async fn get_relationship(
     db_client: &impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
-) -> Result<Relationship, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
-        SELECT
-            actor_profile.id AS profile_id,
-            EXISTS (
-                SELECT 1 FROM relationship
-                WHERE source_id = $1 AND target_id = actor_profile.id
-            ) AS following,
-            EXISTS (
-                SELECT 1 FROM relationship
-                WHERE source_id = actor_profile.id AND target_id = $1
-            ) AS followed_by,
-            EXISTS (
-                SELECT 1 FROM follow_request
-                WHERE source_id = $1 AND target_id = actor_profile.id
-                    AND request_status = $3
-            ) AS requested
-        FROM actor_profile
-        WHERE actor_profile.id = $2
-        ",
-        &[&source_id, &target_id, &FollowRequestStatus::Pending],
-    ).await?;
-    let row = maybe_row.ok_or(DatabaseError::NotFound("profile"))?;
-    let relationship = Relationship::try_from(&row)?;
-    Ok(relationship)
+) -> Result<RelationshipMap, DatabaseError> {
+    // NOTE: this method returns relationship map even if target does not exist
+    let relationships = get_relationships(db_client, source_id, target_id).await?;
+    let mut relationship_map = RelationshipMap { id: *target_id, ..Default::default() };
+    for relationship in relationships {
+        match relationship.relationship_type {
+            RelationshipType::Follow => {
+                if relationship.is_direct(source_id, target_id)? {
+                    relationship_map.following = true;
+                } else {
+                    relationship_map.followed_by = true;
+                };
+            },
+            RelationshipType::FollowRequest => {
+                if relationship.is_direct(source_id, target_id)? {
+                    relationship_map.requested = true;
+                };
+            },
+        };
+    };
+    Ok(relationship_map)
 }
 
 pub async fn follow(
