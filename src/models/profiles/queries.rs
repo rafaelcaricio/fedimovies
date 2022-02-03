@@ -8,6 +8,7 @@ use crate::models::cleanup::{
     find_orphaned_ipfs_objects,
     DeletionQueue,
 };
+use crate::models::relationships::types::RelationshipType;
 use crate::utils::id::new_uuid;
 use super::types::{
     get_currency_field_name,
@@ -226,10 +227,11 @@ pub async fn delete_profile(
         SET follower_count = follower_count - 1
         FROM relationship
         WHERE
-            actor_profile.id = relationship.target_id
-            AND relationship.source_id = $1
+            relationship.source_id = $1
+            AND relationship.target_id = actor_profile.id
+            AND relationship.relationship_type = $2
         ",
-        &[&profile_id],
+        &[&profile_id, &RelationshipType::Follow],
     ).await?;
     transaction.execute(
         "
@@ -237,10 +239,11 @@ pub async fn delete_profile(
         SET following_count = following_count - 1
         FROM relationship
         WHERE
-            actor_profile.id = relationship.source_id
+            relationship.source_id = actor_profile.id
             AND relationship.target_id = $1
+            AND relationship.relationship_type = $2
         ",
-        &[&profile_id],
+        &[&profile_id, &RelationshipType::Follow],
     ).await?;
     transaction.execute(
         "

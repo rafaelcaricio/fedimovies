@@ -20,6 +20,7 @@ use crate::models::notifications::queries::{
 };
 use crate::models::profiles::queries::update_post_count;
 use crate::models::profiles::types::DbActorProfile;
+use crate::models::relationships::types::RelationshipType;
 use crate::utils::id::new_uuid;
 use super::types::{DbPost, Post, PostCreateData, Visibility};
 
@@ -216,12 +217,16 @@ fn build_visibility_filter() -> String {
             )
             OR post.visibility = {visibility_followers} AND EXISTS (
                 SELECT 1 FROM relationship
-                WHERE source_id = $current_user_id AND target_id = post.author_id
+                WHERE
+                    source_id = $current_user_id
+                    AND target_id = post.author_id
+                    AND relationship_type = {relationship_follow}
             )
         )",
         visibility_public=i16::from(&Visibility::Public),
         visibility_direct=i16::from(&Visibility::Direct),
         visibility_followers=i16::from(&Visibility::Followers),
+        relationship_follow=i16::from(&RelationshipType::Follow),
     )
 }
 

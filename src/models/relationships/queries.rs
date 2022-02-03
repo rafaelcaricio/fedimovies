@@ -27,14 +27,14 @@ async fn get_relationships(
 ) -> Result<Vec<DbRelationship>, DatabaseError> {
     let rows = db_client.query(
         "
-        SELECT source_id, target_id, $4::smallint AS relationship_type
+        SELECT source_id, target_id, relationship_type
         FROM relationship
         WHERE
             source_id = $1 AND target_id = $2
             OR
             source_id = $2 AND target_id = $1
         UNION ALL
-        SELECT source_id, target_id, $5 AS relationship_type
+        SELECT source_id, target_id, $4
         FROM follow_request
         WHERE
             source_id = $1 AND target_id = $2
@@ -44,7 +44,6 @@ async fn get_relationships(
             &source_id,
             &target_id,
             &FollowRequestStatus::Pending,
-            &RelationshipType::Follow,
             &RelationshipType::FollowRequest,
         ],
     ).await?;
@@ -89,10 +88,10 @@ pub async fn follow(
     let transaction = db_client.transaction().await?;
     transaction.execute(
         "
-        INSERT INTO relationship (source_id, target_id)
-        VALUES ($1, $2)
+        INSERT INTO relationship (source_id, target_id, relationship_type)
+        VALUES ($1, $2, $3)
         ",
-        &[&source_id, &target_id],
+        &[&source_id, &target_id, &RelationshipType::Follow],
     ).await.map_err(catch_unique_violation("relationship"))?;
     let target_profile = update_follower_count(&transaction, target_id, 1).await?;
     update_following_count(&transaction, source_id, 1).await?;
@@ -112,9 +111,11 @@ pub async fn unfollow(
     let deleted_count = transaction.execute(
         "
         DELETE FROM relationship
-        WHERE source_id = $1 AND target_id = $2
+        WHERE
+            source_id = $1 AND target_id = $2
+            AND relationship_type = $3
         ",
-        &[&source_id, &target_id],
+        &[&source_id, &target_id, &RelationshipType::Follow],
     ).await?;
     let relationship_deleted = deleted_count > 0;
     // Delete follow request (for remote follows)
@@ -268,11 +269,12 @@ pub async fn get_followers(
         ON (actor_profile.id = relationship.source_id)
         WHERE
             relationship.target_id = $1
-            AND ($2::integer IS NULL OR relationship.id < $2)
+            AND relationship.relationship_type = $2
+            AND ($3::integer IS NULL OR relationship.id < $3)
         ORDER BY relationship.id DESC
-        LIMIT $3
+        LIMIT $4
         ",
-        &[&profile_id, &max_relationship_id, &limit],
+        &[&profile_id, &RelationshipType::Follow, &max_relationship_id, &limit],
     ).await?;
     let profiles = rows.iter()
         .map(|row| row.try_get("actor_profile"))
@@ -294,11 +296,12 @@ pub async fn get_following(
         ON (actor_profile.id = relationship.target_id)
         WHERE
             relationship.source_id = $1
-            AND ($2::integer IS NULL OR relationship.id < $2)
+            AND relationship.relationship_type = $2
+            AND ($3::integer IS NULL OR relationship.id < $3)
         ORDER BY relationship.id DESC
-        LIMIT $3
+        LIMIT $4
         ",
-        &[&profile_id, &max_relationship_id, &limit],
+        &[&profile_id, &RelationshipType::Follow, &max_relationship_id, &limit],
     ).await?;
     let profiles = rows.iter()
         .map(|row| row.try_get("actor_profile"))
