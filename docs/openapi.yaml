@@ -651,6 +651,12 @@ components:
         requested:
           description: Do you have a pending follow request for this user?
           type: boolean
+        subscription_to:
+          description: Are you sending subscription payments to this user?
+          type: boolean
+        subscription_from:
+          description: Are you receiving subscription payments from this user?
+          type: boolean
     Signature:
       type: object
       properties:

@@ -12,6 +12,7 @@ use crate::errors::ConversionError;
 pub enum RelationshipType {
     Follow,
     FollowRequest,
+    Subscription,
 }
 
 impl From<&RelationshipType> for i16 {
@@ -19,6 +20,7 @@ impl From<&RelationshipType> for i16 {
         match value {
             RelationshipType::Follow => 1,
             RelationshipType::FollowRequest => 2,
+            RelationshipType::Subscription => 3,
         }
     }
 }
@@ -30,6 +32,7 @@ impl TryFrom<i16> for RelationshipType {
         let relationship_type = match value {
             1 => Self::Follow,
             2 => Self::FollowRequest,
+            3 => Self::Subscription,
             _ => return Err(ConversionError),
         };
         Ok(relationship_type)
@@ -77,10 +80,12 @@ impl TryFrom<&Row> for DbRelationship {
 
 #[derive(Default, Serialize)]
 pub struct RelationshipMap {
-    pub id: Uuid,
+    pub id: Uuid, // target ID
     pub following: bool,
     pub followed_by: bool,
     pub requested: bool,
+    pub subscription_to: bool,
+    pub subscription_from: bool,
 }
 
 #[derive(Debug)]
