@@ -12,7 +12,17 @@ use web3::{
 
 use crate::config::BlockchainConfig;
 use crate::database::{Pool, get_database_client};
-use crate::errors::ConversionError;
+use crate::errors::{ConversionError, DatabaseError};
+use crate::models::profiles::queries::search_profile_by_wallet_address;
+use crate::models::relationships::queries::unsubscribe;
+use crate::models::subscriptions::queries::{
+    create_subscription,
+    update_subscription,
+    get_expired_subscriptions,
+    get_subscription_by_addresses,
+};
+use crate::models::users::queries::get_user_by_wallet_address;
+use crate::models::users::types::WALLET_CURRENCY_CODE;
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
 use super::utils::parse_address;
@@ -36,7 +46,7 @@ pub async fn check_subscriptions(
     contract: &Contract<Http>,
     db_pool: &Pool,
 ) -> Result<(), EthereumError> {
-    let _db_client = &**get_database_client(db_pool).await?;
+    let db_client = &mut **get_database_client(db_pool).await?;
     let event_abi = contract.abi().event("UpdateSubscription")?;
     let filter = FilterBuilder::default()
         .address(vec![contract.address()])
@@ -72,12 +82,77 @@ pub async fn check_subscriptions(
             .timestamp;
         let block_date = u256_to_date(block_timestamp)
             .map_err(|_| EthereumError::ConversionError)?;
+
+        match get_subscription_by_addresses(
+            db_client,
+            &sender_address,
+            &recipient_address,
+        ).await {
+            Ok(subscription) => {
+                if subscription.updated_at < block_date {
+                    // Update subscription expiration date
+                    update_subscription(
+                        db_client,
+                        subscription.id,
+                        &expires_at,
+                        &block_date,
+                    ).await?;
+                    log::info!(
+                        "subscription updated: {0} to {1}",
+                        subscription.sender_id,
+                        subscription.recipient_id,
+                    );
+                };
+            },
+            Err(DatabaseError::NotFound(_)) => {
+                // New subscription
+                let profiles = search_profile_by_wallet_address(
+                    db_client,
+                    WALLET_CURRENCY_CODE,
+                    &sender_address,
+                ).await?;
+                let sender = match &profiles[..] {
+                    [profile] => profile,
+                    [] => {
+                        // Profile not found, skip event
+                        log::error!("unknown subscriber {}", sender_address);
+                        continue;
+                    },
+                    _ => {
+                        // Ambiguous results, skip event
+                        log::error!(
+                            "search returned multiple results for address {}",
+                            sender_address,
+                        );
+                        continue;
+                    },
+                };
+                let recipient = get_user_by_wallet_address(db_client, &recipient_address).await?;
+                create_subscription(
+                    db_client,
+                    &sender.id,
+                    &sender_address,
+                    &recipient.id,
+                    &expires_at,
+                    &block_date,
+                ).await?;
+                log::info!(
+                    "subscription created: {0} to {1}",
+                    sender.id,
+                    recipient.id,
+                );
+            },
+            Err(other_error) => return Err(other_error.into()),
+        };
+    };
+
+    for subscription in get_expired_subscriptions(db_client).await? {
+        // Remove relationship
+        unsubscribe(db_client, &subscription.sender_id, &subscription.recipient_id).await?;
         log::info!(
-            "subscription: from {0} to {1}, expires at {2}, updated at {3}",
-            sender_address,
-            recipient_address,
-            expires_at,
-            block_date,
+            "subscription expired: {0} to {1}",
+            subscription.sender_id,
+            subscription.recipient_id,
         );
     };
     Ok(())

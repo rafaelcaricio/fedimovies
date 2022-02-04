@@ -331,6 +331,22 @@ pub async fn subscribe(
     Ok(())
 }
 
+pub async fn subscribe_opt(
+    db_client: &impl GenericClient,
+    source_id: &Uuid,
+    target_id: &Uuid,
+) -> Result<(), DatabaseError> {
+    db_client.execute(
+        "
+        INSERT INTO relationship (source_id, target_id, relationship_type)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (source_id, target_id, relationship_type) DO NOTHING
+        ",
+        &[&source_id, &target_id, &RelationshipType::Subscription],
+    ).await?;
+    Ok(())
+}
+
 pub async fn unsubscribe(
     db_client: &impl GenericClient,
     source_id: &Uuid,

@@ -7,4 +7,5 @@ pub mod posts;
 pub mod profiles;
 pub mod reactions;
 pub mod relationships;
+pub mod subscriptions;
 pub mod users;
