@@ -108,6 +108,20 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Relationship'
+  /api/v1/accounts/{account_id}:
+    get:
+      summary: View information about a profile.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        404:
+          description: Profile not found
   /api/v1/accounts/{account_id}/statuses:
     get:
       summary: Posts created by the given actor.
