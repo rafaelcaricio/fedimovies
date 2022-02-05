@@ -1,7 +1,6 @@
 use serde::Serialize;
 
 use crate::config::Config;
-use crate::ethereum::contracts::ADAPTER;
 use crate::mastodon_api::MASTODON_API_VERSION;
 
 #[derive(Serialize)]
@@ -15,7 +14,6 @@ pub struct InstanceInfo {
 
     login_message: String,
     blockchain_explorer_url: Option<String>,
-    blockchain_contract_name: Option<String>,
     blockchain_contract_address: Option<String>,
     ipfs_gateway_url: Option<String>,
 }
@@ -40,8 +38,6 @@ impl From<&Config> for InstanceInfo {
             login_message: config.login_message.clone(),
             blockchain_explorer_url: config.blockchain.as_ref()
                 .and_then(|val| val.explorer_url.clone()),
-            blockchain_contract_name: config.blockchain.as_ref()
-                .and(Some(ADAPTER.into())),
             blockchain_contract_address: config.blockchain.as_ref()
                 .map(|val| val.contract_address.clone()),
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),

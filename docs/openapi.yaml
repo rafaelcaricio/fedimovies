@@ -610,9 +610,6 @@ components:
         blockchain_explorer_url:
           description: Blockchain explorer base URL.
           type: string
-        blockchain_contract_name:
-          description: Blockchain contract name.
-          type: string
         blockchain_contract_address:
           description: Blockchain contract address.
           type: string
