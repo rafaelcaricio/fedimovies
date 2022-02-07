@@ -95,7 +95,7 @@ async fn create_status(
             },
             Err(other_error) => return Err(other_error.into()),
         };
-        if post_data.visibility != in_reply_to.visibility {
+        if post_data.visibility != Visibility::Direct && post_data.visibility != in_reply_to.visibility {
             return Err(ValidationError("post visibility doesn't match the parent").into());
         };
         if post_data.visibility != Visibility::Public {
