@@ -60,7 +60,11 @@ async fn main() -> std::io::Result<()> {
             },
             Environment::Production => {
                 let allowed_origin = config.instance_url();
-                Cors::default().allowed_origin(&allowed_origin)
+                Cors::default()
+                    .allowed_origin(&allowed_origin)
+                    .allowed_origin_fn(|origin, _req_head| {
+                        origin.as_bytes().starts_with(b"http://localhost:")
+                    })
                     .allow_any_method()
                     .allow_any_header()
             },
