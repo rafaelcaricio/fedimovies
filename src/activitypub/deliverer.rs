@@ -49,7 +49,8 @@ async fn send_activity(
         .header("Date", headers.date)
         .header("Digest", headers.digest.unwrap())
         .header("Signature", headers.signature)
-        .header("Content-Type", ACTIVITY_CONTENT_TYPE)
+        .header(reqwest::header::CONTENT_TYPE, ACTIVITY_CONTENT_TYPE)
+        .header(reqwest::header::USER_AGENT, instance.agent())
         .body(activity_json.to_owned());
 
     if instance.is_private {

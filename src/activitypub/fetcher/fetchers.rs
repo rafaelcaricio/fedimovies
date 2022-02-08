@@ -59,6 +59,11 @@ async fn send_request(
             .header("Date", headers.date)
             .header("Signature", headers.signature);
     };
+    if !instance.is_private {
+        // Public instance should set User-Agent header
+        request_builder = request_builder
+            .header(reqwest::header::USER_AGENT, instance.agent());
+    };
 
     let data = request_builder
         .header(reqwest::header::ACCEPT, ACTIVITY_CONTENT_TYPE)
@@ -106,7 +111,13 @@ pub async fn fetch_profile(
     // TOOD: support http
     let webfinger_url = format!("https://{}/.well-known/webfinger", actor_host);
     let client = reqwest::Client::new();
-    let webfinger_data = client.get(&webfinger_url)
+    let mut request_builder = client.get(&webfinger_url);
+    if !instance.is_private {
+        // Public instance should set User-Agent header
+        request_builder = request_builder
+            .header(reqwest::header::USER_AGENT, instance.agent());
+    };
+    let webfinger_data = request_builder
         .query(&[("resource", webfinger_account_uri)])
         .send().await?
         .error_for_status()?

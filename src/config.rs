@@ -144,6 +144,7 @@ impl Config {
     pub fn instance(&self) -> Instance {
         Instance {
             _url: self.try_instance_url().unwrap(),
+            _version: self.version.clone(),
             actor_key: self.try_instance_rsa_key().unwrap(),
             is_private: matches!(self.environment, Environment::Development),
         }
@@ -160,6 +161,7 @@ impl Config {
 
 pub struct Instance {
     _url: Url,
+    _version: String,
     // Instance actor
     pub actor_key: RsaPrivateKey,
     // Private instance won't send signed HTTP requests
@@ -182,6 +184,14 @@ impl Instance {
 
     pub fn actor_key_id(&self) -> String {
         format!("{}#main-key", self.actor_id())
+    }
+
+    pub fn agent(&self) -> String {
+        format!(
+            "Mitra {version}; {instance_url}",
+            version=self._version,
+            instance_url=self.url(),
+        )
     }
 }
 
@@ -225,12 +235,14 @@ mod tests {
         let instance_rsa_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
         let instance = Instance {
             _url: instance_url,
+            _version: "1.0.0".to_string(),
             actor_key: instance_rsa_key,
             is_private: true,
         };
 
         assert_eq!(instance.url(), "https://example.com");
         assert_eq!(instance.host(), "example.com");
+        assert_eq!(instance.agent(), "Mitra 1.0.0; https://example.com");
     }
 
     #[test]
@@ -239,6 +251,7 @@ mod tests {
         let instance_rsa_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
         let instance = Instance {
             _url: instance_url,
+            _version: "1.0.0".to_string(),
             actor_key: instance_rsa_key,
             is_private: true,
         };
