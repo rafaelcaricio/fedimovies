@@ -21,7 +21,6 @@ use crate::models::posts::helpers::{
     get_reposted_posts,
 };
 use crate::mastodon_api::statuses::types::Status;
-use crate::mastodon_api::timelines::types::TimelineQueryParams;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_id,
@@ -52,6 +51,7 @@ use super::types::{
     AccountCreateData,
     AccountUpdateData,
     FollowListQueryParams,
+    StatusListQueryParams,
 };
 
 #[post("")]
@@ -311,12 +311,17 @@ async fn get_account_statuses(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     web::Path(account_id): web::Path<Uuid>,
-    query_params: web::Query<TimelineQueryParams>,
+    query_params: web::Query<StatusListQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let maybe_current_user = match auth {
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
         None => None,
+    };
+    if query_params.pinned {
+        // Pinned posts are not supported
+        let statuses: Vec<Status> = vec![];
+        return Ok(HttpResponse::Ok().json(statuses));
     };
     let profile = get_profile_by_id(db_client, &account_id).await?;
     let mut posts = get_posts_by_author(
