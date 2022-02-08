@@ -508,6 +508,33 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Status'
+  /api/v2/search:
+    get:
+      summary: Search for profiles or posts
+      parameters:
+        - name: q
+          in: query
+          description: The search query
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                description: Search results
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Account'
+                  statuses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Status'
 
 components:
   securitySchemes:

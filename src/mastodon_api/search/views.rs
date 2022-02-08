@@ -17,8 +17,13 @@ async fn search_view(
     query_params: web::Query<SearchQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
-    get_current_user(db_client, auth.token()).await?;
-    let results = search(&config, db_client, query_params.q.trim()).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let results = search(
+        &config,
+        &current_user,
+        db_client,
+        query_params.q.trim(),
+    ).await?;
     Ok(HttpResponse::Ok().json(results))
 }
 

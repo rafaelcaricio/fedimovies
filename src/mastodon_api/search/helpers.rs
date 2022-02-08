@@ -9,6 +9,7 @@ use crate::config::Config;
 use crate::errors::{ValidationError, HttpError};
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::types::Status;
+use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
     search_profile,
@@ -18,6 +19,7 @@ use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::{
     validate_wallet_address,
     WALLET_CURRENCY_CODE,
+    User,
 };
 use super::types::SearchResults;
 
@@ -118,6 +120,7 @@ async fn search_note(
 
 pub async fn search(
     config: &Config,
+    current_user: &User,
     db_client: &mut impl GenericClient,
     search_query: &str,
 ) -> Result<SearchResults, HttpError> {
@@ -130,7 +133,9 @@ pub async fn search(
         SearchQuery::Url(url) => {
             let maybe_post = search_note(config, db_client, url).await?;
             if let Some(post) = maybe_post {
-                posts = vec![post];
+                if can_view_post(db_client, Some(current_user), &post).await? {
+                    posts = vec![post];
+                };
             };
         },
         SearchQuery::WalletAddress(address) => {
