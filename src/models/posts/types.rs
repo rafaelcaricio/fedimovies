@@ -10,7 +10,7 @@ use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
 use crate::errors::{ConversionError, DatabaseError, ValidationError};
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::types::DbActorProfile;
-use crate::utils::html::clean_html;
+use crate::utils::html::clean_html_strict;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Visibility {
@@ -220,7 +220,7 @@ impl PostCreateData {
         if self.content.chars().count() > character_limit {
             return Err(ValidationError("post is too long"));
         };
-        let content_safe = clean_html(&self.content);
+        let content_safe = clean_html_strict(&self.content);
         let content_trimmed = content_safe.trim();
         if content_trimmed.is_empty() {
             return Err(ValidationError("post can not be empty"));

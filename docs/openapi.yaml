@@ -337,7 +337,9 @@ paths:
               type: object
               properties:
                 status:
-                  description: Text content of the post.
+                  description: |
+                    Text content of the post.
+                    Allowed HTML tags: a, br, pre, code.
                   type: string
                 'media_ids[]':
                   description: Array of Attachment ids to be attached as media.

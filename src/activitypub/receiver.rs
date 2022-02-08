@@ -37,6 +37,7 @@ use crate::models::relationships::queries::{
     unfollow,
 };
 use crate::models::users::queries::get_user_by_name;
+use crate::utils::html::clean_html;
 use super::activity::{Object, Activity, create_activity_accept_follow};
 use super::actor::Actor;
 use super::constants::AP_PUBLIC;
@@ -132,6 +133,16 @@ fn get_object_id(object: Value) -> Result<String, ValidationError> {
     Ok(object_id)
 }
 
+const CONTENT_MAX_SIZE: usize = 100000;
+
+fn clean_note_content(content: &str) -> Result<String, ValidationError> {
+    if content.len() > CONTENT_MAX_SIZE {
+        return Err(ValidationError("content is too long"));
+    };
+    let content_safe = clean_html(content);
+    Ok(content_safe)
+}
+
 pub async fn process_note(
     config: &Config,
     db_client: &mut impl GenericClient,
@@ -221,6 +232,7 @@ pub async fn process_note(
         ).await?;
         let content = object.content
             .ok_or(ValidationError("no content"))?;
+        let content_cleaned = clean_note_content(&content)?;
         let mut attachments: Vec<Uuid> = Vec::new();
         if let Some(list) = object.attachment {
             let mut downloaded = vec![];
@@ -375,7 +387,7 @@ pub async fn process_note(
             Visibility::Direct
         };
         let post_data = PostCreateData {
-            content,
+            content: content_cleaned,
             in_reply_to_id,
             repost_of_id: None,
             visibility,

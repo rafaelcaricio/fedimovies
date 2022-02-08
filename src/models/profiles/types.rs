@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::activitypub::actor::Actor;
 use crate::activitypub::views::get_actor_url;
 use crate::errors::ValidationError;
-use crate::utils::html::clean_html;
+use crate::utils::html::clean_html_strict;
 use super::validators::{
     validate_username,
     validate_display_name,
@@ -173,12 +173,12 @@ pub struct ProfileUpdateData {
 impl ProfileUpdateData {
     pub fn clean(&mut self) -> Result<(), ValidationError> {
         // Validate and clean bio
-        self.bio = self.bio.as_ref().map(|val| clean_html(val));
+        self.bio = self.bio.as_ref().map(|val| clean_html_strict(val));
         // Clean extra fields and remove fields with empty labels
         self.extra_fields = self.extra_fields.iter().cloned()
             .map(|mut field| {
                 field.name = field.name.trim().to_string();
-                field.value = clean_html(&field.value);
+                field.value = clean_html_strict(&field.value);
                 field
             })
             .filter(|field| !field.name.is_empty())
