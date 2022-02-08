@@ -87,6 +87,29 @@ pub async fn get_relationship(
     Ok(relationship_map)
 }
 
+pub async fn has_relationship(
+    db_client: &impl GenericClient,
+    source_id: &Uuid,
+    target_id: &Uuid,
+    relationship_type: RelationshipType,
+) -> Result<bool, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT 1
+        FROM relationship
+        WHERE
+            source_id = $1 AND target_id = $2
+            AND relationship_type = $3
+        ",
+        &[
+            &source_id,
+            &target_id,
+            &relationship_type,
+        ],
+    ).await?;
+    Ok(maybe_row.is_some())
+}
+
 pub async fn follow(
     db_client: &mut impl GenericClient,
     source_id: &Uuid,

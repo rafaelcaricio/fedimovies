@@ -3,7 +3,8 @@ use uuid::Uuid;
 
 use crate::errors::DatabaseError;
 use crate::models::reactions::queries::find_favourited_by_user;
-use crate::models::relationships::queries::get_relationship;
+use crate::models::relationships::queries::has_relationship;
+use crate::models::relationships::types::RelationshipType;
 use crate::models::users::types::User;
 use super::queries::{get_posts, find_reposted_by_user};
 use super::types::{Post, PostActions, Visibility};
@@ -65,41 +66,41 @@ pub async fn can_view_post(
     user: Option<&User>,
     post: &Post,
 ) -> Result<bool, DatabaseError> {
+    let is_mentioned = |user: &User| {
+        post.mentions.iter().any(|profile| profile.id == user.profile.id)
+    };
     let result = match post.visibility {
         Visibility::Public => true,
         Visibility::Direct => {
             if let Some(user) = user {
                 // Returns true if user is mentioned
-                post.mentions.iter()
-                    .any(|profile| profile.id == user.profile.id)
+                is_mentioned(user)
             } else {
                 false
             }
         },
         Visibility::Followers => {
             if let Some(user) = user {
-                let relationship = get_relationship(
+                let is_following = has_relationship(
                     db_client,
-                    &post.author.id,
                     &user.id,
+                    &post.author.id,
+                    RelationshipType::Follow,
                 ).await?;
-                let is_mentioned = post.mentions.iter()
-                    .any(|profile| profile.id == user.profile.id);
-                relationship.followed_by || is_mentioned
+                is_following || is_mentioned(user)
             } else {
                 false
             }
         },
         Visibility::Subscribers => {
             if let Some(user) = user {
-                let relationship = get_relationship(
+                let is_subscriber = has_relationship(
                     db_client,
-                    &post.author.id,
                     &user.id,
+                    &post.author.id,
+                    RelationshipType::Subscription,
                 ).await?;
-                let is_mentioned = post.mentions.iter()
-                    .any(|profile| profile.id == user.profile.id);
-                relationship.subscription_from || is_mentioned
+                is_subscriber || is_mentioned(user)
             } else {
                 false
             }
