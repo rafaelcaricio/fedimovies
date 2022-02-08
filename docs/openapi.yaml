@@ -571,8 +571,9 @@ components:
           description: Admin-defined description of the site.
           type: string
         version:
-          description: The version of Mitra server.
+          description: Mastodon API compatibility version and the version of Mitra server.
           type: string
+          example: '3.0.0 (compatible; Mitra 0.4.0)'
         registrations:
           description: Whether registrations are enabled.
           type: boolean

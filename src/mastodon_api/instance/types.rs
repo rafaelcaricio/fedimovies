@@ -2,6 +2,7 @@ use serde::Serialize;
 
 use crate::config::Config;
 use crate::ethereum::contracts::ADAPTER;
+use crate::mastodon_api::MASTODON_API_VERSION;
 
 #[derive(Serialize)]
 pub struct InstanceInfo {
@@ -19,6 +20,14 @@ pub struct InstanceInfo {
     ipfs_gateway_url: Option<String>,
 }
 
+fn get_full_api_version(version: &str) -> String {
+    format!(
+        "{0} (compatible; Mitra {1})",
+        MASTODON_API_VERSION,
+        version,
+    )
+}
+
 impl From<&Config> for InstanceInfo {
     fn from(config: &Config) -> Self {
         Self {
@@ -26,7 +35,7 @@ impl From<&Config> for InstanceInfo {
             title: config.instance_title.clone(),
             short_description: config.instance_short_description.clone(),
             description: config.instance_description.clone(),
-            version: config.version.clone(),
+            version: get_full_api_version(&config.version),
             registrations: config.registrations_open,
             login_message: config.login_message.clone(),
             blockchain_explorer_url: config.blockchain.as_ref()
