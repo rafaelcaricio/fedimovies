@@ -2,12 +2,14 @@
 
 Federated social network with smart contracts.
 
-- Built on [ActivityPub](https://activitypub.rocks/) protocol.
-- Lightweight.
+Built on [ActivityPub](https://activitypub.rocks/) protocol, self-hosted, lightweight.
+
+Unique features enabled by blockchain integration:
+
 - Sign-in with Ethereum.
 - Proving membership with a token.
+- Paid subscriptions.
 - Converting posts into NFTs.
-- More crypto features in the future.
 
 Smart contracts repo: https://codeberg.org/silverpill/mitra-contracts
 
@@ -108,45 +110,7 @@ And these additional standards:
 
 ### Mastodon API
 
-Most methods are similar to Mastodon API:
-
-```
-POST /api/v1/accounts
-GET /api/v1/accounts/{account_id}
-GET /api/v1/accounts/verify_credentials
-PATCH /api/v1/accounts/update_credentials
-GET /api/v1/accounts/relationships
-POST /api/v1/accounts/{account_id}/follow
-POST /api/v1/accounts/{account_id}/unfollow
-GET /api/v1/accounts/{account_id}/statuses
-GET /api/v1/accounts/{account_id}/followers
-GET /api/v1/accounts/{account_id}/following
-GET /api/v1/directory
-GET /api/v1/instance
-GET /api/v1/markers
-POST /api/v1/markers
-POST /api/v1/media
-GET /api/v1/notifications
-GET /api/v2/search
-POST /api/v1/statuses
-GET /api/v1/statuses/{status_id}
-DELETE /api/v1/statuses/{status_id}
-GET /api/v1/statuses/{status_id}/context
-POST /api/v1/statuses/{status_id}/favourite
-POST /api/v1/statuses/{status_id}/unfavourite
-POST /api/v1/statuses/{status_id}/reblog
-POST /api/v1/statuses/{status_id}/unreblog
-GET /api/v1/timelines/home
-GET /api/v1/timelines/tag/{hashtag}
-```
-
-Additional methods:
-
-```
-POST /api/v1/statuses/{status_id}/make_permanent
-GET /api/v1/statuses/{status_id}/signature
-POST /api/v1/statuses/{status_id}/token_minted
-```
+Most methods are similar to Mastodon API, but Mitra is not fully compatible.
 
 [OpenAPI spec](./docs/openapi.yaml) (incomplete)
 
