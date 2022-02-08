@@ -62,7 +62,7 @@ async fn create_status(
     let current_user = get_current_user(db_client, auth.token()).await?;
     let instance = config.instance();
     let mut post_data = PostCreateData::try_from(data.into_inner())?;
-    post_data.clean()?;
+    post_data.clean(config.post_character_limit)?;
     // Mentions
     let mention_map = find_mentioned_profiles(
         db_client,

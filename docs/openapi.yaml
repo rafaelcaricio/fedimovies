@@ -607,6 +607,10 @@ components:
         login_message:
           description: Login message for signer.
           type: string
+        post_character_limit:
+          description: Post character limit.
+          type: integer
+          example: 5000
         blockchain_explorer_url:
           description: Blockchain explorer base URL.
           type: string

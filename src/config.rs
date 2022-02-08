@@ -65,6 +65,8 @@ fn default_environment() -> Environment { Environment::Development }
 
 fn default_log_level() -> LogLevel { LogLevel::Info }
 
+fn default_post_character_limit() -> usize { 2000 }
+
 #[derive(Clone, Deserialize)]
 pub struct BlockchainConfig {
     pub chain_id: String,
@@ -115,6 +117,9 @@ pub struct Config {
     pub registrations_open: bool, // default is false
 
     pub login_message: String,
+
+    #[serde(default = "default_post_character_limit")]
+    pub post_character_limit: usize,
 
     // Blockchain integration
     pub blockchain: Option<BlockchainConfig>,

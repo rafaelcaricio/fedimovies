@@ -13,6 +13,7 @@ pub struct InstanceInfo {
     registrations: bool,
 
     login_message: String,
+    post_character_limit: usize,
     blockchain_explorer_url: Option<String>,
     blockchain_contract_address: Option<String>,
     ipfs_gateway_url: Option<String>,
@@ -36,6 +37,7 @@ impl From<&Config> for InstanceInfo {
             version: get_full_api_version(&config.version),
             registrations: config.registrations_open,
             login_message: config.login_message.clone(),
+            post_character_limit: config.post_character_limit,
             blockchain_explorer_url: config.blockchain.as_ref()
                 .and_then(|val| val.explorer_url.clone()),
             blockchain_contract_address: config.blockchain.as_ref()

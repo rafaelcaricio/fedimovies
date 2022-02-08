@@ -216,7 +216,10 @@ pub struct PostCreateData {
 
 impl PostCreateData {
     /// Validate and clean post data.
-    pub fn clean(&mut self) -> Result<(), ValidationError> {
+    pub fn clean(&mut self, character_limit: usize) -> Result<(), ValidationError> {
+        if self.content.chars().count() > character_limit {
+            return Err(ValidationError("post is too long"));
+        };
         let content_safe = clean_html(&self.content);
         let content_trimmed = content_safe.trim();
         if content_trimmed.is_empty() {
@@ -231,6 +234,8 @@ impl PostCreateData {
 mod tests {
     use super::*;
 
+    const POST_CHARACTER_LIMIT: usize = 1000;
+
     #[test]
     fn test_validate_post_data() {
         let mut post_data_1 = PostCreateData {
@@ -244,7 +249,7 @@ mod tests {
             object_id: None,
             created_at: None,
         };
-        assert_eq!(post_data_1.clean().is_ok(), false);
+        assert_eq!(post_data_1.clean(POST_CHARACTER_LIMIT).is_ok(), false);
     }
 
     #[test]
@@ -260,7 +265,7 @@ mod tests {
             object_id: None,
             created_at: None,
         };
-        assert_eq!(post_data_2.clean().is_ok(), true);
+        assert_eq!(post_data_2.clean(POST_CHARACTER_LIMIT).is_ok(), true);
         assert_eq!(post_data_2.content.as_str(), "test");
     }
 }
