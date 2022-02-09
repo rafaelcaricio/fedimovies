@@ -44,7 +44,7 @@ num_cpus = "1.13.0"
 # Used for working with regular expressions
 regex = "1.5.4"
 # Used to generate random numbers
-rand = "0.8.3"
+rand = "0.8.4"
 # Used for managing database migrations
 refinery = { version = "0.4.0", features = ["tokio-postgres"] }
 # Used for making async HTTP requests
@@ -64,6 +64,8 @@ serde_json = "1.0"
 serde_yaml = "0.8.17"
 # Used to calculate SHA2 hashes
 sha2 = "0.9.5"
+# Used to verify EIP-4361 signatures
+siwe = { git = "https://github.com/silverpill/siwe-rs", branch = "edition2018" }
 # Used for creating error types
 thiserror = "1.0.24"
 # Async runtime ( required for #[tokio::main] )

@@ -1,8 +1,10 @@
 use actix_web::{post, web, HttpResponse, Scope as ActixScope};
 use chrono::{Duration, Utc};
 
+use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{HttpError, ValidationError};
+use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::models::oauth::queries::save_oauth_token;
 use crate::models::users::queries::{
     get_user_by_name,
@@ -19,6 +21,7 @@ const ACCESS_TOKEN_EXPIRES_IN: i64 = 86400 * 7;
 /// https://oauth.net/2/grant-types/password/
 #[post("/token")]
 async fn token_view(
+    config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     request_data: web::Json<TokenRequest>,
 ) -> Result<HttpResponse, HttpError> {
@@ -35,18 +38,34 @@ async fn token_view(
             validate_wallet_address(wallet_address)?;
             get_user_by_wallet_address(db_client, wallet_address).await?
         },
+        "eip4361" => {
+            let message = request_data.message.as_ref()
+                .ok_or(ValidationError("message is required"))?;
+            let signature = request_data.signature.as_ref()
+                .ok_or(ValidationError("signature is required"))?;
+            let wallet_address = verify_eip4361_signature(
+                &message,
+                &signature,
+                &config.instance().host(),
+                &config.login_message,
+            )?;
+            get_user_by_wallet_address(db_client, &wallet_address).await?
+        },
         _ => {
             return Err(ValidationError("unsupported grant type").into());
         },
     };
-    let password_correct = verify_password(
-        &user.password_hash,
-        &request_data.password,
-    ).map_err(|_| HttpError::InternalError)?;
-    if !password_correct {
-        // Invalid signature/password
-        return Err(ValidationError("incorrect password").into());
-    }
+    if request_data.grant_type == "password" || request_data.grant_type == "ethereum" {
+        let password = request_data.password.as_ref()
+            .ok_or(ValidationError("password is required"))?;
+        let password_correct = verify_password(
+            &user.password_hash,
+            &password,
+        ).map_err(|_| HttpError::InternalError)?;
+        if !password_correct {
+            return Err(ValidationError("incorrect password").into());
+        };
+    };
     let access_token = generate_access_token();
     let created_at = Utc::now();
     let expires_at = created_at + Duration::seconds(ACCESS_TOKEN_EXPIRES_IN);

@@ -35,7 +35,7 @@ pub async fn get_user_by_oauth_token(
         JOIN actor_profile ON user_account.id = actor_profile.id
         WHERE
             oauth_token.token = $1
-            AND oauth_token.expires_at > now()
+            AND oauth_token.expires_at > CURRENT_TIMESTAMP
         ",
         &[&access_token],
     ).await?;

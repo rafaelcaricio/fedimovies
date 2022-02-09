@@ -5,7 +5,11 @@ pub struct TokenRequest {
     pub grant_type: String,
     pub username: Option<String>,
     pub wallet_address: Option<String>,
-    pub password: String,
+    // Required only with "password" and "ethereum" grant types
+    pub password: Option<String>,
+    // EIP4361 message and signature
+    pub message: Option<String>,
+    pub signature: Option<String>,
 }
 
 /// https://docs.joinmastodon.org/entities/token/
