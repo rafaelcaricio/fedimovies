@@ -103,6 +103,9 @@ pub struct Config {
     pub http_host: String,
     pub http_port: u32,
 
+    #[serde(default)]
+    pub http_cors_allowlist: Vec<String>,
+
     #[serde(default = "default_log_level")]
     pub log_level: LogLevel,
 

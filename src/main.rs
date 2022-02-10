@@ -59,9 +59,12 @@ async fn main() -> std::io::Result<()> {
                 Cors::permissive()
             },
             Environment::Production => {
-                let allowed_origin = config.instance_url();
-                Cors::default()
-                    .allowed_origin(&allowed_origin)
+                let mut cors_config = Cors::default();
+                for origin in config.http_cors_allowlist.iter() {
+                    cors_config = cors_config.allowed_origin(&origin);
+                };
+                cors_config
+                    .allowed_origin(&config.instance_url())
                     .allowed_origin_fn(|origin, _req_head| {
                         origin.as_bytes().starts_with(b"http://localhost:")
                     })
