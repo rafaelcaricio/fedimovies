@@ -35,6 +35,9 @@ pub enum VerificationError {
     #[error("invalid key")]
     InvalidKey(#[from] rsa::pkcs8::Error),
 
+    #[error("invalid encoding")]
+    InvalidEncoding(#[from] base64::DecodeError),
+
     #[error("invalid signature")]
     InvalidSignature,
 }
@@ -142,10 +145,10 @@ pub async fn verify_http_signature(
         &public_key,
         &signature_data.message,
         &signature_data.signature,
-    ).map_err(|_| VerificationError::InvalidSignature)?;
+    )?;
     if !is_valid_signature {
         return Err(VerificationError::InvalidSignature);
-    }
+    };
     let signer_id = actor_profile.actor_id(&config.instance_url());
     Ok(signer_id)
 }
