@@ -92,7 +92,12 @@ pub async fn create_account(
 
     let user_data = account_data.into_inner()
         .into_user_data(password_hash, private_key_pem);
-    let user = create_user(db_client, user_data).await?;
+    let user = match create_user(db_client, user_data).await {
+        Ok(user) => user,
+        Err(DatabaseError::AlreadyExists(_)) =>
+            return Err(ValidationError("user already exists").into()),
+        Err(other_error) => return Err(other_error.into()),
+    };
     log::warn!("created user {}", user.id);
     let account = Account::from_user(user, &config.instance_url());
     Ok(HttpResponse::Created().json(account))

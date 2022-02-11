@@ -61,7 +61,7 @@ async fn main() -> std::io::Result<()> {
             Environment::Production => {
                 let mut cors_config = Cors::default();
                 for origin in config.http_cors_allowlist.iter() {
-                    cors_config = cors_config.allowed_origin(&origin);
+                    cors_config = cors_config.allowed_origin(origin);
                 };
                 cors_config
                     .allowed_origin(&config.instance_url())
