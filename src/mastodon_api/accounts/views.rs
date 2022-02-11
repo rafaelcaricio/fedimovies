@@ -93,6 +93,7 @@ pub async fn create_account(
     let user_data = account_data.into_inner()
         .into_user_data(password_hash, private_key_pem);
     let user = create_user(db_client, user_data).await?;
+    log::warn!("created user {}", user.id);
     let account = Account::from_user(user, &config.instance_url());
     Ok(HttpResponse::Created().json(account))
 }

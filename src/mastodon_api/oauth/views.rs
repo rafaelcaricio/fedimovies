@@ -57,6 +57,7 @@ async fn token_view(
         &created_at,
         &expires_at,
     ).await?;
+    log::warn!("created auth token for user {}", user.id);
     let token_response = TokenResponse::new(
         access_token,
         created_at.timestamp(),
