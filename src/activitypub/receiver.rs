@@ -17,7 +17,7 @@ use crate::models::posts::queries::{
     delete_post,
 };
 use crate::models::posts::tags::normalize_tag;
-use crate::models::posts::types::{Post, PostCreateData};
+use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
@@ -379,11 +379,17 @@ pub async fn process_note(
             None => vec![],
         };
         let visibility = get_note_visibility(
-            &object.id,
             &author,
             primary_audience,
             secondary_audience,
         );
+        if visibility != Visibility::Public {
+            log::warn!(
+                "processing note with visibility {:?} attributed to {}",
+                visibility,
+                author.username,
+            );
+        };
         let post_data = PostCreateData {
             content: content_cleaned,
             in_reply_to_id,
