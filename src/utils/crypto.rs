@@ -1,3 +1,4 @@
+use pem;
 use rand;
 use rand::prelude::*;
 use rsa::{Hash, PaddingScheme, PublicKey, RsaPrivateKey, RsaPublicKey};
@@ -47,7 +48,12 @@ pub fn get_public_key_pem(
 pub fn deserialize_public_key(
     public_key_pem: &str,
 ) -> Result<RsaPublicKey, rsa::pkcs8::Error> {
-    RsaPublicKey::from_public_key_pem(public_key_pem.trim())
+    // rsa package can't decode PEM string with non-standard wrap width,
+    // so the input should be normalized first
+    let parsed_pem = pem::parse(public_key_pem.trim().as_bytes())
+        .map_err(|_| rsa::pkcs8::Error::Pem)?;
+    let normalized_pem = pem::encode(&parsed_pem);
+    RsaPublicKey::from_public_key_pem(&normalized_pem)
 }
 
 pub fn sign_message(
@@ -87,6 +93,14 @@ pub fn verify_signature(
 mod tests {
     use rand::rngs::OsRng;
     use super::*;
+
+    #[test]
+    fn test_deserialize_public_key_nowrap() {
+        let public_key_pem = "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8ehqQ7n6+pw19U8q2UtxE/9017STW3yRnnqV5nVk8LJ00ba+berqwekxDW+nw77GAu3TJ+hYeeSerUNPup7y3yO3V
+YsFtrgWDQ/s8k86sNBU+Ce2GOL7seh46kyAWgJeohh4Rcrr23rftHbvxOcRM8VzYuCeb1DgVhPGtA0xULwIDAQAB\n-----END PUBLIC KEY-----";
+        let result = deserialize_public_key(&public_key_pem);
+        assert_eq!(result.is_ok(), true);
+    }
 
     #[test]
     fn test_public_key_serialization_deserialization() {

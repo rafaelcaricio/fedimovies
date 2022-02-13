@@ -51,6 +51,7 @@ refinery = { version = "0.4.0", features = ["tokio-postgres"] }
 reqwest = { version = "0.10.10", features = ["json"] }
 # Used for working with RSA keys
 rsa = "0.5.0"
+pem = "1.0.2"
 # Used for hashing passwords
 rust-argon2 = "0.8.3"
 # Used for working with ethereum keys

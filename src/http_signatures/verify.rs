@@ -32,8 +32,8 @@ pub enum VerificationError {
     #[error("{0}")]
     ActorError(String),
 
-    #[error("invalid key")]
-    InvalidKey(#[from] rsa::pkcs8::Error),
+    #[error("invalid public key")]
+    InvalidPublicKey(#[from] rsa::pkcs8::Error),
 
     #[error("invalid encoding")]
     InvalidEncoding(#[from] base64::DecodeError),
