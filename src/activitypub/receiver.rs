@@ -17,7 +17,7 @@ use crate::models::posts::queries::{
     delete_post,
 };
 use crate::models::posts::tags::normalize_tag;
-use crate::models::posts::types::{Post, PostCreateData, Visibility};
+use crate::models::posts::types::{Post, PostCreateData};
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
@@ -40,7 +40,6 @@ use crate::models::users::queries::get_user_by_name;
 use crate::utils::html::clean_html;
 use super::activity::{Object, Activity, create_activity_accept_follow};
 use super::actor::Actor;
-use super::constants::AP_PUBLIC;
 use super::deliverer::deliver_activity;
 use super::fetcher::fetchers::{
     fetch_avatar_and_banner,
@@ -52,6 +51,7 @@ use super::fetcher::helpers::{
     import_profile_by_actor_address,
     ImportError,
 };
+use super::inbox::create::get_note_visibility;
 use super::vocabulary::*;
 
 fn parse_actor_id(
@@ -378,20 +378,12 @@ pub async fn process_note(
             },
             None => vec![],
         };
-        let visibility = if primary_audience.contains(&AP_PUBLIC.to_string()) ||
-                secondary_audience.contains(&AP_PUBLIC.to_string()) {
-            Visibility::Public
-        } else {
-            // Treat all notes that aren't public-addressed as direct messages
-            log::warn!(
-                "processing non-public note {} attributed to {}; primary audience {:?}; secondary audience {:?}",
-                object.id,
-                author_id,
-                primary_audience,
-                secondary_audience,
-            );
-            Visibility::Direct
-        };
+        let visibility = get_note_visibility(
+            &object.id,
+            &author,
+            primary_audience,
+            secondary_audience,
+        );
         let post_data = PostCreateData {
             content: content_cleaned,
             in_reply_to_id,
