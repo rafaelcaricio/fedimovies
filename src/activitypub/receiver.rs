@@ -383,7 +383,13 @@ pub async fn process_note(
             Visibility::Public
         } else {
             // Treat all notes that aren't public-addressed as direct messages
-            log::warn!("received non-public note: {}", object.id);
+            log::warn!(
+                "processing non-public note {} attributed to {}; primary audience {:?}; secondary audience {:?}",
+                object.id,
+                author_id,
+                primary_audience,
+                secondary_audience,
+            );
             Visibility::Direct
         };
         let post_data = PostCreateData {
