@@ -95,8 +95,9 @@ async fn create_status(
             },
             Err(other_error) => return Err(other_error.into()),
         };
-        if post_data.visibility != Visibility::Direct && post_data.visibility != in_reply_to.visibility {
-            return Err(ValidationError("post visibility doesn't match the parent").into());
+        if in_reply_to.visibility != Visibility::Public &&
+                post_data.visibility != Visibility::Direct {
+            return Err(ValidationError("reply must have direct visibility").into());
         };
         if post_data.visibility != Visibility::Public {
             let mut in_reply_to_audience: Vec<_> = in_reply_to.mentions.iter()
