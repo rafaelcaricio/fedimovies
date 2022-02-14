@@ -13,6 +13,7 @@ use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
+use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::ethereum::gate::is_allowed_user;
 use crate::ethereum::subscriptions::create_subscription_signature;
 use crate::mastodon_api::oauth::auth::get_current_user;
@@ -71,9 +72,22 @@ pub async fn create_account(
             return Err(ValidationError("invalid invite code").into());
         }
     }
+    let wallet_address = if let Some(message) = account_data.message.as_ref() {
+        let signature = account_data.signature.as_ref()
+            .ok_or(ValidationError("signature is required"))?;
+        let wallet_address = verify_eip4361_signature(
+            &message,
+            &signature,
+            &config.instance().host(),
+            &config.login_message,
+        )?;
+        Some(wallet_address)
+    } else {
+        None
+    };
     if let Some(blockchain_config) = config.blockchain.as_ref() {
         // Wallet address is required only if blockchain integration is enabled
-        let wallet_address = account_data.wallet_address.as_ref()
+        let wallet_address = wallet_address.as_ref()
             .ok_or(ValidationError("wallet address is required"))?;
         let is_allowed = is_allowed_user(blockchain_config, wallet_address).await
             .map_err(|_| HttpError::InternalError)?;
@@ -91,7 +105,7 @@ pub async fn create_account(
     let private_key_pem = serialize_private_key(private_key)
         .map_err(|_| HttpError::InternalError)?;
 
-    let AccountCreateData { username, wallet_address, invite_code, .. } =
+    let AccountCreateData { username, invite_code, .. } =
         account_data.into_inner();
     let user_data = UserCreateData {
         username,

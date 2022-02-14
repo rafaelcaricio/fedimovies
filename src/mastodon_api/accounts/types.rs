@@ -13,7 +13,6 @@ use crate::models::profiles::types::{
 use crate::models::profiles::validators::validate_username;
 use crate::models::users::types::{
     validate_local_username,
-    validate_wallet_address,
     User,
 };
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
@@ -107,7 +106,9 @@ pub struct AccountCreateData {
     pub username: String,
     pub password: String,
 
-    pub wallet_address: Option<String>,
+    pub message: Option<String>,
+    pub signature: Option<String>,
+
     pub invite_code: Option<String>,
 }
 
@@ -116,9 +117,6 @@ impl AccountCreateData {
     pub fn clean(&self) -> Result<(), ValidationError> {
         validate_username(&self.username)?;
         validate_local_username(&self.username)?;
-        if let Some(wallet_address) = self.wallet_address.as_ref() {
-            validate_wallet_address(wallet_address)?;
-        };
         Ok(())
     }
 }

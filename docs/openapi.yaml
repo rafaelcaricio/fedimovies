@@ -77,10 +77,12 @@ paths:
                 password:
                   description: The password to be used for login.
                   type: string
-                wallet_address:
-                  description: Ethereum wallet address.
+                message:
+                  description: EIP-4361 message
                   type: string
-                  example: '0xd8da6bf...'
+                signature:
+                  description: EIP-4361 signature (required if message is present)
+                  type: string
                 invite_code:
                   description: Invite code
                   type: string
