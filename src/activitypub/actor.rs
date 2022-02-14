@@ -38,6 +38,7 @@ pub struct Image {
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActorCapabilities {
+    // Actpr accepts ChatMessage objects
     accepts_chat_messages: Option<bool>,
 }
 

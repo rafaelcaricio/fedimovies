@@ -40,6 +40,7 @@ use crate::models::users::queries::{
     is_valid_invite_code,
     create_user,
 };
+use crate::models::users::types::UserCreateData;
 use crate::utils::crypto::{
     hash_password,
     generate_private_key,
@@ -90,8 +91,15 @@ pub async fn create_account(
     let private_key_pem = serialize_private_key(private_key)
         .map_err(|_| HttpError::InternalError)?;
 
-    let user_data = account_data.into_inner()
-        .into_user_data(password_hash, private_key_pem);
+    let AccountCreateData { username, wallet_address, invite_code, .. } =
+        account_data.into_inner();
+    let user_data = UserCreateData {
+        username,
+        password_hash,
+        private_key_pem,
+        wallet_address,
+        invite_code,
+    };
     let user = match create_user(db_client, user_data).await {
         Ok(user) => user,
         Err(DatabaseError::AlreadyExists(_)) =>

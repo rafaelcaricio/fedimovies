@@ -15,7 +15,6 @@ use crate::models::users::types::{
     validate_local_username,
     validate_wallet_address,
     User,
-    UserCreateData,
 };
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
 
@@ -121,20 +120,6 @@ impl AccountCreateData {
             validate_wallet_address(wallet_address)?;
         };
         Ok(())
-    }
-
-    pub fn into_user_data(
-        self,
-        password_hash: String,
-        private_key_pem: String,
-    ) -> UserCreateData {
-        UserCreateData {
-            username: self.username,
-            password_hash,
-            private_key_pem,
-            wallet_address: self.wallet_address,
-            invite_code: self.invite_code,
-        }
     }
 }
 
