@@ -104,7 +104,7 @@ impl Account {
 #[derive(Deserialize)]
 pub struct AccountCreateData {
     pub username: String,
-    pub password: String,
+    pub password: Option<String>,
 
     pub message: Option<String>,
     pub signature: Option<String>,
@@ -117,6 +117,9 @@ impl AccountCreateData {
     pub fn clean(&self) -> Result<(), ValidationError> {
         validate_username(&self.username)?;
         validate_local_username(&self.username)?;
+        if self.password.is_none() && self.message.is_none() {
+            return Err(ValidationError("password or EIP-4361 message is required"));
+        };
         Ok(())
     }
 }
@@ -211,6 +214,19 @@ mod tests {
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_validate_account_create_data() {
+        let account_data = AccountCreateData {
+            username: "test".to_string(),
+            password: None,
+            message: None,
+            signature: Some("test".to_string()),
+            invite_code: None,
+        };
+        let error = account_data.clean().unwrap_err();
+        assert_eq!(error.to_string(), "password or EIP-4361 message is required");
+    }
 
     #[test]
     fn test_create_account_from_profile() {

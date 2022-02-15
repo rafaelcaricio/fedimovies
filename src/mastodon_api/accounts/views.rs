@@ -72,6 +72,14 @@ pub async fn create_account(
             return Err(ValidationError("invalid invite code").into());
         }
     }
+
+    let password_hash = if let Some(password) = account_data.password.as_ref() {
+        let password_hash = hash_password(password)
+            .map_err(|_| HttpError::InternalError)?;
+        Some(password_hash)
+    } else {
+        None
+    };
     let wallet_address = if let Some(message) = account_data.message.as_ref() {
         let signature = account_data.signature.as_ref()
             .ok_or(ValidationError("signature is required"))?;
@@ -85,8 +93,10 @@ pub async fn create_account(
     } else {
         None
     };
+    assert!(password_hash.is_some() || wallet_address.is_some());
+
     if let Some(blockchain_config) = config.blockchain.as_ref() {
-        // Wallet address is required only if blockchain integration is enabled
+        // Wallet address is required if blockchain integration is enabled
         let wallet_address = wallet_address.as_ref()
             .ok_or(ValidationError("wallet address is required"))?;
         let is_allowed = is_allowed_user(blockchain_config, wallet_address).await
@@ -95,9 +105,7 @@ pub async fn create_account(
             return Err(ValidationError("not allowed to sign up").into());
         }
     }
-    // Hash password and generate private key
-    let password_hash = hash_password(&account_data.password)
-        .map_err(|_| HttpError::InternalError)?;
+    // Generate RSA private key for actor
     let private_key = match web::block(generate_private_key).await {
         Ok(private_key) => private_key,
         Err(_) => return Err(HttpError::InternalError),

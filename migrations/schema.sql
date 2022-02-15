@@ -23,7 +23,7 @@ CREATE TABLE user_invite_code (
 CREATE TABLE user_account (
     id UUID PRIMARY KEY REFERENCES actor_profile (id) ON DELETE CASCADE,
     wallet_address VARCHAR(100) UNIQUE,
-    password_hash VARCHAR(200) NOT NULL,
+    password_hash VARCHAR(200),
     private_key TEXT NOT NULL,
     invite_code VARCHAR(100) UNIQUE REFERENCES user_invite_code (code) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()

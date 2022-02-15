@@ -20,6 +20,7 @@ paths:
                     - password
                     - ethereum
                     - eip4361
+                  example: eip4361
                 username:
                   description: User name (required if grant type is "password").
                   type: string
@@ -75,21 +76,23 @@ paths:
                   description: The desired username for the account.
                   type: string
                 password:
-                  description: The password to be used for login.
+                  description: The password to be used for login. Either password or EIP-4361 message must be provided.
                   type: string
+                  example: null
                 message:
                   description: EIP-4361 message
                   type: string
+                  example: "example.com wants you to sign in with your Ethereum account:"
                 signature:
                   description: EIP-4361 signature (required if message is present)
                   type: string
+                  example: 0x905...
                 invite_code:
                   description: Invite code
                   type: string
                   example: 9b288bfa7dc75fff53e98aa4d76e77d5
               required:
                 - username
-                - password
       responses:
         201:
           description: Successful operation

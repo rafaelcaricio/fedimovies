@@ -58,9 +58,11 @@ async fn token_view(
     if request_data.grant_type == "password" || request_data.grant_type == "ethereum" {
         let password = request_data.password.as_ref()
             .ok_or(ValidationError("password is required"))?;
+        let password_hash = user.password_hash.as_ref()
+            .ok_or(ValidationError("password auth is disabled"))?;
         let password_correct = verify_password(
-            &user.password_hash,
-            &password,
+            password_hash,
+            password,
         ).map_err(|_| HttpError::InternalError)?;
         if !password_correct {
             return Err(ValidationError("incorrect password").into());
