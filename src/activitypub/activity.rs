@@ -31,12 +31,14 @@ pub struct Attachment {
     pub url: Option<String>,
 }
 
+fn default_tag_type() -> String { HASHTAG.to_string() }
+
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tag {
     pub name: String,
 
-    #[serde(rename = "type")]
+    #[serde(rename = "type", default = "default_tag_type")]
     pub tag_type: String,
 
     pub href: Option<String>,
