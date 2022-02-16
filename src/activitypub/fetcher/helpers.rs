@@ -66,6 +66,7 @@ pub async fn get_or_import_profile_by_actor_id(
                     err
                 })?;
             log::info!("fetched profile {}", profile_data.acct);
+            profile_data.clean()?;
             let profile = create_profile(db_client, profile_data).await?;
             profile
         },
