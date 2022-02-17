@@ -11,11 +11,11 @@ use uuid::Uuid;
 use crate::activitypub::actor::Actor;
 use crate::activitypub::views::get_actor_url;
 use crate::errors::ValidationError;
-use crate::utils::html::clean_html_strict;
 use super::validators::{
     validate_username,
     validate_display_name,
     clean_bio,
+    clean_extra_fields,
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -163,6 +163,7 @@ impl ProfileCreateData {
             let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
             self.bio = Some(cleaned_bio);
         };
+        self.extra_fields = clean_extra_fields(&self.extra_fields)?;
         Ok(())
     }
 }
@@ -188,25 +189,7 @@ impl ProfileUpdateData {
             self.bio = Some(cleaned_bio);
         };
         // Clean extra fields and remove fields with empty labels
-        self.extra_fields = self.extra_fields.iter().cloned()
-            .map(|mut field| {
-                field.name = field.name.trim().to_string();
-                field.value = clean_html_strict(&field.value);
-                field
-            })
-            .filter(|field| !field.name.is_empty())
-            .collect();
-        // Validate extra fields
-        if self.extra_fields.len() >= 10 {
-            return Err(ValidationError("at most 10 fields are allowed"));
-        }
-        let mut unique_labels: Vec<String> = self.extra_fields.iter()
-            .map(|field| field.name.clone()).collect();
-        unique_labels.sort();
-        unique_labels.dedup();
-        if unique_labels.len() < self.extra_fields.len() {
-            return Err(ValidationError("duplicate labels"));
-        };
+        self.extra_fields = clean_extra_fields(&self.extra_fields)?;
         Ok(())
     }
 }

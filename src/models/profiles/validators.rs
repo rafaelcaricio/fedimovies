@@ -1,6 +1,7 @@
 use regex::Regex;
 use crate::errors::ValidationError;
 use crate::utils::html::{clean_html, clean_html_strict};
+use super::types::ExtraField;
 
 const USERNAME_RE: &str = r"^[a-zA-Z0-9_\.-]+$";
 
@@ -43,6 +44,31 @@ pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> 
     Ok(cleaned_bio)
 }
 
+/// Validates extra fields and removes fields with empty labels
+pub fn clean_extra_fields(extra_fields: &[ExtraField])
+    -> Result<Vec<ExtraField>, ValidationError>
+{
+   let cleaned_extra_fields: Vec<_> = extra_fields.iter().cloned()
+        .map(|mut field| {
+            field.name = field.name.trim().to_string();
+            field.value = clean_html_strict(&field.value);
+            field
+        })
+        .filter(|field| !field.name.is_empty())
+        .collect();
+    if cleaned_extra_fields.len() >= 10 {
+        return Err(ValidationError("at most 10 fields are allowed"));
+    };
+    let mut unique_labels: Vec<String> = cleaned_extra_fields.iter()
+        .map(|field| field.name.clone()).collect();
+    unique_labels.sort();
+    unique_labels.dedup();
+    if unique_labels.len() < cleaned_extra_fields.len() {
+        return Err(ValidationError("duplicate labels"));
+    };
+    Ok(cleaned_extra_fields)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -79,5 +105,17 @@ mod tests {
         let bio = "test\n<script>alert()</script>123";
         let result = clean_bio(bio, true).unwrap();
         assert_eq!(result, "test\n123");
+    }
+
+    #[test]
+    fn test_clean_extra_fields() {
+        let extra_fields = vec![ExtraField {
+            name: " $ETH ".to_string(),
+            value: "<p>0x1234</p>".to_string(),
+            value_source: None,
+        }];
+        let result = clean_extra_fields(&extra_fields).unwrap().pop().unwrap();
+        assert_eq!(result.name, "$ETH");
+        assert_eq!(result.value, "0x1234");
     }
 }
