@@ -57,7 +57,7 @@ pub async fn get_or_import_profile_by_actor_id(
     let profile = match get_profile_by_actor_id(db_client, actor_id).await {
         Ok(profile) => profile,
         Err(DatabaseError::NotFound(_)) => {
-            let profile_data = fetch_profile_by_actor_id(
+            let mut profile_data = fetch_profile_by_actor_id(
                 instance, actor_id, media_dir,
             )
                 .await
@@ -85,7 +85,7 @@ pub async fn import_profile_by_actor_address(
     if actor_address.instance == instance.host() {
         return Err(ImportError::LocalObject);
     };
-    let profile_data = fetch_profile(
+    let mut profile_data = fetch_profile(
         instance,
         &actor_address.username,
         &actor_address.instance,

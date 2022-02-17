@@ -15,6 +15,7 @@ use crate::utils::html::clean_html_strict;
 use super::validators::{
     validate_username,
     validate_display_name,
+    clean_bio,
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -153,9 +154,15 @@ pub struct ProfileCreateData {
 }
 
 impl ProfileCreateData {
-    pub fn clean(&self) -> Result<(), ValidationError> {
+    pub fn clean(&mut self) -> Result<(), ValidationError> {
         validate_username(&self.username)?;
-        validate_display_name(self.display_name.as_ref())?;
+        if let Some(display_name) = &self.display_name {
+            validate_display_name(display_name)?;
+        };
+        if let Some(bio) = &self.bio {
+            let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
+            self.bio = Some(cleaned_bio);
+        };
         Ok(())
     }
 }
@@ -172,8 +179,14 @@ pub struct ProfileUpdateData {
 
 impl ProfileUpdateData {
     pub fn clean(&mut self) -> Result<(), ValidationError> {
+        if let Some(display_name) = &self.display_name {
+            validate_display_name(display_name)?;
+        };
         // Validate and clean bio
-        self.bio = self.bio.as_ref().map(|val| clean_html_strict(val));
+        if let Some(bio) = &self.bio {
+            let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
+            self.bio = Some(cleaned_bio);
+        };
         // Clean extra fields and remove fields with empty labels
         self.extra_fields = self.extra_fields.iter().cloned()
             .map(|mut field| {
