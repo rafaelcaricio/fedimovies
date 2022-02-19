@@ -1,3 +1,4 @@
+use chrono::{Duration, Utc};
 use clap::Clap;
 use uuid::Uuid;
 
@@ -7,7 +8,7 @@ use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::signatures::generate_ecdsa_key;
 use mitra::ethereum::utils::key_to_ethereum_address;
 use mitra::logger::configure_logger;
-use mitra::models::posts::queries::delete_post;
+use mitra::models::posts::queries::{delete_post, find_extraneous_posts};
 use mitra::models::profiles::queries::delete_profile;
 use mitra::models::users::queries::{
     create_invite_code,
@@ -31,6 +32,7 @@ enum SubCommand {
     ListInviteCodes(ListInviteCodes),
     DeleteProfile(DeleteProfile),
     DeletePost(DeletePost),
+    DeleteExtraneousPosts(DeleteExtraneousPosts),
 }
 
 /// Generate RSA private key
@@ -71,6 +73,16 @@ struct DeletePost {
     id: Uuid,
 }
 
+/// Delete old remote posts
+#[derive(Clap)]
+struct DeleteExtraneousPosts {
+    #[clap(short)]
+    days: i64,
+
+    #[clap(long)]
+    dry_run: bool,
+}
+
 #[tokio::main]
 async fn main() {
     let opts: Opts = Opts::parse();
@@ -103,10 +115,10 @@ async fn main() {
                     if invite_codes.is_empty() {
                         println!("no invite codes found");
                         return;
-                    }
+                    };
                     for code in invite_codes {
                         println!("{}", code);
-                    }
+                    };
                 },
                 SubCommand::DeleteProfile(subopts) => {
                     let deletion_queue = delete_profile(db_client, &subopts.id).await.unwrap();
@@ -117,6 +129,17 @@ async fn main() {
                     let deletion_queue = delete_post(db_client, &subopts.id).await.unwrap();
                     deletion_queue.process(&config).await;
                     println!("post deleted");
+                },
+                SubCommand::DeleteExtraneousPosts(subopts) => {
+                    let created_before = Utc::now() - Duration::days(subopts.days);
+                    let posts = find_extraneous_posts(db_client, &created_before).await.unwrap();
+                    for post_id in posts {
+                        if !subopts.dry_run {
+                            let deletion_queue = delete_post(db_client, &post_id).await.unwrap();
+                            deletion_queue.process(&config).await;
+                        };
+                        println!("post {} deleted", post_id);
+                    };
                 },
                 _ => panic!(),
             };

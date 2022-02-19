@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
@@ -725,6 +725,68 @@ pub async fn get_token_waitlist(
         .map(|row| row.try_get("id"))
         .collect::<Result<_, _>>()?;
     Ok(waitlist)
+}
+
+/// Finds all contexts (identified by top-level post)
+/// created before the specified date
+/// that do not contain local posts, reposts, mentions or reactions.
+pub async fn find_extraneous_posts(
+    db_client: &impl GenericClient,
+    created_before: &DateTime<Utc>,
+) -> Result<Vec<Uuid>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        WITH RECURSIVE context (id, post_id) AS (
+            SELECT post.id, post.id FROM post
+            WHERE
+                post.in_reply_to_id IS NULL
+                AND post.repost_of_id IS NULL
+                AND post.created_at < $1
+            UNION
+            SELECT context.id, post.id FROM post
+            JOIN context ON (
+                post.in_reply_to_id = context.post_id
+                OR post.repost_of_id = context.post_id
+            )
+        )
+        SELECT context_agg.id
+        FROM (
+            SELECT context.id, array_agg(context.post_id) AS posts
+            FROM context
+            GROUP BY context.id
+        ) AS context_agg
+        WHERE
+            NOT EXISTS (
+                SELECT 1
+                FROM post
+                JOIN actor_profile ON post.author_id = actor_profile.id
+                WHERE
+                    post.id = ANY(context_agg.posts)
+                    AND actor_profile.actor_json IS NULL
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM mention
+                JOIN actor_profile ON mention.profile_id = actor_profile.id
+                WHERE
+                    mention.post_id = ANY(context_agg.posts)
+                    AND actor_profile.actor_json IS NULL
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM post_reaction
+                JOIN actor_profile ON post_reaction.author_id = actor_profile.id
+                WHERE
+                    post_reaction.post_id = ANY(context_agg.posts)
+                    AND actor_profile.actor_json IS NULL
+            )
+        ",
+        &[&created_before],
+    ).await?;
+    let ids: Vec<Uuid> = rows.iter()
+        .map(|row| row.try_get("id"))
+        .collect::<Result<_, _>>()?;
+    Ok(ids)
 }
 
 /// Deletes post from database and returns collection of orphaned objects.
