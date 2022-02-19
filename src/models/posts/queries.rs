@@ -468,12 +468,12 @@ pub async fn get_thread(
             SELECT post.id, post.in_reply_to_id FROM post
             JOIN ancestors ON post.id = ancestors.in_reply_to_id
         ),
-        context (id, path) AS (
+        thread (id, path) AS (
             SELECT ancestors.id, ARRAY[ancestors.id] FROM ancestors
             WHERE ancestors.in_reply_to_id IS NULL
             UNION
-            SELECT post.id, array_append(context.path, post.id) FROM post
-            JOIN context ON post.in_reply_to_id = context.id
+            SELECT post.id, array_append(thread.path, post.id) FROM post
+            JOIN thread ON post.in_reply_to_id = thread.id
         )
         SELECT
             post, actor_profile,
@@ -481,10 +481,10 @@ pub async fn get_thread(
             {related_mentions},
             {related_tags}
         FROM post
-        JOIN context ON post.id = context.id
+        JOIN thread ON post.id = thread.id
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE {visibility_filter}
-        ORDER BY context.path
+        ORDER BY thread.path
         ",
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
@@ -733,13 +733,34 @@ pub async fn delete_post(
     post_id: &Uuid,
 ) -> Result<DeletionQueue, DatabaseError> {
     let transaction = db_client.transaction().await?;
+    // Select all posts that will be deleted.
+    // This includes given post, its descendants and reposts.
+    let posts_rows = transaction.query(
+        "
+        WITH RECURSIVE context (post_id) AS (
+            SELECT post.id FROM post
+            WHERE post.id = $1
+            UNION
+            SELECT post.id FROM post
+            JOIN context ON (
+                post.in_reply_to_id = context.post_id
+                OR post.repost_of_id = context.post_id
+            )
+        )
+        SELECT post_id FROM context
+        ",
+        &[&post_id],
+    ).await?;
+    let posts: Vec<Uuid> = posts_rows.iter()
+        .map(|row| row.try_get("post_id"))
+        .collect::<Result<_, _>>()?;
     // Get list of attached files
     let files_rows = transaction.query(
         "
         SELECT file_name
-        FROM media_attachment WHERE post_id = $1
+        FROM media_attachment WHERE post_id = ANY($1)
         ",
-        &[&post_id],
+        &[&posts],
     ).await?;
     let files: Vec<String> = files_rows.iter()
         .map(|row| row.try_get("file_name"))
@@ -749,17 +770,31 @@ pub async fn delete_post(
         "
         SELECT ipfs_cid
         FROM media_attachment
-        WHERE post_id = $1 AND ipfs_cid IS NOT NULL
+        WHERE post_id = ANY($1) AND ipfs_cid IS NOT NULL
         UNION ALL
         SELECT ipfs_cid
         FROM post
-        WHERE id = $1 AND ipfs_cid IS NOT NULL
+        WHERE id = ANY($1) AND ipfs_cid IS NOT NULL
         ",
-        &[&post_id],
+        &[&posts],
     ).await?;
     let ipfs_objects: Vec<String> = ipfs_objects_rows.iter()
         .map(|row| row.try_get("ipfs_cid"))
         .collect::<Result<_, _>>()?;
+    // Update post counters
+    transaction.execute(
+        "
+        UPDATE actor_profile
+        SET post_count = post_count - post.count
+        FROM (
+            SELECT post.author_id, count(*) FROM post
+            WHERE post.id = ANY($1)
+            GROUP BY post.author_id
+        ) AS post
+        WHERE actor_profile.id = post.author_id
+        ",
+        &[&posts],
+    ).await?;
     // Delete post
     let maybe_post_row = transaction.query_opt(
         "
@@ -777,7 +812,6 @@ pub async fn delete_post(
     if let Some(repost_of_id) = &db_post.repost_of_id {
         update_repost_count(&transaction, repost_of_id, -1).await?;
     };
-    update_post_count(&transaction, &db_post.author_id, -1).await?;
     let orphaned_files = find_orphaned_files(&transaction, files).await?;
     let orphaned_ipfs_objects = find_orphaned_ipfs_objects(&transaction, ipfs_objects).await?;
     transaction.commit().await?;
