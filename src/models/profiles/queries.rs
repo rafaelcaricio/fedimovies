@@ -190,36 +190,71 @@ pub async fn delete_profile(
     profile_id: &Uuid,
 ) -> Result<DeletionQueue, DatabaseError> {
     let transaction = db_client.transaction().await?;
-    // Get list of media files owned by actor
-    let files_rows = transaction.query(
+    // Select all posts authored by given actor,
+    // their descendants and reposts.
+    let posts_rows = transaction.query(
         "
-        SELECT file_name
-        FROM media_attachment WHERE owner_id = $1
-        UNION ALL
-        SELECT unnest(array_remove(ARRAY[avatar_file_name, banner_file_name], NULL))
-        FROM actor_profile WHERE id = $1
+        WITH RECURSIVE context (post_id) AS (
+            SELECT post.id FROM post
+            WHERE post.author_id = $1
+            UNION
+            SELECT post.id FROM post
+            JOIN context ON (
+                post.in_reply_to_id = context.post_id
+                OR post.repost_of_id = context.post_id
+            )
+        )
+        SELECT post_id FROM context
         ",
         &[&profile_id],
+    ).await?;
+    let posts: Vec<Uuid> = posts_rows.iter()
+        .map(|row| row.try_get("post_id"))
+        .collect::<Result<_, _>>()?;
+    // Get list of media files
+    let files_rows = transaction.query(
+        "
+        SELECT unnest(array_remove(ARRAY[avatar_file_name, banner_file_name], NULL)) AS file_name
+        FROM actor_profile WHERE id = $1
+        UNION ALL
+        SELECT file_name
+        FROM media_attachment WHERE post_id = ANY($2)
+        ",
+        &[&profile_id, &posts],
     ).await?;
     let files: Vec<String> = files_rows.iter()
         .map(|row| row.try_get("file_name"))
         .collect::<Result<_, _>>()?;
-    // Get list of IPFS objects owned by actor
+    // Get list of IPFS objects
     let ipfs_objects_rows = transaction.query(
         "
         SELECT ipfs_cid
         FROM media_attachment
-        WHERE owner_id = $1 AND ipfs_cid IS NOT NULL
+        WHERE post_id = ANY($1) AND ipfs_cid IS NOT NULL
         UNION ALL
         SELECT ipfs_cid
         FROM post
-        WHERE author_id = $1 AND ipfs_cid IS NOT NULL
+        WHERE id = ANY($1) AND ipfs_cid IS NOT NULL
         ",
-        &[&profile_id],
+        &[&posts],
     ).await?;
     let ipfs_objects: Vec<String> = ipfs_objects_rows.iter()
         .map(|row| row.try_get("ipfs_cid"))
         .collect::<Result<_, _>>()?;
+    // Update post counters
+    transaction.execute(
+        "
+        UPDATE actor_profile
+        SET post_count = post_count - post.count
+        FROM (
+            SELECT post.author_id, count(*) FROM post
+            WHERE post.id = ANY($1)
+            GROUP BY post.author_id
+        ) AS post
+        WHERE actor_profile.id = post.author_id
+        ",
+        &[&posts],
+    ).await?;
     // Update counters
     transaction.execute(
         "
