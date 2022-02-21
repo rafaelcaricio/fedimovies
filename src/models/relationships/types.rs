@@ -12,6 +12,7 @@ pub enum RelationshipType {
     Follow,
     FollowRequest,
     Subscription,
+    HideReposts,
 }
 
 impl From<&RelationshipType> for i16 {
@@ -20,6 +21,7 @@ impl From<&RelationshipType> for i16 {
             RelationshipType::Follow => 1,
             RelationshipType::FollowRequest => 2,
             RelationshipType::Subscription => 3,
+            RelationshipType::HideReposts => 4,
         }
     }
 }
@@ -32,6 +34,7 @@ impl TryFrom<i16> for RelationshipType {
             1 => Self::Follow,
             2 => Self::FollowRequest,
             3 => Self::Subscription,
+            4 => Self::HideReposts,
             _ => return Err(ConversionError),
         };
         Ok(relationship_type)

@@ -35,6 +35,11 @@ pub async fn get_relationship(
                     relationship_map.subscription_from = true;
                 };
             },
+            RelationshipType::HideReposts => {
+                if relationship.is_direct(source_id, target_id)? {
+                    relationship_map.showing_reblogs = false;
+                };
+            },
         };
     };
     Ok(relationship_map)
@@ -48,6 +53,8 @@ mod tests {
         create_follow_request,
         follow,
         follow_request_accepted,
+        hide_reposts,
+        show_reposts,
         subscribe,
         unfollow,
         unsubscribe,
@@ -85,6 +92,7 @@ mod tests {
         assert_eq!(relationship.requested, false);
         assert_eq!(relationship.subscription_to, false);
         assert_eq!(relationship.subscription_from, false);
+        assert_eq!(relationship.showing_reblogs, true);
         // Follow request
         let follow_request = create_follow_request(db_client, &user_1.id, &user_2.id).await.unwrap();
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
@@ -121,5 +129,26 @@ mod tests {
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
         assert_eq!(relationship.subscription_to, false);
         assert_eq!(relationship.subscription_from, false);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_hide_reblogs() {
+        let db_client = &mut create_test_database().await;
+        let (user_1, user_2) = create_users(db_client).await.unwrap();
+        follow(db_client, &user_1.id, &user_2.id).await.unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        assert_eq!(relationship.following, true);
+        assert_eq!(relationship.showing_reblogs, true);
+
+        hide_reposts(db_client, &user_1.id, &user_2.id).await.unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        assert_eq!(relationship.following, true);
+        assert_eq!(relationship.showing_reblogs, false);
+
+        show_reposts(db_client, &user_1.id, &user_2.id).await.unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        assert_eq!(relationship.following, true);
+        assert_eq!(relationship.showing_reblogs, true);
     }
 }

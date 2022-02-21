@@ -248,6 +248,7 @@ pub async fn get_home_timeline(
     // Select posts from follows, subscriptions,
     // posts where current user is mentioned
     // and user's own posts.
+    // Select reposts if they are not hidden.
     let statement = format!(
         "
         SELECT
@@ -260,11 +261,29 @@ pub async fn get_home_timeline(
         WHERE
             (
                 post.author_id = $current_user_id
-                OR EXISTS (
-                    SELECT 1 FROM relationship
-                    WHERE
-                        source_id = $current_user_id AND target_id = post.author_id
-                        AND relationship_type IN ({relationship_follow}, {relationship_subscription})
+                OR (
+                    EXISTS (
+                        SELECT 1 FROM relationship
+                        WHERE
+                            source_id = $current_user_id
+                            AND target_id = post.author_id
+                            AND relationship_type IN ({relationship_follow}, {relationship_subscription})
+                    )
+                    AND (
+                        post.repost_of_id IS NULL
+                        OR NOT EXISTS (
+                            SELECT 1 FROM relationship
+                            WHERE
+                                source_id = $current_user_id
+                                AND target_id = post.author_id
+                                AND relationship_type = {relationship_hide_reposts}
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM post AS repost_of
+                            WHERE repost_of.id = post.repost_of_id
+                                AND repost_of.author_id = $current_user_id
+                        )
+                    )
                 )
                 OR EXISTS (
                     SELECT 1 FROM mention
@@ -281,6 +300,7 @@ pub async fn get_home_timeline(
         related_tags=RELATED_TAGS,
         relationship_follow=i16::from(&RelationshipType::Follow),
         relationship_subscription=i16::from(&RelationshipType::Subscription),
+        relationship_hide_reposts=i16::from(&RelationshipType::HideReposts),
         visibility_filter=build_visibility_filter(),
     );
     let query = query!(
@@ -890,7 +910,11 @@ mod tests {
     use crate::database::test_utils::create_test_database;
     use crate::models::profiles::queries::create_profile;
     use crate::models::profiles::types::ProfileCreateData;
-    use crate::models::relationships::queries::{follow, subscribe};
+    use crate::models::relationships::queries::{
+        follow,
+        hide_reposts,
+        subscribe,
+    };
     use crate::models::users::queries::create_user;
     use crate::models::users::types::UserCreateData;
     use super::*;
@@ -973,28 +997,34 @@ mod tests {
             ..Default::default()
         };
         let post_6 = create_post(db_client, &user_2.id, post_data_6).await.unwrap();
-        // Direct message from followed user sent to another user
+        // Followed user's repost
         let post_data_7 = PostCreateData {
+            repost_of_id: Some(post_3.id),
+            ..Default::default()
+        };
+        let post_7 = create_post(db_client, &user_2.id, post_data_7).await.unwrap();
+        // Direct message from followed user sent to another user
+        let post_data_8 = PostCreateData {
             content: "test post".to_string(),
             visibility: Visibility::Direct,
             mentions: vec![user_1.id],
             ..Default::default()
         };
-        let post_7 = create_post(db_client, &user_2.id, post_data_7).await.unwrap();
+        let post_8 = create_post(db_client, &user_2.id, post_data_8).await.unwrap();
         // Followers-only post from followed user
-        let post_data_8 = PostCreateData {
+        let post_data_9 = PostCreateData {
             content: "followers only".to_string(),
             visibility: Visibility::Followers,
             ..Default::default()
         };
-        let post_8 = create_post(db_client, &user_2.id, post_data_8).await.unwrap();
+        let post_9 = create_post(db_client, &user_2.id, post_data_9).await.unwrap();
         // Subscribers-only post by followed user
-        let post_data_9 = PostCreateData {
+        let post_data_10 = PostCreateData {
             content: "subscribers only".to_string(),
             visibility: Visibility::Subscribers,
             ..Default::default()
         };
-        let post_9 = create_post(db_client, &user_2.id, post_data_9).await.unwrap();
+        let post_10 = create_post(db_client, &user_2.id, post_data_10).await.unwrap();
         // Subscribers-only post by subscription
         let user_data_3 = UserCreateData {
             username: "subscription".to_string(),
@@ -1002,25 +1032,40 @@ mod tests {
         };
         let user_3 = create_user(db_client, user_data_3).await.unwrap();
         subscribe(db_client, &current_user.id, &user_3.id).await.unwrap();
-        let post_data_10 = PostCreateData {
+        let post_data_11 = PostCreateData {
             content: "subscribers only".to_string(),
             visibility: Visibility::Subscribers,
             ..Default::default()
         };
-        let post_10 = create_post(db_client, &user_3.id, post_data_10).await.unwrap();
+        let post_11 = create_post(db_client, &user_3.id, post_data_11).await.unwrap();
+        // Repost from followed user if hiding reposts
+        let user_data_4 = UserCreateData {
+            username: "hide reposts".to_string(),
+            ..Default::default()
+        };
+        let user_4 = create_user(db_client, user_data_4).await.unwrap();
+        follow(db_client, &current_user.id, &user_4.id).await.unwrap();
+        hide_reposts(db_client, &current_user.id, &user_4.id).await.unwrap();
+        let post_data_12 = PostCreateData {
+            repost_of_id: Some(post_3.id),
+            ..Default::default()
+        };
+        let post_12 = create_post(db_client, &user_4.id, post_data_12).await.unwrap();
 
         let timeline = get_home_timeline(db_client, &current_user.id, None, 20).await.unwrap();
-        assert_eq!(timeline.len(), 6);
+        assert_eq!(timeline.len(), 7);
         assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_2.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_3.id), false);
         assert_eq!(timeline.iter().any(|post| post.id == post_4.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_5.id), false);
         assert_eq!(timeline.iter().any(|post| post.id == post_6.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_7.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_8.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_9.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_10.id), true);
+        assert_eq!(timeline.iter().any(|post| post.id == post_7.id), true);
+        assert_eq!(timeline.iter().any(|post| post.id == post_8.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_9.id), true);
+        assert_eq!(timeline.iter().any(|post| post.id == post_10.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_11.id), true);
+        assert_eq!(timeline.iter().any(|post| post.id == post_12.id), false);
     }
 
     #[tokio::test]

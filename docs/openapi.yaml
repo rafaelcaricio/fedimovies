@@ -249,6 +249,16 @@ paths:
         - tokenAuth: []
       parameters:
         - $ref: '#/components/parameters/account_id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reblogs:
+                  description: Receive this actor's reposts in home timeline?
+                  type: boolean
+                  default: true
       responses:
         200:
           description: Successfully followed, or actor was already followed
@@ -687,18 +697,27 @@ components:
         following:
           description: Are you following this user?
           type: boolean
+          default: false
         followed_by:
           description: Are you followed by this user?
           type: boolean
+          default: false
         requested:
           description: Do you have a pending follow request for this user?
           type: boolean
+          default: false
         subscription_to:
           description: Are you sending subscription payments to this user?
           type: boolean
+          default: false
         subscription_from:
           description: Are you receiving subscription payments from this user?
           type: boolean
+          default: false
+        showing_reblogs:
+          description: Are you receiving this user's boosts in your home timeline?
+          type: boolean
+          default: true
     Signature:
       type: object
       properties:

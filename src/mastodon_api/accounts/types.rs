@@ -193,7 +193,7 @@ pub struct RelationshipQueryParams {
     pub id: Uuid,
 }
 
-#[derive(Default, Serialize)]
+#[derive(Serialize)]
 pub struct RelationshipMap {
     pub id: Uuid, // target ID
     pub following: bool,
@@ -201,6 +201,29 @@ pub struct RelationshipMap {
     pub requested: bool,
     pub subscription_to: bool,
     pub subscription_from: bool,
+    pub showing_reblogs: bool,
+}
+
+fn default_showing_reblogs() -> bool { true }
+
+impl Default for RelationshipMap {
+    fn default() -> Self {
+        Self {
+            id: Default::default(),
+            following: false,
+            followed_by: false,
+            requested: false,
+            subscription_to: false,
+            subscription_from: false,
+            showing_reblogs: default_showing_reblogs(),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct FollowData {
+    #[serde(default = "default_showing_reblogs")]
+    pub reblogs: bool,
 }
 
 fn default_page_size() -> i64 { 20 }
@@ -215,7 +238,6 @@ pub struct StatusListQueryParams {
     #[serde(default = "default_page_size")]
     pub limit: i64,
 }
-
 
 fn default_follow_list_page_size() -> i64 { 40 }
 

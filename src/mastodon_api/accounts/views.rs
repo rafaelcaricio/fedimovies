@@ -33,6 +33,8 @@ use crate::models::relationships::queries::{
     get_follow_request_by_path,
     get_followers,
     get_following,
+    hide_reposts,
+    show_reposts,
     unfollow,
 };
 use crate::models::users::queries::{
@@ -51,6 +53,7 @@ use super::types::{
     Account,
     AccountCreateData,
     AccountUpdateData,
+    FollowData,
     FollowListQueryParams,
     RelationshipQueryParams,
     StatusListQueryParams,
@@ -249,12 +252,13 @@ async fn follow_account(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     web::Path(account_id): web::Path<Uuid>,
+    data: web::Json<FollowData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target = get_profile_by_id(db_client, &account_id).await?;
     if let Some(remote_actor) = target.actor_json {
-        // Remote follow
+        // Create follow request if target is remote
         match create_follow_request(db_client, &current_user.id, &target.id).await {
             Ok(request) => {
                 let activity = create_activity_follow(
@@ -275,6 +279,11 @@ async fn follow_account(
             Err(other_error) => return Err(other_error.into()),
         };
     };
+    if data.reblogs {
+        show_reposts(db_client, &current_user.id, &target.id).await?;
+    } else {
+        hide_reposts(db_client, &current_user.id, &target.id).await?;
+    };
     let relationship = get_relationship(
         db_client,
         &current_user.id,
@@ -294,7 +303,7 @@ async fn unfollow_account(
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target = get_profile_by_id(db_client, &account_id).await?;
     if let Some(remote_actor) = target.actor_json {
-        // Remote follow
+        // Get follow request ID then unfollow and delete it
         match get_follow_request_by_path(
             db_client,
             &current_user.id,
