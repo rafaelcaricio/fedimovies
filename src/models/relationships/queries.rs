@@ -16,11 +16,10 @@ use super::types::{
     DbFollowRequest,
     DbRelationship,
     FollowRequestStatus,
-    RelationshipMap,
     RelationshipType,
 };
 
-async fn get_relationships(
+pub async fn get_relationships(
     db_client: &impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
@@ -51,40 +50,6 @@ async fn get_relationships(
         .map(DbRelationship::try_from)
         .collect::<Result<_, _>>()?;
     Ok(relationships)
-}
-
-pub async fn get_relationship(
-    db_client: &impl GenericClient,
-    source_id: &Uuid,
-    target_id: &Uuid,
-) -> Result<RelationshipMap, DatabaseError> {
-    // NOTE: this method returns relationship map even if target does not exist
-    let relationships = get_relationships(db_client, source_id, target_id).await?;
-    let mut relationship_map = RelationshipMap { id: *target_id, ..Default::default() };
-    for relationship in relationships {
-        match relationship.relationship_type {
-            RelationshipType::Follow => {
-                if relationship.is_direct(source_id, target_id)? {
-                    relationship_map.following = true;
-                } else {
-                    relationship_map.followed_by = true;
-                };
-            },
-            RelationshipType::FollowRequest => {
-                if relationship.is_direct(source_id, target_id)? {
-                    relationship_map.requested = true;
-                };
-            },
-            RelationshipType::Subscription => {
-                if relationship.is_direct(source_id, target_id)? {
-                    relationship_map.subscription_to = true;
-                } else {
-                    relationship_map.subscription_from = true;
-                };
-            },
-        };
-    };
-    Ok(relationship_map)
 }
 
 pub async fn has_relationship(
@@ -411,81 +376,4 @@ pub async fn get_subscribers(
         .map(|row| row.try_get("actor_profile"))
         .collect::<Result<_, _>>()?;
     Ok(profiles)
-}
-
-#[cfg(test)]
-mod tests {
-    use serial_test::serial;
-    use crate::database::test_utils::create_test_database;
-    use crate::models::relationships::queries::follow;
-    use crate::models::users::queries::create_user;
-    use crate::models::users::types::{User, UserCreateData};
-    use super::*;
-
-    async fn create_users(db_client: &mut impl GenericClient)
-        -> Result<(User, User), DatabaseError>
-    {
-        let user_data_1 = UserCreateData {
-            username: "user".to_string(),
-            ..Default::default()
-        };
-        let user_1 = create_user(db_client, user_data_1).await.unwrap();
-        let user_data_2 = UserCreateData {
-            username: "another-user".to_string(),
-            ..Default::default()
-        };
-        let user_2 = create_user(db_client, user_data_2).await.unwrap();
-        Ok((user_1, user_2))
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_follow_unfollow() {
-        let db_client = &mut create_test_database().await;
-        let (user_1, user_2) = create_users(db_client).await.unwrap();
-        // Initial state
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
-        assert_eq!(relationship.id, user_2.id);
-        assert_eq!(relationship.following, false);
-        assert_eq!(relationship.followed_by, false);
-        assert_eq!(relationship.requested, false);
-        assert_eq!(relationship.subscription_to, false);
-        assert_eq!(relationship.subscription_from, false);
-        // Follow request
-        let follow_request = create_follow_request(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
-        assert_eq!(relationship.following, false);
-        assert_eq!(relationship.followed_by, false);
-        assert_eq!(relationship.requested, true);
-        // Mutual follow
-        follow_request_accepted(db_client, &follow_request.id).await.unwrap();
-        follow(db_client, &user_2.id, &user_1.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
-        assert_eq!(relationship.following, true);
-        assert_eq!(relationship.followed_by, true);
-        assert_eq!(relationship.requested, false);
-        // Unfollow
-        unfollow(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
-        assert_eq!(relationship.following, false);
-        assert_eq!(relationship.followed_by, true);
-        assert_eq!(relationship.requested, false);
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_subscribe_unsubscribe() {
-        let db_client = &mut create_test_database().await;
-        let (user_1, user_2) = create_users(db_client).await.unwrap();
-
-        subscribe(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
-        assert_eq!(relationship.subscription_to, true);
-        assert_eq!(relationship.subscription_from, false);
-
-        unsubscribe(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
-        assert_eq!(relationship.subscription_to, false);
-        assert_eq!(relationship.subscription_from, false);
-    }
 }

@@ -193,6 +193,16 @@ pub struct RelationshipQueryParams {
     pub id: Uuid,
 }
 
+#[derive(Default, Serialize)]
+pub struct RelationshipMap {
+    pub id: Uuid, // target ID
+    pub following: bool,
+    pub followed_by: bool,
+    pub requested: bool,
+    pub subscription_to: bool,
+    pub subscription_from: bool,
+}
+
 fn default_page_size() -> i64 { 20 }
 
 #[derive(Deserialize)]

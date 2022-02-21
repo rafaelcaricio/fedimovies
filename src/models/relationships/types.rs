@@ -1,7 +1,6 @@
 use std::convert::TryFrom;
 
 use postgres_types::FromSql;
-use serde::Serialize;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
@@ -76,16 +75,6 @@ impl TryFrom<&Row> for DbRelationship {
         };
         Ok(relationship)
     }
-}
-
-#[derive(Default, Serialize)]
-pub struct RelationshipMap {
-    pub id: Uuid, // target ID
-    pub following: bool,
-    pub followed_by: bool,
-    pub requested: bool,
-    pub subscription_to: bool,
-    pub subscription_from: bool,
 }
 
 #[derive(Debug)]

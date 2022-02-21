@@ -33,7 +33,6 @@ use crate::models::relationships::queries::{
     get_follow_request_by_path,
     get_followers,
     get_following,
-    get_relationship,
     unfollow,
 };
 use crate::models::users::queries::{
@@ -47,6 +46,7 @@ use crate::utils::crypto::{
     serialize_private_key,
 };
 use crate::utils::files::FileError;
+use super::helpers::get_relationship;
 use super::types::{
     Account,
     AccountCreateData,
