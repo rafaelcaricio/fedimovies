@@ -185,6 +185,14 @@ impl AccountUpdateData {
     }
 }
 
+// TODO: actix currently doesn't support parameter arrays
+// https://github.com/actix/actix-web/issues/2044
+#[derive(Deserialize)]
+pub struct RelationshipQueryParams {
+    #[serde(rename(deserialize = "id[]"))]
+    pub id: Uuid,
+}
+
 fn default_page_size() -> i64 { 20 }
 
 #[derive(Deserialize)]

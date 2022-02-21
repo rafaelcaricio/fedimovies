@@ -1,6 +1,5 @@
 use actix_web::{get, post, patch, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::activitypub::activity::{
@@ -53,6 +52,7 @@ use super::types::{
     AccountCreateData,
     AccountUpdateData,
     FollowListQueryParams,
+    RelationshipQueryParams,
     StatusListQueryParams,
 };
 
@@ -225,14 +225,6 @@ async fn authorize_subscription(
         &wallet_address,
     ).map_err(|_| HttpError::InternalError)?;
     Ok(HttpResponse::Ok().json(signature))
-}
-
-// TODO: actix currently doesn't support parameter arrays
-// https://github.com/actix/actix-web/issues/2044
-#[derive(Deserialize)]
-pub struct RelationshipQueryParams {
-    #[serde(rename(deserialize = "id[]"))]
-    id: Uuid,
 }
 
 #[get("/relationships")]
