@@ -17,6 +17,7 @@ pub struct DbMediaAttachment {
 pub enum AttachmentType {
     Unknown,
     Image,
+    Video,
 }
 
 impl AttachmentType {
@@ -25,6 +26,8 @@ impl AttachmentType {
             Some(media_type) => {
                 if media_type.starts_with("image/") {
                     Self::Image
+                } else if media_type.starts_with("video/") {
+                    Self::Video
                 } else {
                     Self::Unknown
                 }

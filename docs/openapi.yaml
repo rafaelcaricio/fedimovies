@@ -609,6 +609,23 @@ components:
           description: Ethereum wallet address.
           type: string
           example: '0xd8da6bf...'
+    Attachment:
+      type: object
+      properties:
+        id:
+          description: The ID of the attachment in the database.
+          type: string
+          format: uuid
+        type:
+          description: The type of the attachment.
+          type: string
+          enum:
+            - unknown
+            - image
+            - video
+        url:
+          description: The location of the original full-size attachment.
+          type: string
     Instance:
       type: object
       properties:
@@ -743,6 +760,9 @@ components:
         visibility:
           description: Visibility of this post.
           $ref: '#/components/schemas/Visibility'
+        media_attachments:
+          description: Media that is attached to this post.
+          $ref: '#/components/schemas/Attachment'
         mentions:
           description: Mentions of users within the post.
           type: array

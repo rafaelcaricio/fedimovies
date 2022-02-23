@@ -31,6 +31,7 @@ impl Attachment {
         let attachment_type_mastodon = match attachment_type {
             AttachmentType::Unknown => "unknown",
             AttachmentType::Image => "image",
+            AttachmentType::Video => "video",
         };
         let attachment_url = get_file_url(instance_url, &db_object.file_name);
         Self {
