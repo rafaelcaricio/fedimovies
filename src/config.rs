@@ -124,6 +124,9 @@ pub struct Config {
     #[serde(default = "default_post_character_limit")]
     pub post_character_limit: usize,
 
+    #[serde(default)]
+    pub blocked_instances: Vec<String>,
+
     // Blockchain integration
     pub blockchain: Option<BlockchainConfig>,
 

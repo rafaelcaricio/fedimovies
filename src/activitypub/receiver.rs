@@ -438,6 +438,9 @@ pub async fn receive_activity(
     })?;
     let signer_id = signer.actor_id(&config.instance_url());
     log::debug!("activity signed by {}", signer_id);
+    if config.blocked_instances.iter().any(|instance| signer.acct.contains(instance)) {
+        return Err(HttpError::ValidationError("instance is blocked".into()));
+    };
 
     let activity: Activity = serde_json::from_value(activity_raw.clone())
         .map_err(|_| ValidationError("invalid activity"))?;
