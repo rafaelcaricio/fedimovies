@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
+use actix_web::HttpRequest;
 use regex::Regex;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
 use crate::errors::{ConversionError, DatabaseError, HttpError, ValidationError};
+use crate::http_signatures::verify::verify_http_signature;
 use crate::models::attachments::queries::create_attachment;
 use crate::models::posts::mentions::mention_to_address;
 use crate::models::posts::queries::{
@@ -427,20 +428,26 @@ fn require_actor_signature(actor_id: &str, signer_id: &str)
 
 pub async fn receive_activity(
     config: &Config,
-    db_pool: &Pool,
-    signer_id: &str,
+    db_client: &mut impl GenericClient,
+    request: &HttpRequest,
     activity_raw: &Value,
 ) -> Result<(), HttpError> {
+    let signer = verify_http_signature(config, db_client, request).await.map_err(|err| {
+        log::warn!("invalid signature: {}", err);
+        HttpError::AuthError("invalid signature")
+    })?;
+    let signer_id = signer.actor_id(&config.instance_url());
+    log::debug!("activity signed by {}", signer_id);
+
     let activity: Activity = serde_json::from_value(activity_raw.clone())
         .map_err(|_| ValidationError("invalid activity"))?;
     let activity_type = activity.activity_type;
     let maybe_object_type = activity.object.get("type")
         .and_then(|val| val.as_str())
         .unwrap_or("Unknown");
-    let db_client = &mut **get_database_client(db_pool).await?;
     let object_type = match (activity_type.as_str(), maybe_object_type) {
         (ACCEPT, FOLLOW) => {
-            require_actor_signature(&activity.actor, signer_id)?;
+            require_actor_signature(&activity.actor, &signer_id)?;
             let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
             let object_id = get_object_id(activity.object)?;
             let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
@@ -452,7 +459,7 @@ pub async fn receive_activity(
             FOLLOW
         },
         (REJECT, FOLLOW) => {
-            require_actor_signature(&activity.actor, signer_id)?;
+            require_actor_signature(&activity.actor, &signer_id)?;
             let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
             let object_id = get_object_id(activity.object)?;
             let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
@@ -477,7 +484,7 @@ pub async fn receive_activity(
             NOTE
         },
         (ANNOUNCE, _) => {
-            require_actor_signature(&activity.actor, signer_id)?;
+            require_actor_signature(&activity.actor, &signer_id)?;
             let repost_object_id = activity.id;
             match get_post_by_object_id(db_client, &repost_object_id).await {
                 Ok(_) => return Ok(()), // Ignore if repost already exists
@@ -508,7 +515,7 @@ pub async fn receive_activity(
             NOTE
         },
         (DELETE, _) => {
-            require_actor_signature(&activity.actor, signer_id)?;
+            require_actor_signature(&activity.actor, &signer_id)?;
             let object_id = get_object_id(activity.object)?;
             if object_id == activity.actor {
                 log::info!("received deletion request for {}", object_id);
@@ -533,7 +540,7 @@ pub async fn receive_activity(
             NOTE
         },
         (LIKE, _) | (EMOJI_REACT, _) => {
-            require_actor_signature(&activity.actor, signer_id)?;
+            require_actor_signature(&activity.actor, &signer_id)?;
             let author = get_or_import_profile_by_actor_id(
                 db_client,
                 &config.instance(),
@@ -567,7 +574,7 @@ pub async fn receive_activity(
             NOTE
         },
         (FOLLOW, _) => {
-            require_actor_signature(&activity.actor, signer_id)?;
+            require_actor_signature(&activity.actor, &signer_id)?;
             let source_profile = get_or_import_profile_by_actor_id(
                 db_client,
                 &config.instance(),
@@ -598,7 +605,7 @@ pub async fn receive_activity(
             PERSON
         },
         (UNDO, FOLLOW) => {
-            require_actor_signature(&activity.actor, signer_id)?;
+            require_actor_signature(&activity.actor, &signer_id)?;
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
             let source_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
@@ -610,7 +617,7 @@ pub async fn receive_activity(
             FOLLOW
         },
         (UNDO, _) => {
-            require_actor_signature(&activity.actor, signer_id)?;
+            require_actor_signature(&activity.actor, &signer_id)?;
             let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
             let object_id = get_object_id(activity.object)?;
             match get_reaction_by_activity_id(db_client, &object_id).await {
@@ -649,7 +656,7 @@ pub async fn receive_activity(
             }
         },
         (UPDATE, PERSON) => {
-            require_actor_signature(&activity.actor, signer_id)?;
+            require_actor_signature(&activity.actor, &signer_id)?;
             let actor_value = activity.object.clone();
             let actor: Actor = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid actor data"))?;

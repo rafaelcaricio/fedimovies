@@ -87,8 +87,8 @@ pub async fn create_account(
         let signature = account_data.signature.as_ref()
             .ok_or(ValidationError("signature is required"))?;
         let wallet_address = verify_eip4361_signature(
-            &message,
-            &signature,
+            message,
+            signature,
             &config.instance().host(),
             &config.login_message,
         )?;

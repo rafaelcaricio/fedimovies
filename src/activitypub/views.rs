@@ -10,7 +10,6 @@ use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::frontend::{get_post_page_url, get_profile_page_url};
-use crate::http_signatures::verify::verify_http_signature;
 use crate::models::posts::queries::{get_posts_by_author, get_thread};
 use crate::models::users::queries::get_user_by_name;
 use super::activity::{create_note, create_activity_note};
@@ -113,18 +112,8 @@ async fn inbox(
     } else {
         log::info!("received in {}: {}", request.uri().path(), activity_type);
     };
-    let signature_verified = verify_http_signature(&config, &db_pool, &request).await;
-    let signer_id = match signature_verified {
-        Ok(signer_id) => {
-            log::debug!("activity signed by {}", signer_id);
-            signer_id
-        },
-        Err(err) => {
-            log::warn!("invalid signature: {}", err);
-            return Err(HttpError::AuthError("invalid signature"));
-        },
-    };
-    receive_activity(&config, &db_pool, &signer_id, &activity).await
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    receive_activity(&config, db_client, &request, &activity).await
         .map_err(|err| {
             log::warn!("failed to process activity ({}): {}", err, activity);
             err

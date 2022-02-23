@@ -14,8 +14,8 @@ pub fn get_note_visibility(
         let maybe_followers = author.actor_json.as_ref()
             .and_then(|actor| actor.followers.as_ref());
         if let Some(followers) = maybe_followers {
-            if primary_audience.contains(&followers) ||
-                    secondary_audience.contains(&followers) {
+            if primary_audience.contains(followers) ||
+                    secondary_audience.contains(followers) {
                 Visibility::Followers
             } else {
                 Visibility::Direct

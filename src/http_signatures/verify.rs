@@ -5,14 +5,15 @@ use actix_web::{
     http::{HeaderMap, Method, Uri},
 };
 use regex::Regex;
+use tokio_postgres::GenericClient;
 
 use crate::activitypub::fetcher::helpers::{
     get_or_import_profile_by_actor_id,
     ImportError,
 };
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
 use crate::errors::DatabaseError;
+use crate::models::profiles::types::DbActorProfile;
 use crate::utils::crypto::{deserialize_public_key, verify_signature};
 
 #[derive(thiserror::Error, Debug)]
@@ -42,7 +43,7 @@ pub enum VerificationError {
     InvalidSignature,
 }
 
-pub struct SignatureData {
+struct SignatureData {
     pub actor_id: String,
     pub message: String, // reconstructed message
     pub signature: String, // base64-encoded signature
@@ -115,16 +116,15 @@ fn parse_http_signature(
 /// Verifies HTTP signature and returns signer ID
 pub async fn verify_http_signature(
     config: &Config,
-    db_pool: &Pool,
+    db_client: &impl GenericClient,
     request: &HttpRequest,
-) -> Result<String, VerificationError> {
+) -> Result<DbActorProfile, VerificationError> {
     let signature_data = parse_http_signature(
         request.method(),
         request.uri(),
         request.headers(),
     )?;
 
-    let db_client = &**get_database_client(db_pool).await?;
     let actor_profile = match get_or_import_profile_by_actor_id(
         db_client,
         &config.instance(),
@@ -149,8 +149,7 @@ pub async fn verify_http_signature(
     if !is_valid_signature {
         return Err(VerificationError::InvalidSignature);
     };
-    let signer_id = actor_profile.actor_id(&config.instance_url());
-    Ok(signer_id)
+    Ok(actor_profile)
 }
 
 #[cfg(test)]
