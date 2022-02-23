@@ -32,12 +32,13 @@ async fn main() -> std::io::Result<()> {
     let config = parse_config();
     configure_logger(config.log_level);
     let db_pool = create_pool(&config.database_url);
-    let db_client = &mut **get_database_client(&db_pool).await.unwrap();
-    apply_migrations(db_client).await;
+    let mut db_client = get_database_client(&db_pool).await.unwrap();
+    apply_migrations(&mut **db_client).await;
+    std::mem::drop(db_client);
     if !config.media_dir().exists() {
         std::fs::create_dir(config.media_dir())
-            .expect("failed to created media directory");
-    }
+            .expect("failed to create media directory");
+    };
     log::info!(
         "app initialized; version {}, environment = '{:?}'",
         config.version,
