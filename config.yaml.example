@@ -1,4 +1,4 @@
-database_url: postgres://mitra:mitra@127.0.0.1:5432/mitra
+database_url: postgres://mitra:mitra@127.0.0.1:55432/mitra
 storage_dir: files
 
 http_host: '127.0.0.1'

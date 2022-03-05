@@ -3,7 +3,7 @@ use tokio_postgres::config::Config;
 use super::create_database_client;
 use super::migrate::apply_migrations;
 
-const DEFAULT_CONNECTION_URL: &str = "postgres://mitra:mitra@127.0.0.1:5432/mitra-test";
+const DEFAULT_CONNECTION_URL: &str = "postgres://mitra:mitra@127.0.0.1:55432/mitra-test";
 
 pub async fn create_test_database() -> Client {
     let connection_url = std::env::var("TEST_DATABASE_URL")

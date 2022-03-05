@@ -37,7 +37,7 @@ docker-compose up
 Test connection:
 
 ```
-psql -h localhost -p 5432 -U mitra mitra
+psql -h localhost -p 55432 -U mitra mitra
 ```
 
 ### Run web service
