@@ -202,9 +202,12 @@ pub struct RelationshipMap {
     pub subscription_to: bool,
     pub subscription_from: bool,
     pub showing_reblogs: bool,
+    pub showing_replies: bool,
 }
 
 fn default_showing_reblogs() -> bool { true }
+
+fn default_showing_replies() -> bool { true }
 
 impl Default for RelationshipMap {
     fn default() -> Self {
@@ -216,6 +219,7 @@ impl Default for RelationshipMap {
             subscription_to: false,
             subscription_from: false,
             showing_reblogs: default_showing_reblogs(),
+            showing_replies: default_showing_replies(),
         }
     }
 }
@@ -224,6 +228,8 @@ impl Default for RelationshipMap {
 pub struct FollowData {
     #[serde(default = "default_showing_reblogs")]
     pub reblogs: bool,
+    #[serde(default = "default_showing_replies")]
+    pub replies: bool,
 }
 
 fn default_page_size() -> i64 { 20 }

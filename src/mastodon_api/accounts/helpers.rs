@@ -40,6 +40,11 @@ pub async fn get_relationship(
                     relationship_map.showing_reblogs = false;
                 };
             },
+            RelationshipType::HideReplies => {
+                if relationship.is_direct(source_id, target_id)? {
+                    relationship_map.showing_replies = false;
+                };
+            },
         };
     };
     Ok(relationship_map)
@@ -93,6 +98,7 @@ mod tests {
         assert_eq!(relationship.subscription_to, false);
         assert_eq!(relationship.subscription_from, false);
         assert_eq!(relationship.showing_reblogs, true);
+        assert_eq!(relationship.showing_replies, true);
         // Follow request
         let follow_request = create_follow_request(db_client, &user_1.id, &user_2.id).await.unwrap();
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();

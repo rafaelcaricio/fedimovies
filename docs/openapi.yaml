@@ -259,6 +259,10 @@ paths:
                   description: Receive this actor's reposts in home timeline?
                   type: boolean
                   default: true
+                replies:
+                  description: Receive this actor's replies in home timeline?
+                  type: boolean
+                  default: true
       responses:
         200:
           description: Successfully followed, or actor was already followed
@@ -732,7 +736,11 @@ components:
           type: boolean
           default: false
         showing_reblogs:
-          description: Are you receiving this user's boosts in your home timeline?
+          description: Are you receiving this user's reposts in your home timeline?
+          type: boolean
+          default: true
+        showing_replies:
+          description: Are you receiving this user's replies in your home timeline?
           type: boolean
           default: true
     Signature:

@@ -284,6 +284,21 @@ pub async fn get_home_timeline(
                                 AND repost_of.author_id = $current_user_id
                         )
                     )
+                    AND (
+                        post.in_reply_to_id IS NULL
+                        OR NOT EXISTS (
+                            SELECT 1 FROM relationship
+                            WHERE
+                                source_id = $current_user_id
+                                AND target_id = post.author_id
+                                AND relationship_type = {relationship_hide_replies}
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM post AS in_reply_to
+                            WHERE in_reply_to.id = post.in_reply_to_id
+                                AND in_reply_to.author_id = $current_user_id
+                        )
+                    )
                 )
                 OR EXISTS (
                     SELECT 1 FROM mention
@@ -301,6 +316,7 @@ pub async fn get_home_timeline(
         relationship_follow=i16::from(&RelationshipType::Follow),
         relationship_subscription=i16::from(&RelationshipType::Subscription),
         relationship_hide_reposts=i16::from(&RelationshipType::HideReposts),
+        relationship_hide_replies=i16::from(&RelationshipType::HideReplies),
         visibility_filter=build_visibility_filter(),
     );
     let query = query!(

@@ -33,7 +33,9 @@ use crate::models::relationships::queries::{
     get_follow_request_by_path,
     get_followers,
     get_following,
+    hide_replies,
     hide_reposts,
+    show_replies,
     show_reposts,
     unfollow,
 };
@@ -283,6 +285,11 @@ async fn follow_account(
         show_reposts(db_client, &current_user.id, &target.id).await?;
     } else {
         hide_reposts(db_client, &current_user.id, &target.id).await?;
+    };
+    if data.replies {
+        show_replies(db_client, &current_user.id, &target.id).await?;
+    } else {
+        hide_replies(db_client, &current_user.id, &target.id).await?;
     };
     let relationship = get_relationship(
         db_client,
