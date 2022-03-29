@@ -6,7 +6,7 @@ Built on [ActivityPub](https://activitypub.rocks/) protocol, self-hosted, lightw
 
 Unique features enabled by blockchain integration:
 
-- Sign-in with Ethereum.
+- [Sign-in with Ethereum](https://eips.ethereum.org/EIPS/eip-4361).
 - Proving membership with a token.
 - Paid subscriptions.
 - Converting posts into NFTs.
