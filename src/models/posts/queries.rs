@@ -248,7 +248,6 @@ pub async fn get_home_timeline(
     // Select posts from follows, subscriptions,
     // posts where current user is mentioned
     // and user's own posts.
-    // Select reposts if they are not hidden.
     let statement = format!(
         "
         SELECT
@@ -270,7 +269,9 @@ pub async fn get_home_timeline(
                             AND relationship_type IN ({relationship_follow}, {relationship_subscription})
                     )
                     AND (
+                        -- show posts
                         post.repost_of_id IS NULL
+                        -- show reposts if they are not hidden
                         OR NOT EXISTS (
                             SELECT 1 FROM relationship
                             WHERE
@@ -278,6 +279,7 @@ pub async fn get_home_timeline(
                                 AND target_id = post.author_id
                                 AND relationship_type = {relationship_hide_reposts}
                         )
+                        -- show reposts of current user's posts
                         OR EXISTS (
                             SELECT 1 FROM post AS repost_of
                             WHERE repost_of.id = post.repost_of_id
@@ -285,7 +287,9 @@ pub async fn get_home_timeline(
                         )
                     )
                     AND (
+                        -- show posts (top-level)
                         post.in_reply_to_id IS NULL
+                        -- show replies if they are not hidden
                         OR NOT EXISTS (
                             SELECT 1 FROM relationship
                             WHERE
@@ -293,9 +297,11 @@ pub async fn get_home_timeline(
                                 AND target_id = post.author_id
                                 AND relationship_type = {relationship_hide_replies}
                         )
+                        -- show replies to current user's posts
                         OR EXISTS (
                             SELECT 1 FROM post AS in_reply_to
-                            WHERE in_reply_to.id = post.in_reply_to_id
+                            WHERE
+                                in_reply_to.id = post.in_reply_to_id
                                 AND in_reply_to.author_id = $current_user_id
                         )
                     )
