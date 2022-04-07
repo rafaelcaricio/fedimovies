@@ -316,7 +316,7 @@ async fn reblog(
         repost_of_id: Some(status_id),
         ..Default::default()
     };
-    let repost = create_post(db_client, &current_user.id, repost_data).await?;
+    let mut repost = create_post(db_client, &current_user.id, repost_data).await?;
     post.repost_count += 1;
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
@@ -332,7 +332,8 @@ async fn reblog(
     );
     deliver_activity(&config, &current_user, activity, recipients);
 
-    let status = Status::from_post(post, &config.instance_url());
+    repost.repost_of = Some(Box::new(post));
+    let status = Status::from_post(repost, &config.instance_url());
     Ok(HttpResponse::Ok().json(status))
 }
 
