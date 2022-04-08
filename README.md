@@ -21,7 +21,7 @@ Demo instance: https://mitra.social/ (invite-only)
 
 ## Requirements
 
-- Rust 1.51+
+- Rust 1.53+
 - PostgreSQL 10.2+
 - IPFS node (optional, see [guide](./docs/ipfs.md))
 - Ethereum node (optional)

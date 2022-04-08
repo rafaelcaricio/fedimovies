@@ -5,7 +5,7 @@ description = "Mitra backend"
 license = "AGPL-3.0"
 
 edition = "2018"
-rust-version = "1.51"
+rust-version = "1.53"
 publish = false
 default-run = "mitra"
 
@@ -65,7 +65,7 @@ serde_yaml = "0.8.17"
 # Used to calculate SHA2 hashes
 sha2 = "0.9.5"
 # Used to verify EIP-4361 signatures
-siwe = { git = "https://github.com/silverpill/siwe-rs", branch = "edition2018" }
+siwe = { git = "https://github.com/silverpill/siwe-rs", rev = "6589eb6fdcffbfb9ee2880906014f5cf71f0f441" }
 # Used for creating error types
 thiserror = "1.0.24"
 # Async runtime ( required for #[tokio::main] )

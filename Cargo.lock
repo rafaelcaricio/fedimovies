@@ -2995,7 +2995,7 @@ checksum = "cbce6d4507c7e4a3962091436e56e95290cb71fa302d0d270e32130b75fbff27"
 [[package]]
 name = "siwe"
 version = "0.2.0"
-source = "git+https://github.com/silverpill/siwe-rs?branch=edition2018#9328228930af06f96ed8e0fe548bf498e959302c"
+source = "git+https://github.com/silverpill/siwe-rs?rev=6589eb6fdcffbfb9ee2880906014f5cf71f0f441#6589eb6fdcffbfb9ee2880906014f5cf71f0f441"
 dependencies = [
  "chrono",
  "hex",
