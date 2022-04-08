@@ -1,7 +1,6 @@
 use actix_web::{
-    dev::HttpResponseBuilder,
     http::StatusCode,
-    HttpResponse,
+    HttpResponse, HttpResponseBuilder,
     error::ResponseError,
 };
 use serde::Serialize;

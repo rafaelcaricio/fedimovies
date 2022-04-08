@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use actix_web::{
     HttpRequest,
-    http::{HeaderMap, Method, Uri},
+    http::{Method, Uri, header::HeaderMap},
 };
 use regex::Regex;
 use tokio_postgres::GenericClient;
@@ -154,7 +154,11 @@ pub async fn verify_http_signature(
 
 #[cfg(test)]
 mod tests {
-    use actix_web::http::{header, HeaderMap, HeaderName, HeaderValue, Uri};
+    use actix_web::http::{
+        header,
+        header::{HeaderMap, HeaderName, HeaderValue},
+        Uri,
+    };
     use super::*;
 
     #[test]

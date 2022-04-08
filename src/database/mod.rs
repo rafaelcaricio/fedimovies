@@ -1,4 +1,6 @@
 use tokio_postgres::config::{Config as DbConfig};
+use tokio_postgres::error::{Error as PgError, SqlState};
+use crate::errors::DatabaseError;
 
 pub mod int_enum;
 pub mod migrate;
@@ -21,18 +23,14 @@ pub async fn create_database_client(db_config: &DbConfig) -> tokio_postgres::Cli
 }
 
 pub fn create_pool(database_url: &str) -> Pool {
-    deadpool_postgres::Pool::new(
-        deadpool_postgres::Manager::new(
-            database_url.parse().expect("invalid database URL"),
-            tokio_postgres::NoTls,
-        ),
-        // https://wiki.postgresql.org/wiki/Number_Of_Database_Connections
-        num_cpus::get() * 2,
-    )
+    let manager = deadpool_postgres::Manager::new(
+        database_url.parse().expect("invalid database URL"),
+        tokio_postgres::NoTls,
+    );
+    // https://wiki.postgresql.org/wiki/Number_Of_Database_Connections
+    let pool_size = num_cpus::get() * 2;
+    Pool::builder(manager).max_size(pool_size).build().unwrap()
 }
-
-use tokio_postgres::error::{Error as PgError, SqlState};
-use crate::errors::DatabaseError;
 
 pub async fn get_database_client(pool: &Pool)
     -> Result<deadpool_postgres::Client, DatabaseError>

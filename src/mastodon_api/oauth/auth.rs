@@ -1,9 +1,9 @@
 use actix_web::{
-    body::{Body, BodySize, MessageBody, ResponseBody},
+    body::{BodySize, BoxBody, MessageBody},
+    dev::ServiceResponse,
     http::StatusCode,
-    middleware::errhandlers::{ErrorHandlerResponse, ErrorHandlers},
+    middleware::{ErrorHandlerResponse, ErrorHandlers},
 };
-use actix_web::dev::ServiceResponse;
 use serde_json::json;
 use tokio_postgres::GenericClient;
 
@@ -27,22 +27,20 @@ pub async fn get_current_user(
 }
 
 /// Error handler for 401 Unauthorized
-pub fn create_auth_error_handler<B: MessageBody>() -> ErrorHandlers<B> {
+pub fn create_auth_error_handler<B: MessageBody + 'static>() -> ErrorHandlers<B> {
     ErrorHandlers::new()
-        .handler(StatusCode::UNAUTHORIZED, |mut response: ServiceResponse<B>| {
-            response = response.map_body(|_, body| {
-                if let ResponseBody::Body(data) = &body {
-                    if let BodySize::Empty = data.size() {
-                        // Insert error description if response body is empty
-                        // https://github.com/actix/actix-extras/issues/156
-                        let error_data = json!({
-                            "message": "auth header is not present",
-                        });
-                        return ResponseBody::Body(Body::from(error_data)).into_body();
-                    }
-                }
-                body
+        .handler(StatusCode::UNAUTHORIZED, |response: ServiceResponse<B>| {
+            let response_new = response.map_body(|_, body| {
+                if let BodySize::None | BodySize::Sized(0) = body.size() {
+                    // Insert error description if response body is empty
+                    // https://github.com/actix/actix-extras/issues/156
+                    let error_data = json!({
+                        "message": "auth header is not present",
+                    });
+                    return BoxBody::new(error_data.to_string());
+                };
+                body.boxed()
             });
-            Ok(ErrorHandlerResponse::Response(response))
+            Ok(ErrorHandlerResponse::Response(response_new.map_into_right_body()))
         })
 }

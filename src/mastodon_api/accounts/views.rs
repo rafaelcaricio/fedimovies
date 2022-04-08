@@ -112,8 +112,8 @@ pub async fn create_account(
     }
     // Generate RSA private key for actor
     let private_key = match web::block(generate_private_key).await {
-        Ok(private_key) => private_key,
-        Err(_) => return Err(HttpError::InternalError),
+        Ok(Ok(private_key)) => private_key,
+        _ => return Err(HttpError::InternalError),
     };
     let private_key_pem = serialize_private_key(private_key)
         .map_err(|_| HttpError::InternalError)?;

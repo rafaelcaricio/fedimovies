@@ -77,10 +77,10 @@ async fn main() -> std::io::Result<()> {
             .wrap(ActixLogger::new("%r : %s : %{r}a"))
             .wrap(cors_config)
             .wrap(create_auth_error_handler())
-            .data(web::PayloadConfig::default().limit(MAX_UPLOAD_SIZE))
-            .data(web::JsonConfig::default().limit(MAX_UPLOAD_SIZE))
-            .data(config.clone())
-            .data(db_pool.clone())
+            .app_data(web::PayloadConfig::default().limit(MAX_UPLOAD_SIZE))
+            .app_data(web::JsonConfig::default().limit(MAX_UPLOAD_SIZE))
+            .app_data(web::Data::new(config.clone()))
+            .app_data(web::Data::new(db_pool.clone()))
             .service(actix_files::Files::new(
                 "/media",
                 config.media_dir(),

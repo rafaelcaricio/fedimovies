@@ -44,10 +44,10 @@ async fn get_notifications_view(
     let response = if let Some(item) = notifications.get(max_index) {
         let pagination_header = get_pagination_header(&config.instance_url(), &item.id);
         HttpResponse::Ok()
-            .header("Link", pagination_header)
+            .append_header(("Link", pagination_header))
             // Link header needs to be exposed
             // https://github.com/actix/actix-extras/issues/192
-            .header("Access-Control-Expose-Headers", "Link")
+            .append_header(("Access-Control-Expose-Headers", "Link"))
             .json(notifications)
     } else {
         HttpResponse::Ok().json(notifications)

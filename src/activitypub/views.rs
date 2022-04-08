@@ -1,7 +1,7 @@
 use actix_web::{
     get, post, web,
     HttpRequest, HttpResponse, Scope,
-    http::HeaderMap,
+    http::header::HeaderMap,
 };
 use serde::Deserialize;
 use uuid::Uuid;
@@ -84,7 +84,7 @@ async fn actor_view(
     if !is_activitypub_request(request.headers()) {
         let page_url = get_profile_page_url(&config.instance_url(), &user.id);
         let response = HttpResponse::Found()
-            .header("Location", page_url)
+            .append_header(("Location", page_url))
             .finish();
         return Ok(response);
     };
@@ -293,7 +293,7 @@ pub async fn object_view(
     if !is_activitypub_request(request.headers()) {
         let page_url = get_post_page_url(&config.instance_url(), &post.id);
         let response = HttpResponse::Found()
-            .header("Location", page_url)
+            .append_header(("Location", page_url))
             .finish();
         return Ok(response);
     };
@@ -321,7 +321,10 @@ pub async fn object_view(
 
 #[cfg(test)]
 mod tests {
-    use actix_web::http::{header, HeaderMap, HeaderValue};
+    use actix_web::http::{
+        header,
+        header::{HeaderMap, HeaderValue},
+    };
     use super::*;
 
     #[test]
