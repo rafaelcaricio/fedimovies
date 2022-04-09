@@ -142,7 +142,7 @@ pub async fn create_account(
 async fn get_account(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(account_id): web::Path<Uuid>,
+    account_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
@@ -169,11 +169,11 @@ async fn update_credentials(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    data: web::Json<AccountUpdateData>,
+    account_data: web::Json<AccountUpdateData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
-    let mut profile_data = data.into_inner()
+    let mut profile_data = account_data.into_inner()
         .into_profile_data(
             &current_user.profile.avatar_file_name,
             &current_user.profile.banner_file_name,
@@ -253,8 +253,8 @@ async fn follow_account(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(account_id): web::Path<Uuid>,
-    data: web::Json<FollowData>,
+    account_id: web::Path<Uuid>,
+    follow_data: web::Json<FollowData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -281,12 +281,12 @@ async fn follow_account(
             Err(other_error) => return Err(other_error.into()),
         };
     };
-    if data.reblogs {
+    if follow_data.reblogs {
         show_reposts(db_client, &current_user.id, &target.id).await?;
     } else {
         hide_reposts(db_client, &current_user.id, &target.id).await?;
     };
-    if data.replies {
+    if follow_data.replies {
         show_replies(db_client, &current_user.id, &target.id).await?;
     } else {
         hide_replies(db_client, &current_user.id, &target.id).await?;
@@ -304,7 +304,7 @@ async fn unfollow_account(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(account_id): web::Path<Uuid>,
+    account_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -354,7 +354,7 @@ async fn get_account_statuses(
     auth: Option<BearerAuth>,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(account_id): web::Path<Uuid>,
+    account_id: web::Path<Uuid>,
     query_params: web::Query<StatusListQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -395,7 +395,7 @@ async fn get_account_followers(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(account_id): web::Path<Uuid>,
+    account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -423,7 +423,7 @@ async fn get_account_following(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(account_id): web::Path<Uuid>,
+    account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;

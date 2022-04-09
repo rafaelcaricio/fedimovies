@@ -56,12 +56,12 @@ async fn create_status(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    data: web::Json<StatusData>,
+    status_data: web::Json<StatusData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let instance = config.instance();
-    let mut post_data = PostCreateData::try_from(data.into_inner())?;
+    let mut post_data = PostCreateData::try_from(status_data.into_inner())?;
     post_data.clean(config.post_character_limit)?;
     // Mentions
     let mention_map = find_mentioned_profiles(
@@ -134,7 +134,7 @@ async fn get_status(
     auth: Option<BearerAuth>,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
+    status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let maybe_current_user = match auth {
@@ -158,7 +158,7 @@ async fn delete_status(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
+    status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -187,7 +187,7 @@ async fn get_context(
     auth: Option<BearerAuth>,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
+    status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let maybe_current_user = match auth {
@@ -219,7 +219,7 @@ async fn favourite(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
+    status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -264,7 +264,7 @@ async fn unfavourite(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
+    status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -304,7 +304,7 @@ async fn reblog(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
+    status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -313,7 +313,7 @@ async fn reblog(
         return Err(HttpError::NotFoundError("post"));
     };
     let repost_data = PostCreateData {
-        repost_of_id: Some(status_id),
+        repost_of_id: Some(status_id.into_inner()),
         ..Default::default()
     };
     let mut repost = create_post(db_client, &current_user.id, repost_data).await?;
@@ -342,11 +342,15 @@ async fn unreblog(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
+    status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let reposts = find_reposts_by_user(db_client, &current_user.id, &[status_id]).await?;
+    let reposts = find_reposts_by_user(
+        db_client,
+        &current_user.id,
+        &[*status_id],
+    ).await?;
     let repost_id = reposts.first().ok_or(HttpError::NotFoundError("post"))?;
     // Ignore returned data because reposts don't have attached files
     delete_post(db_client, repost_id).await?;
@@ -374,7 +378,7 @@ async fn make_permanent(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
+    status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -430,7 +434,7 @@ async fn get_signature(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
+    status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -460,8 +464,8 @@ async fn token_minted(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(status_id): web::Path<Uuid>,
-    data: web::Json<TransactionData>,
+    status_id: web::Path<Uuid>,
+    transaction_data: web::Json<TransactionData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -472,7 +476,7 @@ async fn token_minted(
     if post.author.id != current_user.id || !post.is_public() {
         return Err(HttpError::PermissionError);
     };
-    post.token_tx_id = Some(data.into_inner().transaction_id);
+    post.token_tx_id = Some(transaction_data.into_inner().transaction_id);
     update_post(db_client, &post).await?;
     get_reposted_posts(db_client, vec![&mut post]).await?;
     get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;

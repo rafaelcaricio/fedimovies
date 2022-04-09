@@ -32,7 +32,7 @@ async fn get_marker_view(
 async fn update_marker_view(
     auth: BearerAuth,
     db_pool: web::Data<Pool>,
-    data: web::Json<MarkerCreateData>,
+    marker_data: web::Json<MarkerCreateData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -40,7 +40,7 @@ async fn update_marker_view(
         db_client,
         &current_user.id,
         Timeline::Notifications,
-        data.into_inner().notifications,
+        marker_data.into_inner().notifications,
     ).await?;
     let markers = Markers { notifications: Some(db_marker.into()) };
     Ok(HttpResponse::Ok().json(markers))

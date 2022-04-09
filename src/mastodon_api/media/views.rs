@@ -14,12 +14,12 @@ async fn create_attachment_view(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    data: web::Json<AttachmentCreateData>,
+    attachment_data: web::Json<AttachmentCreateData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let (file_name, media_type) = save_b64_file(
-        &data.file,
+        &attachment_data.file,
         &config.media_dir(),
     ).map_err(|err| match err {
         FileError::Base64DecodingError(err) => HttpError::ValidationError(err.to_string()),

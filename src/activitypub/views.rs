@@ -77,7 +77,7 @@ async fn actor_view(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     request: HttpRequest,
-    web::Path(username): web::Path<String>,
+    username: web::Path<String>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
@@ -130,7 +130,7 @@ struct CollectionQueryParams {
 async fn outbox(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(username): web::Path<String>,
+    username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let instance = config.instance();
@@ -185,7 +185,7 @@ async fn outbox(
 #[get("/followers")]
 async fn followers_collection(
     config: web::Data<Config>,
-    web::Path(username): web::Path<String>,
+    username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     if query_params.page.is_some() {
@@ -203,7 +203,7 @@ async fn followers_collection(
 #[get("/following")]
 async fn following_collection(
     config: web::Data<Config>,
-    web::Path(username): web::Path<String>,
+    username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     if query_params.page.is_some() {
@@ -221,7 +221,7 @@ async fn following_collection(
 #[get("/subscribers")]
 async fn subscribers_collection(
     config: web::Data<Config>,
-    web::Path(username): web::Path<String>,
+    username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     if query_params.page.is_some() {
@@ -280,10 +280,11 @@ pub async fn object_view(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     request: HttpRequest,
-    web::Path(internal_object_id): web::Path<Uuid>,
+    internal_object_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     // Try to find local post by ID, return 404 if not found
+    let internal_object_id = internal_object_id.into_inner();
     let thread = get_thread(db_client, &internal_object_id, None).await?;
     let mut post = thread.iter()
         .find(|post| post.id == internal_object_id && post.author.is_local())

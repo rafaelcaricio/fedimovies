@@ -47,7 +47,7 @@ async fn hashtag_timeline(
     auth: Option<BearerAuth>,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    web::Path(hashtag): web::Path<String>,
+    hashtag: web::Path<String>,
     query_params: web::Query<TimelineQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
