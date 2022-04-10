@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use clap::Clap;
+use clap::Parser;
 use uuid::Uuid;
 
 use mitra::config;
@@ -17,13 +17,13 @@ use mitra::models::users::queries::{
 use mitra::utils::crypto::{generate_private_key, serialize_private_key};
 
 /// Admin CLI tool
-#[derive(Clap)]
+#[derive(Parser)]
 struct Opts {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum SubCommand {
     GenerateRsaKey(GenerateRsaKey),
     GenerateEthereumAddress(GenerateEthereumAddress),
@@ -36,7 +36,7 @@ enum SubCommand {
 }
 
 /// Generate RSA private key
-#[derive(Clap)]
+#[derive(Parser)]
 struct GenerateRsaKey;
 
 impl GenerateRsaKey {
@@ -48,33 +48,33 @@ impl GenerateRsaKey {
 }
 
 /// Generate ethereum address
-#[derive(Clap)]
+#[derive(Parser)]
 struct GenerateEthereumAddress;
 
 /// Generate invite code
-#[derive(Clap)]
+#[derive(Parser)]
 struct GenerateInviteCode;
 
 /// List invite codes
-#[derive(Clap)]
+#[derive(Parser)]
 struct ListInviteCodes;
 
 /// Delete profile
-#[derive(Clap)]
+#[derive(Parser)]
 struct DeleteProfile {
     #[clap(short)]
     id: Uuid,
 }
 
 /// Delete post
-#[derive(Clap)]
+#[derive(Parser)]
 struct DeletePost {
     #[clap(short)]
     id: Uuid,
 }
 
 /// Delete old remote posts
-#[derive(Clap)]
+#[derive(Parser)]
 struct DeleteExtraneousPosts {
     #[clap(short)]
     days: i64,
