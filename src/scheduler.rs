@@ -11,8 +11,8 @@ use crate::ethereum::nft::process_nft_events;
 use crate::ethereum::subscriptions::check_subscriptions;
 
 pub fn run(config: Config, db_pool: Pool) -> () {
-    actix_rt::spawn(async move {
-        let mut interval = actix_rt::time::interval(Duration::from_secs(30));
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(30));
         let maybe_contract_set = if let Some(blockchain_config) = &config.blockchain {
             // Create blockchain interface
             get_contracts(blockchain_config).await
