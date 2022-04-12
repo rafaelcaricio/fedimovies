@@ -59,13 +59,6 @@ pub fn clean_extra_fields(extra_fields: &[ExtraField])
     if cleaned_extra_fields.len() >= 10 {
         return Err(ValidationError("at most 10 fields are allowed"));
     };
-    let mut unique_labels: Vec<String> = cleaned_extra_fields.iter()
-        .map(|field| field.name.clone()).collect();
-    unique_labels.sort();
-    unique_labels.dedup();
-    if unique_labels.len() < cleaned_extra_fields.len() {
-        return Err(ValidationError("duplicate labels"));
-    };
     Ok(cleaned_extra_fields)
 }
 

@@ -392,6 +392,7 @@ pub async fn search_profile_by_wallet_address(
     Ok(profiles)
 }
 
+/// Get wallet address corresponding to local profile
 pub async fn get_wallet_address(
     db_client: &impl GenericClient,
     profile_id: &Uuid,
@@ -472,6 +473,10 @@ pub async fn update_post_count(
 mod tests {
     use serial_test::serial;
     use crate::database::test_utils::create_test_database;
+    use crate::models::profiles::queries::create_profile;
+    use crate::models::profiles::types::{ExtraField, ProfileCreateData};
+    use crate::models::users::queries::create_user;
+    use crate::models::users::types::UserCreateData;
     use super::*;
 
     #[tokio::test]
@@ -495,5 +500,43 @@ mod tests {
         let deletion_queue = delete_profile(&mut db_client, &profile.id).await.unwrap();
         assert_eq!(deletion_queue.files.len(), 0);
         assert_eq!(deletion_queue.ipfs_objects.len(), 0);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_search_profile_by_wallet_address_local() {
+        let db_client = &mut create_test_database().await;
+        let wallet_address = "0x1234abcd";
+        let user_data = UserCreateData {
+            wallet_address: Some(wallet_address.to_string()),
+            ..Default::default()
+        };
+        let user = create_user(db_client, user_data).await.unwrap();
+        let profiles = search_profile_by_wallet_address(
+            db_client, "ETH", wallet_address).await.unwrap();
+
+        assert_eq!(profiles.len(), 1);
+        assert_eq!(profiles[0].id, user.profile.id);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_search_profile_by_wallet_address_remote() {
+        let db_client = &mut create_test_database().await;
+        let extra_field = ExtraField {
+            name: "$eth".to_string(),
+            value: "0x1234aBcD".to_string(),
+            value_source: None,
+        };
+        let profile_data = ProfileCreateData {
+            extra_fields: vec![extra_field],
+            ..Default::default()
+        };
+        let profile = create_profile(db_client, profile_data).await.unwrap();
+        let profiles = search_profile_by_wallet_address(
+            db_client, "ETH", "0x1234abcd").await.unwrap();
+
+        assert_eq!(profiles.len(), 1);
+        assert_eq!(profiles[0].id, profile.id);
     }
 }
