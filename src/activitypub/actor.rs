@@ -103,6 +103,10 @@ impl Actor {
         if let Some(properties) = &self.attachment {
             for property in properties {
                 if property.object_type != PROPERTY_VALUE {
+                    log::warn!(
+                        "ignoring actor property of type {}",
+                        property.object_type,
+                    );
                     continue;
                 };
                 if let Some(property_value) = &property.value {
