@@ -6,18 +6,19 @@ Built on [ActivityPub](https://activitypub.rocks/) protocol, self-hosted, lightw
 
 Unique features enabled by blockchain integration:
 
-- [Sign-in with Ethereum](https://eips.ethereum.org/EIPS/eip-4361).
-- Proving membership with a token.
+- [Sign-in with Ethereum wallet](https://eips.ethereum.org/EIPS/eip-4361).
+- Donations.
 - Paid subscriptions.
+- Proving membership with a token.
 - Converting posts into NFTs.
 
 Smart contracts repo: https://codeberg.org/silverpill/mitra-contracts
 
 Frontend repo: https://codeberg.org/silverpill/mitra-web
 
-Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
-
 Demo instance: https://mitra.social/ (invite-only)
+
+Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 
 ## Requirements
 
@@ -86,25 +87,7 @@ cargo build --release
 
 ## Federation
 
-The following activities are supported:
-
-- Accept(Follow)
-- Reject(Follow)
-- Undo(Follow)
-- Create(Note)
-- Delete(Note)
-- Like(Note)
-- Undo(Like)
-- Announce(Note)
-- Undo(Announce)
-- Follow(Person)
-- Update(Person)
-
-And these additional standards:
-
-- [Http Signatures](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures)
-- [NodeInfo](https://nodeinfo.diaspora.software/)
-- [WebFinger](https://webfinger.net/)
+See [FEDERATION.md](./FEDERATION.md)
 
 ## Client API
 
@@ -146,6 +129,12 @@ Delete post:
 mitractl delete-post -i 55a3005f-f293-4168-ab70-6ab09a879679
 ```
 
+Remove remote posts and media older than 30 days:
+
+```
+mitractl delete-extraneous-posts -d 30
+```
+
 Generate ethereum address:
 
 ```
@@ -155,3 +144,7 @@ mitractl generate-ethereum-address
 ## License
 
 [AGPL-3.0](./LICENSE)
+
+## Support
+
+Monero: 8Ahza5RM4JQgtdqvpcF1U628NN5Q87eryXQad3Fy581YWTZU8o3EMbtScuioQZSkyNNEEE1Lkj2cSbG4VnVYCW5L1N4os5p
