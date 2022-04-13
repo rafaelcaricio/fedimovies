@@ -18,7 +18,7 @@ actix-web-httpauth = "0.6.0"
 # Used for managing async tasks
 actix-rt = "2.7.0"
 # Used for HTML sanitization
-ammonia = "3.1.2"
+ammonia = "3.2.0"
 # Used for working with RSA keys, HTTP signatures and file uploads
 base64 = "0.13.0"
 # Used for working with dates

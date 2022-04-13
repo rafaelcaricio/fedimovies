@@ -50,7 +50,10 @@ impl NodeInfo20 {
             name: "mitra".to_string(),
             version: config.version.clone(),
         };
-        let services = Services { inbound: vec![], outbound: vec![] };
+        let services = Services {
+            inbound: vec![],
+            outbound: vec!["atom1.0".to_string()],
+        };
         let metadata = Metadata {
             node_name: config.instance_title.clone(),
             node_description: config.instance_short_description.clone(),

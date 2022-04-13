@@ -1,4 +1,5 @@
 pub mod activitypub;
+pub mod atom;
 pub mod config;
 pub mod database;
 mod errors;

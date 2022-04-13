@@ -26,6 +26,13 @@ pub fn clean_html_strict(unsafe_html: &str) -> String {
     safe_html
 }
 
+pub fn clean_html_all(html: &str) -> String {
+    let text = Builder::empty()
+        .clean(html)
+        .to_string();
+    text
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -42,5 +49,12 @@ mod tests {
         let unsafe_html = r#"<p>test <b>bold</b><script>dangerous</script> with <a href="https://example.com">link</a> and <code>code</code></p>"#;
         let safe_html = clean_html_strict(unsafe_html);
         assert_eq!(safe_html, r#"test bold with <a href="https://example.com" rel="noopener noreferrer">link</a> and <code>code</code>"#);
+    }
+
+    #[test]
+    fn test_clean_html_all() {
+        let html = r#"<p>test <b>bold</b><script>dangerous</script> with <a href="https://example.com">link</a> and <code>code</code></p>"#;
+        let text = clean_html_all(html);
+        assert_eq!(text, "test bold with link and code");
     }
 }
