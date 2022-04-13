@@ -3,7 +3,7 @@ use tokio_postgres::GenericClient;
 use url::Url;
 
 use crate::activitypub::actor::ActorAddress;
-use crate::activitypub::receiver::process_note;
+use crate::activitypub::receiver::import_post;
 use crate::activitypub::fetcher::helpers::import_profile_by_actor_address;
 use crate::config::Config;
 use crate::errors::{ValidationError, HttpError};
@@ -99,12 +99,12 @@ async fn search_profiles(
 }
 
 /// Finds public post by its object ID
-async fn search_note(
+async fn search_post(
     config: &Config,
     db_client: &mut impl GenericClient,
     url: String,
 ) -> Result<Option<Post>, HttpError> {
-    let maybe_post = match process_note(
+    let maybe_post = match import_post(
         config, db_client,
         url,
         None,
@@ -131,7 +131,7 @@ pub async fn search(
             profiles = search_profiles(config, db_client, username, instance).await?;
         },
         SearchQuery::Url(url) => {
-            let maybe_post = search_note(config, db_client, url).await?;
+            let maybe_post = search_post(config, db_client, url).await?;
             if let Some(post) = maybe_post {
                 if can_view_post(db_client, Some(current_user), &post).await? {
                     posts = vec![post];

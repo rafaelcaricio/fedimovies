@@ -144,12 +144,12 @@ fn clean_note_content(content: &str) -> Result<String, ValidationError> {
     Ok(content_safe)
 }
 
-pub async fn process_note(
+pub async fn import_post(
     config: &Config,
     db_client: &mut impl GenericClient,
     object_id: String,
     object_received: Option<Object>,
-) -> Result<Post, HttpError> {
+) -> Result<Post, ImportError> {
     let instance = config.instance();
     let mut maybe_object_id_to_fetch = Some(object_id);
     let mut maybe_object = object_received;
@@ -487,7 +487,7 @@ pub async fn receive_activity(
                 // Fetch forwarded note, don't trust the sender
                 None
             };
-            process_note(config, db_client, object_id, object_received).await?;
+            import_post(config, db_client, object_id, object_received).await?;
             NOTE
         },
         (ANNOUNCE, _) => {
@@ -509,7 +509,7 @@ pub async fn receive_activity(
                 Ok(post_id) => post_id,
                 Err(_) => {
                     // Try to get remote post
-                    let post = process_note(config, db_client, object_id, None).await?;
+                    let post = import_post(config, db_client, object_id, None).await?;
                     post.id
                 },
             };
