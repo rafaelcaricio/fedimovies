@@ -218,6 +218,10 @@ pub async fn process_note(
     // starting with the root
     objects.reverse();
     for object in objects {
+        if object.object_type != NOTE {
+            // Could be Page (in Lemmy) or some other type
+            log::warn!("processing object of type {}", object.object_type);
+        };
         let attributed_to = object.attributed_to
             .ok_or(ValidationError("unattributed note"))?;
         let author_id = parse_array(&attributed_to)
