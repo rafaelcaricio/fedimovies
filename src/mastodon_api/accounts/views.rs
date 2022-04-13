@@ -368,11 +368,13 @@ async fn get_account_statuses(
         return Ok(HttpResponse::Ok().json(statuses));
     };
     let profile = get_profile_by_id(db_client, &account_id).await?;
+    // Include reposts but not replies
     let mut posts = get_posts_by_author(
         db_client,
         &profile.id,
         maybe_current_user.as_ref().map(|user| &user.id),
         false,
+        true,
         query_params.max_id,
         query_params.limit,
     ).await?;

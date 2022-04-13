@@ -378,6 +378,7 @@ pub async fn get_posts_by_author(
     profile_id: &Uuid,
     current_user_id: Option<&Uuid>,
     include_replies: bool,
+    include_reposts: bool,
     max_post_id: Option<Uuid>,
     limit: i64,
 ) -> Result<Vec<Post>, DatabaseError> {
@@ -389,6 +390,9 @@ pub async fn get_posts_by_author(
     );
     if !include_replies {
         condition.push_str(" AND post.in_reply_to_id IS NULL");
+    };
+    if !include_reposts {
+        condition.push_str(" AND post.repost_of_id IS NULL");
     };
     let statement = format!(
         "
@@ -1135,15 +1139,30 @@ mod tests {
             ..Default::default()
         };
         let post_4 = create_post(db_client, &user.id, post_data_4).await.unwrap();
+        // Reply
+        let reply_data = PostCreateData {
+            content: "my reply".to_string(),
+            in_reply_to_id: Some(post_1.id.clone()),
+            ..Default::default()
+        };
+        let reply = create_post(db_client, &user.id, reply_data).await.unwrap();
+        // Repost
+        let repost_data = PostCreateData {
+            repost_of_id: Some(reply.id.clone()),
+            ..Default::default()
+        };
+        let repost = create_post(db_client, &user.id, repost_data).await.unwrap();
 
         // Anonymous viewer
         let timeline = get_posts_by_author(
-            db_client, &user.id, None, false, None, 10
+            db_client, &user.id, None, false, true, None, 10
         ).await.unwrap();
-        assert_eq!(timeline.len(), 1);
+        assert_eq!(timeline.len(), 2);
         assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_2.id), false);
         assert_eq!(timeline.iter().any(|post| post.id == post_3.id), false);
         assert_eq!(timeline.iter().any(|post| post.id == post_4.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == reply.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == repost.id), true);
     }
 }

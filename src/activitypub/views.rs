@@ -148,29 +148,28 @@ async fn outbox(
     };
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
-    // Post are ordered by creation date
+    // Posts are ordered by creation date
+    // TODO: include reposts
     let posts = get_posts_by_author(
         db_client,
         &user.id,
         None, // include only public posts
-        false,
+        false, // exclude replies
+        false, // exclude reposts
         None, COLLECTION_PAGE_SIZE,
     ).await?;
-    // TODO: include reposts
     let activities: Vec<_> = posts.iter().filter_map(|post| {
-        match post.repost_of_id {
-            Some(_) => None,
-            None => {
-                // Replies are not included so post.in_reply_to
-                // does not need to be populated
-                let activity = create_activity_note(
-                    &instance.host(),
-                    &instance.url(),
-                    post,
-                );
-                Some(activity)
-            },
-        }
+        if post.in_reply_to_id.is_some() || post.repost_of_id.is_some() {
+            return None;
+        };
+        // Replies are not included so post.in_reply_to
+        // does not need to be populated
+        let activity = create_activity_note(
+            &instance.host(),
+            &instance.url(),
+            post,
+        );
+        Some(activity)
     }).collect();
     let collection_page = OrderedCollectionPage::new(
         first_page_id,
