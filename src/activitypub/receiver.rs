@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use actix_web::HttpRequest;
 use regex::Regex;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
@@ -39,7 +40,12 @@ use crate::models::relationships::queries::{
 };
 use crate::models::users::queries::get_user_by_name;
 use crate::utils::html::clean_html;
-use super::activity::{Object, Activity, create_activity_accept_follow};
+use super::activity::{
+    Activity,
+    Attachment,
+    Object,
+    create_activity_accept_follow,
+};
 use super::actor::Actor;
 use super::deliverer::deliver_activity;
 use super::fetcher::fetchers::{
@@ -61,7 +67,7 @@ fn parse_actor_id(
 ) -> Result<String, ValidationError> {
     let url_regexp_str = format!(
         "^{}/users/(?P<username>[0-9a-z_]+)$",
-        instance_url.replace(".", r"\."),
+        instance_url.replace('.', r"\."),
     );
     let url_regexp = Regex::new(&url_regexp_str)
         .map_err(|_| ValidationError("error"))?;
@@ -80,7 +86,7 @@ fn parse_object_id(
 ) -> Result<Uuid, ValidationError> {
     let url_regexp_str = format!(
         "^{}/objects/(?P<uuid>[0-9a-f-]+)$",
-        instance_url.replace(".", r"\."),
+        instance_url.replace('.', r"\."),
     );
     let url_regexp = Regex::new(&url_regexp_str)
         .map_err(|_| ValidationError("error"))?;
@@ -93,6 +99,7 @@ fn parse_object_id(
     Ok(internal_object_id)
 }
 
+/// Transforms arbitrary property value into array of strings
 fn parse_array(value: &Value) -> Result<Vec<String>, ConversionError> {
     let result = match value {
         Value::String(string) => vec![string.to_string()],
@@ -119,6 +126,23 @@ fn parse_array(value: &Value) -> Result<Vec<String>, ConversionError> {
         _ => return Err(ConversionError),
     };
     Ok(result)
+}
+
+/// Transforms arbitrary property value into array of structs
+fn parse_property_value<T: DeserializeOwned>(value: &Value) -> Result<Vec<T>, ConversionError> {
+    let objects = match value {
+        Value::Array(array) => array.to_vec(),
+        Value::Object(_) => vec![value.clone()],
+        // Unexpected value type
+        _ => return Err(ConversionError),
+    };
+    let mut items = vec![];
+    for object in objects {
+        let item: T = serde_json::from_value(object)
+            .map_err(|_| ConversionError)?;
+        items.push(item);
+    };
+    Ok(items)
 }
 
 /// Parses object json value and returns its ID as string
@@ -239,7 +263,9 @@ pub async fn import_post(
             .ok_or(ValidationError("no content"))?;
         let content_cleaned = clean_note_content(&content)?;
         let mut attachments: Vec<Uuid> = Vec::new();
-        if let Some(list) = object.attachment {
+        if let Some(value) = object.attachment {
+            let list: Vec<Attachment> = parse_property_value(&value)
+                .map_err(|_| ValidationError("invalid attachment property"))?;
             let mut downloaded = vec![];
             let output_dir = config.media_dir();
             for attachment in list {
@@ -261,7 +287,7 @@ pub async fn import_post(
                     file_name,
                     attachment.media_type.or(media_type),
                 ));
-            }
+            };
             for (file_name, media_type) in downloaded {
                 let db_attachment = create_attachment(
                     db_client,
@@ -270,8 +296,8 @@ pub async fn import_post(
                     media_type,
                 ).await?;
                 attachments.push(db_attachment.id);
-            }
-        }
+            };
+        };
         let mut mentions: Vec<Uuid> = Vec::new();
         let mut tags = vec![];
         if let Some(list) = object.tag {
@@ -336,7 +362,7 @@ pub async fn import_post(
                                         continue;
                                     },
                                     Err(other_error) => {
-                                        return Err(other_error.into());
+                                        return Err(other_error);
                                     },
                                 }
                             },

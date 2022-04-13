@@ -59,7 +59,7 @@ pub struct Object {
     pub actor: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub attachment: Option<Vec<Attachment>>,
+    pub attachment: Option<Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cc: Option<Value>,
