@@ -32,6 +32,7 @@ pub async fn create_post(
     let transaction = db_client.transaction().await?;
     let post_id = new_uuid();
     let created_at = data.created_at.unwrap_or(Utc::now());
+    // Replying to reposts is not allowed
     // Reposting of other reposts or non-public posts is not allowed
     let insert_statement = format!(
         "
@@ -44,7 +45,12 @@ pub async fn create_post(
             created_at
         )
         SELECT $1, $2, $3, $4, $5, $6, $7, $8
-        WHERE NOT EXISTS (
+        WHERE
+        NOT EXISTS (
+            SELECT 1 FROM post
+            WHERE post.id = $4 AND post.repost_of_id IS NOT NULL
+        )
+        AND NOT EXISTS (
             SELECT 1 FROM post
             WHERE post.id = $5 AND (
                 post.repost_of_id IS NOT NULL
@@ -505,7 +511,9 @@ pub async fn get_thread(
         WITH RECURSIVE
         ancestors (id, in_reply_to_id) AS (
             SELECT post.id, post.in_reply_to_id FROM post
-            WHERE post.id = $post_id AND {visibility_filter}
+            WHERE post.id = $post_id
+                AND post.repost_of_id IS NULL
+                AND {visibility_filter}
             UNION ALL
             SELECT post.id, post.in_reply_to_id FROM post
             JOIN ancestors ON post.id = ancestors.in_reply_to_id
@@ -610,6 +618,7 @@ pub async fn update_post(
     db_client: &impl GenericClient,
     post: &Post,
 ) -> Result<(), DatabaseError> {
+    // Reposts can't be updated
     let updated_count = db_client.execute(
         "
         UPDATE post
@@ -618,7 +627,7 @@ pub async fn update_post(
             ipfs_cid = $2,
             token_id = $3,
             token_tx_id = $4
-        WHERE id = $5
+        WHERE id = $5 AND repost_of_id IS NULL
         ",
         &[
             &post.content,
@@ -643,7 +652,7 @@ pub async fn update_reply_count(
         "
         UPDATE post
         SET reply_count = reply_count + $1
-        WHERE id = $2
+        WHERE id = $2 AND repost_of_id IS NULL
         ",
         &[&change, &post_id],
     ).await?;
@@ -662,7 +671,7 @@ pub async fn update_reaction_count(
         "
         UPDATE post
         SET reaction_count = reaction_count + $1
-        WHERE id = $2
+        WHERE id = $2 AND repost_of_id IS NULL
         ",
         &[&change, &post_id],
     ).await?;
@@ -681,7 +690,7 @@ pub async fn update_repost_count(
         "
         UPDATE post
         SET repost_count = repost_count + $1
-        WHERE id = $2
+        WHERE id = $2 AND repost_of_id IS NULL
         ",
         &[&change, &post_id],
     ).await?;

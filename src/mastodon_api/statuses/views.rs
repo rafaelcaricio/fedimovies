@@ -95,6 +95,9 @@ async fn create_status(
             },
             Err(other_error) => return Err(other_error.into()),
         };
+        if in_reply_to.repost_of_id.is_some() {
+            return Err(ValidationError("can't reply to repost").into());
+        };
         if in_reply_to.visibility != Visibility::Public &&
                 post_data.visibility != Visibility::Direct {
             return Err(ValidationError("reply must have direct visibility").into());
@@ -224,7 +227,7 @@ async fn favourite(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    if !post.is_public() {
+    if !post.is_public() || post.repost_of_id.is_some() {
         return Err(HttpError::NotFoundError("post"));
     };
     let maybe_reaction_created = match create_reaction(
@@ -309,7 +312,7 @@ async fn reblog(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    if !post.is_public() {
+    if !post.is_public() || post.repost_of_id.is_some() {
         return Err(HttpError::NotFoundError("post"));
     };
     let repost_data = PostCreateData {
@@ -386,7 +389,7 @@ async fn make_permanent(
     if post.ipfs_cid.is_some() {
         return Err(HttpError::OperationError("post already saved to IPFS"));
     };
-    if post.author.id != current_user.id || !post.is_public() {
+    if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {
         // Users can only archive their own public posts
         return Err(HttpError::PermissionError);
     };
@@ -443,7 +446,7 @@ async fn get_signature(
     let wallet_address = current_user.wallet_address
         .ok_or(HttpError::PermissionError)?;
     let post = get_post_by_id(db_client, &status_id).await?;
-    if post.author.id != current_user.id || !post.is_public() {
+    if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {
         // Users can only tokenize their own public posts
         return Err(HttpError::PermissionError);
     };
@@ -473,7 +476,7 @@ async fn token_minted(
     if post.token_tx_id.is_some() {
         return Err(HttpError::OperationError("transaction is already registered"));
     };
-    if post.author.id != current_user.id || !post.is_public() {
+    if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {
         return Err(HttpError::PermissionError);
     };
     post.token_tx_id = Some(transaction_data.into_inner().transaction_id);

@@ -283,7 +283,8 @@ pub async fn object_view(
     internal_object_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    // Try to find local post by ID, return 404 if not found
+    // Try to find local post by ID,
+    // return 404 if not found or if repost is found
     let internal_object_id = internal_object_id.into_inner();
     let thread = get_thread(db_client, &internal_object_id, None).await?;
     let mut post = thread.iter()

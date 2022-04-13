@@ -19,14 +19,20 @@ pub async fn create_reaction(
 ) -> Result<DbReaction, DatabaseError> {
     let transaction = db_client.transaction().await?;
     let reaction_id = new_uuid();
-    let row = transaction.query_one(
+    // Reactions to reposts are not allowed
+    let maybe_row = transaction.query_opt(
         "
         INSERT INTO post_reaction (id, author_id, post_id, activity_id)
-        VALUES ($1, $2, $3, $4)
+        SELECT $1, $2, $3, $4
+        WHERE NOT EXISTS (
+            SELECT 1 FROM post
+            WHERE post.id = $3 AND post.repost_of_id IS NOT NULL
+        )
         RETURNING post_reaction
         ",
         &[&reaction_id, &author_id, &post_id, &activity_id],
     ).await.map_err(catch_unique_violation("reaction"))?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
     let reaction: DbReaction = row.try_get("post_reaction")?;
     update_reaction_count(&transaction, post_id, 1).await?;
     let post_author = get_post_author(&transaction, post_id).await?;
