@@ -140,7 +140,7 @@ fn create_activity(
     instance_url: &str,
     actor_name: &str,
     activity_type: &str,
-    internal_activity_id: Option<&Uuid>,
+    activity_id: String,
     object: impl Serialize,
     primary_audience: Vec<String>,
     secondary_audience: Vec<String>,
@@ -149,13 +149,6 @@ fn create_activity(
         instance_url,
         actor_name,
     );
-    let mut activity_id = get_object_url(
-        instance_url,
-        internal_activity_id.unwrap_or(&new_uuid()),
-    );
-    if activity_type == CREATE {
-        activity_id.push_str("/create");
-    };
     Activity {
         context: json!(AP_CONTEXT),
         id: activity_id,
@@ -265,11 +258,12 @@ pub fn create_activity_note(
     let object = create_note(instance_host, instance_url, post);
     let primary_audience = object.to.clone();
     let secondary_audience = object.cc.clone();
+    let activity_id = get_object_url(instance_url, &post.id) + "/create";
     let activity = create_activity(
         instance_url,
         &post.author.username,
         CREATE,
-        Some(&post.id),
+        activity_id,
         object,
         primary_audience,
         secondary_audience,
@@ -284,11 +278,12 @@ pub fn create_activity_like(
     reaction_id: &Uuid,
     recipient_id: &str,
 ) -> Activity {
+    let activity_id = get_object_url(instance_url, reaction_id);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         LIKE,
-        Some(reaction_id),
+        activity_id,
         note_id,
         vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
         vec![],
@@ -306,11 +301,12 @@ pub fn create_activity_undo_like(
         instance_url,
         reaction_id,
     );
+    let activity_id = get_object_url(instance_url, reaction_id) + "/undo";
     create_activity(
         instance_url,
         &actor_profile.username,
         UNDO,
-        None,
+        activity_id,
         object_id,
         vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
         vec![],
@@ -324,12 +320,13 @@ pub fn create_activity_announce(
     repost_id: &Uuid,
 ) -> Activity {
     let object_id = post.get_object_id(instance_url);
+    let activity_id = get_object_url(instance_url, repost_id);
     let recipient_id = post.author.actor_id(instance_url);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         ANNOUNCE,
-        Some(repost_id),
+        activity_id,
         object_id,
         vec![AP_PUBLIC.to_string(), recipient_id],
         vec![get_followers_url(instance_url, &actor_profile.username)],
@@ -347,6 +344,7 @@ pub fn create_activity_undo_announce(
         instance_url,
         repost_id,
     );
+    let activity_id = get_object_url(instance_url, repost_id) + "/undo";
     let primary_audience = vec![
         AP_PUBLIC.to_string(),
         recipient_id.to_string(),
@@ -355,7 +353,7 @@ pub fn create_activity_undo_announce(
         instance_url,
         &actor_profile.username,
         UNDO,
-        None,
+        activity_id,
         object_id,
         primary_audience,
         vec![get_followers_url(instance_url, &actor_profile.username)],
@@ -374,11 +372,12 @@ pub fn create_activity_delete_note(
         former_type: Some(NOTE.to_string()),
         ..Default::default()
     };
+    let activity_id = get_object_url(instance_url, &post.id) + "/delete";
     let activity = create_activity(
         instance_url,
         &post.author.username,
         DELETE,
-        None,
+        activity_id,
         object,
         vec![AP_PUBLIC.to_string()],
         vec![],
@@ -398,11 +397,12 @@ pub fn create_activity_follow(
         object_type: PERSON.to_string(),
         ..Default::default()
     };
+    let activity_id = get_object_url(instance_url, follow_request_id);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         FOLLOW,
-        Some(follow_request_id),
+        activity_id,
         object,
         vec![target_actor_id.to_string()],
         vec![],
@@ -416,18 +416,18 @@ pub fn create_activity_accept_follow(
     follow_activity_id: &str,
     source_actor_id: &str,
 ) -> Activity {
-    // TODO: use received activity as object
     let object = Object {
         context: Some(json!(AP_CONTEXT)),
         id: follow_activity_id.to_string(),
         object_type: FOLLOW.to_string(),
         ..Default::default()
     };
+    let activity_id = follow_activity_id.to_string() + "/accept";
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         ACCEPT,
-        None,
+        activity_id,
         object,
         vec![source_actor_id.to_string()],
         vec![],
@@ -441,7 +441,6 @@ pub fn create_activity_undo_follow(
     follow_request_id: &Uuid,
     target_actor_id: &str,
 ) -> Activity {
-    // TODO: retrieve 'Follow' activity from database
     let follow_activity_id = get_object_url(
         instance_url,
         follow_request_id,
@@ -452,17 +451,18 @@ pub fn create_activity_undo_follow(
     );
     let object = Object {
         context: Some(json!(AP_CONTEXT)),
-        id: follow_activity_id,
+        id: follow_activity_id.clone(),
         object_type: FOLLOW.to_string(),
         actor: Some(follow_actor_id),
         object: Some(target_actor_id.to_owned()),
         ..Default::default()
     };
+    let activity_id = follow_activity_id + "/undo";
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         UNDO,
-        None,
+        activity_id,
         object,
         vec![target_actor_id.to_string()],
         vec![],
@@ -475,11 +475,13 @@ pub fn create_activity_update_person(
     instance_url: &str,
 ) -> Result<Activity, ActorKeyError> {
     let actor = get_local_actor(user, instance_url)?;
+    // Update(Person) is idempotent so its ID can be random
+    let activity_id = get_object_url(instance_url, &new_uuid());
     let activity = create_activity(
         instance_url,
         &user.profile.username,
         UPDATE,
-        None,
+        activity_id,
         actor,
         vec![
             AP_PUBLIC.to_string(),
@@ -594,6 +596,28 @@ mod tests {
         assert_eq!(tags[0].name, format!("@{}", parent_author_acct));
         assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_url);
         assert_eq!(note.to, vec![AP_PUBLIC, parent_author_actor_id]);
+    }
+
+    #[test]
+    fn test_create_activity_create_note() {
+        let author_username = "author";
+        let author = DbActorProfile {
+            username: author_username.to_string(),
+            ..Default::default()
+        };
+        let post = Post { author, ..Default::default() };
+        let activity = create_activity_note(INSTANCE_HOST, INSTANCE_URL, &post);
+
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}/create", INSTANCE_URL, post.id),
+        );
+        assert_eq!(activity.activity_type, CREATE);
+        assert_eq!(
+            activity.actor,
+            format!("{}/users/{}", INSTANCE_URL, author_username),
+        );
+        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC]));
     }
 
     #[test]

@@ -149,7 +149,6 @@ async fn outbox(
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
     // Posts are ordered by creation date
-    // TODO: include reposts
     let posts = get_posts_by_author(
         db_client,
         &user.id,
