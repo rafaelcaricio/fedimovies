@@ -45,6 +45,11 @@ pub fn parse_address(address: &str) -> Result<Address, AddressError> {
     Address::from_str(address).map_err(|_| AddressError)
 }
 
+/// Converts address object to lowercase hex string
+pub fn address_to_string(address: Address) -> String {
+    format!("{:#x}", address)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

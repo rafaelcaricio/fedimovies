@@ -4,6 +4,7 @@ use siwe::Message;
 use web3::types::H160;
 
 use crate::errors::ValidationError;
+use super::utils::address_to_string;
 
 /// Verifies EIP-4361 signature and returns wallet address
 pub fn verify_eip4361_signature(
@@ -30,7 +31,7 @@ pub fn verify_eip4361_signature(
         return Err(ValidationError("message shouldn't have expiration time"));
     };
     // Return wallet address in lower case
-    let wallet_address = format!("{:#x}", H160(message.address));
+    let wallet_address = address_to_string(H160(message.address));
     Ok(wallet_address)
 }
 

@@ -7,7 +7,7 @@ use web3::{
     contract::Contract,
     ethabi::RawLog,
     transports::Http,
-    types::{Address, BlockId, BlockNumber, FilterBuilder, U256},
+    types::{BlockId, BlockNumber, FilterBuilder, U256},
 };
 
 use crate::config::BlockchainConfig;
@@ -25,12 +25,7 @@ use crate::models::users::queries::get_user_by_wallet_address;
 use crate::models::users::types::WALLET_CURRENCY_CODE;
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
-use super::utils::parse_address;
-
-/// Converts address object to lowercase hex string
-fn address_to_string(address: Address) -> String {
-    format!("{:#x}", address)
-}
+use super::utils::{address_to_string, parse_address};
 
 fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
     let timestamp: i64 = value.try_into().map_err(|_| ConversionError)?;
