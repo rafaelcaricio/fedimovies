@@ -2,7 +2,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::config::Instance;
-use crate::models::profiles::types::ExtraField;
+use crate::errors::ValidationError;
+use crate::ethereum::identity::{
+    ETHEREUM_EIP191_PROOF,
+    DidPkh,
+    verify_identity_proof,
+};
+use crate::models::profiles::types::{ExtraField, IdentityProof};
 use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
@@ -14,7 +20,7 @@ use super::views::{
     get_followers_url,
     get_following_url,
 };
-use super::vocabulary::{IMAGE, PERSON, PROPERTY_VALUE, SERVICE};
+use super::vocabulary::{IDENTITY_PROOF, IMAGE, PERSON, PROPERTY_VALUE, SERVICE};
 
 const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
 
@@ -43,11 +49,21 @@ pub struct ActorCapabilities {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ActorProperty {
+#[serde(rename_all = "camelCase")]
+pub struct ActorAttachment {
     name: String,
+
     #[serde(rename = "type")]
     object_type: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     value: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    signature_algorithm: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    signature_value: Option<String>,
 }
 
 // Clone and Debug traits are required by FromSql
@@ -90,36 +106,99 @@ pub struct Actor {
     pub summary: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub attachment: Option<Vec<ActorProperty>>,
+    pub attachment: Option<Vec<ActorAttachment>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
 }
 
+fn parse_identity_proof(
+    actor_id: &str,
+    attachment: &ActorAttachment,
+) -> Result<IdentityProof, ValidationError> {
+    if attachment.object_type != IDENTITY_PROOF {
+        return Err(ValidationError("invalid attachment type"));
+    };
+    let proof_type = attachment.signature_algorithm.as_ref()
+        .ok_or(ValidationError("missing proof type"))?;
+    if proof_type != ETHEREUM_EIP191_PROOF {
+        return Err(ValidationError("unknown proof type"));
+    };
+    let did = attachment.name.parse::<DidPkh>()
+        .map_err(|_| ValidationError("invalid did"))?;
+    let signature = attachment.signature_value.as_ref()
+        .ok_or(ValidationError("missing signature"))?;
+    verify_identity_proof(
+        actor_id,
+        &did,
+        signature,
+    ).map_err(|_| ValidationError("invalid identity proof"))?;
+    let proof = IdentityProof {
+        issuer: did,
+        proof_type: proof_type.to_string(),
+        value: signature.to_string(),
+    };
+    Ok(proof)
+}
+
+fn parse_extra_field(
+    attachment: &ActorAttachment,
+) -> Result<ExtraField, ValidationError> {
+    if attachment.object_type != PROPERTY_VALUE {
+        return Err(ValidationError("invalid attachment type"));
+    };
+    let property_value = attachment.value.as_ref()
+        .ok_or(ValidationError("missing property value"))?;
+    let field = ExtraField {
+        name: attachment.name.clone(),
+        value: property_value.to_string(),
+        value_source: None,
+    };
+    Ok(field)
+}
+
 impl Actor {
-    /// Parse 'attachment' into ExtraField vector
-    pub fn extra_fields(&self) -> Vec<ExtraField> {
+
+    pub fn parse_attachments(&self) -> (Vec<IdentityProof>, Vec<ExtraField>) {
+        let mut identity_proofs = vec![];
         let mut extra_fields = vec![];
-        if let Some(properties) = &self.attachment {
-            for property in properties {
-                if property.object_type != PROPERTY_VALUE {
-                    log::warn!(
-                        "ignoring actor property of type {}",
-                        property.object_type,
-                    );
-                    continue;
-                };
-                if let Some(property_value) = &property.value {
-                    let field = ExtraField {
-                        name: property.name.clone(),
-                        value: property_value.clone(),
-                        value_source: None,
-                    };
-                    extra_fields.push(field);
+        if let Some(attachments) = &self.attachment {
+            for attachment in attachments {
+                match attachment.object_type.as_str() {
+                    IDENTITY_PROOF => {
+                        match parse_identity_proof(&self.id, attachment) {
+                            Ok(proof) => identity_proofs.push(proof),
+                            Err(error) => {
+                                 log::warn!(
+                                    "ignoring actor attachment of type {}: {}",
+                                    attachment.object_type,
+                                    error,
+                                );
+                            },
+                        };
+                    },
+                    PROPERTY_VALUE => {
+                        match parse_extra_field(attachment) {
+                            Ok(field) => extra_fields.push(field),
+                            Err(error) => {
+                                 log::warn!(
+                                    "ignoring actor attachment of type {}: {}",
+                                    attachment.object_type,
+                                    error,
+                                );
+                            },
+                        };
+                    },
+                    _ => {
+                        log::warn!(
+                            "ignoring actor attachment of type {}",
+                            attachment.object_type,
+                        );
+                    },
                 };
             };
         };
-        extra_fields
+        (identity_proofs, extra_fields)
     }
 }
 
@@ -183,15 +262,27 @@ pub fn get_local_actor(
         },
         None => None,
     };
-    let properties = user.profile.extra_fields.clone()
-        .into_inner().into_iter()
-        .map(|field| {
-            ActorProperty {
-                object_type: PROPERTY_VALUE.to_string(),
-                name: field.name,
-                value: Some(field.value),
-            }
-        }).collect();
+    let mut attachments = vec![];
+    for proof in user.profile.identity_proofs.clone().into_inner() {
+        let attachment = ActorAttachment {
+            object_type: IDENTITY_PROOF.to_string(),
+            name: proof.issuer.to_string(),
+            value: None,
+            signature_algorithm: Some(proof.proof_type),
+            signature_value: Some(proof.value),
+        };
+        attachments.push(attachment);
+    };
+    for field in user.profile.extra_fields.clone().into_inner() {
+        let attachment = ActorAttachment {
+            object_type: PROPERTY_VALUE.to_string(),
+            name: field.name,
+            value: Some(field.value),
+            signature_algorithm: None,
+            signature_value: None,
+        };
+        attachments.push(attachment);
+    };
     let actor = Actor {
         context: Some(json!([
             AP_CONTEXT.to_string(),
@@ -210,7 +301,7 @@ pub fn get_local_actor(
         icon: avatar,
         image: banner,
         summary: None,
-        attachment: Some(properties),
+        attachment: Some(attachments),
         url: Some(actor_id),
     };
     Ok(actor)
@@ -279,5 +370,6 @@ mod tests {
         let actor = get_local_actor(&user, INSTANCE_URL).unwrap();
         assert_eq!(actor.id, "https://example.com/users/testuser");
         assert_eq!(actor.preferred_username, user.profile.username);
+        assert_eq!(actor.attachment.unwrap().len(), 0);
     }
 }

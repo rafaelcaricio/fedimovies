@@ -1,10 +1,25 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
+use crate::activitypub::actor::Actor;
 use crate::errors::DatabaseError;
-use crate::models::relationships::queries::get_relationships;
+use crate::models::relationships::queries::{get_followers, get_relationships};
 use crate::models::relationships::types::RelationshipType;
 use super::types::RelationshipMap;
+
+pub async fn get_profile_update_recipients(
+    db_client: &impl GenericClient,
+    current_user_id: &Uuid,
+) -> Result<Vec<Actor>, DatabaseError> {
+    let followers = get_followers(db_client, current_user_id, None, None).await?;
+    let mut recipients: Vec<Actor> = Vec::new();
+    for profile in followers {
+        if let Some(remote_actor) = profile.actor_json {
+            recipients.push(remote_actor);
+        };
+    };
+    Ok(recipients)
+}
 
 pub async fn get_relationship(
     db_client: &impl GenericClient,

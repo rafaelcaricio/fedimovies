@@ -146,7 +146,7 @@ pub async fn fetch_profile_by_actor_id(
     let actor_json = send_request(instance, actor_url, &[]).await?;
     let actor: Actor = serde_json::from_str(&actor_json)?;
     let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
-    let extra_fields = actor.extra_fields();
+    let (identity_proofs, extra_fields) = actor.parse_attachments();
     let actor_address = format!(
         "{}@{}",
         actor.preferred_username,
@@ -159,7 +159,7 @@ pub async fn fetch_profile_by_actor_id(
         bio: actor.summary.clone(),
         avatar,
         banner,
-        identity_proofs: vec![],
+        identity_proofs,
         extra_fields,
         actor_json: Some(actor),
     };

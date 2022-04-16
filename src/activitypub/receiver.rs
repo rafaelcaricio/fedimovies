@@ -698,7 +698,7 @@ pub async fn receive_activity(
             let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
             let (avatar, banner) = fetch_avatar_and_banner(&actor, &config.media_dir()).await
                 .map_err(|_| ValidationError("failed to fetch image"))?;
-            let extra_fields = actor.extra_fields();
+            let (identity_proofs, extra_fields) = actor.parse_attachments();
             let actor_old = profile.actor_json.unwrap();
             if actor_old.id != actor.id {
                 log::warn!(
@@ -720,7 +720,7 @@ pub async fn receive_activity(
                 bio_source: actor.summary.clone(),
                 avatar,
                 banner,
-                identity_proofs: vec![],
+                identity_proofs,
                 extra_fields,
                 actor_json: Some(actor),
             };
