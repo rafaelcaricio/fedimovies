@@ -31,7 +31,7 @@ deadpool-postgres = { version = "0.10.2", default-features = false }
 # Used to read .env files
 dotenv = "0.15.0"
 # Used to work with hexadecimal strings
-hex = "0.4.3"
+hex = { version = "0.4.3", features = ["serde"] }
 # Used for logging
 log = { version = "0.4.14", features = ["serde"] }
 env_logger = { version = "0.9.0", default-features = false }
