@@ -27,10 +27,10 @@ pub enum DatabaseError {
     #[error("database type error")]
     DatabaseTypeError(#[from] ConversionError),
 
-    #[error("{0}")]
+    #[error("{0} not found")]
     NotFound(&'static str), // object type
 
-    #[error("{0}")]
+    #[error("{0} already exists")]
     AlreadyExists(&'static str), // object type
 }
 

@@ -521,7 +521,7 @@ mod tests {
             ..Default::default()
         };
         let error = create_profile(&db_client, profile_data_2).await.err().unwrap();
-        assert_eq!(error.to_string(), "profile");
+        assert_eq!(error.to_string(), "profile already exists");
     }
 
     #[tokio::test]
