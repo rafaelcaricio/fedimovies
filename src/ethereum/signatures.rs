@@ -132,7 +132,7 @@ mod tests {
         let signing_key = generate_ecdsa_key();
         let message = "test_message";
         let result = sign_message(
-            &signing_key.to_string(),
+            &signing_key.display_secret().to_string(),
             message.as_bytes(),
         ).unwrap();
         assert!(result.v == 27 || result.v == 28);
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_sign_contract_call() {
-        let signing_key = generate_ecdsa_key().to_string();
+        let signing_key = generate_ecdsa_key().display_secret().to_string();
         let chain_id = 1;
         let contract_address = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
         let method_name = "test";

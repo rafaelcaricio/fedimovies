@@ -94,7 +94,7 @@ async fn main() {
             let address = key_to_ethereum_address(&private_key);
             println!(
                 "address {:?}; private key {}",
-                address, private_key,
+                address, private_key.display_secret(),
             );
         },
         subcmd => {
