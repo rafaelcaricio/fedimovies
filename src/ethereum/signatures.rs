@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::str::FromStr;
 
 use secp256k1::{Error as KeyError, SecretKey, rand::rngs::OsRng};
@@ -46,11 +47,40 @@ pub enum SignatureError {
     RecoveryError(#[from] RecoveryError),
 }
 
+impl ToString for SignatureData {
+    fn to_string(&self) -> String {
+        let mut bytes = Vec::with_capacity(65);
+        bytes.extend_from_slice(&self.r);
+        bytes.extend_from_slice(&self.s);
+        let v: u8 = self.v.try_into()
+            .expect("signature recovery in electrum notation always fits in a u8");
+        bytes.push(v);
+        hex::encode(bytes)
+    }
+}
+
+impl FromStr for SignatureData {
+    type Err = SignatureError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let mut bytes = [0u8; 65];
+        hex::decode_to_slice(value, &mut bytes)
+            .map_err(|_| Self::Err::InvalidSignature)?;
+        let v = bytes[64].into();
+        let r = bytes[0..32].try_into()
+            .map_err(|_| Self::Err::InvalidSignature)?;
+        let s = bytes[32..64].try_into()
+            .map_err(|_| Self::Err::InvalidSignature)?;
+        let signature_data = Self { v, r, s };
+        Ok(signature_data)
+    }
+}
+
 fn prepare_message(message: &[u8]) -> [u8; 32] {
     let eip_191_message = [
         "\x19Ethereum Signed Message:\n".as_bytes(),
         message.len().to_string().as_bytes(),
-        &message,
+        message,
     ].concat();
     let eip_191_message_hash = keccak256(&eip_191_message);
     eip_191_message_hash
@@ -127,6 +157,33 @@ pub fn sign_contract_call(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_signature_string_conversion() {
+        let v = 28;
+        let r: [u8; 32] = hex::decode("b91467e570a6466aa9e9876cbcd013baba02900b8979d43fe208a4a4f339f5fd")
+            .unwrap().try_into().unwrap();
+        let s: [u8; 32] = hex::decode("6007e74cd82e037b800186422fc2da167c747ef045e5d18a5f5d4300f8e1a029")
+            .unwrap().try_into().unwrap();
+        let expected_signature =
+            "b91467e570a6466aa9e9876cbcd013baba02900b8979d43fe208a4a4f339f5fd6007e74cd82e037b800186422fc2da167c747ef045e5d18a5f5d4300f8e1a0291c";
+
+        let signature_data = SignatureData { v, r, s };
+        let signature_str = signature_data.to_string();
+        assert_eq!(signature_str, expected_signature);
+
+        let parsed = signature_str.parse::<SignatureData>().unwrap();
+        assert_eq!(parsed.v, v);
+        assert_eq!(parsed.r, r);
+        assert_eq!(parsed.s, s);
+    }
+
+    #[test]
+    fn test_signature_from_string_with_0x_prefix() {
+        let signature_str = "0xb91467e570a6466aa9e9876cbcd013baba02900b8979d43fe208a4a4f339f5fd6007e74cd82e037b800186422fc2da167c747ef045e5d18a5f5d4300f8e1a0291c";
+        let result = signature_str.parse::<SignatureData>();
+        assert_eq!(result.is_err(), true);
+    }
 
     #[test]
     fn test_sign_message() {
