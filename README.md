@@ -23,7 +23,7 @@ Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 ## Requirements
 
 - Rust 1.54+
-- PostgreSQL 10.2+
+- PostgreSQL 12+
 - IPFS node (optional, see [guide](./docs/ipfs.md))
 - Ethereum node (optional)
 

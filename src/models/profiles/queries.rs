@@ -116,7 +116,7 @@ pub async fn get_profile_by_actor_id(
         "
         SELECT actor_profile
         FROM actor_profile
-        WHERE actor_profile.actor_json ->> 'id' = $1
+        WHERE actor_id = $1
         ",
         &[&actor_id],
     ).await?;
@@ -471,6 +471,7 @@ pub async fn update_post_count(
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use serial_test::serial;
     use crate::database::test_utils::create_test_database;
     use crate::models::profiles::queries::create_profile;
@@ -489,6 +490,38 @@ mod tests {
         let db_client = create_test_database().await;
         let profile = create_profile(&db_client, profile_data).await.unwrap();
         assert_eq!(profile.username, "test");
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_actor_id_unique() {
+        let db_client = create_test_database().await;
+        let actor_id = "https://example.com/users/test";
+        let create_actor_value = |actor_id| {
+            json!({
+                "id": actor_id,
+                "type": "Person",
+                "preferredUsername": "test",
+                "inbox": "https://test",
+                "outbox": "https://test",
+                "publicKey": {"id": "test", "owner": "test", "publicKeyPem": "test"},
+            })
+        };
+        let profile_data_1 = ProfileCreateData {
+            username: "test-1".to_string(),
+            acct: "test-1@example.com".to_string(),
+            actor_json: Some(create_actor_value(actor_id)),
+            ..Default::default()
+        };
+        create_profile(&db_client, profile_data_1).await.unwrap();
+        let profile_data_2 = ProfileCreateData {
+            username: "test-2".to_string(),
+            acct: "test-2@example.com".to_string(),
+            actor_json: Some(create_actor_value(actor_id)),
+            ..Default::default()
+        };
+        let error = create_profile(&db_client, profile_data_2).await.err().unwrap();
+        assert_eq!(error.to_string(), "profile");
     }
 
     #[tokio::test]

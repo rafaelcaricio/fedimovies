@@ -572,6 +572,7 @@ mod tests {
                 url: Some(parent_author_actor_url.to_string()),
                 ..Default::default()
             }),
+            actor_id: Some(parent_author_actor_id.to_string()),
             ..Default::default()
         };
         let parent = Post {

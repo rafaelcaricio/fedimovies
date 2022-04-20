@@ -86,6 +86,9 @@ pub struct DbActorProfile {
     pub post_count: i32,
     pub created_at: DateTime<Utc>,
     pub actor_json: Option<Actor>,
+
+    // auto-generated database fields
+    pub actor_id: Option<String>,
 }
 
 impl DbActorProfile {
@@ -94,6 +97,7 @@ impl DbActorProfile {
     }
 
     pub fn actor_id(&self, instance_url: &str) -> String {
+        // TODO: use actor_id field
         match self.actor_json {
             Some(ref actor) => actor.id.clone(),
             None => get_actor_url(instance_url, &self.username),
@@ -137,6 +141,7 @@ impl Default for DbActorProfile {
             post_count: 0,
             created_at: Utc::now(),
             actor_json: None,
+            actor_id: None,
         }
     }
 }
