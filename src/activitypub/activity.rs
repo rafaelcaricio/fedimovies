@@ -206,11 +206,11 @@ pub fn create_note(
     for profile in &post.mentions {
         let actor_id = profile.actor_id(instance_url);
         primary_audience.push(actor_id);
-        let actor_url = profile.actor_url(instance_url);
+        let actor_id = profile.actor_id(instance_url);
         let tag = Tag {
             name: format!("@{}", profile.actor_address(instance_host)),
             tag_type: MENTION.to_string(),
-            href: Some(actor_url),
+            href: Some(actor_id),
         };
         tags.push(tag);
     };
@@ -594,7 +594,7 @@ mod tests {
         let tags = note.tag;
         assert_eq!(tags.len(), 1);
         assert_eq!(tags[0].name, format!("@{}", parent_author_acct));
-        assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_url);
+        assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_id);
         assert_eq!(note.to, vec![AP_PUBLIC, parent_author_actor_id]);
     }
 

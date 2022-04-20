@@ -308,19 +308,19 @@ pub async fn import_post(
                         tags.push(tag_name);
                     };
                 } else if tag.tag_type == MENTION {
-                    // href attribute is not an actor ID but is a link to profile
+                    // Try to find profile by actor ID.
                     if let Some(href) = tag.href {
-                        // TODO: use actor_url
-                        match parse_actor_id(&config.instance_url(), &href) {
-                            Ok(username) => {
-                                let user = get_user_by_name(db_client, &username).await?;
-                                if !mentions.contains(&user.id) {
-                                    mentions.push(user.id);
-                                };
-                                continue;
-                            },
-                            Err(_) => (), // remote profile
+                        if let Ok(username) = parse_actor_id(&config.instance_url(), &href) {
+                            let user = get_user_by_name(db_client, &username).await?;
+                            if !mentions.contains(&user.id) {
+                                mentions.push(user.id);
+                            };
+                            continue;
                         };
+                        // WARNING: `href` attribute is usually actor ID
+                        // but also can be actor URL (profile link).
+                        // This may lead to failed import due to
+                        // unique constraint violation on DB insert.
                         match get_or_import_profile_by_actor_id(
                             db_client,
                             &instance,
@@ -335,10 +335,10 @@ pub async fn import_post(
                             },
                             Err(error) => {
                                 log::warn!("failed to find mentioned profile {}: {}", href, error);
-                                // Try to parse tag name
                             },
                         };
                     };
+                    // Try to find profile by actor address
                     if let Ok(actor_address) = mention_to_address(
                         &instance.host(),
                         &tag.name,
