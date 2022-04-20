@@ -56,8 +56,8 @@ pub fn clean_extra_fields(extra_fields: &[ExtraField])
         })
         .filter(|field| !field.name.is_empty())
         .collect();
-    if cleaned_extra_fields.len() >= 10 {
-        return Err(ValidationError("at most 10 fields are allowed"));
+    if cleaned_extra_fields.len() > 20 {
+        return Err(ValidationError("at most 20 fields are allowed"));
     };
     Ok(cleaned_extra_fields)
 }
