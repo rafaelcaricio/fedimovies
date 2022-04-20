@@ -88,7 +88,7 @@ fn prepare_message(message: &[u8]) -> [u8; 32] {
 
 /// Create EIP-191 signature
 /// https://eips.ethereum.org/EIPS/eip-191
-fn sign_message(
+pub fn sign_message(
     signing_key: &str,
     message: &[u8],
 ) -> Result<SignatureData, SignatureError> {
