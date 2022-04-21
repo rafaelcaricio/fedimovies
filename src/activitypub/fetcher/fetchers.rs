@@ -144,8 +144,7 @@ pub async fn fetch_profile_by_actor_id(
         return Err(FetchError::OtherError("trying to fetch local profile"));
     };
     let actor_json = send_request(instance, actor_url, &[]).await?;
-    let actor_value: Value = serde_json::from_str(&actor_json)?;
-    let actor: Actor = serde_json::from_value(actor_value.clone())?;
+    let actor: Actor = serde_json::from_str(&actor_json)?;
     let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
     let extra_fields = actor.extra_fields();
     let actor_address = format!(
@@ -154,14 +153,14 @@ pub async fn fetch_profile_by_actor_id(
         actor_host,
     );
     let profile_data = ProfileCreateData {
-        username: actor.preferred_username,
-        display_name: actor.name,
+        username: actor.preferred_username.clone(),
+        display_name: actor.name.clone(),
         acct: actor_address,
-        bio: actor.summary,
+        bio: actor.summary.clone(),
         avatar,
         banner,
         extra_fields,
-        actor_json: Some(actor_value),
+        actor_json: Some(actor),
     };
     Ok(profile_data)
 }

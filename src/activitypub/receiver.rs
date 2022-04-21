@@ -690,7 +690,6 @@ pub async fn receive_activity(
         },
         (UPDATE, PERSON) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            let actor_value = activity.object.clone();
             let actor: Actor = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid actor data"))?;
             if actor.id != activity.actor {
@@ -716,13 +715,13 @@ pub async fn receive_activity(
                 );
             };
             let mut profile_data = ProfileUpdateData {
-                display_name: actor.name,
+                display_name: actor.name.clone(),
                 bio: actor.summary.clone(),
-                bio_source: actor.summary,
+                bio_source: actor.summary.clone(),
                 avatar,
                 banner,
                 extra_fields,
-                actor_json: Some(actor_value),
+                actor_json: Some(actor),
             };
             profile_data.clean()?;
             update_profile(db_client, &profile.id, profile_data).await?;

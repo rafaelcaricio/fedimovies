@@ -18,7 +18,7 @@ use super::vocabulary::{IMAGE, PERSON, PROPERTY_VALUE, SERVICE};
 
 const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKey {
@@ -27,7 +27,7 @@ pub struct PublicKey {
     pub public_key_pem: String,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Image {
     #[serde(rename = "type")]
@@ -35,14 +35,14 @@ pub struct Image {
     pub url: String,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActorCapabilities {
-    // Actpr accepts ChatMessage objects
+    // Actor accepts ChatMessage objects
     accepts_chat_messages: Option<bool>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ActorProperty {
     name: String,
     #[serde(rename = "type")]
@@ -50,8 +50,8 @@ pub struct ActorProperty {
     value: Option<String>,
 }
 
-// Clone trait is required by FromSql
-#[derive(Clone, Deserialize, Serialize)]
+// Clone and Debug traits are required by FromSql
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
 pub struct Actor {

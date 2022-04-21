@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use postgres_types::FromSql;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use uuid::Uuid;
 
 use crate::activitypub::actor::Actor;
@@ -40,6 +39,7 @@ json_from_sql!(ExtraFields);
 json_to_sql!(ExtraFields);
 
 json_from_sql!(Actor);
+json_to_sql!(Actor);
 
 #[derive(Clone, FromSql)]
 #[postgres(name = "actor_profile")]
@@ -127,7 +127,7 @@ pub struct ProfileCreateData {
     pub avatar: Option<String>,
     pub banner: Option<String>,
     pub extra_fields: Vec<ExtraField>,
-    pub actor_json: Option<Value>,
+    pub actor_json: Option<Actor>,
 }
 
 impl ProfileCreateData {
@@ -152,7 +152,7 @@ pub struct ProfileUpdateData {
     pub avatar: Option<String>,
     pub banner: Option<String>,
     pub extra_fields: Vec<ExtraField>,
-    pub actor_json: Option<Value>,
+    pub actor_json: Option<Actor>,
 }
 
 impl ProfileUpdateData {
