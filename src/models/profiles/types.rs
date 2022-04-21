@@ -1,15 +1,12 @@
 use chrono::{DateTime, Utc};
-use postgres_types::{
-    FromSql, ToSql, IsNull, Type, Json,
-    accepts, to_sql_checked,
-    private::BytesMut,
-};
+use postgres_types::FromSql;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
 use crate::activitypub::actor::Actor;
 use crate::activitypub::views::get_actor_url;
+use crate::database::json_macro::{json_from_sql, json_to_sql};
 use crate::errors::ValidationError;
 use super::validators::{
     validate_username,
@@ -29,7 +26,7 @@ pub struct ExtraField {
 pub struct ExtraFields(pub Vec<ExtraField>);
 
 impl ExtraFields {
-    pub fn unpack(self) -> Vec<ExtraField> {
+    pub fn into_inner(self) -> Vec<ExtraField> {
         let Self(extra_fields) = self;
         extra_fields
     }
@@ -39,35 +36,10 @@ pub fn get_currency_field_name(currency_code: &str) -> String {
     format!("${}", currency_code.to_uppercase())
 }
 
-type SqlError = Box<dyn std::error::Error + Sync + Send>;
+json_from_sql!(ExtraFields);
+json_to_sql!(ExtraFields);
 
-impl<'a> FromSql<'a> for ExtraFields {
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, SqlError> {
-        let Json(json_value) = Json::<Value>::from_sql(ty, raw)?;
-        let fields: Self = serde_json::from_value(json_value)?;
-        Ok(fields)
-    }
-    accepts!(JSON, JSONB);
-}
-
-impl ToSql for ExtraFields {
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, SqlError> {
-        let value = serde_json::to_value(self)?;
-        Json(value).to_sql(ty, out)
-    }
-
-    accepts!(JSON, JSONB);
-    to_sql_checked!();
-}
-
-impl<'a> FromSql<'a> for Actor {
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, SqlError> {
-        let Json(json_value) = Json::<Value>::from_sql(ty, raw)?;
-        let actor: Self = serde_json::from_value(json_value)?;
-        Ok(actor)
-    }
-    accepts!(JSON, JSONB);
-}
+json_from_sql!(Actor);
 
 #[derive(Clone, FromSql)]
 #[postgres(name = "actor_profile")]

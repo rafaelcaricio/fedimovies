@@ -184,7 +184,7 @@ pub fn get_local_actor(
         None => None,
     };
     let properties = user.profile.extra_fields.clone()
-        .unpack().into_iter()
+        .into_inner().into_iter()
         .map(|field| {
             ActorProperty {
                 object_type: PROPERTY_VALUE.to_string(),

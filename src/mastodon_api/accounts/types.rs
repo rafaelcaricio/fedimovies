@@ -59,7 +59,7 @@ impl Account {
             .map(|name| get_file_url(instance_url, name));
         let header_url = profile.banner_file_name.as_ref()
             .map(|name| get_file_url(instance_url, name));
-        let fields = profile.extra_fields.unpack().into_iter()
+        let fields = profile.extra_fields.into_inner().into_iter()
             .map(|field| AccountField { name: field.name, value: field.value })
             .collect();
         Self {
@@ -83,7 +83,7 @@ impl Account {
 
     pub fn from_user(user: User, instance_url: &str) -> Self {
         let fields_sources = user.profile.extra_fields.clone()
-            .unpack().into_iter()
+            .into_inner().into_iter()
             .map(|field| AccountField {
                 name: field.name,
                 value: field.value_source.unwrap_or(field.value),

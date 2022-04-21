@@ -3,6 +3,7 @@ use tokio_postgres::error::{Error as PgError, SqlState};
 use crate::errors::DatabaseError;
 
 pub mod int_enum;
+pub mod json_macro;
 pub mod migrate;
 pub mod query_macro;
 

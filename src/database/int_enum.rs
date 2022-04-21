@@ -19,7 +19,8 @@ macro_rules! int_enum_to_sql {
     ($t:ty) => {
         impl postgres_types::ToSql for $t {
             fn to_sql(
-                &self, _: &postgres_types::Type,
+                &self,
+                _: &postgres_types::Type,
                 out: &mut postgres_types::private::BytesMut,
             ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
                 let int_value: i16 = self.into();
