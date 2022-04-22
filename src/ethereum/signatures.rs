@@ -47,10 +47,10 @@ pub enum SignatureError {
 }
 
 fn prepare_message(message: &[u8]) -> [u8; 32] {
-    let message_hash = keccak256(message);
     let eip_191_message = [
-        "\x19Ethereum Signed Message:\n32".as_bytes(),
-        &message_hash,
+        "\x19Ethereum Signed Message:\n".as_bytes(),
+        message.len().to_string().as_bytes(),
+        &message,
     ].concat();
     let eip_191_message_hash = keccak256(&eip_191_message);
     eip_191_message_hash
@@ -58,7 +58,7 @@ fn prepare_message(message: &[u8]) -> [u8; 32] {
 
 /// Create EIP-191 signature
 /// https://eips.ethereum.org/EIPS/eip-191
-pub fn sign_message(
+fn sign_message(
     signing_key: &str,
     message: &[u8],
 ) -> Result<SignatureData, SignatureError> {
@@ -119,7 +119,8 @@ pub fn sign_contract_call(
     for arg in method_args {
         message.extend(arg.as_ref().as_ref());
     };
-    let signature = sign_message(signing_key, &message)?;
+    let message_hash = keccak256(&message);
+    let signature = sign_message(signing_key, &message_hash)?;
     Ok(signature)
 }
 
