@@ -14,6 +14,11 @@ use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::ethereum::gate::is_allowed_user;
+use crate::ethereum::identity::{
+    DidPkh,
+    create_identity_claim,
+    verify_identity_proof,
+};
 use crate::ethereum::subscriptions::create_subscription_signature;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::posts::helpers::{
@@ -57,6 +62,8 @@ use super::types::{
     AccountUpdateData,
     FollowData,
     FollowListQueryParams,
+    IdentityClaim,
+    IdentityProofData,
     RelationshipQueryParams,
     StatusListQueryParams,
 };
@@ -209,6 +216,46 @@ async fn update_credentials(
     };
     deliver_activity(&config, &current_user, activity, recipients);
 
+    let account = Account::from_user(current_user, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
+}
+
+#[get("/identity_proof")]
+async fn get_identity_claim(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let actor_id = current_user.profile.actor_id(&config.instance_url());
+    let wallet_address = current_user.wallet_address.as_ref()
+        .ok_or(HttpError::PermissionError)?;
+    let did = DidPkh::from_ethereum_address(wallet_address);
+    let claim = create_identity_claim(&actor_id, &did)
+        .map_err(|_| HttpError::InternalError)?;
+    let response = IdentityClaim { claim };
+    Ok(HttpResponse::Ok().json(response))
+}
+
+#[post("/identity_proof")]
+async fn create_identity_proof(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    proof_data: web::Json<IdentityProofData>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let actor_id = current_user.profile.actor_id(&config.instance_url());
+    let wallet_address = current_user.wallet_address.as_ref()
+        .ok_or(HttpError::PermissionError)?;
+    let did = DidPkh::from_ethereum_address(wallet_address);
+    verify_identity_proof(
+        &actor_id,
+        &did,
+        &proof_data.signature,
+    )?;
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }
@@ -455,6 +502,8 @@ pub fn account_api_scope() -> Scope {
         .service(get_relationships_view)
         .service(verify_credentials)
         .service(update_credentials)
+        .service(get_identity_claim)
+        .service(create_identity_proof)
         .service(authorize_subscription)
         // Routes with account ID
         .service(get_account)

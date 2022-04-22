@@ -8,6 +8,7 @@ paths:
   /oauth/token:
     post:
       summary: Returns an access token, to be used during API calls that are not public.
+      description: EIP-4361 auth doesn't require blockchain integration.
       requestBody:
         content:
           application/json:
@@ -102,6 +103,46 @@ paths:
                 $ref: '#/components/schemas/Account'
         400:
           description: Invalid user data
+  /api/v1/accounts/identity_proof:
+    get:
+      summary: Get unsigned data for identity proof.
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claim:
+                    description: Identity claim serialized as compact JSON.
+                    type: string
+                    example: '{"id":"https://example.com/users/1","ownerOf":"did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a"}'
+        403:
+          description: User's wallet address is not known
+    post:
+      summary: Submit identity proof.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                signature:
+                  description: Signature value.
+                  type: string
+                  example: '3312dacd...'
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        400:
+          description: Invalid signature.
+        403:
+          description: User's wallet address is not known
   /api/v1/accounts/authorize_subscription:
     get:
       summary: Get authorization for setting up paid subscription.

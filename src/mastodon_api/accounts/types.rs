@@ -185,6 +185,16 @@ impl AccountUpdateData {
     }
 }
 
+#[derive(Serialize)]
+pub struct IdentityClaim {
+    pub claim: String,
+}
+
+#[derive(Deserialize)]
+pub struct IdentityProofData {
+    pub signature: String,
+}
+
 // TODO: actix currently doesn't support parameter arrays
 // https://github.com/actix/actix-web/issues/2044
 #[derive(Deserialize)]
