@@ -7,12 +7,33 @@ use crate::activitypub::actor::Actor;
 use crate::activitypub::views::get_actor_url;
 use crate::database::json_macro::{json_from_sql, json_to_sql};
 use crate::errors::ValidationError;
+use crate::ethereum::identity::DidPkh;
 use super::validators::{
     validate_username,
     validate_display_name,
     clean_bio,
     clean_extra_fields,
 };
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct IdentityProof {
+    pub issuer: DidPkh,
+    pub proof_type: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct IdentityProofs(pub Vec<IdentityProof>);
+
+impl IdentityProofs {
+    pub fn into_inner(self) -> Vec<IdentityProof> {
+        let Self(identity_proofs) = self;
+        identity_proofs
+    }
+}
+
+json_from_sql!(IdentityProofs);
+json_to_sql!(IdentityProofs);
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ExtraField {
@@ -177,6 +198,15 @@ mod tests {
     use super::*;
 
     const INSTANCE_HOST: &str = "example.com";
+
+    #[test]
+    fn test_identity_proof_serialization() {
+        let json_data = r#"{"issuer":"did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a","proof_type":"ethereum-eip191-00","value":"dbfe"}"#;
+        let proof: IdentityProof = serde_json::from_str(json_data).unwrap();
+        assert_eq!(proof.issuer.address, "0xb9c5714089478a327f09197987f16f9e5d936e8a");
+        let serialized = serde_json::to_string(&proof).unwrap();
+        assert_eq!(serialized, json_data);
+    }
 
     #[test]
     fn test_local_actor_address() {

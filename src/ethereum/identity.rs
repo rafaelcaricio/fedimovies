@@ -1,7 +1,10 @@
 use std::str::FromStr;
 
 use regex::Regex;
-use serde::Serialize;
+use serde::{
+    Deserialize, Deserializer, Serialize, Serializer,
+    de::Error as DeserializerError,
+};
 
 use crate::errors::ValidationError;
 use super::signatures::recover_address;
@@ -11,6 +14,7 @@ use super::utils::address_to_string;
 pub const ETHEREUM_EIP191_PROOF: &str = "ethereum-eip191-00";
 
 // https://github.com/w3c-ccg/did-pkh/blob/main/did-pkh-method-draft.md
+#[derive(Clone, Debug, PartialEq)]
 pub struct DidPkh {
     network_id: String,
     chain_id: String,
@@ -59,6 +63,24 @@ impl FromStr for DidPkh {
             address: caps["address"].to_string(),
         };
         Ok(did)
+    }
+}
+
+impl Serialize for DidPkh {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer
+    {
+        let did_str = self.to_string();
+        serializer.serialize_str(&did_str)
+    }
+}
+
+impl<'de> Deserialize<'de> for DidPkh {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: Deserializer<'de>
+    {
+        let did_str: String = Deserialize::deserialize(deserializer)?;
+        did_str.parse().map_err(DeserializerError::custom)
     }
 }
 
