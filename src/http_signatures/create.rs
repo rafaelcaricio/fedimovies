@@ -79,13 +79,13 @@ pub fn create_http_signature(
 
 #[cfg(test)]
 mod tests {
-    use rand::rngs::OsRng;
+    use crate::utils::crypto::generate_weak_private_key;
     use super::*;
 
     #[test]
     fn test_create_signature_get() {
         let request_url = "https://example.org/inbox";
-        let actor_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
+        let actor_key = generate_weak_private_key().unwrap();
         let actor_key_id = "https://myserver.org/actor#main-key";
 
         let headers = create_http_signature(
@@ -114,7 +114,7 @@ mod tests {
     fn test_create_signature_post() {
         let request_url = "https://example.org/inbox";
         let request_body = "{}";
-        let actor_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
+        let actor_key = generate_weak_private_key().unwrap();
         let actor_key_id = "https://myserver.org/actor#main-key";
 
         let result = create_http_signature(

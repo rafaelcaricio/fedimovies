@@ -251,3 +251,33 @@ pub fn get_instance_actor(
     };
     Ok(actor)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::models::profiles::types::DbActorProfile;
+    use crate::utils::crypto::{
+        generate_weak_private_key,
+        serialize_private_key,
+    };
+    use super::*;
+
+    const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_local_actor() {
+        let private_key = generate_weak_private_key().unwrap();
+        let private_key_pem = serialize_private_key(private_key).unwrap();
+        let profile = DbActorProfile {
+            username: "testuser".to_string(),
+            ..Default::default()
+        };
+        let user = User {
+            private_key: private_key_pem,
+            profile,
+            ..Default::default()
+        };
+        let actor = get_local_actor(&user, INSTANCE_URL).unwrap();
+        assert_eq!(actor.id, "https://example.com/users/testuser");
+        assert_eq!(actor.preferred_username, user.profile.username);
+    }
+}

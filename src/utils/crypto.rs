@@ -26,6 +26,13 @@ pub fn generate_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
     RsaPrivateKey::new(&mut rng, bits)
 }
 
+#[cfg(test)]
+pub fn generate_weak_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
+    let mut rng = rand::rngs::OsRng;
+    let bits = 512;
+    RsaPrivateKey::new(&mut rng, bits)
+}
+
 pub fn serialize_private_key(
     private_key: RsaPrivateKey,
 ) -> Result<String, rsa::pkcs8::Error> {
