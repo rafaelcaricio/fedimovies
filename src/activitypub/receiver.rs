@@ -720,6 +720,7 @@ pub async fn receive_activity(
                 bio_source: actor.summary.clone(),
                 avatar,
                 banner,
+                identity_proofs: vec![],
                 extra_fields,
                 actor_json: Some(actor),
             };

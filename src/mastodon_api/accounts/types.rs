@@ -5,9 +5,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
+use crate::models::profiles::currencies::get_identity_proof_field_name;
 use crate::models::profiles::types::{
     DbActorProfile,
     ExtraField,
+    IdentityProof,
     ProfileUpdateData,
 };
 use crate::models::profiles::validators::validate_username;
@@ -17,10 +19,12 @@ use crate::models::users::types::{
 };
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
 
+/// https://docs.joinmastodon.org/entities/field/
 #[derive(Serialize)]
 pub struct AccountField {
     pub name: String,
     pub value: String,
+    verified_at: Option<DateTime<Utc>>,
 }
 
 /// https://docs.joinmastodon.org/entities/source/
@@ -42,6 +46,7 @@ pub struct Account {
     pub note: Option<String>,
     pub avatar: Option<String>,
     pub header: Option<String>,
+    pub identity_proofs: Vec<AccountField>,
     pub fields: Vec<AccountField>,
     pub followers_count: i32,
     pub following_count: i32,
@@ -59,9 +64,30 @@ impl Account {
             .map(|name| get_file_url(instance_url, name));
         let header_url = profile.banner_file_name.as_ref()
             .map(|name| get_file_url(instance_url, name));
-        let fields = profile.extra_fields.into_inner().into_iter()
-            .map(|field| AccountField { name: field.name, value: field.value })
-            .collect();
+
+        let mut identity_proofs = vec![];
+        for proof in profile.identity_proofs.into_inner() {
+            // Skip proof if it doesn't map to field name
+            if let Some(field_name) = get_identity_proof_field_name(&proof.proof_type) {
+                let field = AccountField {
+                    name: field_name,
+                    value: proof.issuer.address,
+                    // Use current time because DID proofs are always valid
+                    verified_at: Some(Utc::now()),
+                };
+                identity_proofs.push(field);
+            };
+        };
+        let mut extra_fields = vec![];
+        for extra_field in profile.extra_fields.into_inner() {
+            let field = AccountField {
+                name: extra_field.name,
+                value: extra_field.value,
+                verified_at: None,
+            };
+            extra_fields.push(field);
+        };
+
         Self {
             id: profile.id,
             username: profile.username,
@@ -72,7 +98,8 @@ impl Account {
             note: profile.bio,
             avatar: avatar_url,
             header: header_url,
-            fields,
+            identity_proofs,
+            fields: extra_fields,
             followers_count: profile.follower_count,
             following_count: profile.following_count,
             statuses_count: profile.post_count,
@@ -87,6 +114,7 @@ impl Account {
             .map(|field| AccountField {
                 name: field.name,
                 value: field.value_source.unwrap_or(field.value),
+                verified_at: None,
             })
             .collect();
         let source = Source {
@@ -163,6 +191,7 @@ impl AccountUpdateData {
         self,
         current_avatar: &Option<String>,
         current_banner: &Option<String>,
+        current_identity_proofs: &[IdentityProof],
         media_dir: &Path,
     ) -> Result<ProfileUpdateData, FileError> {
         let avatar = process_b64_image_field_value(
@@ -171,6 +200,7 @@ impl AccountUpdateData {
         let banner = process_b64_image_field_value(
             self.header, current_banner.clone(), media_dir,
         )?;
+        let identity_proofs = current_identity_proofs.to_vec();
         let extra_fields = self.fields_attributes.unwrap_or(vec![]);
         let profile_data = ProfileUpdateData {
             display_name: self.display_name,
@@ -178,8 +208,9 @@ impl AccountUpdateData {
             bio_source: self.note_source,
             avatar,
             banner,
+            identity_proofs,
             extra_fields,
-            actor_json: None,
+            actor_json: None, // always None for local profiles
         };
         Ok(profile_data)
     }

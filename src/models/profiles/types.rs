@@ -52,10 +52,6 @@ impl ExtraFields {
     }
 }
 
-pub fn get_currency_field_name(currency_code: &str) -> String {
-    format!("${}", currency_code.to_uppercase())
-}
-
 json_from_sql!(ExtraFields);
 json_to_sql!(ExtraFields);
 
@@ -73,6 +69,7 @@ pub struct DbActorProfile {
     pub bio_source: Option<String>, // plaintext or markdown
     pub avatar_file_name: Option<String>,
     pub banner_file_name: Option<String>,
+    pub identity_proofs: IdentityProofs,
     pub extra_fields: ExtraFields,
     pub follower_count: i32,
     pub following_count: i32,
@@ -128,6 +125,7 @@ impl Default for DbActorProfile {
             bio_source: None,
             avatar_file_name: None,
             banner_file_name: None,
+            identity_proofs: IdentityProofs(vec![]),
             extra_fields: ExtraFields(vec![]),
             follower_count: 0,
             following_count: 0,
@@ -147,6 +145,7 @@ pub struct ProfileCreateData {
     pub bio: Option<String>,
     pub avatar: Option<String>,
     pub banner: Option<String>,
+    pub identity_proofs: Vec<IdentityProof>,
     pub extra_fields: Vec<ExtraField>,
     pub actor_json: Option<Actor>,
 }
@@ -172,6 +171,7 @@ pub struct ProfileUpdateData {
     pub bio_source: Option<String>,
     pub avatar: Option<String>,
     pub banner: Option<String>,
+    pub identity_proofs: Vec<IdentityProof>,
     pub extra_fields: Vec<ExtraField>,
     pub actor_json: Option<Actor>,
 }
@@ -189,6 +189,22 @@ impl ProfileUpdateData {
         // Clean extra fields and remove fields with empty labels
         self.extra_fields = clean_extra_fields(&self.extra_fields)?;
         Ok(())
+    }
+}
+
+impl From<&DbActorProfile> for ProfileUpdateData {
+    fn from(profile: &DbActorProfile) -> Self {
+        let profile = profile.clone();
+        Self {
+            display_name: profile.display_name,
+            bio: profile.bio,
+            bio_source: profile.bio_source,
+            avatar: profile.avatar_file_name,
+            banner: profile.banner_file_name,
+            identity_proofs: profile.identity_proofs.into_inner(),
+            extra_fields: profile.extra_fields.into_inner(),
+            actor_json: profile.actor_json,
+        }
     }
 }
 

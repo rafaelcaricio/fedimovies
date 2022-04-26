@@ -15,6 +15,7 @@ use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::ethereum::gate::is_allowed_user;
 use crate::ethereum::identity::{
+    ETHEREUM_EIP191_PROOF,
     DidPkh,
     create_identity_claim,
     verify_identity_proof,
@@ -32,6 +33,7 @@ use crate::models::profiles::queries::{
     get_wallet_address,
     update_profile,
 };
+use crate::models::profiles::types::{IdentityProof, ProfileUpdateData};
 use crate::models::relationships::queries::{
     create_follow_request,
     follow,
@@ -184,6 +186,7 @@ async fn update_credentials(
         .into_profile_data(
             &current_user.profile.avatar_file_name,
             &current_user.profile.banner_file_name,
+            &current_user.profile.identity_proofs.into_inner(),
             &config.media_dir(),
         )
         .map_err(|err| {
@@ -246,7 +249,7 @@ async fn create_identity_proof(
     proof_data: web::Json<IdentityProofData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, auth.token()).await?;
+    let mut current_user = get_current_user(db_client, auth.token()).await?;
     let actor_id = current_user.profile.actor_id(&config.instance_url());
     let wallet_address = current_user.wallet_address.as_ref()
         .ok_or(HttpError::PermissionError)?;
@@ -256,6 +259,29 @@ async fn create_identity_proof(
         &did,
         &proof_data.signature,
     )?;
+    let proof = IdentityProof {
+        issuer: did,
+        proof_type: ETHEREUM_EIP191_PROOF.to_string(),
+        value: proof_data.signature.clone(),
+    };
+    let mut profile_data = ProfileUpdateData::from(&current_user.profile);
+    match profile_data.identity_proofs.iter_mut()
+            .find(|item| item.issuer == proof.issuer) {
+        Some(mut item) => {
+            // Replace
+            item.proof_type = proof.proof_type;
+            item.value = proof.value;
+        },
+        None => {
+            // Add new proof
+            profile_data.identity_proofs.push(proof);
+        },
+    };
+    current_user.profile = update_profile(
+        db_client,
+        &current_user.id,
+        profile_data,
+    ).await?;
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }

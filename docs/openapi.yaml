@@ -664,6 +664,16 @@ components:
           description: The location of the user's profile page.
           type: string
           example: https://example.com/@user
+        identity_proofs:
+          description: Identity proofs.
+          type: array
+          items:
+            $ref: '#/components/schemas/Field'
+        fields:
+          description: Additional metadata attached to a profile as name-value pairs.
+          type: array
+          items:
+            $ref: '#/components/schemas/Field'
         wallet_address:
           description: Ethereum wallet address.
           type: string
@@ -685,6 +695,19 @@ components:
         url:
           description: The location of the original full-size attachment.
           type: string
+    Field:
+      type: object
+      properties:
+        name:
+          description: The key of a given field's key-value pair.
+          type: string
+        value:
+          description: The value associated with the name key.
+          type: string
+        verified_at:
+          description: Timestamp of when the server verified the field value.
+          type: string
+          format: dateTime
     Instance:
       type: object
       properties:

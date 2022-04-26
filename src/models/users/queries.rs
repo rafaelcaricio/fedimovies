@@ -80,6 +80,7 @@ pub async fn create_user(
         bio: None,
         avatar: None,
         banner: None,
+        identity_proofs: vec![],
         extra_fields: vec![],
         actor_json: None,
     };

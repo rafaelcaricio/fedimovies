@@ -159,6 +159,7 @@ pub async fn fetch_profile_by_actor_id(
         bio: actor.summary.clone(),
         avatar,
         banner,
+        identity_proofs: vec![],
         extra_fields,
         actor_json: Some(actor),
     };

@@ -10,10 +10,11 @@ use crate::models::cleanup::{
 };
 use crate::models::relationships::types::RelationshipType;
 use crate::utils::id::new_uuid;
+use super::currencies::get_currency_field_name;
 use super::types::{
-    get_currency_field_name,
-    ExtraFields,
     DbActorProfile,
+    ExtraFields,
+    IdentityProofs,
     ProfileCreateData,
     ProfileUpdateData,
 };
@@ -24,15 +25,15 @@ pub async fn create_profile(
     profile_data: ProfileCreateData,
 ) -> Result<DbActorProfile, DatabaseError> {
     let profile_id = new_uuid();
-    let extra_fields = ExtraFields(profile_data.extra_fields.clone());
     let row = db_client.query_one(
         "
         INSERT INTO actor_profile (
             id, username, display_name, acct, bio, bio_source,
-            avatar_file_name, banner_file_name, extra_fields,
+            avatar_file_name, banner_file_name,
+            identity_proofs, extra_fields,
             actor_json
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING actor_profile
         ",
         &[
@@ -44,7 +45,8 @@ pub async fn create_profile(
             &profile_data.bio,
             &profile_data.avatar,
             &profile_data.banner,
-            &extra_fields,
+            &IdentityProofs(profile_data.identity_proofs),
+            &ExtraFields(profile_data.extra_fields),
             &profile_data.actor_json,
         ],
     ).await.map_err(catch_unique_violation("profile"))?;
@@ -66,9 +68,10 @@ pub async fn update_profile(
             bio_source = $3,
             avatar_file_name = $4,
             banner_file_name = $5,
-            extra_fields = $6,
-            actor_json = $7
-        WHERE id = $8
+            identity_proofs = $6,
+            extra_fields = $7,
+            actor_json = $8
+        WHERE id = $9
         RETURNING actor_profile
         ",
         &[
@@ -77,6 +80,7 @@ pub async fn update_profile(
             &data.bio_source,
             &data.avatar,
             &data.banner,
+            &IdentityProofs(data.identity_proofs),
             &ExtraFields(data.extra_fields),
             &data.actor_json,
             &profile_id,
@@ -490,6 +494,8 @@ mod tests {
         let db_client = create_test_database().await;
         let profile = create_profile(&db_client, profile_data).await.unwrap();
         assert_eq!(profile.username, "test");
+        assert_eq!(profile.identity_proofs.into_inner().len(), 0);
+        assert_eq!(profile.extra_fields.into_inner().len(), 0);
     }
 
     #[tokio::test]
