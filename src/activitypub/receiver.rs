@@ -303,9 +303,11 @@ pub async fn import_post(
         if let Some(list) = object.tag {
             for tag in list {
                 if tag.tag_type == HASHTAG {
-                    // Ignore invalid tags
-                    if let Ok(tag_name) = normalize_tag(&tag.name) {
-                        tags.push(tag_name);
+                    if let Some(tag_name) = tag.name {
+                        // Ignore invalid tags
+                        if let Ok(tag_name) = normalize_tag(&tag_name) {
+                            tags.push(tag_name);
+                        };
                     };
                 } else if tag.tag_type == MENTION {
                     // Try to find profile by actor ID.
@@ -339,9 +341,16 @@ pub async fn import_post(
                         };
                     };
                     // Try to find profile by actor address
+                    let tag_name = match tag.name {
+                        Some(name) => name,
+                        None => {
+                            log::warn!("failed to parse mention");
+                            continue;
+                        },
+                    };
                     if let Ok(actor_address) = mention_to_address(
                         &instance.host(),
-                        &tag.name,
+                        &tag_name,
                     ) {
                         let profile = match get_profile_by_acct(
                             db_client,
@@ -372,7 +381,7 @@ pub async fn import_post(
                             mentions.push(profile.id);
                         };
                     } else {
-                        log::warn!("failed to parse mention {}", tag.name);
+                        log::warn!("failed to parse mention {}", tag_name);
                     };
                 };
             };

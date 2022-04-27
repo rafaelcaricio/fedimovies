@@ -36,7 +36,7 @@ fn default_tag_type() -> String { HASHTAG.to_string() }
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tag {
-    pub name: String,
+    pub name: Option<String>,
 
     #[serde(rename = "type", default = "default_tag_type")]
     pub tag_type: String,
@@ -204,11 +204,11 @@ pub fn create_note(
     };
     let mut tags = vec![];
     for profile in &post.mentions {
+        let tag_name = format!("@{}", profile.actor_address(instance_host));
         let actor_id = profile.actor_id(instance_url);
-        primary_audience.push(actor_id);
-        let actor_id = profile.actor_id(instance_url);
+        primary_audience.push(actor_id.clone());
         let tag = Tag {
-            name: format!("@{}", profile.actor_address(instance_host)),
+            name: Some(tag_name),
             tag_type: MENTION.to_string(),
             href: Some(actor_id),
         };
@@ -217,7 +217,7 @@ pub fn create_note(
     for tag_name in &post.tags {
         let tag_page_url = get_tag_page_url(instance_url, tag_name);
         let tag = Tag {
-            name: format!("#{}", tag_name),
+            name: Some(format!("#{}", tag_name)),
             tag_type: HASHTAG.to_string(),
             href: Some(tag_page_url),
         };
@@ -594,7 +594,7 @@ mod tests {
         );
         let tags = note.tag;
         assert_eq!(tags.len(), 1);
-        assert_eq!(tags[0].name, format!("@{}", parent_author_acct));
+        assert_eq!(tags[0].name.as_deref().unwrap(), format!("@{}", parent_author_acct));
         assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_id);
         assert_eq!(note.to, vec![AP_PUBLIC, parent_author_actor_id]);
     }
