@@ -227,7 +227,7 @@ async fn get_identity_claim(
     let actor_id = current_user.profile.actor_id(&config.instance_url());
     let wallet_address = current_user.wallet_address.as_ref()
         .ok_or(HttpError::PermissionError)?;
-    let did = DidPkh::from_ethereum_address(wallet_address);
+    let did = DidPkh::from_address(&config.default_currency(), wallet_address);
     let claim = create_identity_claim(&actor_id, &did)
         .map_err(|_| HttpError::InternalError)?;
     let response = IdentityClaim { claim };
@@ -246,7 +246,7 @@ async fn create_identity_proof(
     let actor_id = current_user.profile.actor_id(&config.instance_url());
     let wallet_address = current_user.wallet_address.as_ref()
         .ok_or(HttpError::PermissionError)?;
-    let did = DidPkh::from_ethereum_address(wallet_address);
+    let did = DidPkh::from_address(&config.default_currency(), wallet_address);
     verify_identity_proof(
         &actor_id,
         &did,

@@ -10,6 +10,21 @@ impl Currency {
             Self::Ethereum => "ETH",
         }.to_string()
     }
+
+    /// Network ID and chain ID according to CAIP-2 standard
+    /// https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md
+    pub fn caip2(&self) -> (String, String) {
+        let (network_id, chain_id) = match self {
+            Self::Ethereum => ("eip155", "1"),
+        };
+        (network_id.to_string(), chain_id.to_string())
+    }
+
+    pub fn normalize_address(&self, address: &str) -> String {
+        match self {
+            Self::Ethereum => address.to_lowercase(),
+        }
+    }
 }
 
 pub fn get_currency_field_name(currency: &Currency) -> String {

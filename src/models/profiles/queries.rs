@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
+use crate::ethereum::identity::DidPkh;
 use crate::models::cleanup::{
     find_orphaned_files,
     find_orphaned_ipfs_objects,
@@ -374,6 +375,7 @@ pub async fn search_profile_by_wallet_address(
     wallet_address: &str,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let field_name = get_currency_field_name(currency);
+    let did_str = DidPkh::from_address(currency, wallet_address).to_string();
     // If currency is Ethereum,
     // search over extra fields must be case insensitive
     let rows = db_client.query(
@@ -384,13 +386,18 @@ pub async fn search_profile_by_wallet_address(
             user_account.wallet_address = $2
             OR EXISTS (
                 SELECT 1
+                FROM jsonb_array_elements(actor_profile.identity_proofs) AS proof
+                WHERE proof ->> 'issuer' = $3
+            )
+            OR EXISTS (
+                SELECT 1
                 FROM jsonb_array_elements(actor_profile.extra_fields) AS field
                 WHERE
                     field ->> 'name' ILIKE $1
                     AND field ->> 'value' ILIKE $2
             )
         ",
-        &[&field_name, &wallet_address],
+        &[&field_name, &wallet_address, &did_str],
     ).await?;
     let profiles: Vec<DbActorProfile> = rows.iter()
         .map(|row| row.try_get("actor_profile"))
@@ -481,7 +488,11 @@ mod tests {
     use crate::activitypub::actor::Actor;
     use crate::database::test_utils::create_test_database;
     use crate::models::profiles::queries::create_profile;
-    use crate::models::profiles::types::{ExtraField, ProfileCreateData};
+    use crate::models::profiles::types::{
+        ExtraField,
+        IdentityProof,
+        ProfileCreateData,
+    };
     use crate::models::users::queries::create_user;
     use crate::models::users::types::UserCreateData;
     use super::*;
@@ -566,6 +577,27 @@ mod tests {
         };
         let profile_data = ProfileCreateData {
             extra_fields: vec![extra_field],
+            ..Default::default()
+        };
+        let profile = create_profile(db_client, profile_data).await.unwrap();
+        let profiles = search_profile_by_wallet_address(
+            db_client, &ETHEREUM, "0x1234abcd").await.unwrap();
+
+        assert_eq!(profiles.len(), 1);
+        assert_eq!(profiles[0].id, profile.id);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_search_profile_by_wallet_address_identity_proof() {
+        let db_client = &mut create_test_database().await;
+        let identity_proof = IdentityProof {
+            issuer: DidPkh::from_address(&ETHEREUM, "0x1234abcd"),
+            proof_type: "ethereum".to_string(),
+            value: "13590013185bdea963".to_string(),
+        };
+        let profile_data = ProfileCreateData {
+            identity_proofs: vec![identity_proof],
             ..Default::default()
         };
         let profile = create_profile(db_client, profile_data).await.unwrap();
