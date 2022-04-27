@@ -1,7 +1,19 @@
 use crate::ethereum::identity::ETHEREUM_EIP191_PROOF;
 
-pub fn get_currency_field_name(currency_code: &str) -> String {
-    format!("${}", currency_code.to_uppercase())
+pub enum Currency {
+    Ethereum,
+}
+
+impl Currency {
+    fn code(&self) -> String {
+        match self {
+            Self::Ethereum => "ETH",
+        }.to_string()
+    }
+}
+
+pub fn get_currency_field_name(currency: &Currency) -> String {
+    format!("${}", currency.code())
 }
 
 pub fn get_identity_proof_field_name(proof_type: &str) -> Option<String> {
@@ -10,4 +22,18 @@ pub fn get_identity_proof_field_name(proof_type: &str) -> Option<String> {
         _ => return None,
     };
     Some(field_name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_currency_field_name() {
+        let ethereum = Currency::Ethereum;
+        assert_eq!(
+            get_currency_field_name(&ethereum),
+            "$ETH",
+        );
+    }
 }

@@ -9,6 +9,7 @@ use url::Url;
 use crate::activitypub::views::get_instance_actor_url;
 use crate::errors::ConversionError;
 use crate::ethereum::utils::{parse_caip2_chain_id, ChainIdError};
+use crate::models::profiles::currencies::Currency;
 use crate::utils::crypto::deserialize_private_key;
 
 #[derive(Clone, Debug)]
@@ -167,6 +168,10 @@ impl Config {
 
     pub fn media_dir(&self) -> PathBuf {
         self.storage_dir.join("media")
+    }
+
+    pub fn default_currency(&self) -> Currency {
+        Currency::Ethereum
     }
 }
 

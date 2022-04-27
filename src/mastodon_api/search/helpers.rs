@@ -18,7 +18,6 @@ use crate::models::profiles::queries::{
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::{
     validate_wallet_address,
-    WALLET_CURRENCY_CODE,
     User,
 };
 use super::types::SearchResults;
@@ -139,10 +138,11 @@ pub async fn search(
             };
         },
         SearchQuery::WalletAddress(address) => {
-            // Search is case insensitive
+            // Search by wallet address, assuming default currency (ethereum)
+            // TODO: support other currencies
             profiles = search_profile_by_wallet_address(
                 db_client,
-                WALLET_CURRENCY_CODE,
+                &config.default_currency(),
                 &address,
             ).await?;
         },

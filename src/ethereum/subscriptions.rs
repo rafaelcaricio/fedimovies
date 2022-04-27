@@ -13,6 +13,7 @@ use web3::{
 use crate::config::BlockchainConfig;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{ConversionError, DatabaseError};
+use crate::models::profiles::currencies::Currency;
 use crate::models::profiles::queries::search_profile_by_wallet_address;
 use crate::models::relationships::queries::unsubscribe;
 use crate::models::subscriptions::queries::{
@@ -22,7 +23,6 @@ use crate::models::subscriptions::queries::{
     get_subscription_by_addresses,
 };
 use crate::models::users::queries::get_user_by_wallet_address;
-use crate::models::users::types::WALLET_CURRENCY_CODE;
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
 use super::utils::{address_to_string, parse_address};
@@ -34,6 +34,8 @@ fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
         .ok_or(ConversionError)?;
     Ok(datetime)
 }
+
+const ETHEREUM: Currency = Currency::Ethereum;
 
 /// Search for subscription update events
 pub async fn check_subscriptions(
@@ -103,7 +105,7 @@ pub async fn check_subscriptions(
                 // New subscription
                 let profiles = search_profile_by_wallet_address(
                     db_client,
-                    WALLET_CURRENCY_CODE,
+                    &ETHEREUM,
                     &sender_address,
                 ).await?;
                 let sender = match &profiles[..] {

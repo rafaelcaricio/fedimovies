@@ -10,7 +10,7 @@ use crate::models::cleanup::{
 };
 use crate::models::relationships::types::RelationshipType;
 use crate::utils::id::new_uuid;
-use super::currencies::get_currency_field_name;
+use super::currencies::{get_currency_field_name, Currency};
 use super::types::{
     DbActorProfile,
     ExtraFields,
@@ -370,16 +370,18 @@ pub async fn search_profile(
 
 pub async fn search_profile_by_wallet_address(
     db_client: &impl GenericClient,
-    currency_code: &str,
+    currency: &Currency,
     wallet_address: &str,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let field_name = get_currency_field_name(currency_code);
+    let field_name = get_currency_field_name(currency);
+    // If currency is Ethereum,
+    // search over extra fields must be case insensitive
     let rows = db_client.query(
         "
         SELECT actor_profile
         FROM actor_profile LEFT JOIN user_account USING (id)
         WHERE
-            user_account.wallet_address ILIKE $2
+            user_account.wallet_address = $2
             OR EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(actor_profile.extra_fields) AS field
@@ -534,6 +536,8 @@ mod tests {
         assert_eq!(deletion_queue.ipfs_objects.len(), 0);
     }
 
+    const ETHEREUM: Currency = Currency::Ethereum;
+
     #[tokio::test]
     #[serial]
     async fn test_search_profile_by_wallet_address_local() {
@@ -545,7 +549,7 @@ mod tests {
         };
         let user = create_user(db_client, user_data).await.unwrap();
         let profiles = search_profile_by_wallet_address(
-            db_client, "ETH", wallet_address).await.unwrap();
+            db_client, &ETHEREUM, wallet_address).await.unwrap();
 
         assert_eq!(profiles.len(), 1);
         assert_eq!(profiles[0].id, user.profile.id);
@@ -566,7 +570,7 @@ mod tests {
         };
         let profile = create_profile(db_client, profile_data).await.unwrap();
         let profiles = search_profile_by_wallet_address(
-            db_client, "ETH", "0x1234abcd").await.unwrap();
+            db_client, &ETHEREUM, "0x1234abcd").await.unwrap();
 
         assert_eq!(profiles.len(), 1);
         assert_eq!(profiles[0].id, profile.id);

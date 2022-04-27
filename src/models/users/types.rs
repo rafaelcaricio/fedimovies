@@ -62,8 +62,6 @@ pub fn validate_local_username(username: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-pub const WALLET_CURRENCY_CODE: &str = "ETH";
-
 /// Verifies that wallet address is valid ethereum address
 pub fn validate_wallet_address(wallet_address: &str) -> Result<(), ValidationError> {
     // Address should be lowercase
