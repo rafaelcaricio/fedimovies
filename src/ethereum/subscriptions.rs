@@ -107,6 +107,7 @@ pub async fn check_subscriptions(
                     db_client,
                     &ETHEREUM,
                     &sender_address,
+                    true,
                 ).await?;
                 let sender = match &profiles[..] {
                     [profile] => profile,

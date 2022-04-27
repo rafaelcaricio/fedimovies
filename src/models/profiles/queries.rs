@@ -373,6 +373,7 @@ pub async fn search_profile_by_wallet_address(
     db_client: &impl GenericClient,
     currency: &Currency,
     wallet_address: &str,
+    prefer_verified: bool,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let field_name = get_currency_field_name(currency);
     let did_str = DidPkh::from_address(currency, wallet_address).to_string();
@@ -380,7 +381,7 @@ pub async fn search_profile_by_wallet_address(
     // search over extra fields must be case insensitive
     let rows = db_client.query(
         "
-        SELECT actor_profile
+        SELECT actor_profile, TRUE AS is_verified
         FROM actor_profile LEFT JOIN user_account USING (id)
         WHERE
             user_account.wallet_address = $2
@@ -389,7 +390,11 @@ pub async fn search_profile_by_wallet_address(
                 FROM jsonb_array_elements(actor_profile.identity_proofs) AS proof
                 WHERE proof ->> 'issuer' = $3
             )
-            OR EXISTS (
+        UNION ALL
+        SELECT actor_profile, FALSE
+        FROM actor_profile
+        WHERE
+            EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(actor_profile.extra_fields) AS field
                 WHERE
@@ -399,10 +404,23 @@ pub async fn search_profile_by_wallet_address(
         ",
         &[&field_name, &wallet_address, &did_str],
     ).await?;
-    let profiles: Vec<DbActorProfile> = rows.iter()
-        .map(|row| row.try_get("actor_profile"))
-        .collect::<Result<_, _>>()?;
-    Ok(profiles)
+    let mut verified = vec![];
+    let mut unverified = vec![];
+    for row in rows {
+        let profile: DbActorProfile = row.try_get("actor_profile")?;
+        let is_verified: bool = row.try_get("is_verified")?;
+        if is_verified {
+            verified.push(profile);
+        } else {
+            unverified.push(profile);
+        };
+    };
+    let results = if prefer_verified && verified.len() > 0 {
+        verified
+    } else {
+        [verified, unverified].concat()
+    };
+    Ok(results)
 }
 
 /// Get wallet address corresponding to local profile
@@ -560,7 +578,7 @@ mod tests {
         };
         let user = create_user(db_client, user_data).await.unwrap();
         let profiles = search_profile_by_wallet_address(
-            db_client, &ETHEREUM, wallet_address).await.unwrap();
+            db_client, &ETHEREUM, wallet_address, false).await.unwrap();
 
         assert_eq!(profiles.len(), 1);
         assert_eq!(profiles[0].id, user.profile.id);
@@ -581,7 +599,7 @@ mod tests {
         };
         let profile = create_profile(db_client, profile_data).await.unwrap();
         let profiles = search_profile_by_wallet_address(
-            db_client, &ETHEREUM, "0x1234abcd").await.unwrap();
+            db_client, &ETHEREUM, "0x1234abcd", false).await.unwrap();
 
         assert_eq!(profiles.len(), 1);
         assert_eq!(profiles[0].id, profile.id);
@@ -602,7 +620,7 @@ mod tests {
         };
         let profile = create_profile(db_client, profile_data).await.unwrap();
         let profiles = search_profile_by_wallet_address(
-            db_client, &ETHEREUM, "0x1234abcd").await.unwrap();
+            db_client, &ETHEREUM, "0x1234abcd", false).await.unwrap();
 
         assert_eq!(profiles.len(), 1);
         assert_eq!(profiles[0].id, profile.id);

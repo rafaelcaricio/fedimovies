@@ -144,6 +144,7 @@ pub async fn search(
                 db_client,
                 &config.default_currency(),
                 &address,
+                false,
             ).await?;
         },
         SearchQuery::Unknown => (), // ignore
