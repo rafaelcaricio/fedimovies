@@ -259,9 +259,15 @@ pub async fn import_post(
             &config.media_dir(),
             &author_id,
         ).await?;
-        let content = object.content
-            .ok_or(ValidationError("no content"))?;
+
+        let content = if object.object_type == PAGE {
+            // Lemmy Page
+            object.name.ok_or(ValidationError("no content"))?
+        } else {
+            object.content.ok_or(ValidationError("no content"))?
+        };
         let content_cleaned = clean_note_content(&content)?;
+
         let mut attachments: Vec<Uuid> = Vec::new();
         if let Some(value) = object.attachment {
             let list: Vec<Attachment> = parse_property_value(&value)
@@ -512,7 +518,7 @@ pub async fn receive_activity(
             follow_request_rejected(db_client, &follow_request_id).await?;
             FOLLOW
         },
-        (CREATE, NOTE) => {
+        (CREATE, NOTE | QUESTION | PAGE) => {
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
             let object_id = object.id.clone();
@@ -581,7 +587,7 @@ pub async fn receive_activity(
             });
             NOTE
         },
-        (LIKE, _) | (EMOJI_REACT, _) => {
+        (EMOJI_REACT | LIKE, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
             let author = get_or_import_profile_by_actor_id(
                 db_client,

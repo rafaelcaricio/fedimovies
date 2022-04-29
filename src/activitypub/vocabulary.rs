@@ -8,6 +8,7 @@ pub const DELETE: &str = "Delete";
 pub const EMOJI_REACT: &str = "EmojiReact";
 pub const FOLLOW: &str = "Follow";
 pub const LIKE: &str = "Like";
+pub const QUESTION: &str = "Question";
 pub const REJECT: &str = "Reject";
 pub const UNDO: &str = "Undo";
 pub const UPDATE: &str = "Update";
@@ -21,6 +22,7 @@ pub const DOCUMENT: &str = "Document";
 pub const IMAGE: &str = "Image";
 pub const MENTION: &str = "Mention";
 pub const NOTE: &str = "Note";
+pub const PAGE: &str = "Page";
 pub const TOMBSTONE: &str = "Tombstone";
 
 // Collections
