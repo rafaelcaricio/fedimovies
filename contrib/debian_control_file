@@ -1,0 +1,3 @@
+Package: mitra
+Maintainer: silverpill
+Description: ActivityPub server written in Rust
