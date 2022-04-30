@@ -22,10 +22,36 @@ Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 
 ## Requirements
 
-- Rust 1.54+
+- Rust 1.54+ (when building from source)
 - PostgreSQL 12+
 - IPFS node (optional, see [guide](./docs/ipfs.md))
 - Ethereum node (optional)
+
+## Installation
+
+### Building from source
+
+Run:
+
+```
+cargo build --release
+```
+
+This command will produce two binaries in `target/release` directory, `mitra` and `mitractl`.
+
+Create a database and a configuration file (see [example](./config.yaml.example)).
+
+When starting Mitra, set the value of `ENVIRONMENT` variable to `production` and specify the path to configuration file with `CONFIG_PATH`:
+
+```
+ENVIRONMENT=production CONFIG_PATH=/etc/mitra/config.yaml mitra
+```
+
+An HTTP server will be needed to handle HTTPS requests and serve the frontend. See the example of [nginx configuration file](./contrib/mitra.nginx).
+
+Building instructions for `mitra-web` frontend can be found at https://codeberg.org/silverpill/mitra-web#project-setup.
+
+To run Mitra as a systemd service, check out the [systemd unit file example](./contrib/mitra.service).
 
 ## Development
 
