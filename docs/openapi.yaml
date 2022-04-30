@@ -19,7 +19,6 @@ paths:
                   type: string
                   enum:
                     - password
-                    - ethereum
                     - eip4361
                   example: eip4361
                 username:
@@ -33,12 +32,8 @@ paths:
                   description: EIP-4361 signature (required if grant type is "eip4361").
                   type: string
                   example: 0x905...
-                wallet_address:
-                  description: Ethereum wallet address (required if grant type is "ethereum").
-                  type: string
-                  example: null
                 password:
-                  description: Password (required if grant type is "password" or "ethereum").
+                  description: Password (required if grant type is "password").
                   type: string
                   example: null
               required:

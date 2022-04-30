@@ -120,6 +120,7 @@ pub struct Config {
     #[serde(default)]
     pub registrations_open: bool, // default is false
 
+    // EIP-4361 login message
     pub login_message: String,
 
     #[serde(default = "default_post_character_limit")]

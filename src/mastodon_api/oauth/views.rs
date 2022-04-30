@@ -33,6 +33,7 @@ async fn token_view(
             get_user_by_name(db_client, username).await?
         },
         "ethereum" => {
+            // DEPRECATED
             let wallet_address = request_data.wallet_address.as_ref()
                 .ok_or(ValidationError("wallet address is required"))?;
             validate_wallet_address(wallet_address)?;

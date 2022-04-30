@@ -4,19 +4,22 @@ storage_dir: files
 http_host: '127.0.0.1'
 http_port: 8380
 
-# domain name
+# Domain name
 instance_uri: myserver.net
 instance_title: myserver
 instance_short_description: my fedi instance
 # Long description can contain markdown syntax
 instance_description: my fedi instance
+
 # RSA private key can be generated with `mitractl generate-rsa-key`
 instance_rsa_key: null
 registrations_open: false
-# Login message must contain instance URL
-login_message: 'Sign this message to log in to https://myserver.net. Do not sign this message on other sites!'
+# EIP-4361 login message
+login_message: 'Do not sign this message on other sites!'
+post_character_limit: 2000
 
-# To disable blockchain integration, set `blockchain` to `null`
+# Blockchain settings
+# Set `blockchain` key to `null` to disable blockchain integration
 blockchain:
   # CAIP-2 chain ID (https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md)
   chain_id: eip155:31337
@@ -28,6 +31,8 @@ blockchain:
   # Instance private key
   signing_key: null
 
+# IPFS settings
+# Set `ipfs_api_url` key to `null` to disable IPFS integration
 ipfs_api_url: 'http://127.0.0.1:5001'
 # IPFS gateway for clients
 ipfs_gateway_url: 'https://ipfs.io'
