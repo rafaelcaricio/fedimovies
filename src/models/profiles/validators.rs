@@ -44,18 +44,28 @@ pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> 
     Ok(cleaned_bio)
 }
 
+const FIELD_NAME_MAX_SIZE: usize = 100;
+const FIELD_VALUE_MAX_SIZE: usize = 2000;
+
 /// Validates extra fields and removes fields with empty labels
 pub fn clean_extra_fields(extra_fields: &[ExtraField])
     -> Result<Vec<ExtraField>, ValidationError>
 {
-   let cleaned_extra_fields: Vec<_> = extra_fields.iter().cloned()
-        .map(|mut field| {
-            field.name = field.name.trim().to_string();
-            field.value = clean_html_strict(&field.value);
-            field
-        })
-        .filter(|field| !field.name.is_empty())
-        .collect();
+    let mut cleaned_extra_fields = vec![];
+    for mut field in extra_fields.iter().cloned() {
+        field.name = field.name.trim().to_string();
+        field.value = clean_html_strict(&field.value);
+        if field.name.is_empty() {
+            continue;
+        };
+        if field.name.len() > FIELD_NAME_MAX_SIZE {
+            return Err(ValidationError("field name is too long"));
+        };
+        if field.value.len() > FIELD_VALUE_MAX_SIZE {
+            return Err(ValidationError("field value is too long"));
+        };
+        cleaned_extra_fields.push(field);
+    };
     if cleaned_extra_fields.len() > 20 {
         return Err(ValidationError("at most 20 fields are allowed"));
     };
