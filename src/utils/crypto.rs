@@ -34,7 +34,7 @@ pub fn generate_weak_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> 
 }
 
 pub fn serialize_private_key(
-    private_key: RsaPrivateKey,
+    private_key: &RsaPrivateKey,
 ) -> Result<String, rsa::pkcs8::Error> {
     private_key.to_pkcs8_pem().map(|val| val.to_string())
 }

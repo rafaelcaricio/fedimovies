@@ -69,13 +69,7 @@ psql -h localhost -p 55432 -U mitra mitra
 
 ### Run web service
 
-Generate instance key:
-
-```
-cargo run --bin mitractl generate-rsa-key
-```
-
-Create config file, set `instance_rsa_key`, adjust other settings if needed:
+Create config file, adjust settings if needed:
 
 ```
 cp config.yaml.example config.yaml

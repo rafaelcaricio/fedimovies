@@ -11,8 +11,6 @@ instance_short_description: my fedi instance
 # Long description can contain markdown syntax
 instance_description: my fedi instance
 
-# RSA private key can be generated with `mitractl generate-rsa-key`
-instance_rsa_key: null
 registrations_open: false
 # EIP-4361 login message
 login_message: 'Do not sign this message on other sites!'

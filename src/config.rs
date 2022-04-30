@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use log::{Level as LogLevel};
@@ -10,7 +10,12 @@ use crate::activitypub::views::get_instance_actor_url;
 use crate::errors::ConversionError;
 use crate::ethereum::utils::{parse_caip2_chain_id, ChainIdError};
 use crate::models::profiles::currencies::Currency;
-use crate::utils::crypto::deserialize_private_key;
+use crate::utils::crypto::{
+    deserialize_private_key,
+    generate_private_key,
+    serialize_private_key,
+};
+use crate::utils::files::{set_file_permissions, write_file};
 
 #[derive(Clone, Debug)]
 pub enum Environment {
@@ -115,7 +120,9 @@ pub struct Config {
     pub instance_title: String,
     pub instance_short_description: String,
     pub instance_description: String,
-    instance_rsa_key: String,
+
+    #[serde(skip)]
+    instance_rsa_key: Option<RsaPrivateKey>,
 
     #[serde(default)]
     pub registrations_open: bool, // default is false
@@ -150,15 +157,11 @@ impl Config {
         Ok(url)
     }
 
-    fn try_instance_rsa_key(&self) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
-        deserialize_private_key(&self.instance_rsa_key)
-    }
-
     pub fn instance(&self) -> Instance {
         Instance {
             _url: self.try_instance_url().unwrap(),
             _version: self.version.clone(),
-            actor_key: self.try_instance_rsa_key().unwrap(),
+            actor_key: self.instance_rsa_key.clone().unwrap(),
             is_private: matches!(self.environment, Environment::Development),
         }
     }
@@ -212,6 +215,28 @@ impl Instance {
     }
 }
 
+/// Generates new instance RSA key or returns existing key
+fn read_instance_rsa_key(storage_dir: &Path) -> RsaPrivateKey {
+    let private_key_path = storage_dir.join("instance_rsa_key");
+    if private_key_path.exists() {
+        let private_key_str = std::fs::read_to_string(&private_key_path)
+            .expect("failed to read instance RSA key");
+        let private_key = deserialize_private_key(&private_key_str)
+            .expect("failed to read instance RSA key");
+        private_key
+    } else {
+        let private_key = generate_private_key()
+            .expect("failed to generate RSA key");
+        let private_key_str = serialize_private_key(&private_key)
+            .expect("failed to serialize RSA key");
+        write_file(private_key_str.as_bytes(), &private_key_path)
+            .expect("failed to write instance RSA key");
+        set_file_permissions(&private_key_path, 0o600)
+            .expect("failed to set permissions on RSA key file");
+        private_key
+    }
+}
+
 pub fn parse_config() -> Config {
     let env = parse_env();
     let config_yaml = std::fs::read_to_string(env.config_path)
@@ -220,36 +245,38 @@ pub fn parse_config() -> Config {
         .expect("invalid yaml data");
     // Override environment parameter in config if env variable is set
     config.environment = env.environment.unwrap_or(config.environment);
-    // Set_version
+    // Set version
     config.version = env.crate_version;
     // Validate config
     if !config.storage_dir.exists() {
         panic!("storage directory does not exist");
     };
+    config.try_instance_url().expect("invalid instance URI");
     if let Some(blockchain_config) = config.blockchain.as_ref() {
         blockchain_config.try_ethereum_chain_id().unwrap();
         if !blockchain_config.contract_dir.exists() {
             panic!("contract directory does not exist");
         };
     };
-    config.try_instance_url().expect("invalid instance URI");
-    config.try_instance_rsa_key().expect("invalid instance RSA key");
     if config.ipfs_api_url.is_some() != config.ipfs_gateway_url.is_some() {
         panic!("both ipfs_api_url and ipfs_gateway_url must be set");
     };
+
+    // Insert instance RSA key
+    config.instance_rsa_key = Some(read_instance_rsa_key(&config.storage_dir));
 
     config
 }
 
 #[cfg(test)]
 mod tests {
-    use rand::rngs::OsRng;
+    use crate::utils::crypto::generate_weak_private_key;
     use super::*;
 
     #[test]
     fn test_instance_url_https_dns() {
         let instance_url = Url::parse("https://example.com/").unwrap();
-        let instance_rsa_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
+        let instance_rsa_key = generate_weak_private_key().unwrap();
         let instance = Instance {
             _url: instance_url,
             _version: "1.0.0".to_string(),
@@ -265,7 +292,7 @@ mod tests {
     #[test]
     fn test_instance_url_http_ipv4() {
         let instance_url = Url::parse("http://1.2.3.4:3777/").unwrap();
-        let instance_rsa_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
+        let instance_rsa_key = generate_weak_private_key().unwrap();
         let instance = Instance {
             _url: instance_url,
             _version: "1.0.0".to_string(),

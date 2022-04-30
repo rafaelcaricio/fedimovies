@@ -123,7 +123,7 @@ pub async fn create_account(
         Ok(Ok(private_key)) => private_key,
         _ => return Err(HttpError::InternalError),
     };
-    let private_key_pem = serialize_private_key(private_key)
+    let private_key_pem = serialize_private_key(&private_key)
         .map_err(|_| HttpError::InternalError)?;
 
     let AccountCreateData { username, invite_code, .. } =

@@ -1,5 +1,11 @@
-use std::fs::{remove_file, File};
+use std::fs::{
+    remove_file,
+    set_permissions,
+    File,
+    Permissions,
+};
 use std::io::prelude::*;
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
 use mime_guess::get_mime_extensions_str;
@@ -36,9 +42,15 @@ fn get_file_name(data: &[u8], media_type: Option<&str>) -> String {
     file_name
 }
 
-fn write_file(data: Vec<u8>, file_path: &Path) -> Result<(), FileError> {
+pub fn write_file(data: &[u8], file_path: &Path) -> Result<(), FileError> {
     let mut file = File::create(file_path)?;
-    file.write_all(&data)?;
+    file.write_all(data)?;
+    Ok(())
+}
+
+pub fn set_file_permissions(file_path: &Path, mode: u32) -> Result<(), FileError> {
+    let permissions = Permissions::from_mode(mode);
+    set_permissions(file_path, permissions)?;
     Ok(())
 }
 
@@ -49,7 +61,7 @@ pub fn save_file(
     let media_type = sniff_media_type(&data);
     let file_name = get_file_name(&data, media_type.as_deref());
     let file_path = output_dir.join(&file_name);
-    write_file(data, &file_path)?;
+    write_file(&data, &file_path)?;
     Ok((file_name, media_type))
 }
 
@@ -61,7 +73,7 @@ pub fn save_b64_file(
     let media_type = sniff_media_type(&data);
     let file_name = get_file_name(&data, media_type.as_deref());
     let file_path = output_dir.join(&file_name);
-    write_file(data, &file_path)?;
+    write_file(&data, &file_path)?;
     Ok((file_name, media_type))
 }
 
@@ -78,7 +90,7 @@ pub fn save_validated_b64_file(
     }
     let file_name = get_file_name(&data, Some(&media_type));
     let file_path = output_dir.join(&file_name);
-    write_file(data, &file_path)?;
+    write_file(&data, &file_path)?;
     Ok((file_name, media_type))
 }
 

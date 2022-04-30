@@ -42,7 +42,7 @@ struct GenerateRsaKey;
 impl GenerateRsaKey {
     fn execute(&self) -> () {
         let private_key = generate_private_key().unwrap();
-        let private_key_str = serialize_private_key(private_key).unwrap();
+        let private_key_str = serialize_private_key(&private_key).unwrap();
         println!("{}", private_key_str);
     }
 }

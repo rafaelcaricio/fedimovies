@@ -357,7 +357,7 @@ mod tests {
     #[test]
     fn test_local_actor() {
         let private_key = generate_weak_private_key().unwrap();
-        let private_key_pem = serialize_private_key(private_key).unwrap();
+        let private_key_pem = serialize_private_key(&private_key).unwrap();
         let profile = DbActorProfile {
             username: "testuser".to_string(),
             ..Default::default()
