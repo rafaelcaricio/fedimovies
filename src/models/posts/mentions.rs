@@ -8,8 +8,9 @@ use crate::errors::{DatabaseError, ValidationError};
 use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
 
-const MENTION_RE: &str = r"@?(?P<user>\w+)@(?P<instance>.+)";
-const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s)@(?P<user>\w+)@(?P<instance>\S+)";
+// See also: USERNAME_RE in models::profiles::validators
+const MENTION_RE: &str = r"@?(?P<user>[\w\.-]+)@(?P<instance>.+)";
+const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s)@(?P<user>[\w\.-]+)@(?P<instance>\S+)";
 const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<instance>[\w\.-]+\w)(?P<after>(\.|<br>|\.<br>)?)$";
 
 /// Finds everything that looks like a mention

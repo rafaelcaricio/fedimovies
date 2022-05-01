@@ -32,7 +32,8 @@ enum SearchQuery {
 fn parse_profile_query(query: &str) ->
     Result<(String, Option<String>), ValidationError>
 {
-    let acct_regexp = Regex::new(r"^@?(?P<user>\w+)(@(?P<instance>[\w\.-]+))?$").unwrap();
+    // See also: USERNAME_RE in models::profiles::validators
+    let acct_regexp = Regex::new(r"^@?(?P<user>[\w\.-]+)(@(?P<instance>[\w\.-]+))?$").unwrap();
     let acct_caps = acct_regexp.captures(query)
         .ok_or(ValidationError("invalid search query"))?;
     let username = acct_caps.name("user")
