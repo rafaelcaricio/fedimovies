@@ -145,6 +145,7 @@ fn require_actor_signature(actor_id: &str, signer_id: &str)
     -> Result<(), HttpError>
 {
     if actor_id != signer_id {
+        // Forwarded activity
         log::warn!(
             "request signer {} does not match actor {}",
             signer_id,
@@ -248,7 +249,10 @@ pub async fn receive_activity(
             NOTE
         },
         (DELETE, _) => {
-            require_actor_signature(&activity.actor, &signer_id)?;
+            if signer_id != activity.actor {
+                // Ignore forwarded Delete() activities
+                return Ok(());
+            };
             let object_id = get_object_id(activity.object)?;
             if object_id == activity.actor {
                 log::info!("received deletion request for {}", object_id);
