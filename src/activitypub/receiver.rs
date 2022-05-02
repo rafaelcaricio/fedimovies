@@ -50,7 +50,7 @@ use super::actor::Actor;
 use super::deliverer::deliver_activity;
 use super::fetcher::fetchers::{
     fetch_avatar_and_banner,
-    fetch_attachment,
+    fetch_file,
     fetch_object,
 };
 use super::fetcher::helpers::{
@@ -286,7 +286,7 @@ pub async fn import_post(
                 };
                 let attachment_url = attachment.url
                     .ok_or(ValidationError("attachment URL is missing"))?;
-                let (file_name, media_type) = fetch_attachment(&attachment_url, &output_dir).await
+                let (file_name, media_type) = fetch_file(&attachment_url, &output_dir).await
                     .map_err(|_| ValidationError("failed to fetch attachment"))?;
                 log::info!("downloaded attachment {}", attachment_url);
                 downloaded.push((
