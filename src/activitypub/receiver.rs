@@ -23,9 +23,7 @@ use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
-    update_profile,
 };
-use crate::models::profiles::types::ProfileUpdateData;
 use crate::models::reactions::queries::{
     create_reaction,
     get_reaction_by_activity_id,
@@ -46,19 +44,15 @@ use super::activity::{
     Object,
     create_activity_accept_follow,
 };
-use super::actor::Actor;
 use super::deliverer::deliver_activity;
-use super::fetcher::fetchers::{
-    fetch_avatar_and_banner,
-    fetch_file,
-    fetch_object,
-};
+use super::fetcher::fetchers::{fetch_file, fetch_object};
 use super::fetcher::helpers::{
     get_or_import_profile_by_actor_id,
     import_profile_by_actor_address,
     ImportError,
 };
-use super::inbox::create::get_note_visibility;
+use super::inbox::create_note::get_note_visibility;
+use super::inbox::update_person::handle_update_person;
 use super::vocabulary::*;
 
 fn parse_actor_id(
@@ -489,7 +483,8 @@ pub async fn receive_activity(
 
     let activity: Activity = serde_json::from_value(activity_raw.clone())
         .map_err(|_| ValidationError("invalid activity"))?;
-    let activity_type = activity.activity_type;
+    let activity_type = activity.activity_type.clone();
+    let activity_actor = activity.actor.clone();
     let maybe_object_type = activity.object.get("type")
         .and_then(|val| val.as_str())
         .unwrap_or("Unknown");
@@ -705,42 +700,11 @@ pub async fn receive_activity(
         },
         (UPDATE, PERSON) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            let actor: Actor = serde_json::from_value(activity.object)
-                .map_err(|_| ValidationError("invalid actor data"))?;
-            if actor.id != activity.actor {
-                return Err(HttpError::ValidationError("actor ID mismatch".into()));
-            };
-            let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
-            let (avatar, banner) = fetch_avatar_and_banner(&actor, &config.media_dir()).await
-                .map_err(|_| ValidationError("failed to fetch image"))?;
-            let (identity_proofs, extra_fields) = actor.parse_attachments();
-            let actor_old = profile.actor_json.unwrap();
-            if actor_old.id != actor.id {
-                log::warn!(
-                    "actor ID changed from {} to {}",
-                    actor_old.id,
-                    actor.id,
-                );
-            };
-            if actor_old.public_key.public_key_pem != actor.public_key.public_key_pem {
-                log::warn!(
-                    "actor public key changed from {} to {}",
-                    actor_old.public_key.public_key_pem,
-                    actor.public_key.public_key_pem,
-                );
-            };
-            let mut profile_data = ProfileUpdateData {
-                display_name: actor.name.clone(),
-                bio: actor.summary.clone(),
-                bio_source: actor.summary.clone(),
-                avatar,
-                banner,
-                identity_proofs,
-                extra_fields,
-                actor_json: Some(actor),
-            };
-            profile_data.clean()?;
-            update_profile(db_client, &profile.id, profile_data).await?;
+            handle_update_person(
+                db_client,
+                &config.media_dir(),
+                activity,
+            ).await?;
             PERSON
         },
         _ => {
@@ -751,7 +715,7 @@ pub async fn receive_activity(
         "processed {}({}) from {}",
         activity_type,
         object_type,
-        activity.actor,
+        activity_actor,
     );
     Ok(())
 }
