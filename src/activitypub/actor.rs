@@ -208,13 +208,19 @@ pub struct ActorAddress {
     pub is_local: bool,
 }
 
+impl ToString for ActorAddress {
+    fn to_string(&self) -> String {
+        format!("{}@{}", self.username, self.instance)
+    }
+}
+
 impl ActorAddress {
     /// Returns acct string, as used in Mastodon
     pub fn acct(&self) -> String {
         if self.is_local {
             self.username.clone()
         } else {
-            format!("{}@{}", self.username, self.instance)
+           self.to_string()
         }
     }
 }

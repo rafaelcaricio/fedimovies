@@ -4,7 +4,7 @@ use reqwest::Method;
 use serde_json::Value;
 
 use crate::activitypub::activity::Object;
-use crate::activitypub::actor::Actor;
+use crate::activitypub::actor::{Actor, ActorAddress};
 use crate::activitypub::constants::ACTIVITY_CONTENT_TYPE;
 use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};
@@ -112,14 +112,15 @@ pub async fn fetch_avatar_and_banner(
 
 pub async fn fetch_profile(
     instance: &Instance,
-    username: &str,
-    actor_host: &str,
+    actor_address: &ActorAddress,
     media_dir: &Path,
 ) -> Result<ProfileCreateData, FetchError> {
-    let actor_address = format!("{}@{}", &username, &actor_host);
-    let webfinger_account_uri = format!("acct:{}", actor_address);
+    let webfinger_account_uri = format!("acct:{}", actor_address.to_string());
     // TOOD: support http
-    let webfinger_url = format!("https://{}/.well-known/webfinger", actor_host);
+    let webfinger_url = format!(
+        "https://{}/.well-known/webfinger",
+        actor_address.instance,
+    );
     let client = reqwest::Client::new();
     let mut request_builder = client.get(&webfinger_url);
     if !instance.is_private {

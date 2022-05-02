@@ -94,8 +94,7 @@ pub async fn import_profile_by_actor_address(
     };
     let mut profile_data = fetch_profile(
         instance,
-        &actor_address.username,
-        &actor_address.instance,
+        actor_address,
         media_dir,
     ).await?;
     if profile_data.acct != actor_address.acct() {
