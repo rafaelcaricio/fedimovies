@@ -1,10 +1,16 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 use tokio_postgres::GenericClient;
 
+use crate::activitypub::activity::Object;
 use crate::activitypub::actor::ActorAddress;
-use crate::config::Instance;
+use crate::activitypub::inbox::create_note::handle_note;
+use crate::activitypub::receiver::parse_object_id;
+use crate::config::{Config, Instance};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
+use crate::models::posts::queries::get_post_by_object_id;
+use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
@@ -12,6 +18,7 @@ use crate::models::profiles::queries::{
 };
 use crate::models::profiles::types::DbActorProfile;
 use super::fetchers::{
+    fetch_object,
     fetch_profile,
     fetch_profile_by_actor_id,
     FetchError,
@@ -103,4 +110,95 @@ pub async fn import_profile_by_actor_address(
     profile_data.clean()?;
     let profile = create_profile(db_client, profile_data).await?;
     Ok(profile)
+}
+
+pub async fn import_post(
+    config: &Config,
+    db_client: &mut impl GenericClient,
+    object_id: String,
+    object_received: Option<Object>,
+) -> Result<Post, ImportError> {
+    let instance = config.instance();
+    let media_dir = config.media_dir();
+    let mut maybe_object_id_to_fetch = Some(object_id);
+    let mut maybe_object = object_received;
+    let mut objects = vec![];
+    let mut redirects: HashMap<String, String> = HashMap::new();
+    let mut posts = vec![];
+
+    // Fetch ancestors by going through inReplyTo references
+    // TODO: fetch replies too
+    #[allow(clippy::while_let_loop)]
+    loop {
+        let object_id = match maybe_object_id_to_fetch {
+            Some(object_id) => {
+                if parse_object_id(&instance.url(), &object_id).is_ok() {
+                    // Object is a local post
+                    assert!(objects.len() > 0);
+                    break;
+                }
+                match get_post_by_object_id(db_client, &object_id).await {
+                    Ok(post) => {
+                        // Object already fetched
+                        if objects.len() == 0 {
+                            // Return post corresponding to initial object ID
+                            return Ok(post);
+                        };
+                        break;
+                    },
+                    Err(DatabaseError::NotFound(_)) => (),
+                    Err(other_error) => return Err(other_error.into()),
+                };
+                object_id
+            },
+            None => {
+                // No object to fetch
+                break;
+            },
+        };
+        let object = match maybe_object {
+            Some(object) => object,
+            None => {
+                let object = fetch_object(&instance, &object_id).await
+                    .map_err(|err| {
+                        log::warn!("{}", err);
+                        ValidationError("failed to fetch object")
+                    })?;
+                log::info!("fetched object {}", object.id);
+                object
+            },
+        };
+        if object.id != object_id {
+            // ID of fetched object doesn't match requested ID
+            // Add IDs to the map of redirects
+            redirects.insert(object_id, object.id.clone());
+            maybe_object_id_to_fetch = Some(object.id.clone());
+            // Don't re-fetch object on the next iteration
+            maybe_object = Some(object);
+        } else {
+            maybe_object_id_to_fetch = object.in_reply_to.clone();
+            maybe_object = None;
+            objects.push(object);
+        };
+    }
+    let initial_object_id = objects[0].id.clone();
+
+    // Objects are ordered according to their place in reply tree,
+    // starting with the root
+    objects.reverse();
+    for object in objects {
+        let post = handle_note(
+            db_client,
+            &instance,
+            &media_dir,
+            object,
+            &redirects,
+        ).await?;
+        posts.push(post);
+    }
+
+    let initial_post = posts.into_iter()
+        .find(|post| post.object_id.as_ref() == Some(&initial_object_id))
+        .unwrap();
+    Ok(initial_post)
 }

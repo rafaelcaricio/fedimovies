@@ -5,6 +5,6 @@ pub mod constants;
 pub mod deliverer;
 pub mod fetcher;
 mod inbox;
-pub mod receiver;
+mod receiver;
 pub mod views;
 mod vocabulary;
