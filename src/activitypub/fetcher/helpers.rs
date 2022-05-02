@@ -69,7 +69,7 @@ pub async fn get_or_import_profile_by_actor_id(
             )
                 .await
                 .map_err(|err| {
-                    log::warn!("failed to fetch {}: {}", actor_id, err);
+                    log::warn!("failed to fetch {} ({})", actor_id, err);
                     err
                 })?;
             log::info!("fetched profile {}", profile_data.acct);

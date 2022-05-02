@@ -44,7 +44,7 @@ pub enum VerificationError {
 }
 
 struct SignatureData {
-    pub actor_id: String,
+    pub key_id: String,
     pub message: String, // reconstructed message
     pub signature: String, // base64-encoded signature
 }
@@ -102,15 +102,21 @@ fn parse_http_signature(
         message.push_str(&message_part);
     }
 
-    let key_url = url::Url::parse(&key_id)?;
-    let actor_id = &key_url[..url::Position::BeforeQuery];
-
     let signature_data = SignatureData {
-        actor_id: actor_id.to_string(),
+        key_id,
         message,
         signature,
     };
     Ok(signature_data)
+}
+
+fn key_id_to_actor_id(key_id: &str) -> Result<String, url::ParseError> {
+    let key_url = url::Url::parse(key_id)?;
+    // Strip #main-key (works with most AP servers)
+    let actor_id = &key_url[..url::Position::BeforeQuery];
+    // GoToSocial compat
+    let actor_id = actor_id.trim_end_matches("/main-key");
+    Ok(actor_id.to_string())
 }
 
 /// Verifies HTTP signature and returns signer ID
@@ -125,11 +131,12 @@ pub async fn verify_http_signature(
         request.headers(),
     )?;
 
+    let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
     let actor_profile = match get_or_import_profile_by_actor_id(
         db_client,
         &config.instance(),
         &config.media_dir(),
-        &signature_data.actor_id,
+        &actor_id,
     ).await {
         Ok(profile) => profile,
         Err(ImportError::DatabaseError(error)) => return Err(error.into()),
@@ -185,11 +192,22 @@ mod tests {
             &request_uri,
             &request_headers,
         ).unwrap();
-        assert_eq!(signature_data.actor_id, "https://myserver.org/actor");
+        assert_eq!(signature_data.key_id, "https://myserver.org/actor#main-key");
         assert_eq!(
             signature_data.message,
             "(request-target): post /user/123/inbox\nhost: example.com",
         );
         assert_eq!(signature_data.signature, "test");
+    }
+
+    #[test]
+    fn test_key_id_to_actor_id() {
+        let key_id = "https://myserver.org/actor#main-key";
+        let actor_id = key_id_to_actor_id(key_id).unwrap();
+        assert_eq!(actor_id, "https://myserver.org/actor");
+
+        let key_id = "https://myserver.org/actor/main-key";
+        let actor_id = key_id_to_actor_id(key_id).unwrap();
+        assert_eq!(actor_id, "https://myserver.org/actor");
     }
 }

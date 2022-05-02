@@ -6,6 +6,7 @@ use rsa::RsaPrivateKey;
 use serde::{de, Deserialize, Deserializer};
 use url::Url;
 
+use crate::activitypub::constants::ACTOR_KEY_SUFFIX;
 use crate::activitypub::views::get_instance_actor_url;
 use crate::errors::ConversionError;
 use crate::ethereum::utils::{parse_caip2_chain_id, ChainIdError};
@@ -203,7 +204,7 @@ impl Instance {
     }
 
     pub fn actor_key_id(&self) -> String {
-        format!("{}#main-key", self.actor_id())
+        format!("{}{}", self.actor_id(), ACTOR_KEY_SUFFIX)
     }
 
     pub fn agent(&self) -> String {

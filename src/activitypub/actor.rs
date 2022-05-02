@@ -12,7 +12,7 @@ use crate::models::profiles::types::{ExtraField, IdentityProof};
 use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
-use super::constants::AP_CONTEXT;
+use super::constants::{ACTOR_KEY_SUFFIX, AP_CONTEXT};
 use super::views::{
     get_actor_url,
     get_inbox_url,
@@ -241,7 +241,7 @@ pub fn get_local_actor(
     let private_key = deserialize_private_key(&user.private_key)?;
     let public_key_pem = get_public_key_pem(&private_key)?;
     let public_key = PublicKey {
-        id: format!("{}#main-key", actor_id),
+        id: format!("{}{}", actor_id, ACTOR_KEY_SUFFIX),
         owner: actor_id.clone(),
         public_key_pem: public_key_pem,
     };

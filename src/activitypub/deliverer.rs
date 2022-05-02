@@ -7,7 +7,7 @@ use crate::models::users::types::User;
 use crate::utils::crypto::deserialize_private_key;
 use super::activity::Activity;
 use super::actor::Actor;
-use super::constants::ACTIVITY_CONTENT_TYPE;
+use super::constants::{ACTIVITY_CONTENT_TYPE, ACTOR_KEY_SUFFIX};
 use super::views::get_actor_url;
 
 #[derive(thiserror::Error, Debug)]
@@ -83,11 +83,12 @@ async fn deliver_activity_worker(
 ) -> Result<(), DelivererError> {
     let actor_key = deserialize_private_key(&sender.private_key)?;
     let actor_key_id = format!(
-        "{}#main-key",
+        "{}{}",
         get_actor_url(
             &instance.url(),
             &sender.profile.username,
         ),
+        ACTOR_KEY_SUFFIX,
     );
     let activity_json = serde_json::to_string(&activity)?;
     let mut inboxes: Vec<String> = recipients.into_iter()
