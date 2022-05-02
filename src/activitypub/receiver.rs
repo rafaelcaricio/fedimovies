@@ -10,16 +10,12 @@ use uuid::Uuid;
 use crate::config::Config;
 use crate::errors::{ConversionError, DatabaseError, HttpError, ValidationError};
 use crate::http_signatures::verify::verify_http_signature;
-use crate::models::attachments::queries::create_attachment;
-use crate::models::posts::mentions::mention_to_address;
 use crate::models::posts::queries::{
     create_post,
-    get_post_by_id,
     get_post_by_object_id,
     delete_post,
 };
-use crate::models::posts::tags::normalize_tag;
-use crate::models::posts::types::{Post, PostCreateData, Visibility};
+use crate::models::posts::types::{Post, PostCreateData};
 use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     get_profile_by_acct,
@@ -37,25 +33,22 @@ use crate::models::relationships::queries::{
     unfollow,
 };
 use crate::models::users::queries::get_user_by_name;
-use crate::utils::html::clean_html;
 use super::activity::{
     Activity,
-    Attachment,
     Object,
     create_activity_accept_follow,
 };
 use super::deliverer::deliver_activity;
-use super::fetcher::fetchers::{fetch_file, fetch_object};
+use super::fetcher::fetchers::fetch_object;
 use super::fetcher::helpers::{
     get_or_import_profile_by_actor_id,
-    import_profile_by_actor_address,
     ImportError,
 };
-use super::inbox::create_note::get_note_visibility;
+use super::inbox::create_note::handle_note;
 use super::inbox::update_person::handle_update_person;
 use super::vocabulary::*;
 
-fn parse_actor_id(
+pub fn parse_actor_id(
     instance_url: &str,
     actor_id: &str,
 ) -> Result<String, ValidationError> {
@@ -74,7 +67,7 @@ fn parse_actor_id(
     Ok(username)
 }
 
-fn parse_object_id(
+pub fn parse_object_id(
     instance_url: &str,
     object_id: &str,
 ) -> Result<Uuid, ValidationError> {
@@ -94,7 +87,7 @@ fn parse_object_id(
 }
 
 /// Transforms arbitrary property value into array of strings
-fn parse_array(value: &Value) -> Result<Vec<String>, ConversionError> {
+pub fn parse_array(value: &Value) -> Result<Vec<String>, ConversionError> {
     let result = match value {
         Value::String(string) => vec![string.to_string()],
         Value::Array(array) => {
@@ -123,7 +116,7 @@ fn parse_array(value: &Value) -> Result<Vec<String>, ConversionError> {
 }
 
 /// Transforms arbitrary property value into array of structs
-fn parse_property_value<T: DeserializeOwned>(value: &Value) -> Result<Vec<T>, ConversionError> {
+pub fn parse_property_value<T: DeserializeOwned>(value: &Value) -> Result<Vec<T>, ConversionError> {
     let objects = match value {
         Value::Array(array) => array.to_vec(),
         Value::Object(_) => vec![value.clone()],
@@ -152,16 +145,6 @@ fn get_object_id(object: Value) -> Result<String, ValidationError> {
     Ok(object_id)
 }
 
-const CONTENT_MAX_SIZE: usize = 100000;
-
-fn clean_note_content(content: &str) -> Result<String, ValidationError> {
-    if content.len() > CONTENT_MAX_SIZE {
-        return Err(ValidationError("content is too long"));
-    };
-    let content_safe = clean_html(content);
-    Ok(content_safe)
-}
-
 pub async fn import_post(
     config: &Config,
     db_client: &mut impl GenericClient,
@@ -169,6 +152,7 @@ pub async fn import_post(
     object_received: Option<Object>,
 ) -> Result<Post, ImportError> {
     let instance = config.instance();
+    let media_dir = config.media_dir();
     let mut maybe_object_id_to_fetch = Some(object_id);
     let mut maybe_object = object_received;
     let mut objects = vec![];
@@ -236,212 +220,13 @@ pub async fn import_post(
     // starting with the root
     objects.reverse();
     for object in objects {
-        if object.object_type != NOTE {
-            // Could be Page (in Lemmy) or some other type
-            log::warn!("processing object of type {}", object.object_type);
-        };
-        let attributed_to = object.attributed_to
-            .ok_or(ValidationError("unattributed note"))?;
-        let author_id = parse_array(&attributed_to)
-            .map_err(|_| ValidationError("invalid attributedTo property"))?
-            .get(0)
-            .ok_or(ValidationError("invalid attributedTo property"))?
-            .to_string();
-        let author = get_or_import_profile_by_actor_id(
+        let post = handle_note(
             db_client,
             &instance,
-            &config.media_dir(),
-            &author_id,
+            &media_dir,
+            object,
+            &redirects,
         ).await?;
-
-        let content = if object.object_type == PAGE {
-            // Lemmy Page
-            object.name.ok_or(ValidationError("no content"))?
-        } else {
-            object.content.ok_or(ValidationError("no content"))?
-        };
-        let content_cleaned = clean_note_content(&content)?;
-
-        let mut attachments: Vec<Uuid> = Vec::new();
-        if let Some(value) = object.attachment {
-            let list: Vec<Attachment> = parse_property_value(&value)
-                .map_err(|_| ValidationError("invalid attachment property"))?;
-            let mut downloaded = vec![];
-            let output_dir = config.media_dir();
-            for attachment in list {
-                if attachment.attachment_type != DOCUMENT &&
-                    attachment.attachment_type != IMAGE
-                {
-                    log::warn!(
-                        "skipping attachment of type {}",
-                        attachment.attachment_type,
-                    );
-                    continue;
-                };
-                let attachment_url = attachment.url
-                    .ok_or(ValidationError("attachment URL is missing"))?;
-                let (file_name, media_type) = fetch_file(&attachment_url, &output_dir).await
-                    .map_err(|_| ValidationError("failed to fetch attachment"))?;
-                log::info!("downloaded attachment {}", attachment_url);
-                downloaded.push((
-                    file_name,
-                    attachment.media_type.or(media_type),
-                ));
-            };
-            for (file_name, media_type) in downloaded {
-                let db_attachment = create_attachment(
-                    db_client,
-                    &author.id,
-                    file_name,
-                    media_type,
-                ).await?;
-                attachments.push(db_attachment.id);
-            };
-        };
-        let mut mentions: Vec<Uuid> = Vec::new();
-        let mut tags = vec![];
-        if let Some(list) = object.tag {
-            for tag in list {
-                if tag.tag_type == HASHTAG {
-                    if let Some(tag_name) = tag.name {
-                        // Ignore invalid tags
-                        if let Ok(tag_name) = normalize_tag(&tag_name) {
-                            tags.push(tag_name);
-                        };
-                    };
-                } else if tag.tag_type == MENTION {
-                    // Try to find profile by actor ID.
-                    if let Some(href) = tag.href {
-                        if let Ok(username) = parse_actor_id(&config.instance_url(), &href) {
-                            let user = get_user_by_name(db_client, &username).await?;
-                            if !mentions.contains(&user.id) {
-                                mentions.push(user.id);
-                            };
-                            continue;
-                        };
-                        // WARNING: `href` attribute is usually actor ID
-                        // but also can be actor URL (profile link).
-                        // This may lead to failed import due to
-                        // unique constraint violation on DB insert.
-                        match get_or_import_profile_by_actor_id(
-                            db_client,
-                            &instance,
-                            &config.media_dir(),
-                            &href,
-                        ).await {
-                            Ok(profile) => {
-                                if !mentions.contains(&profile.id) {
-                                    mentions.push(profile.id);
-                                };
-                                continue;
-                            },
-                            Err(error) => {
-                                log::warn!("failed to find mentioned profile {}: {}", href, error);
-                            },
-                        };
-                    };
-                    // Try to find profile by actor address
-                    let tag_name = match tag.name {
-                        Some(name) => name,
-                        None => {
-                            log::warn!("failed to parse mention");
-                            continue;
-                        },
-                    };
-                    if let Ok(actor_address) = mention_to_address(
-                        &instance.host(),
-                        &tag_name,
-                    ) {
-                        let profile = match get_profile_by_acct(
-                            db_client,
-                            &actor_address.acct(),
-                        ).await {
-                            Ok(profile) => profile,
-                            Err(DatabaseError::NotFound(_)) => {
-                                match import_profile_by_actor_address(
-                                    db_client,
-                                    &config.instance(),
-                                    &config.media_dir(),
-                                    &actor_address,
-                                ).await {
-                                    Ok(profile) => profile,
-                                    Err(ImportError::FetchError(error)) => {
-                                        // Ignore mention if fetcher fails
-                                        log::warn!("{}", error);
-                                        continue;
-                                    },
-                                    Err(other_error) => {
-                                        return Err(other_error);
-                                    },
-                                }
-                            },
-                            Err(other_error) => return Err(other_error.into()),
-                        };
-                        if !mentions.contains(&profile.id) {
-                            mentions.push(profile.id);
-                        };
-                    } else {
-                        log::warn!("failed to parse mention {}", tag_name);
-                    };
-                };
-            };
-        };
-        let in_reply_to_id = match object.in_reply_to {
-            Some(object_id) => {
-                match parse_object_id(&instance.url(), &object_id) {
-                    Ok(post_id) => {
-                        // Local post
-                        let post = get_post_by_id(db_client, &post_id).await?;
-                        Some(post.id)
-                    },
-                    Err(_) => {
-                        let note_id = redirects.get(&object_id)
-                            .unwrap_or(&object_id);
-                        let post = get_post_by_object_id(db_client, note_id).await?;
-                        Some(post.id)
-                    },
-                }
-            },
-            None => None,
-        };
-        let primary_audience = match object.to {
-            Some(value) => {
-                parse_array(&value)
-                    .map_err(|_| ValidationError("invalid 'to' property value"))?
-            },
-            None => vec![],
-        };
-        let secondary_audience = match object.cc {
-            Some(value) => {
-                parse_array(&value)
-                    .map_err(|_| ValidationError("invalid 'to' property value"))?
-            },
-            None => vec![],
-        };
-        let visibility = get_note_visibility(
-            &author,
-            primary_audience,
-            secondary_audience,
-        );
-        if visibility != Visibility::Public {
-            log::warn!(
-                "processing note with visibility {:?} attributed to {}",
-                visibility,
-                author.username,
-            );
-        };
-        let post_data = PostCreateData {
-            content: content_cleaned,
-            in_reply_to_id,
-            repost_of_id: None,
-            visibility,
-            attachments: attachments,
-            mentions: mentions,
-            tags: tags,
-            object_id: Some(object.id),
-            created_at: object.published,
-        };
-        let post = create_post(db_client, &author.id, post_data).await?;
         posts.push(post);
     }
 
