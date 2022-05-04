@@ -4,6 +4,7 @@ use actix_web::{
     App, HttpServer,
     middleware::Logger as ActixLogger,
 };
+use tokio::sync::Mutex;
 
 use mitra::activitypub::views as activitypub;
 use mitra::atom::views as atom;
@@ -56,6 +57,9 @@ async fn main() -> std::io::Result<()> {
         config.http_port,
     );
     let num_workers = std::cmp::max(num_cpus::get(), 4);
+    // Mutex is used to make server process incoming activities sequentially
+    let inbox_mutex = web::Data::new(Mutex::new(()));
+
     HttpServer::new(move || {
         let cors_config = match config.environment {
             Environment::Development => {
@@ -83,6 +87,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::JsonConfig::default().limit(MAX_UPLOAD_SIZE))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(db_pool.clone()))
+            .app_data(web::Data::clone(&inbox_mutex))
             .service(actix_files::Files::new(
                 "/media",
                 config.media_dir(),

@@ -1,9 +1,12 @@
+use std::time::Instant;
+
 use actix_web::{
     get, post, web,
     HttpRequest, HttpResponse, Scope,
     http::header::HeaderMap,
 };
 use serde::Deserialize;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::config::Config;
@@ -100,6 +103,7 @@ async fn actor_view(
 async fn inbox(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
+    inbox_mutex: web::Data<Mutex<()>>,
     request: HttpRequest,
     activity: web::Json<serde_json::Value>,
 ) -> Result<HttpResponse, HttpError> {
@@ -112,6 +116,14 @@ async fn inbox(
     } else {
         log::info!("received in {}: {}", request.uri().path(), activity_type);
     };
+    let now = Instant::now();
+    // Store mutex guard in a variable to prevent it from being dropped immediately
+    let _guard = inbox_mutex.lock().await;
+    log::info!(
+        "acquired inbox lock after waiting for {:.2?}: {}",
+        now.elapsed(),
+        activity["id"].as_str().unwrap_or_default(),
+    );
     let db_client = &mut **get_database_client(&db_pool).await?;
     receive_activity(&config, db_client, &request, &activity).await
         .map_err(|err| {
