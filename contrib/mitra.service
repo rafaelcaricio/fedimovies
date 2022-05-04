@@ -6,8 +6,6 @@ Requires=postgresql.service
 [Service]
 ExecStart=/usr/bin/mitra
 WorkingDirectory=/var/lib/mitra
-Environment="ENVIRONMENT=production"
-Environment="CONFIG_PATH=/etc/mitra/config.yaml"
 User=mitra
 Group=mitra
 

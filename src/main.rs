@@ -32,6 +32,7 @@ const MAX_UPLOAD_SIZE: usize = 1024 * 1024 * 10;
 async fn main() -> std::io::Result<()> {
     let config = parse_config();
     configure_logger(config.log_level);
+    log::info!("config loaded from {}", config.config_path);
     let db_pool = create_pool(&config.database_url);
     let mut db_client = get_database_client(&db_pool).await.unwrap();
     apply_migrations(&mut **db_client).await;

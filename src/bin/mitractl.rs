@@ -101,6 +101,7 @@ async fn main() {
             // Other commands require initialized app
             let config = config::parse_config();
             configure_logger(config.log_level);
+            log::info!("config loaded from {}", config.config_path);
             let db_config = config.database_url.parse().unwrap();
             let db_client = &mut create_database_client(&db_config).await;
             apply_migrations(db_client).await;

@@ -34,17 +34,17 @@ Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 Run:
 
 ```
-cargo build --release
+cargo build --release --features production
 ```
 
 This command will produce two binaries in `target/release` directory, `mitra` and `mitractl`.
 
-Create a database and a configuration file (see [example](./config.yaml.example)).
+Create the database and the configuration file (see [example](./config.yaml.example)). Default config file path is `/etc/mitra/config.yaml`, but it can be changed using `CONFIG_PATH` environment variable.
 
-When starting Mitra, set the value of `ENVIRONMENT` variable to `production` and specify the path to configuration file with `CONFIG_PATH`:
+Start Mitra:
 
 ```
-ENVIRONMENT=production CONFIG_PATH=/etc/mitra/config.yaml mitra
+./mitra
 ```
 
 An HTTP server will be needed to handle HTTPS requests and serve the frontend. See the example of [nginx configuration file](./contrib/mitra.nginx).

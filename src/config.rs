@@ -25,6 +25,9 @@ pub enum Environment {
 }
 
 impl Default for Environment {
+    #[cfg(feature = "production")]
+    fn default() -> Self { Self::Production }
+    #[cfg(not(feature = "production"))]
     fn default() -> Self { Self::Development }
 }
 
@@ -47,6 +50,11 @@ struct EnvConfig {
     crate_version: String,
 }
 
+#[cfg(feature = "production")]
+const DEFAULT_CONFIG_PATH: &str = "/etc/mitra/config.yaml";
+#[cfg(not(feature = "production"))]
+const DEFAULT_CONFIG_PATH: &str = "config.yaml";
+
 fn parse_env() -> EnvConfig {
     dotenv::from_filename(".env.local").ok();
     dotenv::dotenv().ok();
@@ -55,7 +63,7 @@ fn parse_env() -> EnvConfig {
         .map(|val| Environment::from_str(&val).expect("invalid environment type"))
         .unwrap_or_default();
     let config_path = std::env::var("CONFIG_PATH")
-        .unwrap_or("config.yaml".to_string());
+        .unwrap_or(DEFAULT_CONFIG_PATH.to_string());
     let crate_version = env!("CARGO_PKG_VERSION").to_string();
     EnvConfig {
         environment,
@@ -92,6 +100,9 @@ impl BlockchainConfig {
 pub struct Config {
     #[serde(skip)]
     pub environment: Environment,
+
+    #[serde(skip)]
+    pub config_path: String,
 
     #[serde(skip)]
     pub version: String,
@@ -233,12 +244,13 @@ fn read_instance_rsa_key(storage_dir: &Path) -> RsaPrivateKey {
 
 pub fn parse_config() -> Config {
     let env = parse_env();
-    let config_yaml = std::fs::read_to_string(env.config_path)
+    let config_yaml = std::fs::read_to_string(&env.config_path)
         .expect("failed to load config file");
     let mut config = serde_yaml::from_str::<Config>(&config_yaml)
         .expect("invalid yaml data");
     // Set parameters from environment
     config.environment = env.environment;
+    config.config_path = env.config_path;
     config.version = env.crate_version;
     // Validate config
     if !config.storage_dir.exists() {
