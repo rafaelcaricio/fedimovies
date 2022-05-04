@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use log::{Level as LogLevel};
 use rsa::RsaPrivateKey;
-use serde::{de, Deserialize, Deserializer};
+use serde::Deserialize;
 use url::Url;
 
 use crate::activitypub::constants::ACTOR_KEY_SUFFIX;
@@ -24,6 +24,10 @@ pub enum Environment {
     Production,
 }
 
+impl Default for Environment {
+    fn default() -> Self { Self::Development }
+}
+
 impl FromStr for Environment {
     type Err = ConversionError;
 
@@ -37,19 +41,10 @@ impl FromStr for Environment {
     }
 }
 
-fn environment_from_str<'de, D>(deserializer: D) -> Result<Environment, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: String = Deserialize::deserialize(deserializer)?;
-    Environment::from_str(&s).map_err(de::Error::custom)
-}
-
-#[derive(Clone)]
-pub struct EnvConfig {
-    pub environment: Option<Environment>,
-    pub config_path: String,
-    pub crate_version: String,
+struct EnvConfig {
+    environment: Environment,
+    config_path: String,
+    crate_version: String,
 }
 
 fn parse_env() -> EnvConfig {
@@ -57,7 +52,8 @@ fn parse_env() -> EnvConfig {
     dotenv::dotenv().ok();
     let environment_str = std::env::var("ENVIRONMENT").ok();
     let environment = environment_str
-        .map(|val| Environment::from_str(&val).expect("invalid environment type"));
+        .map(|val| Environment::from_str(&val).expect("invalid environment type"))
+        .unwrap_or_default();
     let config_path = std::env::var("CONFIG_PATH")
         .unwrap_or("config.yaml".to_string());
     let crate_version = env!("CARGO_PKG_VERSION").to_string();
@@ -67,8 +63,6 @@ fn parse_env() -> EnvConfig {
         crate_version,
     }
 }
-
-fn default_environment() -> Environment { Environment::Development }
 
 fn default_log_level() -> LogLevel { LogLevel::Info }
 
@@ -96,8 +90,7 @@ impl BlockchainConfig {
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
-    #[serde(default = "default_environment")]
-    #[serde(deserialize_with = "environment_from_str")]
+    #[serde(skip)]
     pub environment: Environment,
 
     #[serde(skip)]
@@ -244,9 +237,8 @@ pub fn parse_config() -> Config {
         .expect("failed to load config file");
     let mut config = serde_yaml::from_str::<Config>(&config_yaml)
         .expect("invalid yaml data");
-    // Override environment parameter in config if env variable is set
-    config.environment = env.environment.unwrap_or(config.environment);
-    // Set version
+    // Set parameters from environment
+    config.environment = env.environment;
     config.version = env.crate_version;
     // Validate config
     if !config.storage_dir.exists() {
