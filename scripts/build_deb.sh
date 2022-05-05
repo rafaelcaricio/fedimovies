@@ -11,15 +11,13 @@ WEB_DIR="$1"
 
 # Package info
 rm -rf $PACKAGE_DIR
-mkdir -p $PACKAGE_DIR/DEBIAN
-cp contrib/debian/* $PACKAGE_DIR/DEBIAN/
-echo "Version: $VERSION" >> $PACKAGE_DIR/DEBIAN/control
-echo "Architecture: $ARCH" >> $PACKAGE_DIR/DEBIAN/control
+mkdir -p $PACKAGE_DIR/debian
+cp contrib/debian/* $PACKAGE_DIR/debian/
+sed -i "s/0.0.0/${VERSION}/" $PACKAGE_DIR/debian/changelog
+echo "Architecture: $ARCH" >> $PACKAGE_DIR/debian/control
 
-# Binaries
-mkdir -p $PACKAGE_DIR/usr/bin
-cp target/release/mitra $PACKAGE_DIR/usr/bin/mitra
-cp target/release/mitractl $PACKAGE_DIR/usr/bin/mitractl
+# Service
+cp contrib/mitra.service $PACKAGE_DIR/debian/mitra.service
 
 # Config directory
 mkdir -p $PACKAGE_DIR/etc/mitra
@@ -28,13 +26,16 @@ mkdir -p $PACKAGE_DIR/etc/mitra
 mkdir -p $PACKAGE_DIR/usr/share/mitra/examples
 cp config.yaml.example $PACKAGE_DIR/usr/share/mitra/examples/config.yaml
 
-# Service
-mkdir -p $PACKAGE_DIR/lib/systemd/system
-cp contrib/mitra.service $PACKAGE_DIR/lib/systemd/system/mitra.service
+# Binaries
+mkdir -p $PACKAGE_DIR/usr/bin
+cp target/release/mitra $PACKAGE_DIR/usr/bin/mitra
+cp target/release/mitractl $PACKAGE_DIR/usr/bin/mitractl
 
 # Webapp
 mkdir -p $PACKAGE_DIR/usr/share/mitra
 # https://people.debian.org/~neilm/webapps-policy/ch-issues.html#s-issues-fhs
 cp -r $WEB_DIR $PACKAGE_DIR/usr/share/mitra/www
 
-dpkg-deb --build target/debian/tmp target/debian/mitra_${VERSION}_${ARCH}.deb
+# Build
+cd $PACKAGE_DIR
+dpkg-buildpackage --build=binary --unsigned-changes

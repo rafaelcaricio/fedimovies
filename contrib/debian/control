@@ -1,3 +1,9 @@
-Package: mitra
+Source: mitra
+Section: admin
+Priority: optional
 Maintainer: silverpill
+Build-Depends: debhelper (>= 11)
+
+Package: mitra
 Description: ActivityPub server written in Rust
+Depends: ${shlibs:Depends}, ${misc:Depends}

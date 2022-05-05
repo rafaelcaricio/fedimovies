@@ -1,0 +1,9 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_OPTIONS=noautodbgsym
+
+%:
+	dh $@
+
+override_dh_installsystemd:
+	dh_installsystemd --no-start --no-enable
