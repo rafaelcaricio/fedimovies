@@ -344,6 +344,46 @@ pub async fn get_home_timeline(
     Ok(posts)
 }
 
+pub async fn get_local_timeline(
+    db_client: &impl GenericClient,
+    current_user_id: &Uuid,
+    max_post_id: Option<Uuid>,
+    limit: i64,
+) -> Result<Vec<Post>, DatabaseError> {
+    let statement = format!(
+        "
+        SELECT
+            post, actor_profile,
+            {related_attachments},
+            {related_mentions},
+            {related_tags}
+        FROM post
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE
+            actor_profile.actor_json IS NULL
+            AND {visibility_filter}
+            AND ($max_post_id::uuid IS NULL OR post.id < $max_post_id)
+        ORDER BY post.id DESC
+        LIMIT $limit
+        ",
+        related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
+        visibility_filter=build_visibility_filter(),
+    );
+    let query = query!(
+        &statement,
+        current_user_id=current_user_id,
+        max_post_id=max_post_id,
+        limit=limit,
+    )?;
+    let rows = db_client.query(query.sql(), query.parameters()).await?;
+    let posts: Vec<Post> = rows.iter()
+        .map(Post::try_from)
+        .collect::<Result<_, _>>()?;
+    Ok(posts)
+}
+
 pub async fn get_posts(
     db_client: &impl GenericClient,
     posts_ids: Vec<Uuid>,

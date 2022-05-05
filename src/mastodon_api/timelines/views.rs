@@ -7,7 +7,11 @@ use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::statuses::helpers::build_status_list;
-use crate::models::posts::queries::{get_home_timeline, get_posts_by_tag};
+use crate::models::posts::queries::{
+    get_home_timeline,
+    get_local_timeline,
+    get_posts_by_tag,
+};
 use super::types::TimelineQueryParams;
 
 #[get("/home")]
@@ -20,6 +24,31 @@ async fn home_timeline(
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let posts = get_home_timeline(
+        db_client,
+        &current_user.id,
+        query_params.max_id,
+        query_params.limit,
+    ).await?;
+    let statuses = build_status_list(
+        db_client,
+        &config.instance_url(),
+        Some(&current_user),
+        posts,
+    ).await?;
+    Ok(HttpResponse::Ok().json(statuses))
+}
+
+/// Local timeline ("local" parameter is ignored)
+#[get("/public")]
+async fn public_timeline(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    query_params: web::Query<TimelineQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let posts = get_local_timeline(
         db_client,
         &current_user.id,
         query_params.max_id,
@@ -66,5 +95,6 @@ async fn hashtag_timeline(
 pub fn timeline_api_scope() -> Scope {
     web::scope("/api/v1/timelines")
         .service(home_timeline)
+        .service(public_timeline)
         .service(hashtag_timeline)
 }
