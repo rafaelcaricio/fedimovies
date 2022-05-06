@@ -16,6 +16,7 @@ use mitra::ethereum::sync::save_current_block_number;
 use mitra::ethereum::utils::key_to_ethereum_address;
 use mitra::logger::configure_logger;
 use mitra::models::attachments::queries::delete_unused_attachments;
+use mitra::models::cleanup::find_orphaned_files;
 use mitra::models::posts::queries::{delete_post, find_extraneous_posts, get_post_by_id};
 use mitra::models::profiles::queries::{
     delete_profile,
@@ -28,6 +29,7 @@ use mitra::models::users::queries::{
     get_user_by_id,
 };
 use mitra::utils::crypto::{generate_private_key, serialize_private_key};
+use mitra::utils::files::remove_files;
 
 /// Admin CLI tool
 #[derive(Parser)]
@@ -49,6 +51,7 @@ enum SubCommand {
     DeleteExtraneousPosts(DeleteExtraneousPosts),
     DeleteUnusedAttachments(DeleteUnusedAttachments),
     UpdateCurrentBlock(UpdateCurrentBlock),
+    DeleteOrphanedFiles(DeleteOrphanedFiles),
 }
 
 /// Generate RSA private key
@@ -125,6 +128,33 @@ struct DeleteExtraneousPosts {
 struct DeleteUnusedAttachments {
     #[clap(short)]
     days: i64,
+}
+
+/// Find and delete orphaned files
+#[derive(Parser)]
+struct DeleteOrphanedFiles;
+
+impl DeleteOrphanedFiles {
+    async fn execute(
+        &self,
+        config: &Config,
+        db_client: &impl GenericClient,
+    ) -> Result<(), Error> {
+        let media_dir = config.media_dir();
+        let mut files = vec![];
+        for maybe_path in std::fs::read_dir(&media_dir)? {
+            let file_name = maybe_path?.file_name()
+                .to_string_lossy().to_string();
+            files.push(file_name);
+        };
+        println!("found {} files", files.len());
+        let orphaned = find_orphaned_files(db_client, files).await?;
+        if !orphaned.is_empty() {
+            remove_files(orphaned, &media_dir);
+            println!("orphaned files deleted");
+        };
+        Ok(())
+    }
 }
 
 /// Update blockchain synchronization starting block
@@ -230,6 +260,7 @@ async fn main() {
                     deletion_queue.process(&config).await;
                     println!("unused attachments deleted");
                 },
+                SubCommand::DeleteOrphanedFiles(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::UpdateCurrentBlock(cmd) => cmd.execute(&config).unwrap(),
                 _ => panic!(),
             };
