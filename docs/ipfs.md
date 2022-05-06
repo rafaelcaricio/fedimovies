@@ -2,7 +2,7 @@
 
 This guide explains how to run IPFS node in resource-constrained environment (such as cheap VPS or single-board computer).
 
-The recommended IPFS implementation is [go-ipfs](https://github.com/ipfs/go-ipfs), version 0.11 or higher. Normally go-ipfs requires at least 2 GB RAM, but after tweaking it can run on a machine with only 512 MB.
+The recommended IPFS implementation is [go-ipfs](https://github.com/ipfs/go-ipfs), version 0.12 or higher. Normally go-ipfs requires at least 2 GB RAM, but after tweaking it can run on a machine with only 512 MB.
 
 ## Configuration profiles
 
@@ -18,6 +18,7 @@ Documentation on configuration profiles: https://github.com/ipfs/go-ipfs/blob/ma
 
 ## Configuration options
 
+- `Datastore.StorageMax`. Recommended value is `1G`.
 - `Gateway.NoFetch`. Configures gateway to not fetch files from the network. Recommended value is `true`.
 - `RelayService.Enabled`. Enables providing p2p relay service to other peers on the network. Recommended value is `false`.
 - `Routing.Type`. Should be set to `dht` otherwise the node will not respond to requests from other peers.
