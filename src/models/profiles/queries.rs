@@ -134,7 +134,7 @@ pub async fn get_profile_by_actor_id(
 
 pub async fn get_profile_by_acct(
     db_client: &impl GenericClient,
-    account_uri: &str,
+    acct: &str,
 ) -> Result<DbActorProfile, DatabaseError> {
     let result = db_client.query_opt(
         "
@@ -142,7 +142,7 @@ pub async fn get_profile_by_acct(
         FROM actor_profile
         WHERE actor_profile.acct = $1
         ",
-        &[&account_uri],
+        &[&acct],
     ).await?;
     let profile = match result {
         Some(row) => row.try_get("actor_profile")?,

@@ -21,10 +21,7 @@ use crate::ethereum::identity::{
 };
 use crate::ethereum::subscriptions::create_subscription_signature;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::models::posts::helpers::{
-    get_actions_for_posts,
-    get_reposted_posts,
-};
+use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
@@ -442,7 +439,7 @@ async fn get_account_statuses(
     };
     let profile = get_profile_by_id(db_client, &account_id).await?;
     // Include reposts but not replies
-    let mut posts = get_posts_by_author(
+    let posts = get_posts_by_author(
         db_client,
         &profile.id,
         maybe_current_user.as_ref().map(|user| &user.id),
@@ -451,17 +448,12 @@ async fn get_account_statuses(
         query_params.max_id,
         query_params.limit,
     ).await?;
-    get_reposted_posts(db_client, posts.iter_mut().collect()).await?;
-    if let Some(user) = maybe_current_user {
-        get_actions_for_posts(
-            db_client,
-            &user.id,
-            posts.iter_mut().collect(),
-        ).await?;
-    }
-    let statuses: Vec<Status> = posts.into_iter()
-        .map(|post| Status::from_post(post, &config.instance_url()))
-        .collect();
+    let statuses = build_status_list(
+        db_client,
+        &config.instance_url(),
+        maybe_current_user.as_ref(),
+        posts,
+    ).await?;
     Ok(HttpResponse::Ok().json(statuses))
 }
 

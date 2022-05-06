@@ -9,13 +9,16 @@ use crate::models::users::types::User;
 use super::queries::{get_posts, find_reposted_by_user};
 use super::types::{Post, PostActions, Visibility};
 
-pub async fn get_reposted_posts(
+pub async fn add_reposted_posts(
     db_client: &impl GenericClient,
     posts: Vec<&mut Post>,
 ) -> Result<(), DatabaseError> {
     let reposted_ids: Vec<Uuid> = posts.iter()
         .filter_map(|post| post.repost_of_id)
         .collect();
+    if reposted_ids.is_empty() {
+        return Ok(());
+    };
     let reposted = get_posts(db_client, reposted_ids).await?;
     for post in posts {
         if let Some(ref repost_of_id) = post.repost_of_id {
@@ -29,7 +32,7 @@ pub async fn get_reposted_posts(
     Ok(())
 }
 
-pub async fn get_actions_for_posts(
+pub async fn add_user_actions(
     db_client: &impl GenericClient,
     user_id: &Uuid,
     posts: Vec<&mut Post>,

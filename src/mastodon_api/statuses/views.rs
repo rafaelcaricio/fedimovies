@@ -26,10 +26,6 @@ use crate::models::attachments::queries::set_attachment_ipfs_cid;
 use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
 use crate::models::posts::tags::{find_tags, replace_tags};
-use crate::models::posts::helpers::{
-    get_actions_for_posts,
-    get_reposted_posts,
-};
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
@@ -44,6 +40,8 @@ use crate::models::reactions::queries::{
     delete_reaction,
 };
 use super::helpers::{
+    build_status,
+    build_status_list,
     get_announce_recipients,
     get_like_recipients,
     get_note_recipients,
@@ -128,6 +126,7 @@ async fn create_status(
     );
     let recipients = get_note_recipients(db_client, &current_user, &post).await?;
     deliver_activity(&config, &current_user, activity, recipients);
+
     let status = Status::from_post(post, &instance.url());
     Ok(HttpResponse::Created().json(status))
 }
@@ -144,15 +143,16 @@ async fn get_status(
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
         None => None,
     };
-    let mut post = get_post_by_id(db_client, &status_id).await?;
+    let post = get_post_by_id(db_client, &status_id).await?;
     if !can_view_post(db_client, maybe_current_user.as_ref(), &post).await? {
         return Err(HttpError::NotFoundError("post"));
     };
-    get_reposted_posts(db_client, vec![&mut post]).await?;
-    if let Some(user) = maybe_current_user {
-        get_actions_for_posts(db_client, &user.id, vec![&mut post]).await?;
-    }
-    let status = Status::from_post(post, &config.instance_url());
+    let status = build_status(
+        db_client,
+        &config.instance_url(),
+        maybe_current_user.as_ref(),
+        post,
+    ).await?;
     Ok(HttpResponse::Ok().json(status))
 }
 
@@ -197,23 +197,17 @@ async fn get_context(
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
         None => None,
     };
-    let mut posts = get_thread(
+    let posts = get_thread(
         db_client,
         &status_id,
         maybe_current_user.as_ref().map(|user| &user.id),
     ).await?;
-    get_reposted_posts(db_client, posts.iter_mut().collect()).await?;
-    if let Some(user) = maybe_current_user {
-        get_actions_for_posts(
-            db_client,
-            &user.id,
-            posts.iter_mut().collect(),
-        ).await?;
-    }
-    let statuses: Vec<Status> = posts
-        .into_iter()
-        .map(|post| Status::from_post(post, &config.instance_url()))
-        .collect();
+    let statuses = build_status_list(
+        db_client,
+        &config.instance_url(),
+        maybe_current_user.as_ref(),
+        posts,
+    ).await?;
     Ok(HttpResponse::Ok().json(statuses))
 }
 
@@ -240,8 +234,6 @@ async fn favourite(
         Err(DatabaseError::AlreadyExists(_)) => None, // post already favourited
         Err(other_error) => return Err(other_error.into()),
     };
-    get_reposted_posts(db_client, vec![&mut post]).await?;
-    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     if let Some(reaction) = maybe_reaction_created {
         // Federate
@@ -256,9 +248,14 @@ async fn favourite(
             &primary_recipient,
         );
         deliver_activity(&config, &current_user, activity, recipients);
-    }
+    };
 
-    let status = Status::from_post(post, &config.instance_url());
+    let status = build_status(
+        db_client,
+        &config.instance_url(),
+        Some(&current_user),
+        post,
+    ).await?;
     Ok(HttpResponse::Ok().json(status))
 }
 
@@ -282,8 +279,6 @@ async fn unfavourite(
         Err(DatabaseError::NotFound(_)) => None, // post not favourited
         Err(other_error) => return Err(other_error.into()),
     };
-    get_reposted_posts(db_client, vec![&mut post]).await?;
-    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     if let Some(reaction_id) = maybe_reaction_deleted {
         // Federate
@@ -298,7 +293,12 @@ async fn unfavourite(
         deliver_activity(&config, &current_user, activity, recipients);
     };
 
-    let status = Status::from_post(post, &config.instance_url());
+    let status = build_status(
+        db_client,
+        &config.instance_url(),
+        Some(&current_user),
+        post,
+    ).await?;
     Ok(HttpResponse::Ok().json(status))
 }
 
@@ -319,10 +319,8 @@ async fn reblog(
         repost_of_id: Some(status_id.into_inner()),
         ..Default::default()
     };
-    let mut repost = create_post(db_client, &current_user.id, repost_data).await?;
+    let repost = create_post(db_client, &current_user.id, repost_data).await?;
     post.repost_count += 1;
-    get_reposted_posts(db_client, vec![&mut post]).await?;
-    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
 
     // Federate
     let Audience { recipients, .. } =
@@ -335,8 +333,12 @@ async fn reblog(
     );
     deliver_activity(&config, &current_user, activity, recipients);
 
-    repost.repost_of = Some(Box::new(post));
-    let status = Status::from_post(repost, &config.instance_url());
+    let status = build_status(
+        db_client,
+        &config.instance_url(),
+        Some(&current_user),
+        repost,
+    ).await?;
     Ok(HttpResponse::Ok().json(status))
 }
 
@@ -357,9 +359,7 @@ async fn unreblog(
     let repost_id = reposts.first().ok_or(HttpError::NotFoundError("post"))?;
     // Ignore returned data because reposts don't have attached files
     delete_post(db_client, repost_id).await?;
-    let mut post = get_post_by_id(db_client, &status_id).await?;
-    get_reposted_posts(db_client, vec![&mut post]).await?;
-    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
+    let post = get_post_by_id(db_client, &status_id).await?;
 
     // Federate
     let Audience { recipients, primary_recipient } =
@@ -372,7 +372,12 @@ async fn unreblog(
     );
     deliver_activity(&config, &current_user, activity, recipients);
 
-    let status = Status::from_post(post, &config.instance_url());
+    let status = build_status(
+        db_client,
+        &config.instance_url(),
+        Some(&current_user),
+        post,
+    ).await?;
     Ok(HttpResponse::Ok().json(status))
 }
 
@@ -426,9 +431,13 @@ async fn make_permanent(
     // Update post
     post.ipfs_cid = Some(post_metadata_cid);
     update_post(db_client, &post).await?;
-    get_reposted_posts(db_client, vec![&mut post]).await?;
-    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
-    let status = Status::from_post(post, &config.instance_url());
+
+    let status = build_status(
+        db_client,
+        &config.instance_url(),
+        Some(&current_user),
+        post,
+    ).await?;
     Ok(HttpResponse::Ok().json(status))
 }
 
@@ -481,9 +490,13 @@ async fn token_minted(
     };
     post.token_tx_id = Some(transaction_data.into_inner().transaction_id);
     update_post(db_client, &post).await?;
-    get_reposted_posts(db_client, vec![&mut post]).await?;
-    get_actions_for_posts(db_client, &current_user.id, vec![&mut post]).await?;
-    let status = Status::from_post(post, &config.instance_url());
+
+    let status = build_status(
+        db_client,
+        &config.instance_url(),
+        Some(&current_user),
+        post,
+    ).await?;
     Ok(HttpResponse::Ok().json(status))
 }
 

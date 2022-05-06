@@ -2,10 +2,15 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::actor::Actor;
 use crate::errors::DatabaseError;
+use crate::models::posts::helpers::{
+    add_user_actions,
+    add_reposted_posts,
+};
 use crate::models::posts::queries::get_post_author;
 use crate::models::posts::types::{Post, Visibility};
 use crate::models::relationships::queries::{get_followers, get_subscribers};
 use crate::models::users::types::User;
+use super::types::Status;
 
 pub async fn get_note_recipients(
     db_client: &impl GenericClient,
@@ -76,4 +81,36 @@ pub async fn get_announce_recipients(
         recipients.push(remote_actor.clone());
     };
     Ok(Audience { recipients, primary_recipient })
+}
+
+/// Load related objects and build status for API response
+pub async fn build_status(
+    db_client: &impl GenericClient,
+    instance_url: &str,
+    user: Option<&User>,
+    mut post: Post,
+) -> Result<Status, DatabaseError> {
+    add_reposted_posts(db_client, vec![&mut post]).await?;
+    if let Some(user) = user {
+        add_user_actions(db_client, &user.id, vec![&mut post]).await?;
+    };
+    let status = Status::from_post(post, instance_url);
+    Ok(status)
+}
+
+pub async fn build_status_list(
+    db_client: &impl GenericClient,
+    instance_url: &str,
+    user: Option<&User>,
+    mut posts: Vec<Post>,
+) -> Result<Vec<Status>, DatabaseError> {
+    add_reposted_posts(db_client, posts.iter_mut().collect()).await?;
+    if let Some(user) = user {
+        add_user_actions(db_client, &user.id, posts.iter_mut().collect()).await?;
+    };
+    let statuses: Vec<Status> = posts
+        .into_iter()
+        .map(|post| Status::from_post(post, instance_url))
+        .collect();
+    Ok(statuses)
 }
