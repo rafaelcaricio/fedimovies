@@ -11,7 +11,10 @@ use crate::config::Config;
 use crate::errors::{ValidationError, HttpError};
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::types::Status;
-use crate::models::posts::helpers::can_view_post;
+use crate::models::posts::helpers::{
+    can_view_post,
+    get_actions_for_posts,
+};
 use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
     search_profile,
@@ -155,6 +158,7 @@ pub async fn search(
     let accounts: Vec<Account> = profiles.into_iter()
         .map(|profile| Account::from_profile(profile, &config.instance_url()))
         .collect();
+    get_actions_for_posts(db_client, &current_user.id, posts.iter_mut().collect()).await?;
     let statuses: Vec<Status> = posts.into_iter()
         .map(|post| Status::from_post(post, &config.instance_url()))
         .collect();
