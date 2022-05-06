@@ -261,7 +261,7 @@ pub fn create_activity_note(
     let object = create_note(instance_host, instance_url, post);
     let primary_audience = object.to.clone();
     let secondary_audience = object.cc.clone();
-    let activity_id = get_object_url(instance_url, &post.id) + "/create";
+    let activity_id = format!("{}/create", object.id);
     let activity = create_activity(
         instance_url,
         &post.author.username,
@@ -277,17 +277,18 @@ pub fn create_activity_note(
 pub fn create_activity_like(
     instance_url: &str,
     actor_profile: &DbActorProfile,
-    note_id: &str,
+    post_id: &Uuid,
     reaction_id: &Uuid,
     recipient_id: &str,
 ) -> Activity {
+    let object_id = get_object_url(instance_url, post_id);
     let activity_id = get_object_url(instance_url, reaction_id);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         LIKE,
         activity_id,
-        note_id,
+        object_id,
         vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
         vec![],
     );
@@ -304,7 +305,7 @@ pub fn create_activity_undo_like(
         instance_url,
         reaction_id,
     );
-    let activity_id = get_object_url(instance_url, reaction_id) + "/undo";
+    let activity_id = format!("{}/undo", object_id);
     create_activity(
         instance_url,
         &actor_profile.username,
@@ -347,7 +348,7 @@ pub fn create_activity_undo_announce(
         instance_url,
         repost_id,
     );
-    let activity_id = get_object_url(instance_url, repost_id) + "/undo";
+    let activity_id = format!("{}/undo", object_id);
     let primary_audience = vec![
         AP_PUBLIC.to_string(),
         recipient_id.to_string(),
@@ -375,7 +376,7 @@ pub fn create_activity_delete_note(
         former_type: Some(NOTE.to_string()),
         ..Default::default()
     };
-    let activity_id = get_object_url(instance_url, &post.id) + "/delete";
+    let activity_id = format!("{}/delete", object.id);
     let activity = create_activity(
         instance_url,
         &post.author.username,
@@ -425,7 +426,7 @@ pub fn create_activity_accept_follow(
         object_type: FOLLOW.to_string(),
         ..Default::default()
     };
-    let activity_id = follow_activity_id.to_string() + "/accept";
+    let activity_id = format!("{}/accept", follow_activity_id);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
@@ -454,13 +455,13 @@ pub fn create_activity_undo_follow(
     );
     let object = Object {
         context: Some(json!(AP_CONTEXT)),
-        id: follow_activity_id.clone(),
+        id: follow_activity_id,
         object_type: FOLLOW.to_string(),
         actor: Some(follow_actor_id),
         object: Some(target_actor_id.to_owned()),
         ..Default::default()
     };
-    let activity_id = follow_activity_id + "/undo";
+    let activity_id = format!("{}/undo", object.id);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
