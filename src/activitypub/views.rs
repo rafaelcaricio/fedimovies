@@ -119,7 +119,7 @@ async fn inbox(
     let now = Instant::now();
     // Store mutex guard in a variable to prevent it from being dropped immediately
     let _guard = inbox_mutex.lock().await;
-    log::info!(
+    log::debug!(
         "acquired inbox lock after waiting for {:.2?}: {}",
         now.elapsed(),
         activity["id"].as_str().unwrap_or_default(),
