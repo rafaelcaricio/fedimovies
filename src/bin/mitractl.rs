@@ -8,6 +8,7 @@ use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::signatures::generate_ecdsa_key;
 use mitra::ethereum::utils::key_to_ethereum_address;
 use mitra::logger::configure_logger;
+use mitra::models::attachments::queries::delete_unused_attachments;
 use mitra::models::posts::queries::{delete_post, find_extraneous_posts};
 use mitra::models::profiles::queries::delete_profile;
 use mitra::models::users::queries::{
@@ -33,6 +34,7 @@ enum SubCommand {
     DeleteProfile(DeleteProfile),
     DeletePost(DeletePost),
     DeleteExtraneousPosts(DeleteExtraneousPosts),
+    DeleteUnusedAttachments(DeleteUnusedAttachments),
 }
 
 /// Generate RSA private key
@@ -81,6 +83,13 @@ struct DeleteExtraneousPosts {
 
     #[clap(long)]
     dry_run: bool,
+}
+
+/// Delete attachments that doesn't belong to any post
+#[derive(Parser)]
+struct DeleteUnusedAttachments {
+    #[clap(short)]
+    days: i64,
 }
 
 #[tokio::main]
@@ -141,6 +150,15 @@ async fn main() {
                         };
                         println!("post {} deleted", post_id);
                     };
+                },
+                SubCommand::DeleteUnusedAttachments(subopts) => {
+                    let created_before = Utc::now() - Duration::days(subopts.days);
+                    let deletion_queue = delete_unused_attachments(
+                        db_client,
+                        &created_before,
+                    ).await.unwrap();
+                    deletion_queue.process(&config).await;
+                    println!("unused attachments deleted");
                 },
                 _ => panic!(),
             };

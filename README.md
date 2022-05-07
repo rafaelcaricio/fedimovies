@@ -155,6 +155,12 @@ Remove remote posts and media older than 30 days:
 mitractl delete-extraneous-posts -d 30
 ```
 
+Delete attachments that doesn't belong to any post:
+
+```
+mitractl delete-unused-attachments -d 5
+```
+
 Generate ethereum address:
 
 ```

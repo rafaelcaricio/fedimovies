@@ -104,9 +104,11 @@ pub fn remove_files(files: Vec<String>, from_dir: &Path) -> () {
         let file_path_str = file_path.to_string_lossy();
         match remove_file(&file_path) {
             Ok(_) => log::info!("removed file {}", file_path_str),
-            Err(_) => log::warn!("failed to remove file {}", file_path_str),
-        }
-    }
+            Err(err) => {
+                log::warn!("failed to remove file {} ({})", file_path_str, err);
+            },
+        };
+    };
 }
 
 #[cfg(test)]
