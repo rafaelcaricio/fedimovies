@@ -14,22 +14,25 @@ pub fn verify_eip4361_signature(
     login_message: &str,
 ) -> Result<String, ValidationError> {
     let message: Message = message.parse()
-        .map_err(|_| ValidationError("invalid EIP4361 message"))?;
+        .map_err(|_| ValidationError("invalid EIP-4361 message"))?;
     let signature_bytes = <[u8; 65]>::from_hex(signature.trim_start_matches("0x"))
         .map_err(|_| ValidationError("invalid signature string"))?;
-    message.verify(signature_bytes)
-        .map_err(|_| ValidationError("invalid signature"))?;
     if message.domain != instance_host {
         return Err(ValidationError("domain doesn't match instance host"));
     };
-    let statement = message.statement
+    let statement = message.statement.as_ref()
         .ok_or(ValidationError("statement is missing"))?;
     if statement != login_message {
         return Err(ValidationError("statement doesn't match login message"));
     };
+    if !message.valid_now() {
+        return Err(ValidationError("message is not currently valid"));
+    };
     if message.not_before.is_some() || message.expiration_time.is_some() {
         return Err(ValidationError("message shouldn't have expiration time"));
     };
+    message.verify_eip191(&signature_bytes)
+        .map_err(|_| ValidationError("invalid signature"))?;
     // Return wallet address in lower case
     let wallet_address = address_to_string(H160(message.address));
     Ok(wallet_address)
@@ -70,6 +73,6 @@ Issued At: 2022-02-14T22:27:35.500Z";
             message, signature,
             INSTANCE_HOST, LOGIN_MESSAGE,
         ).unwrap_err();
-        assert_eq!(error.to_string(), "invalid EIP4361 message");
+        assert_eq!(error.to_string(), "invalid EIP-4361 message");
     }
 }
