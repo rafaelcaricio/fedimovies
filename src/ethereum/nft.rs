@@ -127,7 +127,10 @@ pub async fn process_nft_events(
                 let token_id: i32 = token_id_u256.try_into()
                     .map_err(|_| EthereumError::ConversionError)?;
                 post.token_id = Some(token_id);
-                post.token_tx_id = Some(tx_id);
+                if post.token_tx_id.as_ref() != Some(&tx_id) {
+                    log::warn!("overwriting incorrect tx id {:?}", post.token_tx_id);
+                    post.token_tx_id = Some(tx_id);
+                };
                 update_post(db_client, &post).await?;
                 token_waitlist_map.remove(&post.id);
             };

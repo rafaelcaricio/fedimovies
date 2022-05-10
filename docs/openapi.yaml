@@ -542,6 +542,7 @@ paths:
                 transaction_id:
                   type: string
                   description: Transaction ID
+                  example: '581186ab56765aed64a3e73172872a6454c604c6b4e08a8ed03eabad94e74d64'
       responses:
         200:
           description: Successful operation
