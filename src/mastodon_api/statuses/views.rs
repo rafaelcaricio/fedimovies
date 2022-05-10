@@ -31,7 +31,8 @@ use crate::models::posts::queries::{
     get_post_by_id,
     get_thread,
     find_reposts_by_user,
-    update_post,
+    set_post_ipfs_cid,
+    set_post_token_tx_id,
     delete_post,
 };
 use crate::models::posts::types::{PostCreateData, Visibility};
@@ -431,8 +432,8 @@ async fn make_permanent(
             .ok_or(HttpError::InternalError)?;
         set_attachment_ipfs_cid(db_client, &attachment.id, image_cid).await?;
     };
+    set_post_ipfs_cid(db_client, &post.id, &post_metadata_cid).await?;
     post.ipfs_cid = Some(post_metadata_cid);
-    update_post(db_client, &post).await?;
 
     let status = build_status(
         db_client,
@@ -490,8 +491,9 @@ async fn token_minted(
     if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {
         return Err(HttpError::PermissionError);
     };
-    post.token_tx_id = Some(transaction_data.into_inner().transaction_id);
-    update_post(db_client, &post).await?;
+    let token_tx_id = transaction_data.into_inner().transaction_id;
+    set_post_token_tx_id(db_client, &post.id, &token_tx_id).await?;
+    post.token_tx_id = Some(token_tx_id);
 
     let status = build_status(
         db_client,

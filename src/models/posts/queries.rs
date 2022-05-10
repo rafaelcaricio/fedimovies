@@ -744,6 +744,68 @@ pub async fn update_repost_count(
     Ok(())
 }
 
+pub async fn set_post_ipfs_cid(
+    db_client: &impl GenericClient,
+    post_id: &Uuid,
+    ipfs_cid: &str,
+) -> Result<(), DatabaseError> {
+    let updated_count = db_client.execute(
+        "
+        UPDATE post
+        SET ipfs_cid = $1
+        WHERE id = $2
+            AND repost_of_id IS NULL
+            AND ipfs_cid IS NULL
+        ",
+        &[&ipfs_cid, &post_id],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("post"));
+    };
+    Ok(())
+}
+
+pub async fn set_post_token_id(
+    db_client: &impl GenericClient,
+    post_id: &Uuid,
+    token_id: i32,
+) -> Result<(), DatabaseError> {
+    let updated_count = db_client.execute(
+        "
+        UPDATE post
+        SET token_id = $1
+        WHERE id = $2
+            AND repost_of_id IS NULL
+            AND token_id IS NULL
+        ",
+        &[&token_id, &post_id],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("post"));
+    };
+    Ok(())
+}
+
+pub async fn set_post_token_tx_id(
+    db_client: &impl GenericClient,
+    post_id: &Uuid,
+    token_tx_id: &str,
+) -> Result<(), DatabaseError> {
+    let updated_count = db_client.execute(
+        "
+        UPDATE post
+        SET token_tx_id = $1
+        WHERE id = $2
+            AND repost_of_id IS NULL
+        ",
+        &[&token_tx_id, &post_id],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("post"));
+    };
+    Ok(())
+}
+
 pub async fn get_post_author(
     db_client: &impl GenericClient,
     post_id: &Uuid,

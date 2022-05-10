@@ -17,8 +17,9 @@ use crate::errors::DatabaseError;
 use crate::ipfs::utils::parse_ipfs_url;
 use crate::models::posts::queries::{
     get_post_by_ipfs_cid,
-    update_post,
     get_token_waitlist,
+    set_post_token_id,
+    set_post_token_tx_id,
 };
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
@@ -110,7 +111,7 @@ pub async fn process_nft_events(
             let tx_id = hex::encode(tx_id_h256.as_bytes());
             let ipfs_cid = parse_ipfs_url(&token_uri)
                 .map_err(|_| EthereumError::TokenUriParsingError)?;
-            let mut post = match get_post_by_ipfs_cid(db_client, &ipfs_cid).await {
+            let post = match get_post_by_ipfs_cid(db_client, &ipfs_cid).await {
                 Ok(post) => post,
                 Err(DatabaseError::NotFound(_)) => {
                     // Post was deleted
@@ -126,12 +127,11 @@ pub async fn process_nft_events(
                 log::info!("post {} was tokenized via {}", post.id, tx_id);
                 let token_id: i32 = token_id_u256.try_into()
                     .map_err(|_| EthereumError::ConversionError)?;
-                post.token_id = Some(token_id);
+                set_post_token_id(db_client, &post.id, token_id).await?;
                 if post.token_tx_id.as_ref() != Some(&tx_id) {
                     log::warn!("overwriting incorrect tx id {:?}", post.token_tx_id);
-                    post.token_tx_id = Some(tx_id);
+                    set_post_token_tx_id(db_client, &post.id, &tx_id).await?;
                 };
-                update_post(db_client, &post).await?;
                 token_waitlist_map.remove(&post.id);
             };
         };

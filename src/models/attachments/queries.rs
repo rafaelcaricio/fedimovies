@@ -39,7 +39,7 @@ pub async fn set_attachment_ipfs_cid(
         "
         UPDATE media_attachment
         SET ipfs_cid = $1
-        WHERE id = $2
+        WHERE id = $2 AND ipfs_cid IS NULL
         RETURNING media_attachment
         ",
         &[&ipfs_cid, &attachment_id],
