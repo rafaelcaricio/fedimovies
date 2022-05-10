@@ -1,7 +1,5 @@
 use regex::Regex;
 
-pub const IPFS_LOGO: &str = "bafybeihc4hti5ix4ds2tefhy35qd4c7n5as5cazdmksrxj7ipvcxm64h54";
-
 pub fn get_ipfs_url(cid: &str) -> String {
     format!("ipfs://{}", cid)
 }

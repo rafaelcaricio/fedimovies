@@ -5,6 +5,8 @@ use uuid::Uuid;
 
 use super::utils::get_ipfs_url;
 
+const IPFS_LOGO: &str = "bafybeihc4hti5ix4ds2tefhy35qd4c7n5as5cazdmksrxj7ipvcxm64h54";
+
 /// ERC-721 custom attribute as defined by OpenSea guidelines.
 #[derive(Serialize)]
 struct Attribute {
@@ -32,8 +34,10 @@ impl PostMetadata {
         post_url: &str,
         content: &str,
         created_at: &DateTime<Utc>,
-        image_cid: &str,
+        image_cid: Option<&str>,
     ) -> Self {
+        // Use IPFS logo if there's no image
+        let image_cid = image_cid.unwrap_or(IPFS_LOGO);
         let created_at_attr = Attribute {
             trait_type: "Created at".to_string(),
             value: json!(created_at.timestamp()),
@@ -67,7 +71,7 @@ mod tests {
             post_url,
             &post.content,
             &post.created_at,
-            image_cid,
+            Some(image_cid),
         );
 
         assert_eq!(post_metadata.name, format!("Post {}", post.id));
