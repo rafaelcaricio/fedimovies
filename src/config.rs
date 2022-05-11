@@ -74,6 +74,8 @@ fn parse_env() -> EnvConfig {
 
 fn default_log_level() -> LogLevel { LogLevel::Info }
 
+fn default_login_message() -> String { "Do not sign this message on other sites!".to_string() }
+
 fn default_post_character_limit() -> usize { 2000 }
 
 #[derive(Clone, Deserialize)]
@@ -133,6 +135,7 @@ pub struct Config {
     pub registrations_open: bool, // default is false
 
     // EIP-4361 login message
+    #[serde(default = "default_login_message")]
     pub login_message: String,
 
     #[serde(default = "default_post_character_limit")]
