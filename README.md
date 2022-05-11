@@ -39,7 +39,9 @@ cargo build --release --features production
 
 This command will produce two binaries in `target/release` directory, `mitra` and `mitractl`.
 
-Create the database and the configuration file (see [example](./config.yaml.example)). Default config file path is `/etc/mitra/config.yaml`, but it can be changed using `CONFIG_PATH` environment variable.
+Install PostgreSQL and create the database.
+
+Create configuration file by copying `contrib/mitra_config.yaml` and configure the instance. Default config file path is `/etc/mitra/config.yaml`, but it can be changed using `CONFIG_PATH` environment variable.
 
 Start Mitra:
 
@@ -52,6 +54,24 @@ An HTTP server will be needed to handle HTTPS requests and serve the frontend. S
 Building instructions for `mitra-web` frontend can be found at https://codeberg.org/silverpill/mitra-web#project-setup.
 
 To run Mitra as a systemd service, check out the [systemd unit file example](./contrib/mitra.service).
+
+### Debian package
+
+Download and install Mitra package:
+
+```
+dpkg -i mitra.deb
+```
+
+Install PostgreSQL and create the database. Open configuration file `/etc/mitra/config.yaml` and configure the instance.
+
+Start Mitra:
+
+```
+systemctl start mitra
+```
+
+An HTTP server will be needed to handle HTTPS requests and serve the frontend. See the example of [nginx configuration file](./contrib/mitra.nginx).
 
 ## Development
 

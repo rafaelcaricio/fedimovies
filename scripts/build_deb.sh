@@ -19,12 +19,13 @@ echo "Architecture: $ARCH" >> $PACKAGE_DIR/debian/control
 # Service
 cp contrib/mitra.service $PACKAGE_DIR/debian/mitra.service
 
-# Config directory
+# Config file
 mkdir -p $PACKAGE_DIR/etc/mitra
+cp contrib/mitra_config.yaml $PACKAGE_DIR/etc/mitra/config.yaml
 
 # Config example
 mkdir -p $PACKAGE_DIR/usr/share/mitra/examples
-cp config.yaml.example $PACKAGE_DIR/usr/share/mitra/examples/config.yaml
+cp contrib/mitra_config.yaml $PACKAGE_DIR/usr/share/mitra/examples/config.yaml
 
 # Binaries
 mkdir -p $PACKAGE_DIR/usr/bin

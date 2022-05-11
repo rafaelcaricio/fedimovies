@@ -80,11 +80,14 @@ fn default_post_character_limit() -> usize { 2000 }
 
 #[derive(Clone, Deserialize)]
 pub struct BlockchainConfig {
+    // CAIP-2 chain ID (https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md)
     pub chain_id: String,
     pub contract_address: String,
     pub contract_dir: PathBuf,
     pub api_url: String,
+    // Block explorer base URL (should be compatible with https://eips.ethereum.org/EIPS/eip-3091)
     pub explorer_url: Option<String>,
+    // Instance private key
     pub signing_key: String,
 }
 
@@ -122,7 +125,7 @@ pub struct Config {
     #[serde(default = "default_log_level")]
     pub log_level: LogLevel,
 
-    // Instance info
+    // Domain name or <IP address>:<port>
     instance_uri: String,
     pub instance_title: String,
     pub instance_short_description: String,

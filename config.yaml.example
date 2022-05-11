@@ -4,35 +4,19 @@ storage_dir: files
 http_host: '127.0.0.1'
 http_port: 8380
 
-log_level: info
+instance_uri: 127.0.0.1:8380
+instance_title: Mitra
+instance_short_description: My instance
+instance_description: My instance
+registrations_open: true
 
-# Domain name
-instance_uri: example.tld
-instance_title: example
-instance_short_description: my instance
-# Long description can contain markdown syntax
-instance_description: my instance
-
-registrations_open: false
-# EIP-4361 login message
-login_message: 'Do not sign this message on other sites!'
-post_character_limit: 2000
-
-# Blockchain settings
-# Set `blockchain` key to `null` to disable blockchain integration
 blockchain:
-  # CAIP-2 chain ID (https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md)
   chain_id: eip155:31337
   contract_address: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
   contract_dir: contracts
   api_url: 'http://127.0.0.1:8545'
-  # Block explorer base URL (should be compatible with https://eips.ethereum.org/EIPS/eip-3091)
   explorer_url: null
-  # Instance private key
   signing_key: null
 
-# IPFS settings
-# Set `ipfs_api_url` key to `null` to disable IPFS integration
 ipfs_api_url: 'http://127.0.0.1:5001'
-# IPFS gateway for clients
-ipfs_gateway_url: 'https://ipfs.io'
+ipfs_gateway_url: 'http://127.0.0.1:8001'
