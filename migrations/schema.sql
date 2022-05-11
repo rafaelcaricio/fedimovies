@@ -46,6 +46,7 @@ CREATE TABLE post (
     token_id INTEGER,
     token_tx_id VARCHAR(200),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE,
     UNIQUE (author_id, repost_of_id)
 );
 

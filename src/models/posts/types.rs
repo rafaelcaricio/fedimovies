@@ -70,6 +70,7 @@ pub struct DbPost {
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 // List of user's actions
@@ -98,6 +99,7 @@ pub struct Post {
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
 
     // These fields are not populated automatically
     // by functions in posts::queries module
@@ -139,6 +141,7 @@ impl Post {
             token_id: db_post.token_id,
             token_tx_id: db_post.token_tx_id,
             created_at: db_post.created_at,
+            updated_at: db_post.updated_at,
             actions: None,
             in_reply_to: None,
             repost_of: None,
@@ -179,6 +182,7 @@ impl Default for Post {
             token_id: None,
             token_tx_id: None,
             created_at: Utc::now(),
+            updated_at: None,
             actions: None,
             in_reply_to: None,
             repost_of: None,
@@ -228,6 +232,11 @@ impl PostCreateData {
         self.content = content_trimmed.to_string();
         Ok(())
     }
+}
+
+pub struct PostUpdateData {
+    pub content: String,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[cfg(test)]

@@ -22,7 +22,13 @@ use crate::models::profiles::queries::update_post_count;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::relationships::types::RelationshipType;
 use crate::utils::id::new_uuid;
-use super::types::{DbPost, Post, PostCreateData, Visibility};
+use super::types::{
+    DbPost,
+    Post,
+    PostCreateData,
+    PostUpdateData,
+    Visibility,
+};
 
 pub async fn create_post(
     db_client: &mut impl GenericClient,
@@ -660,25 +666,24 @@ pub async fn get_post_by_ipfs_cid(
 
 pub async fn update_post(
     db_client: &impl GenericClient,
-    post: &Post,
+    post_id: &Uuid,
+    post_data: PostUpdateData,
 ) -> Result<(), DatabaseError> {
-    // Reposts can't be updated
+    // Reposts and immutable posts can't be updated
     let updated_count = db_client.execute(
         "
         UPDATE post
         SET
             content = $1,
-            ipfs_cid = $2,
-            token_id = $3,
-            token_tx_id = $4
-        WHERE id = $5 AND repost_of_id IS NULL
+            updated_at = $2
+        WHERE id = $3
+            AND repost_of_id IS NULL
+            AND ipfs_cid IS NULL
         ",
         &[
-            &post.content,
-            &post.ipfs_cid,
-            &post.token_id,
-            &post.token_tx_id,
-            &post.id,
+            &post_data.content,
+            &post_data.updated_at,
+            &post_id,
         ],
     ).await?;
     if updated_count == 0 {
@@ -1072,6 +1077,31 @@ mod tests {
         let post = create_post(db_client, &profile.id, post_data).await.unwrap();
         assert_eq!(post.content, "test post");
         assert_eq!(post.author.id, profile.id);
+        assert_eq!(post.updated_at, None);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_update_post() {
+        let db_client = &mut create_test_database().await;
+        let user_data = UserCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let user = create_user(db_client, user_data).await.unwrap();
+        let post_data = PostCreateData {
+            content: "test post".to_string(),
+            ..Default::default()
+        };
+        let post = create_post(db_client, &user.id, post_data).await.unwrap();
+        let post_data = PostUpdateData {
+            content: "test update".to_string(),
+            updated_at: Utc::now(),
+        };
+        update_post(db_client, &post.id, post_data).await.unwrap();
+        let post = get_post_by_id(db_client, &post.id).await.unwrap();
+        assert_eq!(post.content, "test update");
+        assert_eq!(post.updated_at.is_some(), true);
     }
 
     #[tokio::test]

@@ -90,6 +90,9 @@ pub struct Object {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Value>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize)]

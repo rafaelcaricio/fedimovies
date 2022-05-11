@@ -48,7 +48,7 @@ fn get_note_author_id(object: &Object) -> Result<String, ValidationError> {
 
 const CONTENT_MAX_SIZE: usize = 100000;
 
-fn get_note_content(object: &Object) -> Result<String, ValidationError> {
+pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
     let content = if object.object_type == PAGE {
         // Lemmy Page
         object.name.as_ref().ok_or(ValidationError("no content"))?

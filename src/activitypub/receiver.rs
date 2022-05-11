@@ -41,6 +41,7 @@ use super::fetcher::helpers::{
     get_or_import_profile_by_actor_id,
     import_post,
 };
+use super::inbox::update_note::handle_update_note;
 use super::inbox::update_person::handle_update_person;
 use super::vocabulary::*;
 
@@ -391,6 +392,13 @@ pub async fn receive_activity(
                 },
                 Err(other_error) => return Err(other_error.into()),
             }
+        },
+        (UPDATE, NOTE) => {
+            require_actor_signature(&activity.actor, &signer_id)?;
+            let object: Object = serde_json::from_value(activity.object)
+                .map_err(|_| ValidationError("invalid object"))?;
+            handle_update_note(db_client, &config.instance_url(), object).await?;
+            NOTE
         },
         (UPDATE, PERSON) => {
             require_actor_signature(&activity.actor, &signer_id)?;

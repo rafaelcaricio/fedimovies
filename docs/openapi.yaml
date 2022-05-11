@@ -864,6 +864,15 @@ components:
         id:
           type: string
           format: uuid
+        created_at:
+          description: The date when this post was created.
+          type: string
+          format: dateTime
+        edited_at:
+          description: The date when this post was edited.
+          type: string
+          format: dateTime
+          nullable: true
         content:
           description: HTML-encoded post content.
           type: string
