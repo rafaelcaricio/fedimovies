@@ -25,7 +25,7 @@ impl Mention {
             id: profile.id.to_string(),
             username: profile.username.clone(),
             acct: profile.acct.clone(),
-            url: profile.actor_id(instance_url),
+            url: profile.actor_url(instance_url),
         }
     }
 }
