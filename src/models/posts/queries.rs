@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::database::catch_unique_violation;
 use crate::database::query_macro::query;
 use crate::errors::DatabaseError;
+use crate::models::attachments::queries::set_attachment_ipfs_cid;
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::cleanup::{
     find_orphaned_files,
@@ -750,11 +751,13 @@ pub async fn update_repost_count(
 }
 
 pub async fn set_post_ipfs_cid(
-    db_client: &impl GenericClient,
+    db_client: &mut impl GenericClient,
     post_id: &Uuid,
     ipfs_cid: &str,
+    attachments: Vec<(Uuid, String)>,
 ) -> Result<(), DatabaseError> {
-    let updated_count = db_client.execute(
+    let transaction = db_client.transaction().await?;
+    let updated_count = transaction.execute(
         "
         UPDATE post
         SET ipfs_cid = $1
@@ -767,6 +770,10 @@ pub async fn set_post_ipfs_cid(
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));
     };
+    for (attachment_id, cid) in attachments {
+        set_attachment_ipfs_cid(&transaction, &attachment_id, &cid).await?;
+    };
+    transaction.commit().await?;
     Ok(())
 }
 

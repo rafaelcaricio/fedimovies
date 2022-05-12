@@ -22,7 +22,6 @@ use crate::ipfs::store as ipfs_store;
 use crate::ipfs::posts::PostMetadata;
 use crate::ipfs::utils::get_ipfs_url;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::models::attachments::queries::set_attachment_ipfs_cid;
 use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
 use crate::models::posts::tags::{find_tags, replace_tags};
@@ -388,7 +387,7 @@ async fn make_permanent(
     db_pool: web::Data<Pool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
-    let db_client = &**get_database_client(&db_pool).await?;
+    let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
     if post.ipfs_cid.is_some() {
@@ -401,6 +400,7 @@ async fn make_permanent(
     let ipfs_api_url = config.ipfs_api_url.as_ref()
         .ok_or(HttpError::NotSupported)?;
 
+    let mut attachments = vec![];
     for attachment in post.attachments.iter_mut() {
         // Add attachment to IPFS
         let image_path = config.media_dir().join(&attachment.file_name);
@@ -408,7 +408,8 @@ async fn make_permanent(
             .map_err(|_| HttpError::InternalError)?;
         let image_cid = ipfs_store::add(ipfs_api_url, image_data).await
             .map_err(|_| HttpError::InternalError)?;
-        attachment.ipfs_cid = Some(image_cid);
+        attachment.ipfs_cid = Some(image_cid.clone());
+        attachments.push((attachment.id, image_cid));
     };
     let post_url = post.get_object_id(&config.instance_url());
     let maybe_post_image_cid = post.attachments.first()
@@ -426,13 +427,7 @@ async fn make_permanent(
     let post_metadata_cid = ipfs_store::add(ipfs_api_url, post_metadata_json).await
         .map_err(|_| HttpError::InternalError)?;
 
-    // Update post
-    for attachment in &post.attachments {
-        let image_cid = attachment.ipfs_cid.as_ref()
-            .ok_or(HttpError::InternalError)?;
-        set_attachment_ipfs_cid(db_client, &attachment.id, image_cid).await?;
-    };
-    set_post_ipfs_cid(db_client, &post.id, &post_metadata_cid).await?;
+    set_post_ipfs_cid(db_client, &post.id, &post_metadata_cid, attachments).await?;
     post.ipfs_cid = Some(post_metadata_cid);
 
     let status = build_status(
