@@ -18,7 +18,7 @@ use crate::activitypub::receiver::{
     parse_object_id,
     parse_property_value,
 };
-use crate::activitypub::vocabulary::{DOCUMENT, HASHTAG, IMAGE, MENTION, NOTE, PAGE};
+use crate::activitypub::vocabulary::{DOCUMENT, HASHTAG, IMAGE, MENTION, NOTE};
 use crate::config::Instance;
 use crate::errors::{DatabaseError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
@@ -49,12 +49,10 @@ fn get_note_author_id(object: &Object) -> Result<String, ValidationError> {
 const CONTENT_MAX_SIZE: usize = 100000;
 
 pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
-    let content = if object.object_type == PAGE {
-        // Lemmy Page
-        object.name.as_ref().ok_or(ValidationError("no content"))?
-    } else {
-        object.content.as_ref().ok_or(ValidationError("no content"))?
-    };
+    let content = object.content.as_ref()
+        // Lemmy pages and PeerTube videos have "name" property
+        .or(object.name.as_ref())
+        .ok_or(ValidationError("no content"))?;
     if content.len() > CONTENT_MAX_SIZE {
         return Err(ValidationError("content is too long"));
     };
