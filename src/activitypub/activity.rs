@@ -280,11 +280,10 @@ pub fn create_activity_note(
 pub fn create_activity_like(
     instance_url: &str,
     actor_profile: &DbActorProfile,
-    post_id: &Uuid,
+    object_id: &str,
     reaction_id: &Uuid,
     recipient_id: &str,
 ) -> Activity {
-    let object_id = get_object_url(instance_url, post_id);
     let activity_id = get_object_url(instance_url, reaction_id);
     let activity = create_activity(
         instance_url,
@@ -626,6 +625,27 @@ mod tests {
             format!("{}/users/{}", INSTANCE_URL, author_username),
         );
         assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC]));
+    }
+
+    #[test]
+    fn test_create_activity_like() {
+        let author = DbActorProfile::default();
+        let note_id = "https://example.com/objects/123";
+        let note_author_id = "https://example.com/users/test";
+        let reaction_id = new_uuid();
+        let activity = create_activity_like(
+            INSTANCE_URL,
+            &author,
+            note_id,
+            &reaction_id,
+            note_author_id,
+        );
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}", INSTANCE_URL, reaction_id),
+        );
+        assert_eq!(activity.object, json!(note_id));
+        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, note_author_id]));
     }
 
     #[test]
