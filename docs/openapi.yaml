@@ -699,7 +699,7 @@ components:
           items:
             $ref: '#/components/schemas/Field'
         wallet_address:
-          description: Ethereum wallet address.
+          description: Ethereum wallet address (visibile only to the current user).
           type: string
           example: '0xd8da6bf...'
     Attachment:

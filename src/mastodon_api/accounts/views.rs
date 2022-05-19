@@ -26,7 +26,6 @@ use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_id,
-    get_wallet_address,
     update_profile,
 };
 use crate::models::profiles::types::{IdentityProof, ProfileUpdateData};
@@ -151,9 +150,7 @@ async fn get_account(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
-    let maybe_wallet_address = get_wallet_address(db_client, &profile.id).await?;
-    let mut account = Account::from_profile(profile, &config.instance_url());
-    account.wallet_address = maybe_wallet_address;
+    let account = Account::from_profile(profile, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }
 

@@ -423,25 +423,6 @@ pub async fn search_profile_by_wallet_address(
     Ok(results)
 }
 
-/// Get wallet address corresponding to local profile
-pub async fn get_wallet_address(
-    db_client: &impl GenericClient,
-    profile_id: &Uuid,
-) -> Result<Option<String>, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
-        SELECT user_account.wallet_address
-        FROM actor_profile
-        LEFT JOIN user_account ON (actor_profile.id = user_account.id)
-        WHERE actor_profile.id = $1
-        ",
-        &[&profile_id],
-    ).await?;
-    let row = maybe_row.ok_or(DatabaseError::NotFound("profile"))?;
-    let wallet_address = row.try_get("wallet_address")?;
-    Ok(wallet_address)
-}
-
 pub async fn update_follower_count(
     db_client: &impl GenericClient,
     profile_id: &Uuid,
