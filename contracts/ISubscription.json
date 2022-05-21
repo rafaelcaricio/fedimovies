@@ -34,6 +34,19 @@
           "internalType": "address",
           "name": "recipient",
           "type": "address"
+        }
+      ],
+      "name": "cancel",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
         },
         {
           "internalType": "uint256",
@@ -42,6 +55,19 @@
         }
       ],
       "name": "send",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "withdrawReceived",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
