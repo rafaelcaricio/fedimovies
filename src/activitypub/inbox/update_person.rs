@@ -34,10 +34,7 @@ pub async fn update_actor(
     actor: Actor,
 ) -> Result<(), ImportError> {
     let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
-    let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await
-        .map_err(|_| ValidationError("failed to fetch image"))?;
-    let (identity_proofs, extra_fields) = actor.parse_attachments();
-    let actor_old = profile.actor_json.unwrap();
+    let actor_old = profile.actor_json.ok_or(ImportError::LocalObject)?;
     if actor_old.id != actor.id {
         log::warn!(
             "actor ID changed from {} to {}",
@@ -52,6 +49,8 @@ pub async fn update_actor(
             actor.public_key.public_key_pem,
         );
     };
+    let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
+    let (identity_proofs, extra_fields) = actor.parse_attachments();
     let mut profile_data = ProfileUpdateData {
         display_name: actor.name.clone(),
         bio: actor.summary.clone(),
