@@ -2,6 +2,8 @@ use chrono::{Duration, Utc};
 use clap::Parser;
 use uuid::Uuid;
 
+use mitra::activitypub::fetcher::fetchers::fetch_actor;
+use mitra::activitypub::inbox::update_person::update_actor;
 use mitra::config;
 use mitra::database::create_database_client;
 use mitra::database::migrate::apply_migrations;
@@ -31,6 +33,7 @@ enum SubCommand {
 
     GenerateInviteCode(GenerateInviteCode),
     ListInviteCodes(ListInviteCodes),
+    RefetchActor(RefetchActor),
     DeleteProfile(DeleteProfile),
     DeletePost(DeletePost),
     DeleteExtraneousPosts(DeleteExtraneousPosts),
@@ -60,6 +63,13 @@ struct GenerateInviteCode;
 /// List invite codes
 #[derive(Parser)]
 struct ListInviteCodes;
+
+/// Re-fetch actor profile by actor ID
+#[derive(Parser)]
+struct RefetchActor {
+    #[clap(short)]
+    id: String,
+}
 
 /// Delete profile
 #[derive(Parser)]
@@ -129,6 +139,12 @@ async fn main() {
                     for code in invite_codes {
                         println!("{}", code);
                     };
+                },
+                SubCommand::RefetchActor(subopts) => {
+                    let actor_id = subopts.id;
+                    let actor = fetch_actor(&config.instance(), &actor_id).await.unwrap();
+                    update_actor(db_client, &config.media_dir(), actor).await.unwrap();
+                    println!("profile updated");
                 },
                 SubCommand::DeleteProfile(subopts) => {
                     let deletion_queue = delete_profile(db_client, &subopts.id).await.unwrap();

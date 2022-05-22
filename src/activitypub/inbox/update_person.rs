@@ -25,6 +25,14 @@ pub async fn handle_update_person(
     if actor.id != activity.actor {
         return Err(ValidationError("actor ID mismatch").into());
     };
+    update_actor(db_client, media_dir, actor).await
+}
+
+pub async fn update_actor(
+    db_client: &impl GenericClient,
+    media_dir: &Path,
+    actor: Actor,
+) -> Result<(), ImportError> {
     let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
     let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await
         .map_err(|_| ValidationError("failed to fetch image"))?;

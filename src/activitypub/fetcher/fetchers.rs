@@ -142,7 +142,7 @@ pub async fn fetch_profile(
     fetch_profile_by_actor_id(instance, actor_url, media_dir).await
 }
 
-async fn fetch_actor(
+pub async fn fetch_actor(
     instance: &Instance,
     actor_url: &str,
 ) -> Result<Actor, FetchError> {
