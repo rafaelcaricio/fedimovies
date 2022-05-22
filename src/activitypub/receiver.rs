@@ -351,7 +351,12 @@ pub async fn receive_activity(
                 .ok_or(ValidationError("invalid object"))?;
             let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
             let target_profile = get_profile_by_acct(db_client, &target_username).await?;
-            unfollow(db_client, &source_profile.id, &target_profile.id).await?;
+            match unfollow(db_client, &source_profile.id, &target_profile.id).await {
+                Ok(_) => (),
+                // Ignore Undo if relationship doesn't exist
+                Err(DatabaseError::NotFound(_)) => return Ok(()),
+                Err(other_error) => return Err(other_error.into()),
+            };
             FOLLOW
         },
         (UNDO, _) => {
