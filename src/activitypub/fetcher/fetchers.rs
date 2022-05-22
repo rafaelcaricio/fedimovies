@@ -142,27 +142,35 @@ pub async fn fetch_profile(
     fetch_profile_by_actor_id(instance, actor_url, media_dir).await
 }
 
+async fn fetch_actor(
+    instance: &Instance,
+    actor_url: &str,
+) -> Result<Actor, FetchError> {
+    let actor_json = send_request(instance, actor_url, &[]).await?;
+    let actor = serde_json::from_str(&actor_json)?;
+    Ok(actor)
+}
+
 pub async fn fetch_profile_by_actor_id(
     instance: &Instance,
     actor_url: &str,
     media_dir: &Path,
 ) -> Result<ProfileCreateData, FetchError> {
-    let actor_host = url::Url::parse(actor_url)?
+    let actor = fetch_actor(instance, actor_url).await?;
+    let actor_host = url::Url::parse(&actor.id)?
         .host_str()
-        .ok_or(FetchError::OtherError("invalid URL"))?
+        .ok_or(url::ParseError::EmptyHost)?
         .to_owned();
     if actor_host == instance.host() {
         return Err(FetchError::OtherError("trying to fetch local profile"));
     };
-    let actor_json = send_request(instance, actor_url, &[]).await?;
-    let actor: Actor = serde_json::from_str(&actor_json)?;
-    let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
-    let (identity_proofs, extra_fields) = actor.parse_attachments();
     let actor_address = format!(
         "{}@{}",
         actor.preferred_username,
         actor_host,
     );
+    let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
+    let (identity_proofs, extra_fields) = actor.parse_attachments();
     let profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
         display_name: actor.name.clone(),
