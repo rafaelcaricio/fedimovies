@@ -428,7 +428,8 @@ pub fn create_activity_accept_follow(
         object_type: FOLLOW.to_string(),
         ..Default::default()
     };
-    let activity_id = format!("{}/accept", follow_activity_id);
+    // Accept(Follow) is idempotent so its ID can be random
+    let activity_id = get_object_url(instance_url, &new_uuid());
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
@@ -655,7 +656,7 @@ mod tests {
             ..Default::default()
         };
         let follow_request_id = new_uuid();
-        let target_actor_id = "https://example.com/actor/test";
+        let target_actor_id = "https://test.remote/actor/test";
         let activity = create_activity_follow(
             INSTANCE_URL,
             &follower,
@@ -679,5 +680,25 @@ mod tests {
         assert_eq!(activity.object["content"], Value::Null);
         assert_eq!(activity.to.unwrap(), json!([target_actor_id]));
         assert_eq!(activity.cc.unwrap(), json!([]));
+    }
+
+    #[test]
+    fn test_create_activity_accept_follow() {
+        let target = DbActorProfile {
+            username: "user".to_string(),
+            ..Default::default()
+        };
+        let follow_activity_id = "https://test.remote/objects/999";
+        let follower_id = "https://test.remote/users/123";
+        let activity = create_activity_accept_follow(
+            INSTANCE_URL,
+            &target,
+            follow_activity_id,
+            follower_id,
+        );
+
+        assert_eq!(activity.id.starts_with(INSTANCE_URL), true);
+        assert_eq!(activity.object["id"], follow_activity_id);
+        assert_eq!(activity.to.unwrap(), json!([follower_id]));
     }
 }
