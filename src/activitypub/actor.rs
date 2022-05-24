@@ -306,7 +306,7 @@ pub fn get_local_actor(
         capabilities: Some(capabilities),
         icon: avatar,
         image: banner,
-        summary: None,
+        summary: user.profile.bio.clone(),
         attachment: Some(attachments),
         url: Some(actor_id),
     };
@@ -366,6 +366,7 @@ mod tests {
         let private_key_pem = serialize_private_key(&private_key).unwrap();
         let profile = DbActorProfile {
             username: "testuser".to_string(),
+            bio: Some("testbio".to_string()),
             ..Default::default()
         };
         let user = User {
@@ -377,5 +378,6 @@ mod tests {
         assert_eq!(actor.id, "https://example.com/users/testuser");
         assert_eq!(actor.preferred_username, user.profile.username);
         assert_eq!(actor.attachment.unwrap().len(), 0);
+        assert_eq!(actor.summary, user.profile.bio);
     }
 }
