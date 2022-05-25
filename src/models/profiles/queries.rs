@@ -378,14 +378,15 @@ pub async fn search_profile_by_wallet_address(
     let field_name = get_currency_field_name(currency);
     let did_str = DidPkh::from_address(currency, wallet_address).to_string();
     // If currency is Ethereum,
-    // search over extra fields must be case insensitive
+    // search over extra fields must be case insensitive.
+    // This query does not scan user_account.wallet_address because
+    // login addresses are private by default.
     let rows = db_client.query(
         "
         SELECT actor_profile, TRUE AS is_verified
-        FROM actor_profile LEFT JOIN user_account USING (id)
+        FROM actor_profile
         WHERE
-            user_account.wallet_address = $2
-            OR EXISTS (
+            EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(actor_profile.identity_proofs) AS proof
                 WHERE proof ->> 'issuer' = $3
@@ -557,12 +558,12 @@ mod tests {
             wallet_address: Some(wallet_address.to_string()),
             ..Default::default()
         };
-        let user = create_user(db_client, user_data).await.unwrap();
+        let _user = create_user(db_client, user_data).await.unwrap();
         let profiles = search_profile_by_wallet_address(
             db_client, &ETHEREUM, wallet_address, false).await.unwrap();
 
-        assert_eq!(profiles.len(), 1);
-        assert_eq!(profiles[0].id, user.profile.id);
+        // Login address must not be exposed
+        assert_eq!(profiles.len(), 0);
     }
 
     #[tokio::test]
