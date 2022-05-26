@@ -412,7 +412,7 @@ pub async fn search_profile_by_wallet_address(
         let is_verified: bool = row.try_get("is_verified")?;
         if is_verified {
             verified.push(profile);
-        } else {
+        } else if !verified.iter().any(|item| item.id == profile.id) {
             unverified.push(profile);
         };
     };
