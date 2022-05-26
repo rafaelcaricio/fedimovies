@@ -290,7 +290,9 @@ async fn authorize_subscription(
     let current_user = get_current_user(db_client, auth.token()).await?;
     let blockchain_config = config.blockchain.as_ref()
         .ok_or(HttpError::NotSupported)?;
-    let wallet_address = current_user.wallet_address
+    // Wallet address must be public, because subscribers should be able
+    // to verify that payments are actually sent to the recipient.
+    let wallet_address = current_user.public_wallet_address()
         .ok_or(HttpError::PermissionError)?;
     let signature = create_subscription_signature(
         blockchain_config,

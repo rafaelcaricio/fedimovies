@@ -6,15 +6,16 @@ use uuid::Uuid;
 use crate::errors::ValidationError;
 use crate::models::profiles::types::DbActorProfile;
 
+#[allow(dead_code)]
 #[derive(FromSql)]
 #[postgres(name = "user_account")]
 pub struct DbUser {
-    pub id: Uuid,
-    pub wallet_address: Option<String>,
-    pub password_hash: Option<String>,
-    pub private_key: String,
-    pub invite_code: Option<String>,
-    pub created_at: DateTime<Utc>,
+    id: Uuid,
+    wallet_address: Option<String>,
+    password_hash: Option<String>,
+    private_key: String,
+    invite_code: Option<String>,
+    created_at: DateTime<Utc>,
 }
 
 // Represents local user
@@ -41,6 +42,14 @@ impl User {
             private_key: db_user.private_key,
             profile: db_profile,
         }
+    }
+
+    /// Returns login address if it is verified
+    pub fn public_wallet_address(&self) -> Option<String> {
+        let wallet_address = self.wallet_address.clone()?;
+        let is_verified = self.profile.identity_proofs.clone().into_inner().iter()
+            .any(|proof| proof.issuer.address == wallet_address);
+        if is_verified { Some(wallet_address) } else { None }
     }
 }
 
@@ -75,6 +84,15 @@ pub fn validate_wallet_address(wallet_address: &str) -> Result<(), ValidationErr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_public_wallet_address_hidden_by_default() {
+        let user = User {
+            wallet_address: Some("0x1234".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(user.public_wallet_address(), None);
+    }
 
     #[test]
     fn test_validate_local_username() {

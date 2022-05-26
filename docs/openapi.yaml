@@ -149,7 +149,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Signature'
         403:
-          description: User's wallet address is not known
+          description: User's wallet address is not known or not verified
         418:
           description: Blockchain integration is not enabled
   /api/v1/accounts/relationships:
