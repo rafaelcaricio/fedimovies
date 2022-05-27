@@ -121,9 +121,11 @@ impl Account {
             note: user.profile.bio_source.clone(),
             fields: fields_sources,
         };
+        // Expose login address only if it's verified
+        let wallet_address = user.public_wallet_address();
         let mut account = Self::from_profile(user.profile, instance_url);
         account.source = Some(source);
-        account.wallet_address = user.wallet_address;
+        account.wallet_address = wallet_address;
         account
     }
 }
@@ -350,9 +352,6 @@ mod tests {
             account.source.unwrap().note.unwrap(),
             bio_source,
         );
-        assert_eq!(
-            account.wallet_address.unwrap(),
-            wallet_address,
-        );
+        assert_eq!(account.wallet_address, None);
     }
 }

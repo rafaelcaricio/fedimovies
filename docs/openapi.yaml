@@ -701,6 +701,7 @@ components:
         wallet_address:
           description: Ethereum wallet address (visibile only to the current user).
           type: string
+          nullable: true
           example: '0xd8da6bf...'
     Attachment:
       type: object
