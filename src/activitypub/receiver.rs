@@ -415,7 +415,8 @@ pub async fn receive_activity(
             PERSON
         },
         _ => {
-            return Err(HttpError::ValidationError("activity type is not supported".into()));
+            log::warn!("activity type is not supported: {}", activity_raw);
+            return Ok(());
         },
     };
     log::info!(
