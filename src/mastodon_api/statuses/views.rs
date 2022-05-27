@@ -451,7 +451,8 @@ async fn get_signature(
     let current_user = get_current_user(db_client, auth.token()).await?;
     let blockchain_config = config.blockchain.as_ref()
         .ok_or(HttpError::NotSupported)?;
-    let wallet_address = current_user.wallet_address
+    // Wallet address must be public because minting exposes it
+    let wallet_address = current_user.public_wallet_address()
         .ok_or(HttpError::PermissionError)?;
     let post = get_post_by_id(db_client, &status_id).await?;
     if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {
