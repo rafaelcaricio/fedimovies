@@ -344,6 +344,7 @@ pub async fn search_profile(
     db_client: &impl GenericClient,
     username: &str,
     instance: Option<&String>,
+    limit: i64,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let db_search_query = match instance {
         Some(instance) => {
@@ -360,8 +361,9 @@ pub async fn search_profile(
         SELECT actor_profile
         FROM actor_profile
         WHERE acct ILIKE $1
+        LIMIT $2
         ",
-        &[&db_search_query],
+        &[&db_search_query, &limit],
     ).await?;
     let profiles: Vec<DbActorProfile> = rows.iter()
         .map(|row| row.try_get("actor_profile"))

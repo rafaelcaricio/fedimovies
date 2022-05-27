@@ -69,6 +69,7 @@ async fn search_profiles(
     db_client: &impl GenericClient,
     username: String,
     mut instance: Option<String>,
+    limit: i64,
 ) -> Result<Vec<DbActorProfile>, HttpError> {
     if let Some(ref actor_host) = instance {
         if actor_host == &config.instance().host() {
@@ -76,7 +77,12 @@ async fn search_profiles(
             instance = None;
         };
     };
-    let mut profiles = search_profile(db_client, &username, instance.as_ref()).await?;
+    let mut profiles = search_profile(
+        db_client,
+        &username,
+        instance.as_ref(),
+        limit,
+    ).await?;
     if profiles.is_empty() && instance.is_some() {
         let actor_address = ActorAddress {
             username: username,
@@ -125,12 +131,19 @@ pub async fn search(
     current_user: &User,
     db_client: &mut impl GenericClient,
     search_query: &str,
+    limit: i64,
 ) -> Result<SearchResults, HttpError> {
     let mut profiles = vec![];
     let mut posts = vec![];
     match parse_search_query(search_query) {
         SearchQuery::ProfileQuery(username, instance) => {
-            profiles = search_profiles(config, db_client, username, instance).await?;
+            profiles = search_profiles(
+                config,
+                db_client,
+                username,
+                instance,
+                limit,
+            ).await?;
         },
         SearchQuery::Url(url) => {
             let maybe_post = search_post(config, db_client, url).await?;

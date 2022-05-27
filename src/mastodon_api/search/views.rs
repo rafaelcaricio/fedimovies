@@ -23,6 +23,7 @@ async fn search_view(
         &current_user,
         db_client,
         query_params.q.trim(),
+        query_params.limit,
     ).await?;
     Ok(HttpResponse::Ok().json(results))
 }
