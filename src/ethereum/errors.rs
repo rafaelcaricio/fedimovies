@@ -5,11 +5,8 @@ use super::utils::AddressError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum EthereumError {
-    #[error("io error")]
-    IoError(#[from] std::io::Error),
-
-    #[error("json error")]
-    JsonError(#[from] serde_json::Error),
+    #[error("{0}")]
+    ImproperlyConfigured(&'static str),
 
     #[error("invalid address")]
     InvalidAddress(#[from] AddressError),
@@ -25,9 +22,6 @@ pub enum EthereumError {
 
     #[error("contract error")]
     ContractError(#[from] web3::contract::Error),
-
-    #[error("improprely configured")]
-    ImproperlyConfigured,
 
     #[error("data conversion error")]
     ConversionError,

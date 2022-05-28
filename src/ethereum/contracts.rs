@@ -57,6 +57,10 @@ pub async fn get_contracts(
     config: &BlockchainConfig,
 ) -> Result<ContractSet, EthereumError> {
     let web3 = connect(&config.api_url)?;
+    let chain_id = web3.eth().chain_id().await?;
+    if chain_id != config.ethereum_chain_id().into() {
+        return Err(EthereumError::ImproperlyConfigured("incorrect chain ID"));
+    };
     let adapter_abi = load_abi(&config.contract_dir, ADAPTER)?;
     let adapter_address = parse_address(&config.contract_address)?;
     let adapter = Contract::from_json(
