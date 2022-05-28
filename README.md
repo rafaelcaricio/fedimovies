@@ -6,11 +6,13 @@ Built on [ActivityPub](https://activitypub.rocks/) protocol, self-hosted, lightw
 
 Unique features enabled by blockchain integration:
 
-- [Sign-in with Ethereum wallet](https://eips.ethereum.org/EIPS/eip-4361).
+- [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
 - Donations.
 - Paid subscriptions.
 - Proving membership with a token.
 - Converting posts into NFTs.
+
+Currently only Ethereum and other EVM-compatible blockchains are supported.
 
 Smart contracts repo: https://codeberg.org/silverpill/mitra-contracts
 

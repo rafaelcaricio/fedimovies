@@ -762,15 +762,23 @@ components:
           description: Post character limit.
           type: integer
           example: 5000
+        blockchain_id:
+          description: CAIP-2 chain ID.
+          type: string
+          nullable: true
+          example: 'eip155:1'
         blockchain_explorer_url:
           description: Blockchain explorer base URL.
           type: string
+          nullable: true
         blockchain_contract_address:
           description: Blockchain contract address.
           type: string
+          nullable: true
         ipfs_gateway_url:
           description: IPFS gateway URL.
           type: string
+          nullable: true
     Mention:
       type: object
       properties:
@@ -802,6 +810,7 @@ components:
             - favourite
             - mention
             - reblog
+            - subscription
           example: reply
         created_at:
           description: The timestamp of the notification.
