@@ -13,6 +13,7 @@ use web3::{
 use crate::config::BlockchainConfig;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{ConversionError, DatabaseError};
+use crate::models::notifications::queries::create_subscription_notification;
 use crate::models::profiles::currencies::Currency;
 use crate::models::profiles::queries::search_profile_by_wallet_address;
 use crate::models::relationships::queries::unsubscribe;
@@ -94,6 +95,14 @@ pub async fn check_subscriptions(
                         &expires_at,
                         &block_date,
                     ).await?;
+                    if expires_at > subscription.expires_at {
+                        // Subscription was extended
+                        create_subscription_notification(
+                            db_client,
+                            &subscription.sender_id,
+                            &subscription.recipient_id,
+                        ).await?;
+                    };
                     log::info!(
                         "subscription updated: {0} to {1}",
                         subscription.sender_id,
@@ -133,6 +142,11 @@ pub async fn check_subscriptions(
                     &recipient.id,
                     &expires_at,
                     &block_date,
+                ).await?;
+                create_subscription_notification(
+                    db_client,
+                    &sender.id,
+                    &recipient.id,
                 ).await?;
                 log::info!(
                     "subscription created: {0} to {1}",

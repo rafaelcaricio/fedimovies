@@ -11,18 +11,6 @@ use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::posts::types::{DbPost, Post};
 use crate::models::profiles::types::DbActorProfile;
 
-#[allow(dead_code)]
-#[derive(FromSql)]
-#[postgres(name = "notification")]
-struct DbNotification {
-    id: i32,
-    sender_id: Uuid,
-    recipient_id: Uuid,
-    post_id: Option<Uuid>,
-    event_type: EventType,
-    created_at: DateTime<Utc>,
-}
-
 #[derive(Debug)]
 pub enum EventType {
     Follow,
@@ -31,6 +19,7 @@ pub enum EventType {
     Reaction,
     Mention,
     Repost,
+    Subscription,
 }
 
 impl From<&EventType> for i16 {
@@ -42,6 +31,7 @@ impl From<&EventType> for i16 {
             EventType::Reaction => 4,
             EventType::Mention => 5,
             EventType::Repost => 6,
+            EventType::Subscription => 7,
         }
     }
 }
@@ -57,6 +47,7 @@ impl TryFrom<i16> for EventType {
             4 => Self::Reaction,
             5 => Self::Mention,
             6 => Self::Repost,
+            7 => Self::Subscription,
             _ => return Err(ConversionError),
         };
         Ok(event_type)
@@ -65,6 +56,18 @@ impl TryFrom<i16> for EventType {
 
 int_enum_from_sql!(EventType);
 int_enum_to_sql!(EventType);
+
+#[allow(dead_code)]
+#[derive(FromSql)]
+#[postgres(name = "notification")]
+struct DbNotification {
+    id: i32,
+    sender_id: Uuid,
+    recipient_id: Uuid,
+    post_id: Option<Uuid>,
+    event_type: EventType,
+    created_at: DateTime<Utc>,
+}
 
 pub struct Notification {
     pub id: i32,
