@@ -7,6 +7,7 @@ use crate::activitypub::{
     actor::Actor,
     fetcher::fetchers::fetch_avatar_and_banner,
     fetcher::helpers::ImportError,
+    vocabulary::PERSON,
 };
 use crate::errors::ValidationError;
 use crate::models::profiles::queries::{
@@ -14,18 +15,20 @@ use crate::models::profiles::queries::{
     update_profile,
 };
 use crate::models::profiles::types::ProfileUpdateData;
+use super::HandlerResult;
 
 pub async fn handle_update_person(
     db_client: &impl GenericClient,
     media_dir: &Path,
     activity: Activity,
-) -> Result<(), ImportError> {
+) -> HandlerResult {
     let actor: Actor = serde_json::from_value(activity.object)
         .map_err(|_| ValidationError("invalid actor data"))?;
     if actor.id != activity.actor {
         return Err(ValidationError("actor ID mismatch").into());
     };
-    update_actor(db_client, media_dir, actor).await
+    update_actor(db_client, media_dir, actor).await?;
+    Ok(Some(PERSON))
 }
 
 pub async fn update_actor(

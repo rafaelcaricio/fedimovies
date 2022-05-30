@@ -194,7 +194,7 @@ pub async fn receive_activity(
         return Err(HttpError::ValidationError("instance is blocked".into()));
     };
 
-    let object_type = match (activity_type.as_str(), maybe_object_type) {
+    let maybe_object_type = match (activity_type.as_str(), maybe_object_type) {
         (ACCEPT, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
             let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
@@ -205,7 +205,7 @@ pub async fn receive_activity(
                 return Err(HttpError::ValidationError("actor is not a target".into()));
             };
             follow_request_accepted(db_client, &follow_request_id).await?;
-            FOLLOW
+            Some(FOLLOW)
         },
         (REJECT, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
@@ -217,7 +217,7 @@ pub async fn receive_activity(
                 return Err(HttpError::ValidationError("actor is not a target".into()));
             };
             follow_request_rejected(db_client, &follow_request_id).await?;
-            FOLLOW
+            Some(FOLLOW)
         },
         (CREATE, NOTE | QUESTION | PAGE) => {
             let object: Object = serde_json::from_value(activity.object)
@@ -230,7 +230,7 @@ pub async fn receive_activity(
                 None
             };
             import_post(config, db_client, object_id, object_received).await?;
-            NOTE
+            Some(NOTE)
         },
         (ANNOUNCE, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
@@ -261,7 +261,7 @@ pub async fn receive_activity(
                 ..Default::default()
             };
             create_post(db_client, &author.id, repost_data).await?;
-            NOTE
+            Some(NOTE)
         },
         (DELETE, _) => {
             if signer_id != activity.actor {
@@ -289,7 +289,7 @@ pub async fn receive_activity(
             actix_rt::spawn(async move {
                 deletion_queue.process(&config).await;
             });
-            NOTE
+            Some(NOTE)
         },
         (EMOJI_REACT | LIKE, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
@@ -323,7 +323,7 @@ pub async fn receive_activity(
                 Err(DatabaseError::AlreadyExists(_)) => return Ok(()),
                 Err(other_error) => return Err(other_error.into()),
             };
-            NOTE
+            Some(NOTE)
         },
         (FOLLOW, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
@@ -354,7 +354,7 @@ pub async fn receive_activity(
             );
             let recipients = vec![source_actor];
             deliver_activity(config, &target_user, new_activity, recipients);
-            PERSON
+            Some(PERSON)
         },
         (UNDO, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
@@ -371,7 +371,7 @@ pub async fn receive_activity(
                 Err(DatabaseError::NotFound(_)) => return Ok(()),
                 Err(other_error) => return Err(other_error.into()),
             };
-            FOLLOW
+            Some(FOLLOW)
         },
         (UNDO, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
@@ -388,7 +388,7 @@ pub async fn receive_activity(
                         &reaction.author_id,
                         &reaction.post_id,
                     ).await?;
-                    LIKE
+                    Some(LIKE)
                 },
                 Err(DatabaseError::NotFound(_)) => {
                     // Undo(Announce)
@@ -407,7 +407,7 @@ pub async fn receive_activity(
                         // Can't undo regular post
                         None => return Err(HttpError::ValidationError("object is not a repost".into())),
                     };
-                    ANNOUNCE
+                    Some(ANNOUNCE)
                 },
                 Err(other_error) => return Err(other_error.into()),
             }
@@ -416,8 +416,7 @@ pub async fn receive_activity(
             require_actor_signature(&activity.actor, &signer_id)?;
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
-            handle_update_note(db_client, &config.instance_url(), object).await?;
-            NOTE
+            handle_update_note(db_client, &config.instance_url(), object).await?
         },
         (UPDATE, PERSON) => {
             require_actor_signature(&activity.actor, &signer_id)?;
@@ -425,20 +424,21 @@ pub async fn receive_activity(
                 db_client,
                 &config.media_dir(),
                 activity,
-            ).await?;
-            PERSON
+            ).await?
         },
         _ => {
             log::warn!("activity type is not supported: {}", activity_raw);
             return Ok(());
         },
     };
-    log::info!(
-        "processed {}({}) from {}",
-        activity_type,
-        object_type,
-        activity_actor,
-    );
+    if let Some(object_type) = maybe_object_type {
+        log::info!(
+            "processed {}({}) from {}",
+            activity_type,
+            object_type,
+            activity_actor,
+        );
+    };
     Ok(())
 }
 
