@@ -13,6 +13,7 @@ use crate::activitypub::fetcher::helpers::{
 };
 use crate::config::Config;
 use crate::errors::DatabaseError;
+use crate::models::profiles::queries::get_profile_by_actor_id;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::crypto::{deserialize_public_key, verify_signature};
 
@@ -119,11 +120,12 @@ fn key_id_to_actor_id(key_id: &str) -> Result<String, url::ParseError> {
     Ok(actor_id.to_string())
 }
 
-/// Verifies HTTP signature and returns signer ID
+/// Verifies HTTP signature and returns signer
 pub async fn verify_http_signature(
     config: &Config,
     db_client: &impl GenericClient,
     request: &HttpRequest,
+    no_fetch: bool,
 ) -> Result<DbActorProfile, VerificationError> {
     let signature_data = parse_http_signature(
         request.method(),
@@ -132,17 +134,21 @@ pub async fn verify_http_signature(
     )?;
 
     let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
-    let actor_profile = match get_or_import_profile_by_actor_id(
-        db_client,
-        &config.instance(),
-        &config.media_dir(),
-        &actor_id,
-    ).await {
-        Ok(profile) => profile,
-        Err(ImportError::DatabaseError(error)) => return Err(error.into()),
-        Err(other_error) => {
-            return Err(VerificationError::ActorError(other_error.to_string()));
-        },
+    let actor_profile = if no_fetch {
+        get_profile_by_actor_id(db_client, &actor_id).await?
+    } else {
+        match get_or_import_profile_by_actor_id(
+            db_client,
+            &config.instance(),
+            &config.media_dir(),
+            &actor_id,
+        ).await {
+            Ok(profile) => profile,
+            Err(ImportError::DatabaseError(error)) => return Err(error.into()),
+            Err(other_error) => {
+                return Err(VerificationError::ActorError(other_error.to_string()));
+            },
+        }
     };
     let actor = actor_profile.actor_json.as_ref()
         .ok_or(VerificationError::ActorError("invalid profile".to_string()))?;

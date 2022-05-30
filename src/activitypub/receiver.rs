@@ -130,13 +130,14 @@ pub fn parse_property_value<T: DeserializeOwned>(value: &Value) -> Result<Vec<T>
 }
 
 /// Parses object json value and returns its ID as string
-fn get_object_id(object: Value) -> Result<String, ValidationError> {
+fn get_object_id(object: &Value) -> Result<String, ValidationError> {
     let object_id = match object.as_str() {
         Some(object_id) => object_id.to_owned(),
         None => {
-            let object: Object = serde_json::from_value(object)
-                .map_err(|_| ValidationError("invalid object"))?;
-            object.id
+            let object_id = object["id"].as_str()
+                .ok_or(ValidationError("missing object ID"))?
+                .to_string();
+            object_id
         },
     };
     Ok(object_id)
@@ -171,11 +172,15 @@ pub async fn receive_activity(
         .and_then(|val| val.as_str())
         .unwrap_or("Unknown");
 
-    let signer = match verify_http_signature(config, db_client, request).await {
+    let is_self_delete = if activity_type == DELETE {
+        let object_id = get_object_id(&activity.object)?;
+        activity.actor == object_id
+    } else { false };
+    // Don't fetch signer if this is Delete(Person) activity
+    let signer = match verify_http_signature(config, db_client, request, is_self_delete).await {
         Ok(signer) => signer,
         Err(error) => {
-            let object_id = get_object_id(activity.object)?;
-            if activity_type == DELETE && activity.actor == object_id {
+            if is_self_delete {
                 // Ignore Delete(Person) activities without HTTP signatures
                 return Ok(());
             };
@@ -193,7 +198,7 @@ pub async fn receive_activity(
         (ACCEPT, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
             let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
-            let object_id = get_object_id(activity.object)?;
+            let object_id = get_object_id(&activity.object)?;
             let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
             let follow_request = get_follow_request_by_id(db_client, &follow_request_id).await?;
             if follow_request.target_id != actor_profile.id {
@@ -205,7 +210,7 @@ pub async fn receive_activity(
         (REJECT, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
             let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
-            let object_id = get_object_id(activity.object)?;
+            let object_id = get_object_id(&activity.object)?;
             let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
             let follow_request = get_follow_request_by_id(db_client, &follow_request_id).await?;
             if follow_request.target_id != actor_profile.id {
@@ -241,7 +246,7 @@ pub async fn receive_activity(
                 &config.media_dir(),
                 &activity.actor,
             ).await?;
-            let object_id = get_object_id(activity.object)?;
+            let object_id = get_object_id(&activity.object)?;
             let post_id = match parse_object_id(&config.instance_url(), &object_id) {
                 Ok(post_id) => post_id,
                 Err(_) => {
@@ -263,7 +268,7 @@ pub async fn receive_activity(
                 // Ignore forwarded Delete() activities
                 return Ok(());
             };
-            let object_id = get_object_id(activity.object)?;
+            let object_id = get_object_id(&activity.object)?;
             if object_id == activity.actor {
                 log::info!("received deletion request for {}", object_id);
                 // Ignore Delete(Person)
@@ -294,7 +299,7 @@ pub async fn receive_activity(
                 &config.media_dir(),
                 &activity.actor,
             ).await?;
-            let object_id = get_object_id(activity.object)?;
+            let object_id = get_object_id(&activity.object)?;
             let post_id = match parse_object_id(&config.instance_url(), &object_id) {
                 Ok(post_id) => post_id,
                 Err(_) => {
@@ -330,7 +335,7 @@ pub async fn receive_activity(
             ).await?;
             let source_actor = source_profile.actor_json
                 .ok_or(HttpError::InternalError)?;
-            let target_actor_id = get_object_id(activity.object)?;
+            let target_actor_id = get_object_id(&activity.object)?;
             let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
             let target_user = get_user_by_name(db_client, &target_username).await?;
             match follow(db_client, &source_profile.id, &target_user.profile.id).await {
@@ -371,7 +376,7 @@ pub async fn receive_activity(
         (UNDO, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
             let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
-            let object_id = get_object_id(activity.object)?;
+            let object_id = get_object_id(&activity.object)?;
             match get_reaction_by_activity_id(db_client, &object_id).await {
                 Ok(reaction) => {
                     // Undo(Like)
@@ -517,12 +522,12 @@ mod tests {
     #[test]
     fn test_get_object_id_from_string() {
         let value = json!("test_id");
-        assert_eq!(get_object_id(value).unwrap(), "test_id");
+        assert_eq!(get_object_id(&value).unwrap(), "test_id");
     }
 
     #[test]
     fn test_get_object_id_from_object() {
         let value = json!({"id": "test_id", "type": "Note"});
-        assert_eq!(get_object_id(value).unwrap(), "test_id");
+        assert_eq!(get_object_id(&value).unwrap(), "test_id");
     }
 }
