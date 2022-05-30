@@ -24,7 +24,6 @@ use super::collections::{
 };
 use super::constants::ACTIVITY_CONTENT_TYPE;
 use super::receiver::receive_activity;
-use super::vocabulary::DELETE;
 
 pub fn get_actor_url(instance_url: &str, username: &str) -> String {
     format!("{}/users/{}", instance_url, username)
@@ -109,13 +108,7 @@ async fn inbox(
 ) -> Result<HttpResponse, HttpError> {
     log::debug!("received activity: {}", activity);
     let activity_type = activity["type"].as_str().unwrap_or("Unknown");
-    if activity_type == DELETE && activity["actor"] == activity["object"] {
-        // Ignore Delete(Person) activities and skip signature verification
-        log::info!("received in {}: Delete(Person)", request.uri().path());
-        return Ok(HttpResponse::Ok().finish());
-    } else {
-        log::info!("received in {}: {}", request.uri().path(), activity_type);
-    };
+    log::info!("received in {}: {}", request.uri().path(), activity_type);
     let now = Instant::now();
     // Store mutex guard in a variable to prevent it from being dropped immediately
     let _guard = inbox_mutex.lock().await;

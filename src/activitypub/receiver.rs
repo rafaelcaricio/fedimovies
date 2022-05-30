@@ -163,16 +163,6 @@ pub async fn receive_activity(
     request: &HttpRequest,
     activity_raw: &Value,
 ) -> Result<(), HttpError> {
-    let signer = verify_http_signature(config, db_client, request).await.map_err(|err| {
-        log::warn!("invalid signature: {}", err);
-        HttpError::AuthError("invalid signature")
-    })?;
-    let signer_id = signer.actor_id(&config.instance_url());
-    log::debug!("activity signed by {}", signer_id);
-    if config.blocked_instances.iter().any(|instance| signer.acct.contains(instance)) {
-        return Err(HttpError::ValidationError("instance is blocked".into()));
-    };
-
     let activity: Activity = serde_json::from_value(activity_raw.clone())
         .map_err(|_| ValidationError("invalid activity"))?;
     let activity_type = activity.activity_type.clone();
@@ -180,6 +170,25 @@ pub async fn receive_activity(
     let maybe_object_type = activity.object.get("type")
         .and_then(|val| val.as_str())
         .unwrap_or("Unknown");
+
+    let signer = match verify_http_signature(config, db_client, request).await {
+        Ok(signer) => signer,
+        Err(error) => {
+            let object_id = get_object_id(activity.object)?;
+            if activity_type == DELETE && activity.actor == object_id {
+                // Ignore Delete(Person) activities without HTTP signatures
+                return Ok(());
+            };
+            log::warn!("invalid signature: {}", error);
+            return Err(HttpError::AuthError("invalid signature"));
+        },
+    };
+    let signer_id = signer.actor_id(&config.instance_url());
+    log::debug!("activity signed by {}", signer_id);
+    if config.blocked_instances.iter().any(|instance| signer.acct.contains(instance)) {
+        return Err(HttpError::ValidationError("instance is blocked".into()));
+    };
+
     let object_type = match (activity_type.as_str(), maybe_object_type) {
         (ACCEPT, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
