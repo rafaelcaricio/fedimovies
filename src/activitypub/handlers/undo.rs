@@ -55,6 +55,6 @@ pub async fn handle_undo(
             };
             Ok(Some(ANNOUNCE))
         },
-        Err(other_error) => return Err(other_error.into()),
+        Err(other_error) => Err(other_error.into()),
     }
 }

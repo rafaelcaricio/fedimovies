@@ -3,12 +3,15 @@ use tokio_postgres::GenericClient;
 use crate::activitypub::{
     activity::Activity,
     receiver::get_object_id,
-    vocabulary::NOTE,
+    vocabulary::{NOTE, PERSON},
 };
 use crate::config::Config;
 use crate::errors::{DatabaseError, ValidationError};
 use crate::models::posts::queries::{delete_post, get_post_by_object_id};
-use crate::models::profiles::queries::get_profile_by_actor_id;
+use crate::models::profiles::queries::{
+    delete_profile,
+    get_profile_by_actor_id,
+};
 use super::HandlerResult;
 
 pub async fn handle_delete(
@@ -18,9 +21,20 @@ pub async fn handle_delete(
 ) -> HandlerResult {
     let object_id = get_object_id(&activity.object)?;
     if object_id == activity.actor {
-        log::info!("received deletion request for {}", object_id);
-        // Ignore Delete(Person)
-        return Ok(None);
+        // Self-delete
+        let profile = match get_profile_by_actor_id(db_client, &object_id).await {
+            Ok(profile) => profile,
+            // Ignore Delete(Person) if profile is not found
+            Err(DatabaseError::NotFound(_)) => return Ok(None),
+            Err(other_error) => return Err(other_error.into()),
+        };
+        let deletion_queue = delete_profile(db_client, &profile.id).await?;
+        let config = config.clone();
+        actix_rt::spawn(async move {
+            deletion_queue.process(&config).await;
+        });
+        log::info!("deleted profie {}", profile.acct);
+        return Ok(Some(PERSON));
     };
     let post = match get_post_by_object_id(db_client, &object_id).await {
         Ok(post) => post,
