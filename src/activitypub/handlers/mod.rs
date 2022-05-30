@@ -3,6 +3,7 @@ use super::fetcher::helpers::ImportError;
 // or None if it has been ignored
 pub type HandlerResult = Result<Option<&'static str>, ImportError>;
 
+pub mod announce;
 pub mod create_note;
 pub mod delete;
 pub mod update_note;
