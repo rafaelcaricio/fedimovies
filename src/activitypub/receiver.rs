@@ -6,33 +6,19 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::config::Config;
-use crate::errors::{ConversionError, DatabaseError, HttpError, ValidationError};
+use crate::errors::{ConversionError, HttpError, ValidationError};
 use crate::http_signatures::verify::verify_http_signature;
-use crate::models::posts::queries::{
-    get_post_by_object_id,
-    delete_post,
-};
-use crate::models::profiles::queries::{
-    get_profile_by_actor_id,
-    get_profile_by_acct,
-};
-use crate::models::reactions::queries::{
-    get_reaction_by_activity_id,
-    delete_reaction,
-};
-use crate::models::relationships::queries::{
-    follow_request_accepted,
-    follow_request_rejected,
-    get_follow_request_by_id,
-    unfollow,
-};
 use super::activity::{Activity, Object};
 use super::fetcher::helpers::import_post;
 use super::handlers::{
+    accept_follow::handle_accept_follow,
     announce::handle_announce,
     delete::handle_delete,
     follow::handle_follow,
     like::handle_like,
+    reject_follow::handle_reject_follow,
+    undo::handle_undo,
+    undo_follow::handle_undo_follow,
     update_note::handle_update_note,
     update_person::handle_update_person,
 };
@@ -190,27 +176,11 @@ pub async fn receive_activity(
     let maybe_object_type = match (activity_type.as_str(), maybe_object_type) {
         (ACCEPT, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
-            let object_id = get_object_id(&activity.object)?;
-            let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
-            let follow_request = get_follow_request_by_id(db_client, &follow_request_id).await?;
-            if follow_request.target_id != actor_profile.id {
-                return Err(HttpError::ValidationError("actor is not a target".into()));
-            };
-            follow_request_accepted(db_client, &follow_request_id).await?;
-            Some(FOLLOW)
+            handle_accept_follow(config, db_client, activity).await?
         },
         (REJECT, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
-            let object_id = get_object_id(&activity.object)?;
-            let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
-            let follow_request = get_follow_request_by_id(db_client, &follow_request_id).await?;
-            if follow_request.target_id != actor_profile.id {
-                return Err(HttpError::ValidationError("actor is not a target".into()));
-            };
-            follow_request_rejected(db_client, &follow_request_id).await?;
-            Some(FOLLOW)
+            handle_reject_follow(config, db_client, activity).await?
         },
         (CREATE, NOTE | QUESTION | PAGE) => {
             let object: Object = serde_json::from_value(activity.object)
@@ -246,59 +216,11 @@ pub async fn receive_activity(
         },
         (UNDO, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            let object: Object = serde_json::from_value(activity.object)
-                .map_err(|_| ValidationError("invalid object"))?;
-            let source_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
-            let target_actor_id = object.object
-                .ok_or(ValidationError("invalid object"))?;
-            let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
-            let target_profile = get_profile_by_acct(db_client, &target_username).await?;
-            match unfollow(db_client, &source_profile.id, &target_profile.id).await {
-                Ok(_) => (),
-                // Ignore Undo if relationship doesn't exist
-                Err(DatabaseError::NotFound(_)) => return Ok(()),
-                Err(other_error) => return Err(other_error.into()),
-            };
-            Some(FOLLOW)
+            handle_undo_follow(config, db_client, activity).await?
         },
         (UNDO, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
-            let object_id = get_object_id(&activity.object)?;
-            match get_reaction_by_activity_id(db_client, &object_id).await {
-                Ok(reaction) => {
-                    // Undo(Like)
-                    if reaction.author_id != actor_profile.id {
-                        return Err(HttpError::ValidationError("actor is not an author".into()));
-                    };
-                    delete_reaction(
-                        db_client,
-                        &reaction.author_id,
-                        &reaction.post_id,
-                    ).await?;
-                    Some(LIKE)
-                },
-                Err(DatabaseError::NotFound(_)) => {
-                    // Undo(Announce)
-                    let post = match get_post_by_object_id(db_client, &object_id).await {
-                        Ok(post) => post,
-                        // Ignore undo if neither reaction nor repost is found
-                        Err(DatabaseError::NotFound(_)) => return Ok(()),
-                        Err(other_error) => return Err(other_error.into()),
-                    };
-                    if post.author.id != actor_profile.id {
-                        return Err(HttpError::ValidationError("actor is not an author".into()));
-                    };
-                    match post.repost_of_id {
-                        // Ignore returned data because reposts don't have attached files
-                        Some(_) => delete_post(db_client, &post.id).await?,
-                        // Can't undo regular post
-                        None => return Err(HttpError::ValidationError("object is not a repost".into())),
-                    };
-                    Some(ANNOUNCE)
-                },
-                Err(other_error) => return Err(other_error.into()),
-            }
+            handle_undo(db_client, activity).await?
         },
         (UPDATE, NOTE) => {
             require_actor_signature(&activity.actor, &signer_id)?;
@@ -308,11 +230,7 @@ pub async fn receive_activity(
         },
         (UPDATE, PERSON) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            handle_update_person(
-                db_client,
-                &config.media_dir(),
-                activity,
-            ).await?
+            handle_update_person(db_client, &config.media_dir(), activity).await?
         },
         _ => {
             log::warn!("activity type is not supported: {}", activity_raw);
