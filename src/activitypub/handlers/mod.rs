@@ -6,6 +6,7 @@ pub type HandlerResult = Result<Option<&'static str>, ImportError>;
 pub mod announce;
 pub mod create_note;
 pub mod delete;
+pub mod follow;
 pub mod like;
 pub mod update_note;
 pub mod update_person;

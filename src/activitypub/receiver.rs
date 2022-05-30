@@ -23,24 +23,15 @@ use crate::models::reactions::queries::{
 use crate::models::relationships::queries::{
     follow_request_accepted,
     follow_request_rejected,
-    follow,
     get_follow_request_by_id,
     unfollow,
 };
-use crate::models::users::queries::get_user_by_name;
-use super::activity::{
-    Activity,
-    Object,
-    create_activity_accept_follow,
-};
-use super::deliverer::deliver_activity;
-use super::fetcher::helpers::{
-    get_or_import_profile_by_actor_id,
-    import_post,
-};
+use super::activity::{Activity, Object};
+use super::fetcher::helpers::import_post;
 use super::handlers::{
     announce::handle_announce,
     delete::handle_delete,
+    follow::handle_follow,
     like::handle_like,
     update_note::handle_update_note,
     update_person::handle_update_person,
@@ -251,34 +242,7 @@ pub async fn receive_activity(
         },
         (FOLLOW, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            let source_profile = get_or_import_profile_by_actor_id(
-                db_client,
-                &config.instance(),
-                &config.media_dir(),
-                &activity.actor,
-            ).await?;
-            let source_actor = source_profile.actor_json
-                .ok_or(HttpError::InternalError)?;
-            let target_actor_id = get_object_id(&activity.object)?;
-            let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
-            let target_user = get_user_by_name(db_client, &target_username).await?;
-            match follow(db_client, &source_profile.id, &target_user.profile.id).await {
-                Ok(_) => (),
-                // Proceed even if relationship already exists
-                Err(DatabaseError::AlreadyExists(_)) => (),
-                Err(other_error) => return Err(other_error.into()),
-            };
-
-            // Send activity
-            let new_activity = create_activity_accept_follow(
-                &config.instance_url(),
-                &target_user.profile,
-                &activity.id,
-                &source_actor.id,
-            );
-            let recipients = vec![source_actor];
-            deliver_activity(config, &target_user, new_activity, recipients);
-            Some(PERSON)
+            handle_follow(config, db_client, activity).await?
         },
         (UNDO, FOLLOW) => {
             require_actor_signature(&activity.actor, &signer_id)?;
