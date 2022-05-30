@@ -17,7 +17,6 @@ use crate::models::profiles::queries::{
     get_profile_by_acct,
 };
 use crate::models::reactions::queries::{
-    create_reaction,
     get_reaction_by_activity_id,
     delete_reaction,
 };
@@ -42,6 +41,7 @@ use super::fetcher::helpers::{
 use super::handlers::{
     announce::handle_announce,
     delete::handle_delete,
+    like::handle_like,
     update_note::handle_update_note,
     update_person::handle_update_person,
 };
@@ -247,37 +247,7 @@ pub async fn receive_activity(
         },
         (EMOJI_REACT | LIKE, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            let author = get_or_import_profile_by_actor_id(
-                db_client,
-                &config.instance(),
-                &config.media_dir(),
-                &activity.actor,
-            ).await?;
-            let object_id = get_object_id(&activity.object)?;
-            let post_id = match parse_object_id(&config.instance_url(), &object_id) {
-                Ok(post_id) => post_id,
-                Err(_) => {
-                    let post = match get_post_by_object_id(db_client, &object_id).await {
-                        Ok(post) => post,
-                        // Ignore like if post is not found locally
-                        Err(DatabaseError::NotFound(_)) => return Ok(()),
-                        Err(other_error) => return Err(other_error.into()),
-                    };
-                    post.id
-                },
-            };
-            match create_reaction(
-                db_client,
-                &author.id,
-                &post_id,
-                Some(&activity.id),
-            ).await {
-                Ok(_) => (),
-                // Ignore activity if reaction is already saved
-                Err(DatabaseError::AlreadyExists(_)) => return Ok(()),
-                Err(other_error) => return Err(other_error.into()),
-            };
-            Some(NOTE)
+            handle_like(config, db_client, activity).await?
         },
         (FOLLOW, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
