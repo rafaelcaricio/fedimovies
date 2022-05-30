@@ -4,5 +4,6 @@ use super::fetcher::helpers::ImportError;
 pub type HandlerResult = Result<Option<&'static str>, ImportError>;
 
 pub mod create_note;
+pub mod delete;
 pub mod update_note;
 pub mod update_person;
