@@ -15,6 +15,7 @@ The following activities are supported:
 - Undo(Announce)
 - Follow(Person)
 - Update(Person)
+- Delete(Person)
 
 And these additional standards:
 

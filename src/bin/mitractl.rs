@@ -3,6 +3,7 @@ use clap::Parser;
 use uuid::Uuid;
 
 use mitra::activitypub::builders::delete_note::prepare_delete_note;
+use mitra::activitypub::builders::delete_person::prepare_delete_person;
 use mitra::activitypub::fetcher::fetchers::fetch_actor;
 use mitra::activitypub::handlers::update_person::update_actor;
 use mitra::config;
@@ -13,7 +14,7 @@ use mitra::ethereum::utils::key_to_ethereum_address;
 use mitra::logger::configure_logger;
 use mitra::models::attachments::queries::delete_unused_attachments;
 use mitra::models::posts::queries::{delete_post, find_extraneous_posts, get_post_by_id};
-use mitra::models::profiles::queries::delete_profile;
+use mitra::models::profiles::queries::{delete_profile, get_profile_by_id};
 use mitra::models::users::queries::{
     create_invite_code,
     get_invite_codes,
@@ -149,8 +150,20 @@ async fn main() {
                     println!("profile updated");
                 },
                 SubCommand::DeleteProfile(subopts) => {
-                    let deletion_queue = delete_profile(db_client, &subopts.id).await.unwrap();
+                    let profile = get_profile_by_id(db_client, &subopts.id).await.unwrap();
+                    let mut maybe_delete_person = None;
+                    if profile.is_local() {
+                        let user = get_user_by_id(db_client, &profile.id).await.unwrap();
+                        let activity = prepare_delete_person(db_client, config.instance(), &user)
+                            .await.unwrap();
+                        maybe_delete_person = Some(activity);
+                    };
+                    let deletion_queue = delete_profile(db_client, &profile.id).await.unwrap();
                     deletion_queue.process(&config).await;
+                    // Send Delete(Person) activities
+                    if let Some(activity) = maybe_delete_person {
+                        activity.deliver().await.unwrap();
+                    };
                     println!("profile deleted");
                 },
                 SubCommand::DeletePost(subopts) => {
