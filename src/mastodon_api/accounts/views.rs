@@ -2,11 +2,11 @@ use actix_web::{get, post, patch, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
-use crate::activitypub::activity::{
-    create_activity_follow,
-    create_activity_undo_follow,
+use crate::activitypub::activity::create_activity_follow;
+use crate::activitypub::builders::{
+    undo_follow::prepare_undo_follow,
+    update_person::prepare_update_person,
 };
-use crate::activitypub::builders::update_person::prepare_update_person;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
@@ -388,13 +388,12 @@ async fn unfollow_account(
                     &target.id,
                 ).await?;
                 // Federate
-                let activity = create_activity_undo_follow(
-                    &config.instance_url(),
-                    &current_user.profile,
+                prepare_undo_follow(
+                    config.instance(),
+                    &current_user,
+                    &remote_actor,
                     &follow_request.id,
-                    &remote_actor.id,
-                );
-                deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+                ).spawn_deliver();
             },
             Err(DatabaseError::NotFound(_)) => (), // not following
             Err(other_error) => return Err(other_error.into()),

@@ -415,41 +415,6 @@ pub fn create_activity_accept_follow(
     activity
 }
 
-pub fn create_activity_undo_follow(
-    instance_url: &str,
-    actor_profile: &DbActorProfile,
-    follow_request_id: &Uuid,
-    target_actor_id: &str,
-) -> Activity {
-    let follow_activity_id = get_object_url(
-        instance_url,
-        follow_request_id,
-    );
-    let follow_actor_id = get_actor_url(
-        instance_url,
-        &actor_profile.username,
-    );
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
-        id: follow_activity_id,
-        object_type: FOLLOW.to_string(),
-        actor: Some(follow_actor_id),
-        object: Some(target_actor_id.to_owned()),
-        ..Default::default()
-    };
-    let activity_id = format!("{}/undo", object.id);
-    let activity = create_activity(
-        instance_url,
-        &actor_profile.username,
-        UNDO,
-        activity_id,
-        object,
-        vec![target_actor_id.to_string()],
-        vec![],
-    );
-    activity
-}
-
 #[cfg(test)]
 mod tests {
     use crate::activitypub::actor::Actor;
