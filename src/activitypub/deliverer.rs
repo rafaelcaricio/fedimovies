@@ -91,6 +91,9 @@ async fn deliver_activity_worker(
         ACTOR_KEY_SUFFIX,
     );
     let activity_json = serde_json::to_string(&activity)?;
+    if recipients.is_empty() {
+        return Ok(());
+    };
     let mut inboxes: Vec<String> = recipients.into_iter()
         .map(|actor| actor.inbox)
         .collect();
@@ -112,25 +115,42 @@ async fn deliver_activity_worker(
     Ok(())
 }
 
+pub struct OutgoingActivity {
+    pub instance: Instance,
+    pub sender: User,
+    pub activity: Activity,
+    pub recipients: Vec<Actor>,
+}
+
+impl OutgoingActivity {
+    pub async fn deliver(self) -> Result<(), DelivererError> {
+        deliver_activity_worker(
+            self.instance,
+            self.sender,
+            self.activity,
+            self.recipients,
+        ).await
+    }
+
+    pub fn spawn_deliver(self) -> () {
+        actix_rt::spawn(async move {
+            self.deliver().await.unwrap_or_else(|err| {
+                log::error!("{}", err);
+            });
+        });
+    }
+}
+
 pub fn deliver_activity(
     config: &Config,
     sender: &User,
     activity: Activity,
     recipients: Vec<Actor>,
 ) -> () {
-    if recipients.is_empty() {
-        return;
-    };
-    let instance = config.instance();
-    let sender = sender.clone();
-    actix_rt::spawn(async move {
-        deliver_activity_worker(
-            instance,
-            sender,
-            activity,
-            recipients,
-        ).await.unwrap_or_else(|err| {
-            log::error!("{}", err);
-        });
-    });
+    OutgoingActivity {
+        instance: config.instance(),
+        sender: sender.clone(),
+        activity,
+        recipients,
+    }.spawn_deliver();
 }

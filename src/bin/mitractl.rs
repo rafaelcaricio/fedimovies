@@ -2,6 +2,7 @@ use chrono::{Duration, Utc};
 use clap::Parser;
 use uuid::Uuid;
 
+use mitra::activitypub::builders::delete_note::prepare_delete_note;
 use mitra::activitypub::fetcher::fetchers::fetch_actor;
 use mitra::activitypub::handlers::update_person::update_actor;
 use mitra::config;
@@ -11,11 +12,12 @@ use mitra::ethereum::signatures::generate_ecdsa_key;
 use mitra::ethereum::utils::key_to_ethereum_address;
 use mitra::logger::configure_logger;
 use mitra::models::attachments::queries::delete_unused_attachments;
-use mitra::models::posts::queries::{delete_post, find_extraneous_posts};
+use mitra::models::posts::queries::{delete_post, find_extraneous_posts, get_post_by_id};
 use mitra::models::profiles::queries::delete_profile;
 use mitra::models::users::queries::{
     create_invite_code,
     get_invite_codes,
+    get_user_by_id,
 };
 use mitra::utils::crypto::{generate_private_key, serialize_private_key};
 
@@ -152,8 +154,15 @@ async fn main() {
                     println!("profile deleted");
                 },
                 SubCommand::DeletePost(subopts) => {
-                    let deletion_queue = delete_post(db_client, &subopts.id).await.unwrap();
+                    let post = get_post_by_id(db_client, &subopts.id).await.unwrap();
+                    let deletion_queue = delete_post(db_client, &post.id).await.unwrap();
                     deletion_queue.process(&config).await;
+                    if post.author.is_local() {
+                        // Send Delete(Note) activity
+                        let author = get_user_by_id(db_client, &post.author.id).await.unwrap();
+                        prepare_delete_note(db_client, config.instance(), &author, &post).await.unwrap()
+                            .deliver().await.unwrap();
+                    };
                     println!("post deleted");
                 },
                 SubCommand::DeleteExtraneousPosts(subopts) => {

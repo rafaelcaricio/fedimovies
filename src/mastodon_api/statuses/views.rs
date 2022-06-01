@@ -11,8 +11,8 @@ use crate::activitypub::activity::{
     create_activity_undo_like,
     create_activity_announce,
     create_activity_undo_announce,
-    create_activity_delete_note,
 };
+use crate::activitypub::builders::delete_note::prepare_delete_note;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
@@ -175,12 +175,8 @@ async fn delete_status(
         deletion_queue.process(&config_clone).await;
     });
 
-    let activity = create_activity_delete_note(
-        &config.instance_url(),
-        &post,
-    );
-    let recipients = get_note_recipients(db_client, &current_user, &post).await?;
-    deliver_activity(&config, &current_user, activity, recipients);
+    prepare_delete_note(db_client, config.instance(), &current_user, &post).await?
+        .spawn_deliver();
 
     Ok(HttpResponse::NoContent().finish())
 }
