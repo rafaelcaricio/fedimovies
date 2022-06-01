@@ -4,7 +4,7 @@ mod collections;
 pub mod constants;
 pub mod deliverer;
 pub mod fetcher;
-pub mod inbox;
+pub mod handlers;
 mod receiver;
 pub mod views;
 mod vocabulary;

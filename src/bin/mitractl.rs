@@ -3,7 +3,7 @@ use clap::Parser;
 use uuid::Uuid;
 
 use mitra::activitypub::fetcher::fetchers::fetch_actor;
-use mitra::activitypub::inbox::update_person::update_actor;
+use mitra::activitypub::handlers::update_person::update_actor;
 use mitra::config;
 use mitra::database::create_database_client;
 use mitra::database::migrate::apply_migrations;

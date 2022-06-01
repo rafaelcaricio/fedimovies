@@ -41,8 +41,8 @@ use super::fetcher::helpers::{
     get_or_import_profile_by_actor_id,
     import_post,
 };
-use super::inbox::update_note::handle_update_note;
-use super::inbox::update_person::handle_update_person;
+use super::handlers::update_note::handle_update_note;
+use super::handlers::update_person::handle_update_person;
 use super::vocabulary::*;
 
 pub fn parse_actor_id(

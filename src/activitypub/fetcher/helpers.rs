@@ -5,7 +5,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::activity::Object;
 use crate::activitypub::actor::ActorAddress;
-use crate::activitypub::inbox::create_note::handle_note;
+use crate::activitypub::handlers::create_note::handle_note;
 use crate::activitypub::receiver::parse_object_id;
 use crate::config::{Config, Instance};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
