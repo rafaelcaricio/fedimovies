@@ -5,8 +5,8 @@ use uuid::Uuid;
 use crate::activitypub::activity::{
     create_activity_follow,
     create_activity_undo_follow,
-    create_activity_update_person,
 };
+use crate::activitypub::builders::update_person::prepare_update_person;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
@@ -52,7 +52,7 @@ use crate::utils::crypto::{
     serialize_private_key,
 };
 use crate::utils::files::FileError;
-use super::helpers::{get_profile_update_recipients, get_relationship};
+use super::helpers::get_relationship;
 use super::types::{
     Account,
     AccountCreateData,
@@ -201,10 +201,8 @@ async fn update_credentials(
     ).await?;
 
     // Federate
-    let activity = create_activity_update_person(&current_user, &config.instance_url())
-        .map_err(|_| HttpError::InternalError)?;
-    let recipients = get_profile_update_recipients(db_client, &current_user.id).await?;
-    deliver_activity(&config, &current_user, activity, recipients);
+    prepare_update_person(db_client, config.instance(), &current_user).await?
+        .spawn_deliver();
 
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
@@ -271,10 +269,8 @@ async fn create_identity_proof(
     ).await?;
 
     // Federate
-    let activity = create_activity_update_person(&current_user, &config.instance_url())
-        .map_err(|_| HttpError::InternalError)?;
-    let recipients = get_profile_update_recipients(db_client, &current_user.id).await?;
-    deliver_activity(&config, &current_user, activity, recipients);
+    prepare_update_person(db_client, config.instance(), &current_user).await?
+        .spawn_deliver();
 
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))

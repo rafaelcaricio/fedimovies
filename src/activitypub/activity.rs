@@ -6,10 +6,8 @@ use uuid::Uuid;
 use crate::frontend::get_tag_page_url;
 use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
-use crate::models::users::types::User;
 use crate::utils::files::get_file_url;
 use crate::utils::id::new_uuid;
-use super::actor::{get_local_actor, ActorKeyError};
 use super::constants::{AP_CONTEXT, AP_PUBLIC};
 use super::views::{
     get_actor_url,
@@ -142,7 +140,7 @@ pub struct Activity {
     pub cc: Option<Value>,
 }
 
-fn create_activity(
+pub fn create_activity(
     instance_url: &str,
     actor_name: &str,
     activity_type: &str,
@@ -366,31 +364,6 @@ pub fn create_activity_undo_announce(
     )
 }
 
-pub fn create_activity_delete_note(
-    instance_url: &str,
-    post: &Post,
-) -> Activity {
-    let object_id = post.get_object_id(instance_url);
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
-        id: object_id,
-        object_type: TOMBSTONE.to_string(),
-        former_type: Some(NOTE.to_string()),
-        ..Default::default()
-    };
-    let activity_id = format!("{}/delete", object.id);
-    let activity = create_activity(
-        instance_url,
-        &post.author.username,
-        DELETE,
-        activity_id,
-        object,
-        vec![AP_PUBLIC.to_string()],
-        vec![],
-    );
-    activity
-}
-
 pub fn create_activity_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
@@ -475,28 +448,6 @@ pub fn create_activity_undo_follow(
         vec![],
     );
     activity
-}
-
-pub fn create_activity_update_person(
-    user: &User,
-    instance_url: &str,
-) -> Result<Activity, ActorKeyError> {
-    let actor = get_local_actor(user, instance_url)?;
-    // Update(Person) is idempotent so its ID can be random
-    let activity_id = get_object_url(instance_url, &new_uuid());
-    let activity = create_activity(
-        instance_url,
-        &user.profile.username,
-        UPDATE,
-        activity_id,
-        actor,
-        vec![
-            AP_PUBLIC.to_string(),
-            get_followers_url(instance_url, &user.profile.username),
-        ],
-        vec![],
-    );
-    Ok(activity)
 }
 
 #[cfg(test)]
