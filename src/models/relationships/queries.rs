@@ -199,7 +199,7 @@ pub async fn follow_request_rejected(
     Ok(())
 }
 
-pub async fn delete_follow_request(
+async fn delete_follow_request(
     db_client: &impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
@@ -444,4 +444,74 @@ pub async fn show_replies(
         &[&source_id, &target_id, &RelationshipType::HideReplies],
     ).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use serial_test::serial;
+    use crate::activitypub::actor::Actor;
+    use crate::database::test_utils::create_test_database;
+    use crate::errors::DatabaseError;
+    use crate::models::profiles::queries::create_profile;
+    use crate::models::profiles::types::ProfileCreateData;
+    use crate::models::users::queries::create_user;
+    use crate::models::users::types::UserCreateData;
+    use super::*;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_remote_follow() {
+        let db_client = &mut create_test_database().await;
+        let source_data = UserCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let source = create_user(db_client, source_data).await.unwrap();
+        let target_data = ProfileCreateData {
+            username: "followed".to_string(),
+            actor_json: Some(Actor::default()),
+            ..Default::default()
+        };
+        let target = create_profile(db_client, target_data).await.unwrap();
+        // Create follow request
+        let follow_request = create_follow_request(db_client, &source.id, &target.id)
+            .await.unwrap();
+        assert_eq!(follow_request.source_id, source.id);
+        assert_eq!(follow_request.target_id, target.id);
+        assert!(matches!(
+            follow_request.request_status,
+            FollowRequestStatus::Pending,
+        ));
+        let following = get_following(db_client, &source.id, None, None)
+            .await.unwrap();
+        assert!(following.is_empty());
+        // Accept follow request
+        follow_request_accepted(db_client, &follow_request.id).await.unwrap();
+        let follow_request = get_follow_request_by_path(
+            db_client,
+            &source.id,
+            &target.id,
+        ).await.unwrap();
+        assert!(matches!(
+            follow_request.request_status,
+            FollowRequestStatus::Accepted,
+        ));
+        let following = get_following(db_client, &source.id, None, None)
+            .await.unwrap();
+        assert_eq!(following[0].id, target.id);
+        // Unfollow
+        unfollow(db_client, &source.id, &target.id).await.unwrap();
+        let follow_request_result = get_follow_request_by_path(
+            db_client,
+            &source.id,
+            &target.id,
+        ).await;
+        assert!(matches!(
+            follow_request_result,
+            Err(DatabaseError::NotFound("follow request")),
+        ));
+        let following = get_following(db_client, &source.id, None, None)
+            .await.unwrap();
+        assert!(following.is_empty());
+    }
 }
