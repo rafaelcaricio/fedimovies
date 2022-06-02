@@ -32,7 +32,6 @@ use crate::models::profiles::types::{IdentityProof, ProfileUpdateData};
 use crate::models::relationships::queries::{
     create_follow_request,
     follow,
-    get_follow_request_by_path,
     get_followers,
     get_following,
     hide_replies,
@@ -374,37 +373,23 @@ async fn unfollow_account(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target = get_profile_by_id(db_client, &account_id).await?;
-    if let Some(remote_actor) = target.actor_json {
-        // Get follow request ID then unfollow and delete it
-        match get_follow_request_by_path(
-            db_client,
-            &current_user.id,
-            &target.id,
-        ).await {
-            Ok(follow_request) => {
-                unfollow(
-                    db_client,
-                    &current_user.id,
-                    &target.id,
-                ).await?;
-                // Federate
-                prepare_undo_follow(
-                    config.instance(),
-                    &current_user,
-                    &remote_actor,
-                    &follow_request.id,
-                ).spawn_deliver();
-            },
-            Err(DatabaseError::NotFound(_)) => (), // not following
-            Err(other_error) => return Err(other_error.into()),
-        };
-    } else {
-        match unfollow(db_client, &current_user.id, &target.id).await {
-            Ok(_) => (),
-            Err(DatabaseError::NotFound(_)) => (), // not following
-            Err(other_error) => return Err(other_error.into()),
-        };
+    match unfollow(db_client, &current_user.id, &target.id).await {
+        Ok(Some(follow_request_id)) => {
+            // Remote follow
+            let remote_actor = target.actor_json
+                .ok_or(HttpError::InternalError)?;
+            prepare_undo_follow(
+                config.instance(),
+                &current_user,
+                &remote_actor,
+                &follow_request_id,
+            ).spawn_deliver();
+        },
+        Ok(None) => (), // local follow
+        Err(DatabaseError::NotFound(_)) => (), // not following
+        Err(other_error) => return Err(other_error.into()),
     };
+
     let relationship = get_relationship(
         db_client,
         &current_user.id,

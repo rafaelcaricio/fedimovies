@@ -101,7 +101,7 @@ pub async fn unfollow(
     db_client: &mut impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
-) -> Result<(), DatabaseError> {
+) -> Result<Option<Uuid>, DatabaseError> {
     let transaction = db_client.transaction().await?;
     let deleted_count = transaction.execute(
         "
@@ -119,7 +119,7 @@ pub async fn unfollow(
         source_id,
         target_id,
     ).await?;
-    if !relationship_deleted && !follow_request_deleted {
+    if !relationship_deleted && follow_request_deleted.is_none() {
         return Err(DatabaseError::NotFound("relationship"));
     };
     if relationship_deleted {
@@ -128,7 +128,7 @@ pub async fn unfollow(
         update_following_count(&transaction, source_id, -1).await?;
     }
     transaction.commit().await?;
-    Ok(())
+    Ok(follow_request_deleted)
 }
 
 pub async fn create_follow_request(
@@ -203,16 +203,20 @@ async fn delete_follow_request(
     db_client: &impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
-) -> Result<bool, DatabaseError> {
-    let deleted_count = db_client.execute(
+) -> Result<Option<Uuid>, DatabaseError> {
+    let maybe_row = db_client.query_opt(
         "
         DELETE FROM follow_request
         WHERE source_id = $1 AND target_id = $2
+        RETURNING id
         ",
         &[&source_id, &target_id],
     ).await?;
-    let is_success = deleted_count > 0;
-    Ok(is_success)
+    let maybe_request_id = if let Some(row) = maybe_row {
+        let request_id: Uuid = row.try_get("id")?;
+        Some(request_id)
+    } else { None };
+    Ok(maybe_request_id)
 }
 
 pub async fn get_follow_request_by_id(
@@ -500,12 +504,11 @@ mod tests {
             .await.unwrap();
         assert_eq!(following[0].id, target.id);
         // Unfollow
-        unfollow(db_client, &source.id, &target.id).await.unwrap();
-        let follow_request_result = get_follow_request_by_path(
-            db_client,
-            &source.id,
-            &target.id,
-        ).await;
+        let follow_request_id = unfollow(db_client, &source.id, &target.id)
+            .await.unwrap().unwrap();
+        assert_eq!(follow_request_id, follow_request.id);
+        let follow_request_result =
+            get_follow_request_by_id(db_client, &follow_request_id).await;
         assert!(matches!(
             follow_request_result,
             Err(DatabaseError::NotFound("follow request")),
