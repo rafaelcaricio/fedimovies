@@ -2,6 +2,7 @@ use actix_cors::Cors;
 use actix_web::{
     web,
     App, HttpServer,
+    dev::Service,
     middleware::Logger as ActixLogger,
 };
 use tokio::sync::Mutex;
@@ -80,8 +81,26 @@ async fn main() -> std::io::Result<()> {
             },
         };
         let mut app = App::new()
-            .wrap(ActixLogger::new("%r : %s : %{r}a"))
             .wrap(cors_config)
+            .wrap(ActixLogger::new("%r : %s : %{r}a"))
+            .wrap_fn(|req, srv| {
+                // Always log server errors (500-599)
+                let fut = srv.call(req);
+                async {
+                    let res = fut.await?;
+                    if let Some(error) = res.response().error() {
+                        if error.as_response_error().status_code().is_server_error() {
+                            log::warn!(
+                                "{} {} : {}",
+                                res.request().method(),
+                                res.request().path(),
+                                error,
+                            );
+                        };
+                    };
+                    Ok(res)
+                }
+            })
             .wrap(create_auth_error_handler())
             .app_data(web::PayloadConfig::default().limit(MAX_UPLOAD_SIZE))
             .app_data(web::JsonConfig::default().limit(MAX_UPLOAD_SIZE))
