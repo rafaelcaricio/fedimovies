@@ -121,12 +121,6 @@ cargo clippy
 cargo test
 ```
 
-### Build for production
-
-```
-cargo build --release
-```
-
 ## Federation
 
 See [FEDERATION.md](./FEDERATION.md)

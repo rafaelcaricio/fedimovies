@@ -23,20 +23,16 @@ registrations_open: false
 
 #post_character_limit: 2000
 
-# Blockchain settings
-# Example:
+# Blockchain integration
 #blockchain:
 #  chain_id: eip155:31337
 #  contract_address: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
-#  contract_dir: contracts
+#  contract_dir: /usr/share/mitra/contracts
 #  api_url: 'http://127.0.0.1:8545'
 #  explorer_url: null
 #  signing_key: null
-# Set `blockchain` key to `null` to disable blockchain integration
-blockchain: null
 
-# IPFS settings
-# Set `ipfs_api_url` key to `null` to disable IPFS integration
-ipfs_api_url: null
-# IPFS gateway for clients
-ipfs_gateway_url: null
+# IPFS integration
+#ipfs_api_url: 'http://127.0.0.1:5001'
+# IPFS gateway (for clients)
+#ipfs_gateway_url: 'https://ipfs.example.tld'

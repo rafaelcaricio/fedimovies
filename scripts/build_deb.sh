@@ -32,6 +32,10 @@ mkdir -p $PACKAGE_DIR/usr/bin
 cp target/release/mitra $PACKAGE_DIR/usr/bin/mitra
 cp target/release/mitractl $PACKAGE_DIR/usr/bin/mitractl
 
+# Contracts
+mkdir -p $PACKAGE_DIR/usr/share/mitra
+cp -r contracts $PACKAGE_DIR/usr/share/mitra/contracts
+
 # Webapp
 mkdir -p $PACKAGE_DIR/usr/share/mitra
 # https://people.debian.org/~neilm/webapps-policy/ch-issues.html#s-issues-fhs
