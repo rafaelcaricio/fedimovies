@@ -71,24 +71,18 @@ pub async fn update_subscription(
     Ok(())
 }
 
-/// Find subscription by participants' addresses.
-/// The query is case-sensitive.
-pub async fn get_subscription_by_addresses(
+pub async fn get_subscription_by_participants(
     db_client: &impl GenericClient,
-    sender_address: &str,
-    recipient_address: &str,
+    sender_id: &Uuid,
+    recipient_id: &Uuid,
 ) -> Result<DbSubscription, DatabaseError> {
     let maybe_row = db_client.query_opt(
         "
         SELECT subscription
         FROM subscription
-        JOIN user_account AS recipient
-        ON (subscription.recipient_id = recipient.id)
-        WHERE
-            subscription.sender_address = $1
-            AND recipient.wallet_address = $2
+        WHERE sender_id = $1 AND recipient_id = $2
         ",
-        &[&sender_address, &recipient_address],
+        &[sender_id, recipient_id],
     ).await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("subscription"))?;
     let subscription: DbSubscription = row.try_get("subscription")?;

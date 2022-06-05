@@ -21,12 +21,14 @@ use crate::models::subscriptions::queries::{
     create_subscription,
     update_subscription,
     get_expired_subscriptions,
-    get_subscription_by_addresses,
+    get_subscription_by_participants,
 };
 use crate::models::users::queries::get_user_by_wallet_address;
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
 use super::utils::{address_to_string, parse_address};
+
+const ETHEREUM: Currency = Currency::Ethereum;
 
 fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
     let timestamp: i64 = value.try_into().map_err(|_| ConversionError)?;
@@ -35,8 +37,6 @@ fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
         .ok_or(ConversionError)?;
     Ok(datetime)
 }
-
-const ETHEREUM: Currency = Currency::Ethereum;
 
 /// Search for subscription update events
 pub async fn check_subscriptions(
@@ -81,12 +81,47 @@ pub async fn check_subscriptions(
         let block_date = u256_to_date(block_timestamp)
             .map_err(|_| EthereumError::ConversionError)?;
 
-        match get_subscription_by_addresses(
+        let profiles = search_profile_by_wallet_address(
             db_client,
+            &ETHEREUM,
             &sender_address,
-            &recipient_address,
+            true, // prefer verified addresses
+        ).await?;
+        let sender = match &profiles[..] {
+            [profile] => profile,
+            [] => {
+                // Profile not found, skip event
+                log::error!("unknown subscriber {}", sender_address);
+                continue;
+            },
+            _ => {
+                // Ambiguous results, skip event
+                log::error!(
+                    "search returned multiple results for address {}",
+                    sender_address,
+                );
+                continue;
+            },
+        };
+        let recipient = get_user_by_wallet_address(db_client, &recipient_address).await?;
+
+        match get_subscription_by_participants(
+            db_client,
+            &sender.id,
+            &recipient.id,
         ).await {
             Ok(subscription) => {
+                if subscription.sender_address != sender_address {
+                    // Trust only key/address that was linked to profile
+                    // when first subscription event occured.
+                    // Key rotation is not supported.
+                    log::error!(
+                        "subscriber address changed from {} to {}",
+                        subscription.sender_address,
+                        sender_address,
+                    );
+                    continue;
+                };
                 if subscription.updated_at < block_date {
                     // Update subscription expiration date
                     update_subscription(
@@ -112,29 +147,6 @@ pub async fn check_subscriptions(
             },
             Err(DatabaseError::NotFound(_)) => {
                 // New subscription
-                let profiles = search_profile_by_wallet_address(
-                    db_client,
-                    &ETHEREUM,
-                    &sender_address,
-                    true,
-                ).await?;
-                let sender = match &profiles[..] {
-                    [profile] => profile,
-                    [] => {
-                        // Profile not found, skip event
-                        log::error!("unknown subscriber {}", sender_address);
-                        continue;
-                    },
-                    _ => {
-                        // Ambiguous results, skip event
-                        log::error!(
-                            "search returned multiple results for address {}",
-                            sender_address,
-                        );
-                        continue;
-                    },
-                };
-                let recipient = get_user_by_wallet_address(db_client, &recipient_address).await?;
                 create_subscription(
                     db_client,
                     &sender.id,
