@@ -19,6 +19,7 @@ use super::views::{
     get_outbox_url,
     get_followers_url,
     get_following_url,
+    get_subscribers_url,
 };
 use super::vocabulary::{IDENTITY_PROOF, IMAGE, PERSON, PROPERTY_VALUE, SERVICE};
 
@@ -90,6 +91,9 @@ pub struct Actor {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub following: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subscribers: Option<String>,
 
     pub public_key: PublicKey,
 
@@ -237,6 +241,7 @@ pub fn get_local_actor(
     let outbox = get_outbox_url(instance_url, username);
     let followers = get_followers_url(instance_url, username);
     let following = get_following_url(instance_url, username);
+    let subscribers = get_subscribers_url(instance_url, username);
 
     let private_key = deserialize_private_key(&user.private_key)?;
     let public_key_pem = get_public_key_pem(&private_key)?;
@@ -302,6 +307,7 @@ pub fn get_local_actor(
         outbox,
         followers: Some(followers),
         following: Some(following),
+        subscribers: Some(subscribers),
         public_key,
         capabilities: Some(capabilities),
         icon: avatar,
@@ -338,6 +344,7 @@ pub fn get_instance_actor(
         outbox: actor_outbox,
         followers: None,
         following: None,
+        subscribers: None,
         public_key,
         capabilities: None,
         icon: None,

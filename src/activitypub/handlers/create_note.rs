@@ -67,21 +67,25 @@ fn get_note_visibility(
 ) -> Visibility {
     if primary_audience.contains(&AP_PUBLIC.to_string()) ||
             secondary_audience.contains(&AP_PUBLIC.to_string()) {
-        Visibility::Public
-    } else {
-        let maybe_followers = author.actor_json.as_ref()
-            .and_then(|actor| actor.followers.as_ref());
-        if let Some(followers) = maybe_followers {
-            if primary_audience.contains(followers) ||
-                    secondary_audience.contains(followers) {
-                Visibility::Followers
-            } else {
-                Visibility::Direct
-            }
-        } else {
-            Visibility::Direct
-        }
-    }
+       return Visibility::Public;
+    };
+    let maybe_followers = author.actor_json.as_ref()
+        .and_then(|actor| actor.followers.as_ref());
+    if let Some(followers) = maybe_followers {
+        if primary_audience.contains(followers) ||
+                secondary_audience.contains(followers) {
+            return Visibility::Followers;
+        };
+    };
+    let maybe_subscribers = author.actor_json.as_ref()
+        .and_then(|actor| actor.subscribers.as_ref());
+    if let Some(subscribers) = maybe_subscribers {
+        if primary_audience.contains(subscribers) ||
+                secondary_audience.contains(subscribers) {
+            return Visibility::Subscribers;
+        };
+    };
+    Visibility::Direct
 }
 
 pub async fn handle_note(
@@ -336,6 +340,28 @@ mod tests {
             secondary_audience,
         );
         assert_eq!(visibility, Visibility::Followers);
+    }
+
+    #[test]
+    fn test_get_note_visibility_subscribers() {
+        let author_followers = "https://example.com/users/author/followers";
+        let author_subscribers = "https://example.com/users/author/subscribers";
+        let author = DbActorProfile {
+            actor_json: Some(Actor {
+                followers: Some(author_followers.to_string()),
+                subscribers: Some(author_subscribers.to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let primary_audience = vec![author_subscribers.to_string()];
+        let secondary_audience = vec![];
+        let visibility = get_note_visibility(
+            &author,
+            primary_audience,
+            secondary_audience,
+        );
+        assert_eq!(visibility, Visibility::Subscribers);
     }
 
     #[test]
