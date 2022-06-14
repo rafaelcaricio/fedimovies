@@ -23,6 +23,9 @@ registrations_open: false
 
 #post_character_limit: 2000
 
+# List of blocked domains
+#blocked_instances: []
+
 # Blockchain integration
 #blockchain:
 #  chain_id: eip155:31337

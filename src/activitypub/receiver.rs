@@ -170,7 +170,8 @@ pub async fn receive_activity(
     let signer_id = signer.actor_id(&config.instance_url());
     log::debug!("activity signed by {}", signer_id);
     if config.blocked_instances.iter().any(|instance| signer.acct.contains(instance)) {
-        return Err(HttpError::ValidationError("instance is blocked".into()));
+        log::warn!("ignoring activity from blocked instance: {}", activity_raw);
+        return Ok(());
     };
 
     let maybe_object_type = match (activity_type.as_str(), maybe_object_type) {
