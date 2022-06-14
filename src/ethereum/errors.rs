@@ -26,9 +26,6 @@ pub enum EthereumError {
     #[error("data conversion error")]
     ConversionError,
 
-    #[error("token uri parsing error")]
-    TokenUriParsingError,
-
     #[error(transparent)]
     DatabaseError(#[from] DatabaseError),
 

@@ -6,9 +6,9 @@ use uuid::Uuid;
 use web3::{
     api::Web3,
     contract::{Contract, Options},
-    ethabi::{RawLog, token::Token},
+    ethabi::RawLog,
     transports::Http,
-    types::{BlockNumber, FilterBuilder, H256},
+    types::{BlockNumber, FilterBuilder},
 };
 
 use crate::config::BlockchainConfig;
@@ -27,15 +27,6 @@ use super::utils::parse_address;
 
 const TOKEN_WAIT_TIME: i64 = 10; // in minutes
 
-#[allow(dead_code)]
-#[derive(Debug)]
-struct TokenTransfer {
-    tx_id: Option<H256>,
-    from: Token,
-    to: Token,
-    token_id: Token,
-}
-
 /// Finds posts awaiting tokenization
 /// and looks for corresponding Mint events
 pub async fn process_nft_events(
@@ -51,8 +42,8 @@ pub async fn process_nft_events(
     for post_id in token_waitlist {
         if !token_waitlist_map.contains_key(&post_id) {
             token_waitlist_map.insert(post_id, Utc::now());
-        }
-    }
+        };
+    };
     let token_waitlist_active_count = token_waitlist_map.values()
         .filter(|waiting_since| {
             let duration = Utc::now() - **waiting_since;
@@ -61,7 +52,7 @@ pub async fn process_nft_events(
         .count();
     if token_waitlist_active_count == 0 {
         return Ok(())
-    }
+    };
     log::info!(
         "{} posts are waiting for confirmation of tokenization tx",
         token_waitlist_active_count,
@@ -75,42 +66,27 @@ pub async fn process_nft_events(
         .from_block(BlockNumber::Earliest)
         .build();
     let logs = web3.eth().logs(filter).await?;
-
-    // Convert web3 logs into ethabi logs
-    let transfers: Vec<TokenTransfer> = logs.iter().map(|log| {
+    for log in logs {
         let raw_log = RawLog {
             topics: log.topics.clone(),
             data: log.data.clone().0,
         };
-        match event_abi.parse_log(raw_log) {
-            Ok(event) => {
-                let params = event.params;
-                let transfer = TokenTransfer {
-                    tx_id: log.transaction_hash,
-                    from: params[0].value.clone(),
-                    to: params[1].value.clone(),
-                    token_id: params[2].value.clone(),
-                };
-                Ok(transfer)
-            },
-            Err(err) => Err(err),
-        }
-    }).collect::<Result<_, web3::ethabi::Error>>()?;
-    for transfer in transfers {
-        let from_address = transfer.from.into_address()
+        let event = event_abi.parse_log(raw_log)?;
+        let from_address = event.params[0].value.clone().into_address()
             .ok_or(EthereumError::ConversionError)?;
         if from_address.is_zero() {
             // Mint event found
-            let token_id_u256 = transfer.token_id.into_uint()
+            let token_id_u256 = event.params[2].value.clone().into_uint()
                 .ok_or(EthereumError::ConversionError)?;
             let token_uri: String = contract.query(
                 "tokenURI", (token_id_u256,),
                 None, Options::default(), None,
             ).await?;
-            let tx_id_h256 = transfer.tx_id.ok_or(EthereumError::ConversionError)?;
+            let tx_id_h256 = log.transaction_hash
+                .ok_or(EthereumError::ConversionError)?;
             let tx_id = hex::encode(tx_id_h256.as_bytes());
             let ipfs_cid = parse_ipfs_url(&token_uri)
-                .map_err(|_| EthereumError::TokenUriParsingError)?;
+                .map_err(|_| EthereumError::ConversionError)?;
             let post = match get_post_by_ipfs_cid(db_client, &ipfs_cid).await {
                 Ok(post) => post,
                 Err(DatabaseError::NotFound(_)) => {
