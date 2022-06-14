@@ -10,6 +10,10 @@ use web3::{
 use crate::config::BlockchainConfig;
 use super::api::connect;
 use super::errors::EthereumError;
+use super::sync::{
+    get_current_block_number,
+    CHAIN_REORG_MAX_DEPTH,
+};
 use super::utils::parse_address;
 
 pub const ADAPTER: &str = "IAdapter";
@@ -45,6 +49,8 @@ pub fn load_abi(
 
 pub struct ContractSet {
     pub web3: Web3<Http>,
+    // Last synced block
+    pub current_block: u64,
 
     #[allow(dead_code)]
     pub adapter: Contract<Http>,
@@ -55,6 +61,7 @@ pub struct ContractSet {
 
 pub async fn get_contracts(
     config: &BlockchainConfig,
+    storage_dir: &Path,
 ) -> Result<ContractSet, EthereumError> {
     let web3 = connect(&config.api_url)?;
     let chain_id = web3.eth().chain_id().await?;
@@ -93,8 +100,14 @@ pub async fn get_contracts(
     )?;
     log::info!("subscription contract address is {:?}", subscription.address());
 
+    let current_block = get_current_block_number(&web3, storage_dir).await?;
+    log::info!("current block is {}", current_block);
+    // Take reorgs into account
+    let current_block = current_block.saturating_sub(CHAIN_REORG_MAX_DEPTH);
+
     let contract_set = ContractSet {
         web3,
+        current_block,
         adapter,
         collectible,
         subscription,

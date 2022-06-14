@@ -7,4 +7,5 @@ pub mod identity;
 pub mod nft;
 pub mod signatures;
 pub mod subscriptions;
+mod sync;
 pub mod utils;

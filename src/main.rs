@@ -53,7 +53,7 @@ async fn main() -> std::io::Result<()> {
 
     let maybe_contract_set = if let Some(blockchain_config) = &config.blockchain {
         // Create blockchain interface
-        get_contracts(blockchain_config).await
+        get_contracts(blockchain_config, &config.storage_dir).await
             .map_err(|err| log::error!("{}", err))
             .ok()
     } else {

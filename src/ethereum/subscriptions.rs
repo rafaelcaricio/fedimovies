@@ -42,6 +42,7 @@ fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
 pub async fn check_subscriptions(
     web3: &Web3<Http>,
     contract: &Contract<Http>,
+    from_block: u64,
     db_pool: &Pool,
 ) -> Result<(), EthereumError> {
     let db_client = &mut **get_database_client(db_pool).await?;
@@ -49,7 +50,7 @@ pub async fn check_subscriptions(
     let filter = FilterBuilder::default()
         .address(vec![contract.address()])
         .topics(Some(vec![event_abi.signature()]), None, None, None)
-        .from_block(BlockNumber::Earliest)
+        .from_block(BlockNumber::Number(from_block.into()))
         .build();
     let logs = web3.eth().logs(filter).await?;
     for log in logs {

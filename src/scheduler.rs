@@ -26,6 +26,7 @@ pub fn run(
                 process_nft_events(
                     &contract_set.web3,
                     &contract_set.collectible,
+                    contract_set.current_block,
                     &db_pool,
                     &mut token_waitlist_map,
                 ).await.unwrap_or_else(|err| {
@@ -34,6 +35,7 @@ pub fn run(
                 check_subscriptions(
                     &contract_set.web3,
                     &contract_set.subscription,
+                    contract_set.current_block,
                     &db_pool,
                 ).await.unwrap_or_else(|err| {
                     log::error!("{}", err);
