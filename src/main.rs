@@ -12,6 +12,7 @@ use mitra::atom::views as atom;
 use mitra::config::{Environment, parse_config};
 use mitra::database::{get_database_client, create_pool};
 use mitra::database::migrate::apply_migrations;
+use mitra::ethereum::contracts::get_contracts;
 use mitra::logger::configure_logger;
 use mitra::mastodon_api::accounts::views::account_api_scope;
 use mitra::mastodon_api::directory::views::directory_api_scope;
@@ -35,6 +36,7 @@ async fn main() -> std::io::Result<()> {
     let config = parse_config();
     configure_logger(config.log_level);
     log::info!("config loaded from {}", config.config_path);
+
     let db_pool = create_pool(&config.database_url);
     let mut db_client = get_database_client(&db_pool).await.unwrap();
     apply_migrations(&mut **db_client).await;
@@ -49,7 +51,16 @@ async fn main() -> std::io::Result<()> {
         config.environment,
     );
 
-    scheduler::run(config.clone(), db_pool.clone());
+    let maybe_contract_set = if let Some(blockchain_config) = &config.blockchain {
+        // Create blockchain interface
+        get_contracts(blockchain_config).await
+            .map_err(|err| log::error!("{}", err))
+            .ok()
+    } else {
+        None
+    };
+
+    scheduler::run(config.clone(), maybe_contract_set, db_pool.clone());
     log::info!("scheduler started");
 
     let http_socket_addr = format!(

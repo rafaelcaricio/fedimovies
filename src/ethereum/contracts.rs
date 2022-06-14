@@ -73,11 +73,11 @@ pub async fn get_contracts(
         "collectible",
         (), None, Options::default(), None,
     ).await?;
-    let collectibe_abi = load_abi(&config.contract_dir, ERC721)?;
+    let collectible_abi = load_abi(&config.contract_dir, ERC721)?;
     let collectible = Contract::from_json(
         web3.eth(),
         collectible_address,
-        &collectibe_abi,
+        &collectible_abi,
     )?;
     log::info!("collectible item contract address is {:?}", collectible.address());
 
