@@ -1,14 +1,22 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::{create_activity, Activity, Attachment, Tag},
+    actor::Actor,
     constants::{AP_CONTEXT, AP_PUBLIC},
+    deliverer::OutgoingActivity,
     views::{get_actor_url, get_followers_url, get_object_url, get_subscribers_url},
     vocabulary::{CREATE, DOCUMENT, HASHTAG, MENTION, NOTE},
 };
+use crate::config::Instance;
+use crate::errors::DatabaseError;
 use crate::frontend::get_tag_page_url;
+use crate::models::posts::queries::get_post_author;
 use crate::models::posts::types::{Post, Visibility};
+use crate::models::relationships::queries::{get_followers, get_subscribers};
+use crate::models::users::types::User;
 use crate::utils::files::get_file_url;
 
 #[derive(Serialize)]
@@ -152,10 +160,63 @@ pub fn build_create_note(
     activity
 }
 
+pub async fn get_note_recipients(
+    db_client: &impl GenericClient,
+    current_user: &User,
+    post: &Post,
+) -> Result<Vec<Actor>, DatabaseError> {
+    let mut audience = vec![];
+    match post.visibility {
+        Visibility::Public | Visibility::Followers => {
+            let followers = get_followers(db_client, &current_user.id, None, None).await?;
+            audience.extend(followers);
+        },
+        Visibility::Subscribers => {
+            let subscribers = get_subscribers(db_client, &current_user.id).await?;
+            audience.extend(subscribers);
+        },
+        Visibility::Direct => (),
+    };
+    if let Some(in_reply_to_id) = post.in_reply_to_id {
+        // TODO: use post.in_reply_to ?
+        let in_reply_to_author = get_post_author(db_client, &in_reply_to_id).await?;
+        audience.push(in_reply_to_author);
+    };
+    audience.extend(post.mentions.clone());
+
+    let mut recipients: Vec<Actor> = Vec::new();
+    for profile in audience {
+        if let Some(remote_actor) = profile.actor_json {
+            recipients.push(remote_actor);
+        };
+    };
+    Ok(recipients)
+}
+
+pub async fn prepare_create_note(
+    db_client: &impl GenericClient,
+    instance: Instance,
+    author: &User,
+    post: &Post,
+) -> Result<OutgoingActivity, DatabaseError> {
+    assert_eq!(author.id, post.author.id);
+    let activity = build_create_note(
+        &instance.host(),
+        &instance.url(),
+        post,
+    );
+    let recipients = get_note_recipients(db_client, author, post).await?;
+    Ok(OutgoingActivity {
+        instance,
+        sender: author.clone(),
+        activity,
+        recipients,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use crate::activitypub::actor::Actor;
     use crate::models::profiles::types::DbActorProfile;
     use super::*;
 

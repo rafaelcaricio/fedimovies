@@ -11,7 +11,7 @@ use crate::activitypub::activity::{
     create_activity_announce,
     create_activity_undo_announce,
 };
-use crate::activitypub::builders::create_note::build_create_note;
+use crate::activitypub::builders::create_note::prepare_create_note;
 use crate::activitypub::builders::delete_note::prepare_delete_note;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
@@ -44,7 +44,6 @@ use super::helpers::{
     build_status_list,
     get_announce_recipients,
     get_like_recipients,
-    get_note_recipients,
     Audience,
 };
 use super::types::{Status, StatusData, TransactionData};
@@ -119,13 +118,8 @@ async fn create_status(
         Box::new(in_reply_to)
     });
     // Federate
-    let activity = build_create_note(
-        &instance.host(),
-        &instance.url(),
-        &post,
-    );
-    let recipients = get_note_recipients(db_client, &current_user, &post).await?;
-    deliver_activity(&config, &current_user, activity, recipients);
+    prepare_create_note(db_client, config.instance(), &current_user, &post).await?
+        .spawn_deliver();
 
     let status = Status::from_post(post, &instance.url());
     Ok(HttpResponse::Created().json(status))

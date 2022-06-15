@@ -7,9 +7,9 @@ use crate::activitypub::deliverer::OutgoingActivity;
 use crate::activitypub::vocabulary::{DELETE, NOTE, TOMBSTONE};
 use crate::config::Instance;
 use crate::errors::DatabaseError;
-use crate::mastodon_api::statuses::helpers::get_note_recipients;
 use crate::models::posts::types::Post;
 use crate::models::users::types::User;
+use super::create_note::get_note_recipients;
 
 fn build_delete_note(
     instance_url: &str,
