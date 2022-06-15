@@ -6,12 +6,12 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
 use crate::activitypub::activity::{
-    create_activity_note,
     create_activity_like,
     create_activity_undo_like,
     create_activity_announce,
     create_activity_undo_announce,
 };
+use crate::activitypub::builders::create_note::build_create_note;
 use crate::activitypub::builders::delete_note::prepare_delete_note;
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
@@ -119,7 +119,7 @@ async fn create_status(
         Box::new(in_reply_to)
     });
     // Federate
-    let activity = create_activity_note(
+    let activity = build_create_note(
         &instance.host(),
         &instance.url(),
         &post,
