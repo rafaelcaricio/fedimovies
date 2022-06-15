@@ -15,6 +15,7 @@ use crate::errors::DatabaseError;
 use crate::frontend::get_tag_page_url;
 use crate::models::posts::queries::get_post_author;
 use crate::models::posts::types::{Post, Visibility};
+use crate::models::profiles::types::DbActorProfile;
 use crate::models::relationships::queries::{get_followers, get_subscribers};
 use crate::models::users::types::User;
 use crate::utils::files::get_file_url;
@@ -53,6 +54,7 @@ pub fn build_note(
     instance_host: &str,
     instance_url: &str,
     post: &Post,
+    subscribers: Vec<DbActorProfile>,
 ) -> Note {
     let object_id = get_object_url(
         instance_url,
@@ -103,6 +105,21 @@ pub fn build_note(
         };
         tags.push(tag);
     };
+    if matches!(post.visibility, Visibility::Subscribers) {
+        // Mention all subscribers
+        // (for recipients that don't support subscribers-only posts)
+        for profile in subscribers {
+            let tag_name = format!("@{}", profile.actor_address(instance_host));
+            let actor_id = profile.actor_id(instance_url);
+            secondary_audience.push(actor_id.clone());
+            let tag = Tag {
+                name: Some(tag_name),
+                tag_type: MENTION.to_string(),
+                href: Some(actor_id),
+            };
+            tags.push(tag);
+        };
+    };
     for tag_name in &post.tags {
         let tag_page_url = get_tag_page_url(instance_url, tag_name);
         let tag = Tag {
@@ -143,8 +160,9 @@ pub fn build_create_note(
     instance_host: &str,
     instance_url: &str,
     post: &Post,
+    subscribers: Vec<DbActorProfile>,
 ) -> Activity {
-    let object = build_note(instance_host, instance_url, post);
+    let object = build_note(instance_host, instance_url, post, subscribers);
     let primary_audience = object.to.clone();
     let secondary_audience = object.cc.clone();
     let activity_id = format!("{}/create", object.id);
@@ -200,10 +218,16 @@ pub async fn prepare_create_note(
     post: &Post,
 ) -> Result<OutgoingActivity, DatabaseError> {
     assert_eq!(author.id, post.author.id);
+    let subscribers = if matches!(post.visibility, Visibility::Subscribers) {
+        get_subscribers(db_client, &author.id).await?
+    } else {
+        vec![]
+    };
     let activity = build_create_note(
         &instance.host(),
         &instance.url(),
         post,
+        subscribers,
     );
     let recipients = get_note_recipients(db_client, author, post).await?;
     Ok(OutgoingActivity {
@@ -217,7 +241,6 @@ pub async fn prepare_create_note(
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_HOST: &str = "example.com";
@@ -230,7 +253,7 @@ mod tests {
             ..Default::default()
         };
         let post = Post { author, ..Default::default() };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
 
         assert_eq!(
             note.id,
@@ -255,7 +278,7 @@ mod tests {
             visibility: Visibility::Followers,
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
 
         assert_eq!(note.to, vec![
             get_followers_url(INSTANCE_URL, &post.author.username),
@@ -271,7 +294,7 @@ mod tests {
             in_reply_to: Some(Box::new(parent.clone())),
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
 
         assert_eq!(
             note.in_reply_to.unwrap(),
@@ -309,7 +332,7 @@ mod tests {
             mentions: vec![parent_author],
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
 
         assert_eq!(
             note.in_reply_to.unwrap(),
@@ -330,7 +353,12 @@ mod tests {
             ..Default::default()
         };
         let post = Post { author, ..Default::default() };
-        let activity = build_create_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let activity = build_create_note(
+            INSTANCE_HOST,
+            INSTANCE_URL,
+            &post,
+            vec![],
+        );
 
         assert_eq!(
             activity.id,

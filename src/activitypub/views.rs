@@ -172,6 +172,7 @@ async fn outbox(
             &instance.host(),
             &instance.url(),
             post,
+            vec![], // subscribers-only posts are not included
         );
         Some(activity)
     }).collect();
@@ -286,9 +287,9 @@ pub async fn object_view(
     internal_object_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    // Try to find local post by ID,
-    // return 404 if not found or if repost is found
     let internal_object_id = internal_object_id.into_inner();
+    // Try to find local post by ID,
+    // return 404 if not found, or not public, or it is a repost
     let thread = get_thread(db_client, &internal_object_id, None).await?;
     let mut post = thread.iter()
         .find(|post| post.id == internal_object_id && post.author.is_local())
@@ -316,6 +317,7 @@ pub async fn object_view(
         &config.instance().host(),
         &config.instance().url(),
         &post,
+        vec![], // subscribers-only posts are not accessible
     );
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)
