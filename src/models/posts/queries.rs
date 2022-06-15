@@ -224,7 +224,7 @@ fn build_visibility_filter() -> String {
         "(
             post.author_id = $current_user_id
             OR post.visibility = {visibility_public}
-            OR post.visibility = {visibility_direct} AND EXISTS (
+            OR EXISTS (
                 SELECT 1 FROM mention
                 WHERE post_id = post.id AND profile_id = $current_user_id
             )
@@ -244,7 +244,6 @@ fn build_visibility_filter() -> String {
             )
         )",
         visibility_public=i16::from(&Visibility::Public),
-        visibility_direct=i16::from(&Visibility::Direct),
         visibility_followers=i16::from(&Visibility::Followers),
         visibility_subscribers=i16::from(&Visibility::Subscribers),
         relationship_follow=i16::from(&RelationshipType::Follow),
