@@ -1,3 +1,4 @@
+use anyhow::Error;
 use chrono::{Duration, Utc};
 use clap::Parser;
 use uuid::Uuid;
@@ -6,10 +7,11 @@ use mitra::activitypub::builders::delete_note::prepare_delete_note;
 use mitra::activitypub::builders::delete_person::prepare_delete_person;
 use mitra::activitypub::fetcher::fetchers::fetch_actor;
 use mitra::activitypub::handlers::update_person::update_actor;
-use mitra::config;
+use mitra::config::{parse_config, Config};
 use mitra::database::create_database_client;
 use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::signatures::generate_ecdsa_key;
+use mitra::ethereum::sync::save_current_block_number;
 use mitra::ethereum::utils::key_to_ethereum_address;
 use mitra::logger::configure_logger;
 use mitra::models::attachments::queries::delete_unused_attachments;
@@ -41,6 +43,7 @@ enum SubCommand {
     DeletePost(DeletePost),
     DeleteExtraneousPosts(DeleteExtraneousPosts),
     DeleteUnusedAttachments(DeleteUnusedAttachments),
+    UpdateCurrentBlock(UpdateCurrentBlock),
 }
 
 /// Generate RSA private key
@@ -98,11 +101,26 @@ struct DeleteExtraneousPosts {
     dry_run: bool,
 }
 
-/// Delete attachments that doesn't belong to any post
+/// Delete attachments that don't belong to any post
 #[derive(Parser)]
 struct DeleteUnusedAttachments {
     #[clap(short)]
     days: i64,
+}
+
+/// Update blockchain synchronization starting block
+#[derive(Parser)]
+struct UpdateCurrentBlock {
+    #[clap(short)]
+    number: u64,
+}
+
+impl UpdateCurrentBlock {
+    fn execute(&self, config: &Config) -> Result<(), Error> {
+        save_current_block_number(&config.storage_dir, self.number)?;
+        println!("current block updated");
+        Ok(())
+    }
 }
 
 #[tokio::main]
@@ -121,7 +139,7 @@ async fn main() {
         },
         subcmd => {
             // Other commands require initialized app
-            let config = config::parse_config();
+            let config = parse_config();
             configure_logger(config.log_level);
             log::info!("config loaded from {}", config.config_path);
             let db_config = config.database_url.parse().unwrap();
@@ -198,6 +216,7 @@ async fn main() {
                     deletion_queue.process(&config).await;
                     println!("unused attachments deleted");
                 },
+                SubCommand::UpdateCurrentBlock(cmd) => cmd.execute(&config).unwrap(),
                 _ => panic!(),
             };
         },

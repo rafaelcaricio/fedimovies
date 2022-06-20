@@ -183,6 +183,12 @@ Generate ethereum address:
 mitractl generate-ethereum-address
 ```
 
+Update blockchain synchronization starting block:
+
+```shell
+mitractl update-current-block -n 2000000
+```
+
 ## License
 
 [AGPL-3.0](./LICENSE)

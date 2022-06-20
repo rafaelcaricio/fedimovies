@@ -8,7 +8,7 @@ use super::errors::EthereumError;
 const BLOCK_NUMBER_FILE_NAME: &str = "current_block";
 pub const CHAIN_REORG_MAX_DEPTH: u64 = 100;
 
-fn save_current_block_number(
+pub fn save_current_block_number(
     storage_dir: &Path,
     block_number: u64,
 ) -> Result<(), EthereumError> {
@@ -41,6 +41,7 @@ pub async fn get_current_block_number(
     let block_number = match read_current_block_number(storage_dir)? {
         Some(block_number) => block_number,
         None => {
+            // Save block number when connecting to the node for the first time
             let block_number = web3.eth().block_number().await?.as_u64();
             save_current_block_number(storage_dir, block_number)?;
             block_number
