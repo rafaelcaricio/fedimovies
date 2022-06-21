@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use anyhow::Error;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -10,7 +11,7 @@ use crate::ethereum::contracts::ContractSet;
 use crate::ethereum::nft::process_nft_events;
 use crate::ethereum::subscriptions::check_subscriptions;
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 enum Task {
     NftMonitor,
     SubscriptionMonitor,
@@ -55,7 +56,7 @@ pub fn run(
                 if !is_task_ready(last_run, task.period()) {
                     continue;
                 };
-                match task {
+                let task_result = match task {
                     Task::NftMonitor => {
                         if let Some(contract_set) = maybe_contract_set.as_ref() {
                             // Monitor events only if ethereum integration is enabled
@@ -65,10 +66,8 @@ pub fn run(
                                 contract_set.current_block,
                                 &db_pool,
                                 &mut token_waitlist_map,
-                            ).await.unwrap_or_else(|err| {
-                                log::error!("{}", err);
-                            });
-                        };
+                            ).await.map_err(Error::from)
+                        } else { Ok(()) }
                     },
                     Task::SubscriptionMonitor => {
                         if let Some(contract_set) = maybe_contract_set.as_ref() {
@@ -77,12 +76,13 @@ pub fn run(
                                 &contract_set.subscription,
                                 contract_set.current_block,
                                 &db_pool,
-                            ).await.unwrap_or_else(|err| {
-                                log::error!("{}", err);
-                            });
-                        };
+                            ).await.map_err(Error::from)
+                        } else { Ok(()) }
                     },
                 };
+                task_result.unwrap_or_else(|err| {
+                    log::error!("{:?}: {}", task, err);
+                });
                 *last_run = Some(Utc::now());
             };
         }
