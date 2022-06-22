@@ -775,6 +775,10 @@ components:
           description: Blockchain contract address.
           type: string
           nullable: true
+        blockchain_info:
+          description: Additional information about blockchain
+          type: object
+          nullable: true
         ipfs_gateway_url:
           description: IPFS gateway URL.
           type: string

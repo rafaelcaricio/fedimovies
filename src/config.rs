@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -82,6 +83,8 @@ fn default_post_character_limit() -> usize { 2000 }
 pub struct BlockchainConfig {
     // CAIP-2 chain ID (https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md)
     pub chain_id: String,
+    // Additional information for clients
+    pub chain_info: Option<HashMap<String, String>>,
     pub contract_address: String,
     pub contract_dir: PathBuf,
     pub api_url: String,

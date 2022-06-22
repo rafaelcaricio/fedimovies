@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Serialize;
 
 use crate::config::Config;
@@ -17,6 +19,7 @@ pub struct InstanceInfo {
     blockchain_id: Option<String>,
     blockchain_explorer_url: Option<String>,
     blockchain_contract_address: Option<String>,
+    blockchain_info: Option<HashMap<String, String>>,
     ipfs_gateway_url: Option<String>,
 }
 
@@ -45,6 +48,8 @@ impl From<&Config> for InstanceInfo {
                 .and_then(|val| val.explorer_url.clone()),
             blockchain_contract_address: config.blockchain.as_ref()
                 .map(|val| val.contract_address.clone()),
+            blockchain_info: config.blockchain.as_ref()
+                .and_then(|val| val.chain_info.clone()),
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),
         }
     }
