@@ -16,10 +16,9 @@ use super::sync::{
 };
 use super::utils::parse_address;
 
-pub const ADAPTER: &str = "IAdapter";
-pub const SUBSCRIPTION: &str = "ISubscription";
-pub const ERC20: &str = "IERC20";
-pub const ERC721: &str = "IERC721Metadata";
+const ADAPTER: &str = "IAdapter";
+const SUBSCRIPTION: &str = "ISubscription";
+const ERC721: &str = "IERC721Metadata";
 
 #[derive(thiserror::Error, Debug)]
 pub enum ArtifactError {
@@ -33,7 +32,7 @@ pub enum ArtifactError {
     KeyError,
 }
 
-pub fn load_abi(
+fn load_abi(
     contract_dir: &Path,
     contract_name: &str,
 ) -> Result<Vec<u8>, ArtifactError> {
@@ -47,14 +46,13 @@ pub fn load_abi(
     Ok(contract_abi)
 }
 
+#[derive(Clone)]
 pub struct ContractSet {
     pub web3: Web3<Http>,
     // Last synced block
     pub current_block: u64,
 
-    #[allow(dead_code)]
     pub adapter: Contract<Http>,
-
     pub collectible: Contract<Http>,
     pub subscription: Contract<Http>,
 }

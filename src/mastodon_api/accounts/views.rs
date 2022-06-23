@@ -11,6 +11,7 @@ use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
+use crate::ethereum::contracts::ContractSet;
 use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::ethereum::gate::is_allowed_user;
 use crate::ethereum::identity::{
@@ -68,6 +69,7 @@ use super::types::{
 pub async fn create_account(
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
+    maybe_blockchain: web::Data<Option<ContractSet>>,
     account_data: web::Json<AccountCreateData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -103,16 +105,19 @@ pub async fn create_account(
     };
     assert!(password_hash.is_some() || wallet_address.is_some());
 
-    if let Some(blockchain_config) = config.blockchain.as_ref() {
+    if let Some(contract_set) = maybe_blockchain.as_ref() {
         // Wallet address is required if blockchain integration is enabled
         let wallet_address = wallet_address.as_ref()
             .ok_or(ValidationError("wallet address is required"))?;
-        let is_allowed = is_allowed_user(blockchain_config, wallet_address).await
+        let is_allowed = is_allowed_user(contract_set, wallet_address).await
             .map_err(|_| HttpError::InternalError)?;
         if !is_allowed {
             return Err(ValidationError("not allowed to sign up").into());
-        }
-    }
+        };
+    } else {
+        assert!(config.blockchain.is_none());
+    };
+
     // Generate RSA private key for actor
     let private_key = match web::block(generate_private_key).await {
         Ok(Ok(private_key)) => private_key,
