@@ -1,12 +1,14 @@
-use std::path::Path;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
-use web3::{api::Web3, transports::Http};
+use web3::{api::Web3, transports::Http, types::Address};
 
 use crate::utils::files::write_file;
 use super::errors::EthereumError;
 
 const BLOCK_NUMBER_FILE_NAME: &str = "current_block";
-pub const CHAIN_REORG_MAX_DEPTH: u64 = 100;
+const CHAIN_REORG_MAX_DEPTH: u64 = 100;
+const CHAIN_SYNC_STEP: u64 = 1000;
 
 pub fn save_current_block_number(
     storage_dir: &Path,
@@ -48,4 +50,62 @@ pub async fn get_current_block_number(
         },
     };
     Ok(block_number)
+}
+
+#[derive(Clone)]
+pub struct SyncState {
+    pub current_block: u64,
+    contracts: HashMap<Address, u64>,
+
+    pub storage_dir: PathBuf,
+}
+
+impl SyncState {
+    pub fn new(
+        current_block: u64,
+        contracts: Vec<Address>,
+        storage_dir: &Path,
+    ) -> Self {
+        let mut contract_map = HashMap::new();
+        for address in contracts {
+            contract_map.insert(address, current_block);
+        };
+        Self {
+            current_block,
+            contracts: contract_map,
+            storage_dir: storage_dir.to_path_buf(),
+        }
+    }
+
+    pub fn get_scan_range(&self, contract_address: &Address) -> (u64, u64) {
+        let current_block = self.contracts[contract_address];
+        // Take reorgs into account
+        let safe_current_block = current_block.saturating_sub(CHAIN_REORG_MAX_DEPTH);
+        (safe_current_block, safe_current_block + CHAIN_SYNC_STEP)
+    }
+
+    pub fn is_out_of_sync(&self, contract_address: &Address) -> bool {
+        if let Some(max_value) = self.contracts.values().max().copied() {
+            if self.contracts[contract_address] == max_value {
+                return false;
+            };
+        };
+        true
+    }
+
+    pub fn update(
+        &mut self,
+        contract_address: &Address,
+        block_number: u64,
+    ) -> bool {
+        self.contracts.insert(*contract_address, block_number);
+        if let Some(min_value) = self.contracts.values().min().copied() {
+            if min_value > self.current_block {
+                self.current_block = min_value;
+                log::info!("synced to block {}", self.current_block);
+                return true;
+            };
+        };
+        false
+    }
 }

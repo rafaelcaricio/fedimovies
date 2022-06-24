@@ -58,8 +58,10 @@ async fn main() -> std::io::Result<()> {
     } else {
         None
     };
+    let maybe_contract_set = maybe_blockchain.clone()
+        .map(|blockchain| blockchain.contract_set);
 
-    scheduler::run(config.clone(), maybe_blockchain.clone(), db_pool.clone());
+    scheduler::run(config.clone(), maybe_blockchain, db_pool.clone());
     log::info!("scheduler started");
 
     let http_socket_addr = format!(
@@ -116,7 +118,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::JsonConfig::default().limit(MAX_UPLOAD_SIZE))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(db_pool.clone()))
-            .app_data(web::Data::new(maybe_blockchain.clone()))
+            .app_data(web::Data::new(maybe_contract_set.clone()))
             .app_data(web::Data::clone(&inbox_mutex))
             .service(actix_files::Files::new(
                 "/media",

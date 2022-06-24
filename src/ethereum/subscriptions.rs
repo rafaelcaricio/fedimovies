@@ -26,6 +26,7 @@ use crate::models::subscriptions::queries::{
 use crate::models::users::queries::get_user_by_wallet_address;
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
+use super::sync::{save_current_block_number, SyncState};
 use super::utils::{address_to_string, parse_address};
 
 const ETHEREUM: Currency = Currency::Ethereum;
@@ -42,15 +43,21 @@ fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
 pub async fn check_subscriptions(
     web3: &Web3<Http>,
     contract: &Contract<Http>,
-    from_block: u64,
+    sync_state: &mut SyncState,
     db_pool: &Pool,
 ) -> Result<(), EthereumError> {
     let db_client = &mut **get_database_client(db_pool).await?;
     let event_abi = contract.abi().event("UpdateSubscription")?;
+    let (from_block, to_block) = sync_state.get_scan_range(&contract.address());
+    let to_block = std::cmp::min(
+        web3.eth().block_number().await?.as_u64(),
+        to_block,
+    );
     let filter = FilterBuilder::default()
         .address(vec![contract.address()])
         .topics(Some(vec![event_abi.signature()]), None, None, None)
         .from_block(BlockNumber::Number(from_block.into()))
+        .to_block(BlockNumber::Number(to_block.into()))
         .build();
     let logs = web3.eth().logs(filter).await?;
     for log in logs {
@@ -179,6 +186,10 @@ pub async fn check_subscriptions(
             subscription.sender_id,
             subscription.recipient_id,
         );
+    };
+
+    if sync_state.update(&contract.address(), to_block) {
+        save_current_block_number(&sync_state.storage_dir, sync_state.current_block)?;
     };
     Ok(())
 }

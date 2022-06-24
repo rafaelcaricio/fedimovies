@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::config::Config;
 use crate::database::Pool;
-use crate::ethereum::contracts::ContractSet;
+use crate::ethereum::contracts::Blockchain;
 use crate::ethereum::nft::process_nft_events;
 use crate::ethereum::subscriptions::check_subscriptions;
 
@@ -39,7 +39,7 @@ fn is_task_ready(last_run: &Option<DateTime<Utc>>, period: i64) -> bool {
 
 pub fn run(
     _config: Config,
-    maybe_contract_set: Option<ContractSet>,
+    mut maybe_blockchain: Option<Blockchain>,
     db_pool: Pool,
 ) -> () {
     tokio::spawn(async move {
@@ -58,23 +58,23 @@ pub fn run(
                 };
                 let task_result = match task {
                     Task::NftMonitor => {
-                        if let Some(contract_set) = maybe_contract_set.as_ref() {
+                        if let Some(blockchain) = maybe_blockchain.as_mut() {
                             // Monitor events only if ethereum integration is enabled
                             process_nft_events(
-                                &contract_set.web3,
-                                &contract_set.collectible,
-                                contract_set.current_block,
+                                &blockchain.contract_set.web3,
+                                &blockchain.contract_set.collectible,
+                                &mut blockchain.sync_state,
                                 &db_pool,
                                 &mut token_waitlist_map,
                             ).await.map_err(Error::from)
                         } else { Ok(()) }
                     },
                     Task::SubscriptionMonitor => {
-                        if let Some(contract_set) = maybe_contract_set.as_ref() {
+                        if let Some(blockchain) = maybe_blockchain.as_mut() {
                             check_subscriptions(
-                                &contract_set.web3,
-                                &contract_set.subscription,
-                                contract_set.current_block,
+                                &blockchain.contract_set.web3,
+                                &blockchain.contract_set.subscription,
+                                &mut blockchain.sync_state,
                                 &db_pool,
                             ).await.map_err(Error::from)
                         } else { Ok(()) }

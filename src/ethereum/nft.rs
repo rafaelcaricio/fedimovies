@@ -23,6 +23,7 @@ use crate::models::posts::queries::{
 };
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
+use super::sync::{save_current_block_number, SyncState};
 use super::utils::parse_address;
 
 const TOKEN_WAIT_TIME: i64 = 10; // in minutes
@@ -32,7 +33,7 @@ const TOKEN_WAIT_TIME: i64 = 10; // in minutes
 pub async fn process_nft_events(
     web3: &Web3<Http>,
     contract: &Contract<Http>,
-    from_block: u64,
+    sync_state: &mut SyncState,
     db_pool: &Pool,
     token_waitlist_map: &mut HashMap<Uuid, DateTime<Utc>>,
 ) -> Result<(), EthereumError> {
@@ -51,20 +52,28 @@ pub async fn process_nft_events(
             duration.num_minutes() < TOKEN_WAIT_TIME
         })
         .count();
-    if token_waitlist_active_count == 0 {
-        return Ok(())
+    if token_waitlist_active_count > 0 {
+        log::info!(
+            "{} posts are waiting for confirmation of tokenization tx",
+            token_waitlist_active_count,
+        );
+    } else if !sync_state.is_out_of_sync(&contract.address()) {
+        // Don't scan blockchain if already in sync and waitlist is empty
+        return Ok(());
     };
-    log::info!(
-        "{} posts are waiting for confirmation of tokenization tx",
-        token_waitlist_active_count,
-    );
 
     // Search for Transfer events
     let event_abi = contract.abi().event("Transfer")?;
+    let (from_block, to_block) = sync_state.get_scan_range(&contract.address());
+    let to_block = std::cmp::min(
+        web3.eth().block_number().await?.as_u64(),
+        to_block,
+    );
     let filter = FilterBuilder::default()
         .address(vec![contract.address()])
         .topics(Some(vec![event_abi.signature()]), None, None, None)
         .from_block(BlockNumber::Number(from_block.into()))
+        .to_block(BlockNumber::Number(to_block.into()))
         .build();
     let logs = web3.eth().logs(filter).await?;
     for log in logs {
@@ -112,6 +121,10 @@ pub async fn process_nft_events(
                 token_waitlist_map.remove(&post.id);
             };
         };
+    };
+
+    if sync_state.update(&contract.address(), to_block) {
+        save_current_block_number(&sync_state.storage_dir, sync_state.current_block)?;
     };
     Ok(())
 }

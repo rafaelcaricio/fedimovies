@@ -12,7 +12,7 @@ use super::api::connect;
 use super::errors::EthereumError;
 use super::sync::{
     get_current_block_number,
-    CHAIN_REORG_MAX_DEPTH,
+    SyncState,
 };
 use super::utils::parse_address;
 
@@ -49,18 +49,22 @@ fn load_abi(
 #[derive(Clone)]
 pub struct ContractSet {
     pub web3: Web3<Http>,
-    // Last synced block
-    pub current_block: u64,
 
     pub adapter: Contract<Http>,
     pub collectible: Contract<Http>,
     pub subscription: Contract<Http>,
 }
 
+#[derive(Clone)]
+pub struct Blockchain {
+    pub contract_set: ContractSet,
+    pub sync_state: SyncState,
+}
+
 pub async fn get_contracts(
     config: &BlockchainConfig,
     storage_dir: &Path,
-) -> Result<ContractSet, EthereumError> {
+) -> Result<Blockchain, EthereumError> {
     let web3 = connect(&config.api_url)?;
     let chain_id = web3.eth().chain_id().await?;
     if chain_id != config.ethereum_chain_id().into() {
@@ -100,15 +104,17 @@ pub async fn get_contracts(
 
     let current_block = get_current_block_number(&web3, storage_dir).await?;
     log::info!("current block is {}", current_block);
-    // Take reorgs into account
-    let current_block = current_block.saturating_sub(CHAIN_REORG_MAX_DEPTH);
+    let sync_state = SyncState::new(
+        current_block,
+        vec![collectible.address(), subscription.address()],
+        storage_dir,
+    );
 
     let contract_set = ContractSet {
         web3,
-        current_block,
         adapter,
         collectible,
         subscription,
     };
-    Ok(contract_set)
+    Ok(Blockchain { contract_set, sync_state })
 }
