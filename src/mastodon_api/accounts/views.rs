@@ -63,6 +63,7 @@ use super::types::{
     IdentityProofData,
     RelationshipQueryParams,
     StatusListQueryParams,
+    SubscriptionQueryParams,
 };
 
 #[post("")]
@@ -285,6 +286,7 @@ async fn authorize_subscription(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
+    query_params: web::Query<SubscriptionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -297,6 +299,7 @@ async fn authorize_subscription(
     let signature = create_subscription_signature(
         blockchain_config,
         &wallet_address,
+        query_params.price,
     ).map_err(|_| HttpError::InternalError)?;
     Ok(HttpResponse::Ok().json(signature))
 }

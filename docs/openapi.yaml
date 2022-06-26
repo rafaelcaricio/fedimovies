@@ -141,6 +141,13 @@ paths:
   /api/v1/accounts/authorize_subscription:
     get:
       summary: Get authorization for setting up paid subscription.
+      parameters:
+        - name: price
+          in: query
+          description: Subscription price
+          required: true
+          schema:
+            type: number
       responses:
         200:
           description: Signature created

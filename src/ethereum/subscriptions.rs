@@ -25,7 +25,12 @@ use crate::models::subscriptions::queries::{
 };
 use crate::models::users::queries::get_user_by_wallet_address;
 use super::errors::EthereumError;
-use super::signatures::{sign_contract_call, CallArgs, SignatureData};
+use super::signatures::{
+    encode_uint256,
+    sign_contract_call,
+    CallArgs,
+    SignatureData,
+};
 use super::sync::{save_current_block_number, SyncState};
 use super::utils::{address_to_string, parse_address};
 
@@ -197,9 +202,13 @@ pub async fn check_subscriptions(
 pub fn create_subscription_signature(
     blockchain_config: &BlockchainConfig,
     user_address: &str,
+    price: u64,
 ) -> Result<SignatureData, EthereumError> {
     let user_address = parse_address(user_address)?;
-    let call_args: CallArgs = vec![Box::new(user_address)];
+    let call_args: CallArgs = vec![
+        Box::new(user_address),
+        Box::new(encode_uint256(price)),
+    ];
     let signature = sign_contract_call(
         &blockchain_config.signing_key,
         blockchain_config.ethereum_chain_id(),

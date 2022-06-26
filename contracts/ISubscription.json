@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "ISubscription",
-  "sourceName": "contracts/ISubscription.sol",
+  "sourceName": "contracts/interfaces/ISubscription.sol",
   "abi": [
     {
       "anonymous": false,

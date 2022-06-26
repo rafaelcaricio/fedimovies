@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use secp256k1::{Error as KeyError, SecretKey, rand::rngs::OsRng};
 use serde::Serialize;
-use web3::ethabi::{token::Token, encode};
+use web3::ethabi::{token::Token, encode as encode_tokens};
 use web3::signing::{
     keccak256,
     recover,
@@ -12,7 +12,7 @@ use web3::signing::{
     SecretKeyRef,
     SigningError,
 };
-use web3::types::{Address, H256, Recovery, U256};
+use web3::types::{Address, H256, Recovery};
 
 /// Generates signing key
 pub fn generate_ecdsa_key() -> SecretKey {
@@ -129,6 +129,11 @@ pub fn recover_address(
 
 pub type CallArgs = Vec<Box<dyn AsRef<[u8]>>>;
 
+pub fn encode_uint256(value: u64) -> Vec<u8> {
+    let token = Token::Uint(value.into());
+    encode_tokens(&[token])
+}
+
 pub fn sign_contract_call(
     signing_key: &str,
     chain_id: u32,
@@ -136,9 +141,7 @@ pub fn sign_contract_call(
     method_name: &str,
     method_args: CallArgs,
 ) -> Result<SignatureData, SignatureError> {
-    let chain_id: U256 = chain_id.into();
-    let chain_id_token = Token::Uint(chain_id);
-    let chain_id_bin = encode(&[chain_id_token]);
+    let chain_id_bin = encode_uint256(chain_id.into());
     let contract_address = Address::from_str(contract_address)
         .map_err(|_| SignatureError::InvalidData)?;
     let mut message = [

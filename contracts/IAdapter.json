@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IAdapter",
-  "sourceName": "contracts/IAdapter.sol",
+  "sourceName": "contracts/interfaces/IAdapter.sol",
   "abi": [
     {
       "inputs": [],
@@ -22,6 +22,11 @@
           "internalType": "address",
           "name": "recipient",
           "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
         },
         {
           "internalType": "uint8",
