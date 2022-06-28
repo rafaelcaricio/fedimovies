@@ -46,9 +46,13 @@ async fn nft_monitor_task(
         Some(blockchain) => blockchain,
         None => return Ok(()),
     };
+    let collectible = match &blockchain.contract_set.collectible {
+        Some(contract) => contract,
+        None => return Ok(()), // feature not enabled
+    };
     process_nft_events(
         &blockchain.contract_set.web3,
-        &blockchain.contract_set.collectible,
+        &collectible,
         &mut blockchain.sync_state,
         db_pool,
         token_waitlist_map,
@@ -64,9 +68,13 @@ async fn subscription_monitor_task(
         Some(blockchain) => blockchain,
         None => return Ok(()),
     };
+    let subscription = match &blockchain.contract_set.subscription {
+        Some(contract) => contract,
+        None => return Ok(()), // feature not enabled
+    };
     check_subscriptions(
         &blockchain.contract_set.web3,
-        &blockchain.contract_set.subscription,
+        &subscription,
         &mut blockchain.sync_state,
         db_pool,
     ).await.map_err(Error::from)

@@ -8,8 +8,12 @@ pub async fn is_allowed_user(
     contract_set: &ContractSet,
     user_address: &str,
 ) -> Result<bool, EthereumError> {
+    let gate = match &contract_set.gate {
+        Some(contract) => contract,
+        None => return Ok(true), // no gate
+    };
     let user_address = parse_address(user_address)?;
-    let result: bool = contract_set.adapter.query(
+    let result: bool = gate.query(
         "isAllowedUser", (user_address,),
         None, Options::default(), None,
     ).await?;

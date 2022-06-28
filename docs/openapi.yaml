@@ -782,6 +782,19 @@ components:
           description: Blockchain contract address.
           type: string
           nullable: true
+        blockchain_features:
+          description: Blockchain contract features.
+          type: object
+          nullable: true
+          properties:
+            minter:
+              description: Minter feature flag.
+              type: boolean
+              example: true
+            subscription:
+              description: Subscription feature flag.
+              type: boolean
+              example: true
         blockchain_info:
           description: Additional information about blockchain
           type: object

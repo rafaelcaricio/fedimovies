@@ -3,7 +3,14 @@ use std::collections::HashMap;
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::ethereum::contracts::ContractSet;
 use crate::mastodon_api::MASTODON_API_VERSION;
+
+#[derive(Serialize)]
+struct BlockchainFeatures {
+    minter: bool,
+    subscription: bool,
+}
 
 #[derive(Serialize)]
 pub struct InstanceInfo {
@@ -19,6 +26,7 @@ pub struct InstanceInfo {
     blockchain_id: Option<String>,
     blockchain_explorer_url: Option<String>,
     blockchain_contract_address: Option<String>,
+    blockchain_features: Option<BlockchainFeatures>,
     blockchain_info: Option<HashMap<String, String>>,
     ipfs_gateway_url: Option<String>,
 }
@@ -31,8 +39,14 @@ fn get_full_api_version(version: &str) -> String {
     )
 }
 
-impl From<&Config> for InstanceInfo {
-    fn from(config: &Config) -> Self {
+impl InstanceInfo {
+    pub fn create(config: &Config, maybe_blockchain: Option<&ContractSet>) -> Self {
+        let blockchain_features = maybe_blockchain.map(|contract_set| {
+            BlockchainFeatures {
+                minter: contract_set.collectible.is_some(),
+                subscription: contract_set.subscription.is_some(),
+            }
+        });
         Self {
             uri: config.instance().host(),
             title: config.instance_title.clone(),
@@ -48,6 +62,7 @@ impl From<&Config> for InstanceInfo {
                 .and_then(|val| val.explorer_url.clone()),
             blockchain_contract_address: config.blockchain.as_ref()
                 .map(|val| val.contract_address.clone()),
+            blockchain_features: blockchain_features,
             blockchain_info: config.blockchain.as_ref()
                 .and_then(|val| val.chain_info.clone()),
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),

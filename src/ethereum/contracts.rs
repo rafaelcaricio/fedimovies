@@ -3,7 +3,7 @@ use std::path::Path;
 
 use web3::{
     api::Web3,
-    contract::{Contract, Options},
+    contract::{Contract, Error as ContractError, Options},
     ethabi,
     transports::Http,
 };
@@ -17,7 +17,10 @@ use super::sync::{
 };
 use super::utils::parse_address;
 
-const ADAPTER: &str = "IAdapter";
+const ERC165: &str = "IERC165";
+const GATE: &str = "IGate";
+const MINTER: &str = "IMinter";
+const SUBSCRIPTION_ADAPTER: &str = "ISubscriptionAdapter";
 const SUBSCRIPTION: &str = "ISubscription";
 const ERC721: &str = "IERC721Metadata";
 
@@ -51,13 +54,38 @@ fn load_abi(
     Ok(abi)
 }
 
+// https://eips.ethereum.org/EIPS/eip-165
+// Interface identifier is the XOR of all function selectors in the interface
+fn interface_signature(interface: &ethabi::Contract) -> [u8; 4] {
+    interface.functions()
+        .map(|func| func.short_signature())
+        .fold([0; 4], |mut acc, item| {
+            for i in 0..4 {
+                acc[i] ^= item[i];
+            };
+            acc
+        })
+}
+
+/// Returns true if contract supports interface (per ERC-165)
+async fn is_interface_supported(
+    contract: &Contract<Http>,
+    interface: &ethabi::Contract,
+) -> Result<bool, ContractError> {
+    let signature = interface_signature(interface);
+    contract.query(
+        "supportsInterface",
+        (signature,), None, Options::default(), None,
+    ).await
+}
+
 #[derive(Clone)]
 pub struct ContractSet {
     pub web3: Web3<Http>,
 
-    pub adapter: Contract<Http>,
-    pub collectible: Contract<Http>,
-    pub subscription: Contract<Http>,
+    pub gate: Option<Contract<Http>>,
+    pub collectible: Option<Contract<Http>>,
+    pub subscription: Option<Contract<Http>>,
 }
 
 #[derive(Clone)]
@@ -75,51 +103,90 @@ pub async fn get_contracts(
     if chain_id != config.ethereum_chain_id().into() {
         return Err(EthereumError::ImproperlyConfigured("incorrect chain ID"));
     };
-    let adapter_abi = load_abi(&config.contract_dir, ADAPTER)?;
+
     let adapter_address = parse_address(&config.contract_address)?;
-    let adapter = Contract::new(
+    let erc165_abi = load_abi(&config.contract_dir, ERC165)?;
+    let erc165 = Contract::new(
         web3.eth(),
         adapter_address,
-        adapter_abi,
+        erc165_abi,
     );
 
-    let collectible_address = adapter.query(
-        "collectible",
-        (), None, Options::default(), None,
-    ).await?;
-    let collectible_abi = load_abi(&config.contract_dir, ERC721)?;
-    let collectible = Contract::new(
-        web3.eth(),
-        collectible_address,
-        collectible_abi,
-    );
-    log::info!("collectible item contract address is {:?}", collectible.address());
+    let mut maybe_gate = None;
+    let mut maybe_collectible = None;
+    let mut maybe_subscription = None;
+    let mut sync_targets = vec![];
 
-    let subscription_address = adapter.query(
-        "subscription",
-        (), None, Options::default(), None,
-    ).await?;
-    let subscription_abi = load_abi(&config.contract_dir, SUBSCRIPTION)?;
-    let subscription = Contract::new(
-        web3.eth(),
-        subscription_address,
-        subscription_abi,
-    );
-    log::info!("subscription contract address is {:?}", subscription.address());
+    let gate_abi = load_abi(&config.contract_dir, GATE)?;
+    if is_interface_supported(&erc165, &gate_abi).await? {
+        let gate = Contract::new(
+            web3.eth(),
+            adapter_address,
+            gate_abi,
+        );
+        maybe_gate = Some(gate);
+        log::info!("found gate interface");
+    };
+
+    let minter_abi = load_abi(&config.contract_dir, MINTER)?;
+    if is_interface_supported(&erc165, &minter_abi).await? {
+        let minter = Contract::new(
+            web3.eth(),
+            adapter_address,
+            minter_abi,
+        );
+        log::info!("found minter interface");
+        let collectible_address = minter.query(
+            "collectible",
+            (), None, Options::default(), None,
+        ).await?;
+        let collectible_abi = load_abi(&config.contract_dir, ERC721)?;
+        let collectible = Contract::new(
+            web3.eth(),
+            collectible_address,
+            collectible_abi,
+        );
+        log::info!("collectible item contract address is {:?}", collectible.address());
+        sync_targets.push(collectible.address());
+        maybe_collectible = Some(collectible);
+    };
+
+    let subscription_adapter_abi = load_abi(&config.contract_dir, SUBSCRIPTION_ADAPTER)?;
+    if is_interface_supported(&erc165, &subscription_adapter_abi).await? {
+        let subscription_adapter = Contract::new(
+            web3.eth(),
+            adapter_address,
+            subscription_adapter_abi,
+        );
+        log::info!("found subscription interface");
+        let subscription_address = subscription_adapter.query(
+            "subscription",
+            (), None, Options::default(), None,
+        ).await?;
+        let subscription_abi = load_abi(&config.contract_dir, SUBSCRIPTION)?;
+        let subscription = Contract::new(
+            web3.eth(),
+            subscription_address,
+            subscription_abi,
+        );
+        log::info!("subscription contract address is {:?}", subscription.address());
+        sync_targets.push(subscription.address());
+        maybe_subscription = Some(subscription);
+    };
 
     let current_block = get_current_block_number(&web3, storage_dir).await?;
     log::info!("current block is {}", current_block);
     let sync_state = SyncState::new(
         current_block,
-        vec![collectible.address(), subscription.address()],
+        sync_targets,
         storage_dir,
     );
 
     let contract_set = ContractSet {
         web3,
-        adapter,
-        collectible,
-        subscription,
+        gate: maybe_gate,
+        collectible: maybe_collectible,
+        subscription: maybe_subscription,
     };
     Ok(Blockchain { contract_set, sync_state })
 }
