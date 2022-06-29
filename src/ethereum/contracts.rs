@@ -4,6 +4,7 @@ use std::path::Path;
 use web3::{
     api::Web3,
     contract::{Contract, Options},
+    ethabi,
     transports::Http,
 };
 
@@ -30,20 +31,24 @@ pub enum ArtifactError {
 
     #[error("key error")]
     KeyError,
+
+    #[error(transparent)]
+    AbiError(#[from] ethabi::Error),
 }
 
 fn load_abi(
     contract_dir: &Path,
     contract_name: &str,
-) -> Result<Vec<u8>, ArtifactError> {
-    let contract_artifact_path = contract_dir.join(format!("{}.json", contract_name));
-    let contract_artifact = fs::read_to_string(contract_artifact_path)?;
-    let contract_artifact_value: serde_json::Value =
-        serde_json::from_str(&contract_artifact)?;
-    let contract_abi = contract_artifact_value.get("abi")
+) -> Result<ethabi::Contract, ArtifactError> {
+    let artifact_path = contract_dir.join(format!("{}.json", contract_name));
+    let artifact = fs::read_to_string(artifact_path)?;
+    let artifact_value: serde_json::Value =
+        serde_json::from_str(&artifact)?;
+    let abi_json = artifact_value.get("abi")
         .ok_or(ArtifactError::KeyError)?
-        .to_string().as_bytes().to_vec();
-    Ok(contract_abi)
+        .to_string();
+    let abi = ethabi::Contract::load(abi_json.as_bytes())?;
+    Ok(abi)
 }
 
 #[derive(Clone)]
@@ -72,22 +77,22 @@ pub async fn get_contracts(
     };
     let adapter_abi = load_abi(&config.contract_dir, ADAPTER)?;
     let adapter_address = parse_address(&config.contract_address)?;
-    let adapter = Contract::from_json(
+    let adapter = Contract::new(
         web3.eth(),
         adapter_address,
-        &adapter_abi,
-    )?;
+        adapter_abi,
+    );
 
     let collectible_address = adapter.query(
         "collectible",
         (), None, Options::default(), None,
     ).await?;
     let collectible_abi = load_abi(&config.contract_dir, ERC721)?;
-    let collectible = Contract::from_json(
+    let collectible = Contract::new(
         web3.eth(),
         collectible_address,
-        &collectible_abi,
-    )?;
+        collectible_abi,
+    );
     log::info!("collectible item contract address is {:?}", collectible.address());
 
     let subscription_address = adapter.query(
@@ -95,11 +100,11 @@ pub async fn get_contracts(
         (), None, Options::default(), None,
     ).await?;
     let subscription_abi = load_abi(&config.contract_dir, SUBSCRIPTION)?;
-    let subscription = Contract::from_json(
+    let subscription = Contract::new(
         web3.eth(),
         subscription_address,
-        &subscription_abi,
-    )?;
+        subscription_abi,
+    );
     log::info!("subscription contract address is {:?}", subscription.address());
 
     let current_block = get_current_block_number(&web3, storage_dir).await?;
