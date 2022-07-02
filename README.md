@@ -18,7 +18,7 @@ Smart contracts repo: https://codeberg.org/silverpill/mitra-contracts
 
 Frontend repo: https://codeberg.org/silverpill/mitra-web
 
-Demo instance: https://mitra.social/ (invite-only)
+Demo instance: https://public.mitra.social/ (invite-only)
 
 Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 
