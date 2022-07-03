@@ -367,7 +367,7 @@ pub async fn get_local_timeline(
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
             actor_profile.actor_json IS NULL
-            AND {visibility_filter}
+            AND post.visibility = {visibility_public}
             AND ($max_post_id::uuid IS NULL OR post.id < $max_post_id)
         ORDER BY post.id DESC
         LIMIT $limit
@@ -375,7 +375,7 @@ pub async fn get_local_timeline(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
-        visibility_filter=build_visibility_filter(),
+        visibility_public=i16::from(&Visibility::Public),
     );
     let query = query!(
         &statement,
