@@ -36,7 +36,7 @@ pub async fn find_orphaned_files(
 ) -> Result<Vec<String>, DatabaseError> {
     let rows = db_client.query(
         "
-        SELECT fname
+        SELECT DISTINCT fname
         FROM unnest($1::text[]) AS fname
         WHERE
             NOT EXISTS (
@@ -61,7 +61,7 @@ pub async fn find_orphaned_ipfs_objects(
 ) -> Result<Vec<String>, DatabaseError> {
     let rows = db_client.query(
         "
-        SELECT cid
+        SELECT DISTINCT cid
         FROM unnest($1::text[]) AS cid
         WHERE
             NOT EXISTS (
