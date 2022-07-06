@@ -4,7 +4,7 @@ use crate::errors::ValidationError;
 use crate::frontend::get_tag_page_url;
 
 const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s)#(?P<tag>\S+)";
-const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.:?]?(<br>)?)$";
+const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?]?(<br>)?)$";
 const HASHTAG_NAME_RE: &str = r"^\w+$";
 
 /// Finds anything that looks like a hashtag
@@ -69,8 +69,8 @@ mod tests {
         let text = concat!(
             "@user1@server1 some text #TestTag.\n",
             "#TAG1 #tag1 #test_underscore #test*special ",
-            "more text #tag2:<br>\n",
-            "end with #tag3",
+            "more text #tag2, #tag3:<br>\n",
+            "end with #tag4",
         );
         let tags = find_tags(text);
 
@@ -79,6 +79,7 @@ mod tests {
             "tag1",
             "tag2",
             "tag3",
+            "tag4",
         ]);
     }
 
@@ -87,8 +88,8 @@ mod tests {
         let text = concat!(
             "@user1@server1 some text #TestTag.\n",
             "#TAG1 #tag1 #test_underscore #test*special ",
-            "more text #tag2:<br>\n",
-            "end with #tag3",
+            "more text #tag2, #tag3:<br>\n",
+            "end with #tag4",
         );
         let tags = find_tags(text);
         let output = replace_tags(INSTANCE_URL, &text, &tags);
@@ -97,8 +98,9 @@ mod tests {
             r#"@user1@server1 some text <a class="hashtag" href="https://example.com/tag/testtag">#TestTag</a>."#, "\n",
             r#"<a class="hashtag" href="https://example.com/tag/tag1">#TAG1</a> <a class="hashtag" href="https://example.com/tag/tag1">#tag1</a> "#,
             r#"#test_underscore #test*special "#,
-            r#"more text <a class="hashtag" href="https://example.com/tag/tag2">#tag2</a>:<br>"#, "\n",
-            r#"end with <a class="hashtag" href="https://example.com/tag/tag3">#tag3</a>"#,
+            r#"more text <a class="hashtag" href="https://example.com/tag/tag2">#tag2</a>, "#,
+            r#"<a class="hashtag" href="https://example.com/tag/tag3">#tag3</a>:<br>"#, "\n",
+            r#"end with <a class="hashtag" href="https://example.com/tag/tag4">#tag4</a>"#,
         );
         assert_eq!(output, expected_output);
     }
