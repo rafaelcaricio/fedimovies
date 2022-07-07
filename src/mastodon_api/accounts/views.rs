@@ -430,7 +430,7 @@ async fn get_account_statuses(
         db_client,
         &profile.id,
         maybe_current_user.as_ref().map(|user| &user.id),
-        false,
+        !query_params.exclude_replies,
         true,
         query_params.max_id,
         query_params.limit,

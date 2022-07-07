@@ -282,8 +282,13 @@ pub struct FollowData {
 
 fn default_page_size() -> i64 { 20 }
 
+fn default_exclude_replies() -> bool { true }
+
 #[derive(Deserialize)]
 pub struct StatusListQueryParams {
+    #[serde(default = "default_exclude_replies")]
+    pub exclude_replies: bool,
+
     #[serde(default)]
     pub pinned: bool,
 

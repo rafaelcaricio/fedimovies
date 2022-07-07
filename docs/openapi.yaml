@@ -199,6 +199,13 @@ paths:
       summary: Posts created by the given actor.
       parameters:
         - $ref: '#/components/parameters/account_id'
+        - name: exclude_replies
+          in: query
+          description: Exclude replies from results.
+          required: false
+          schema:
+            type: boolean
+            default: true
         - name: max_id
           in: query
           description: Return results older than this ID.
