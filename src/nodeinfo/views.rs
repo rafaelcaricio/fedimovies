@@ -3,11 +3,13 @@
 use actix_web::{get, web, HttpResponse};
 
 use crate::config::Config;
+use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::webfinger::types::{
     Link,
     JsonResourceDescriptor,
 };
+use super::helpers::get_usage;
 use super::types::NodeInfo20;
 
 #[get("/.well-known/nodeinfo")]
@@ -31,9 +33,11 @@ pub async fn get_nodeinfo(
 #[get("/nodeinfo/2.0")]
 pub async fn get_nodeinfo_2_0(
     config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
 ) -> Result<HttpResponse, HttpError> {
-    let nodeinfo = NodeInfo20::new(&config);
+    let db_client = &**get_database_client(&db_pool).await?;
+    let usage = get_usage(db_client).await?;
+    let nodeinfo = NodeInfo20::new(&config, usage);
     let response = HttpResponse::Ok().json(nodeinfo);
     Ok(response)
 }
-

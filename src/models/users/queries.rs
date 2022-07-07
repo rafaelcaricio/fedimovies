@@ -178,3 +178,14 @@ pub async fn get_user_by_wallet_address(
     let user = User::new(db_user, db_profile);
     Ok(user)
 }
+
+pub async fn get_user_count(
+    db_client: &impl GenericClient,
+) -> Result<i64, DatabaseError> {
+    let row = db_client.query_one(
+        "SELECT count(user_account) FROM user_account",
+        &[],
+    ).await?;
+    let count = row.try_get("count")?;
+    Ok(count)
+}

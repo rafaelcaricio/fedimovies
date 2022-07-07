@@ -17,12 +17,15 @@ struct Services {
 }
 
 #[derive(Serialize)]
-struct Users {
+pub struct Users {
+    pub total: i64,
 }
 
 #[derive(Serialize)]
-struct Usage {
-    users: Users,
+#[serde(rename_all = "camelCase")]
+pub struct Usage {
+    pub users: Users,
+    pub local_posts: i64,
 }
 
 #[derive(Serialize)]
@@ -45,7 +48,7 @@ pub struct NodeInfo20 {
 }
 
 impl NodeInfo20 {
-    pub fn new(config: &Config) -> Self {
+    pub fn new(config: &Config, usage: Usage) -> Self {
         let software = Software {
             name: "mitra".to_string(),
             version: config.version.clone(),
@@ -64,7 +67,7 @@ impl NodeInfo20 {
             protocols: vec!["activitypub".to_string()],
             services,
             open_registrations: config.registrations_open,
-            usage: Usage { users: Users { } },
+            usage,
             metadata,
         }
     }

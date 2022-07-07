@@ -1051,6 +1051,21 @@ pub async fn delete_post(
     })
 }
 
+pub async fn get_local_post_count(
+    db_client: &impl GenericClient,
+) -> Result<i64, DatabaseError> {
+    let row = db_client.query_one(
+        "
+        SELECT count(post)
+        FROM post
+        JOIN user_account ON (post.author_id = user_account.id)
+        WHERE post.in_reply_to_id IS NULL AND post.repost_of_id IS NULL
+        ",
+        &[],
+    ).await?;
+    let count = row.try_get("count")?;
+    Ok(count)
+}
 
 #[cfg(test)]
 mod tests {
