@@ -70,7 +70,7 @@ pub struct DbPost {
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
     pub created_at: DateTime<Utc>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>, // edited at
 }
 
 // List of user's actions

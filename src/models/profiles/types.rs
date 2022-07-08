@@ -75,6 +75,7 @@ pub struct DbActorProfile {
     pub following_count: i32,
     pub post_count: i32,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub actor_json: Option<Actor>,
 
     // auto-generated database fields
@@ -116,6 +117,7 @@ impl DbActorProfile {
 #[cfg(test)]
 impl Default for DbActorProfile {
     fn default() -> Self {
+        let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
             username: "".to_string(),
@@ -130,7 +132,8 @@ impl Default for DbActorProfile {
             follower_count: 0,
             following_count: 0,
             post_count: 0,
-            created_at: Utc::now(),
+            created_at: now,
+            updated_at: now,
             actor_json: None,
             actor_id: None,
         }

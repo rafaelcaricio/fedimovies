@@ -52,7 +52,7 @@ async fn nft_monitor_task(
     };
     process_nft_events(
         &blockchain.contract_set.web3,
-        &collectible,
+        collectible,
         &mut blockchain.sync_state,
         db_pool,
         token_waitlist_map,
@@ -74,7 +74,7 @@ async fn subscription_monitor_task(
     };
     check_subscriptions(
         &blockchain.contract_set.web3,
-        &subscription,
+        subscription,
         &mut blockchain.sync_state,
         db_pool,
     ).await.map_err(Error::from)

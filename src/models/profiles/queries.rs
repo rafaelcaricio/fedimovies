@@ -71,7 +71,8 @@ pub async fn update_profile(
             banner_file_name = $5,
             identity_proofs = $6,
             extra_fields = $7,
-            actor_json = $8
+            actor_json = $8,
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = $9
         RETURNING actor_profile
         ",
@@ -536,6 +537,28 @@ mod tests {
         };
         let error = create_profile(&db_client, profile_data_2).await.err().unwrap();
         assert_eq!(error.to_string(), "profile already exists");
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_update_profile() {
+        let db_client = create_test_database().await;
+        let profile_data = ProfileCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let profile = create_profile(&db_client, profile_data).await.unwrap();
+        let mut profile_data = ProfileUpdateData::from(&profile);
+        let bio = "test bio";
+        profile_data.bio = Some(bio.to_string());
+        let profile_updated = update_profile(
+            &db_client,
+            &profile.id,
+            profile_data,
+        ).await.unwrap();
+        assert_eq!(profile_updated.username, profile.username);
+        assert_eq!(profile_updated.bio.unwrap(), bio);
+        assert!(profile_updated.updated_at != profile.updated_at);
     }
 
     #[tokio::test]

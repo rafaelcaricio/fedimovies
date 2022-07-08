@@ -14,7 +14,8 @@ CREATE TABLE actor_profile (
     post_count INTEGER NOT NULL CHECK (post_count >= 0) DEFAULT 0,
     actor_json JSONB,
     actor_id VARCHAR(200) UNIQUE GENERATED ALWAYS AS (actor_json ->> 'id') STORED,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE user_invite_code (
