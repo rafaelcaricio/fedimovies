@@ -19,8 +19,8 @@ use crate::models::profiles::queries::{
 use crate::models::profiles::types::DbActorProfile;
 use super::fetchers::{
     fetch_object,
-    fetch_profile,
     fetch_profile_by_actor_id,
+    perform_webfinger_query,
     FetchError,
 };
 
@@ -92,9 +92,10 @@ pub async fn import_profile_by_actor_address(
     if actor_address.instance == instance.host() {
         return Err(ImportError::LocalObject);
     };
-    let mut profile_data = fetch_profile(
+    let actor_id = perform_webfinger_query(instance, actor_address).await?;
+    let mut profile_data = fetch_profile_by_actor_id(
         instance,
-        actor_address,
+        &actor_id,
         media_dir,
     ).await?;
     if profile_data.acct != actor_address.acct() {

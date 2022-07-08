@@ -83,6 +83,46 @@ pub async fn fetch_file(
     Ok((file_name, media_type))
 }
 
+pub async fn perform_webfinger_query(
+    instance: &Instance,
+    actor_address: &ActorAddress,
+) -> Result<String, FetchError> {
+    let webfinger_account_uri = format!("acct:{}", actor_address.to_string());
+    // TOOD: support http
+    let webfinger_url = format!(
+        "https://{}/.well-known/webfinger",
+        actor_address.instance,
+    );
+    let client = reqwest::Client::new();
+    let mut request_builder = client.get(&webfinger_url);
+    if !instance.is_private {
+        // Public instance should set User-Agent header
+        request_builder = request_builder
+            .header(reqwest::header::USER_AGENT, instance.agent());
+    };
+    let webfinger_data = request_builder
+        .query(&[("resource", webfinger_account_uri)])
+        .send().await?
+        .error_for_status()?
+        .text().await?;
+    let jrd: JsonResourceDescriptor = serde_json::from_str(&webfinger_data)?;
+    let link = jrd.links.into_iter()
+        .find(|link| link.rel == "self")
+        .ok_or(FetchError::OtherError("self link not found"))?;
+    let actor_url = link.href
+        .ok_or(FetchError::OtherError("account href not found"))?;
+    Ok(actor_url)
+}
+
+pub async fn fetch_actor(
+    instance: &Instance,
+    actor_url: &str,
+) -> Result<Actor, FetchError> {
+    let actor_json = send_request(instance, actor_url, &[]).await?;
+    let actor = serde_json::from_str(&actor_json)?;
+    Ok(actor)
+}
+
 pub async fn fetch_avatar_and_banner(
     actor: &Actor,
     media_dir: &Path,
@@ -108,47 +148,6 @@ pub async fn fetch_avatar_and_banner(
         None => None,
     };
     Ok((avatar, banner))
-}
-
-pub async fn fetch_profile(
-    instance: &Instance,
-    actor_address: &ActorAddress,
-    media_dir: &Path,
-) -> Result<ProfileCreateData, FetchError> {
-    let webfinger_account_uri = format!("acct:{}", actor_address.to_string());
-    // TOOD: support http
-    let webfinger_url = format!(
-        "https://{}/.well-known/webfinger",
-        actor_address.instance,
-    );
-    let client = reqwest::Client::new();
-    let mut request_builder = client.get(&webfinger_url);
-    if !instance.is_private {
-        // Public instance should set User-Agent header
-        request_builder = request_builder
-            .header(reqwest::header::USER_AGENT, instance.agent());
-    };
-    let webfinger_data = request_builder
-        .query(&[("resource", webfinger_account_uri)])
-        .send().await?
-        .error_for_status()?
-        .text().await?;
-    let jrd: JsonResourceDescriptor = serde_json::from_str(&webfinger_data)?;
-    let link = jrd.links.iter()
-        .find(|link| link.rel == "self")
-        .ok_or(FetchError::OtherError("self link not found"))?;
-    let actor_url = link.href.as_ref()
-        .ok_or(FetchError::OtherError("account href not found"))?;
-    fetch_profile_by_actor_id(instance, actor_url, media_dir).await
-}
-
-pub async fn fetch_actor(
-    instance: &Instance,
-    actor_url: &str,
-) -> Result<Actor, FetchError> {
-    let actor_json = send_request(instance, actor_url, &[]).await?;
-    let actor = serde_json::from_str(&actor_json)?;
-    Ok(actor)
 }
 
 pub async fn fetch_profile_by_actor_id(
