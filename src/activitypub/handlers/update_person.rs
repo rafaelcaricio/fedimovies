@@ -14,7 +14,7 @@ use crate::models::profiles::queries::{
     get_profile_by_actor_id,
     update_profile,
 };
-use crate::models::profiles::types::ProfileUpdateData;
+use crate::models::profiles::types::{DbActorProfile, ProfileUpdateData};
 use super::HandlerResult;
 
 pub async fn handle_update_person(
@@ -35,7 +35,7 @@ pub async fn update_actor(
     db_client: &impl GenericClient,
     media_dir: &Path,
     actor: Actor,
-) -> Result<(), ImportError> {
+) -> Result<DbActorProfile, ImportError> {
     let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
     let actor_old = profile.actor_json.ok_or(ImportError::LocalObject)?;
     if actor_old.id != actor.id {
@@ -65,6 +65,6 @@ pub async fn update_actor(
         actor_json: Some(actor),
     };
     profile_data.clean()?;
-    update_profile(db_client, &profile.id, profile_data).await?;
-    Ok(())
+    let profile = update_profile(db_client, &profile.id, profile_data).await?;
+    Ok(profile)
 }

@@ -5,7 +5,10 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::activity::Object;
 use crate::activitypub::actor::ActorAddress;
-use crate::activitypub::handlers::create_note::handle_note;
+use crate::activitypub::handlers::{
+    create_note::handle_note,
+    update_person::update_actor,
+};
 use crate::activitypub::receiver::parse_object_id;
 use crate::config::{Config, Instance};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
@@ -18,6 +21,7 @@ use crate::models::profiles::queries::{
 };
 use crate::models::profiles::types::DbActorProfile;
 use super::fetchers::{
+    fetch_actor,
     fetch_object,
     fetch_profile_by_actor_id,
     perform_webfinger_query,
@@ -62,7 +66,16 @@ pub async fn get_or_import_profile_by_actor_id(
         return Err(ImportError::LocalObject);
     };
     let profile = match get_profile_by_actor_id(db_client, actor_id).await {
-        Ok(profile) => profile,
+        Ok(profile) => {
+            if profile.possibly_outdated() {
+                let actor = fetch_actor(instance, actor_id).await?;
+                log::info!("re-fetched profile {}", profile.acct);
+                let profile = update_actor(db_client, media_dir, actor).await?;
+                profile
+            } else {
+                profile
+            }
+        },
         Err(DatabaseError::NotFound(_)) => {
             let mut profile_data = fetch_profile_by_actor_id(
                 instance, actor_id, media_dir,

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use postgres_types::FromSql;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -110,6 +110,14 @@ impl DbActorProfile {
             format!("{}@{}", self.acct, instance_host)
         } else {
             self.acct.clone()
+        }
+    }
+
+    pub fn possibly_outdated(&self) -> bool {
+        if self.is_local() {
+            false
+        } else {
+            self.updated_at < Utc::now() - Duration::days(1)
         }
     }
 }
