@@ -19,10 +19,12 @@ pub fn validate_username(username: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
+const DISPLAY_NAME_MAX_LENGTH: usize = 200;
+
 pub fn validate_display_name(display_name: &str)
     -> Result<(), ValidationError>
 {
-    if display_name.len() > 200 {
+    if display_name.chars().count() > DISPLAY_NAME_MAX_LENGTH {
         return Err(ValidationError("display name is too long"));
     };
     Ok(())
