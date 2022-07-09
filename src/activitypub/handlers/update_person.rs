@@ -27,16 +27,18 @@ pub async fn handle_update_person(
     if actor.id != activity.actor {
         return Err(ValidationError("actor ID mismatch").into());
     };
-    update_actor(db_client, media_dir, actor).await?;
+    let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
+    update_remote_profile(db_client, media_dir, profile, actor).await?;
     Ok(Some(PERSON))
 }
 
-pub async fn update_actor(
+/// Updates remote actor's profile
+pub async fn update_remote_profile(
     db_client: &impl GenericClient,
     media_dir: &Path,
+    profile: DbActorProfile,
     actor: Actor,
 ) -> Result<DbActorProfile, ImportError> {
-    let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
     let actor_old = profile.actor_json.ok_or(ImportError::LocalObject)?;
     if actor_old.id != actor.id {
         log::warn!(

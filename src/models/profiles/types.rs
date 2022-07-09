@@ -82,6 +82,13 @@ pub struct DbActorProfile {
     pub actor_id: Option<String>,
 }
 
+// Profile identifiers:
+// id (local profile UUID): never changes
+// acct (webfinger): must never change
+// actor_id of remote actor: may change if acct remains the same
+// actor RSA key: can be updated at any time by the instance admin
+// identity proofs: TBD (likely will do "Trust on first use" (TOFU))
+
 impl DbActorProfile {
     pub fn is_local(&self) -> bool {
         self.actor_json.is_none()

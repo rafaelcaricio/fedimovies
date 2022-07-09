@@ -6,7 +6,7 @@ use uuid::Uuid;
 use mitra::activitypub::builders::delete_note::prepare_delete_note;
 use mitra::activitypub::builders::delete_person::prepare_delete_person;
 use mitra::activitypub::fetcher::fetchers::fetch_actor;
-use mitra::activitypub::handlers::update_person::update_actor;
+use mitra::activitypub::handlers::update_person::update_remote_profile;
 use mitra::config::{parse_config, Config};
 use mitra::database::create_database_client;
 use mitra::database::migrate::apply_migrations;
@@ -16,7 +16,11 @@ use mitra::ethereum::utils::key_to_ethereum_address;
 use mitra::logger::configure_logger;
 use mitra::models::attachments::queries::delete_unused_attachments;
 use mitra::models::posts::queries::{delete_post, find_extraneous_posts, get_post_by_id};
-use mitra::models::profiles::queries::{delete_profile, get_profile_by_id};
+use mitra::models::profiles::queries::{
+    delete_profile,
+    get_profile_by_actor_id,
+    get_profile_by_id,
+};
 use mitra::models::users::queries::{
     create_invite_code,
     get_invite_codes,
@@ -163,8 +167,9 @@ async fn main() {
                 },
                 SubCommand::RefetchActor(subopts) => {
                     let actor_id = subopts.id;
+                    let profile = get_profile_by_actor_id(db_client, &actor_id).await.unwrap();
                     let actor = fetch_actor(&config.instance(), &actor_id).await.unwrap();
-                    update_actor(db_client, &config.media_dir(), actor).await.unwrap();
+                    update_remote_profile(db_client, &config.media_dir(), profile, actor).await.unwrap();
                     println!("profile updated");
                 },
                 SubCommand::DeleteProfile(subopts) => {

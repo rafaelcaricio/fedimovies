@@ -170,10 +170,8 @@ pub async fn handle_note(
                         };
                         continue;
                     };
-                    // WARNING: `href` attribute is usually actor ID
+                    // NOTE: `href` attribute is usually actor ID
                     // but also can be actor URL (profile link).
-                    // This may lead to failed import due to
-                    // unique constraint violation on DB insert.
                     match get_or_import_profile_by_actor_id(
                         db_client,
                         instance,

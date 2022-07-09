@@ -7,7 +7,7 @@ use crate::activitypub::activity::Object;
 use crate::activitypub::actor::{Actor, ActorAddress};
 use crate::activitypub::handlers::{
     create_note::handle_note,
-    update_person::update_actor,
+    update_person::update_remote_profile,
 };
 use crate::activitypub::receiver::parse_object_id;
 use crate::config::{Config, Instance};
@@ -96,7 +96,12 @@ pub async fn get_or_import_profile_by_actor_id(
             if profile.possibly_outdated() {
                 let actor = fetch_actor(instance, actor_id).await?;
                 log::info!("re-fetched profile {}", profile.acct);
-                let profile = update_actor(db_client, media_dir, actor).await?;
+                let profile = update_remote_profile(
+                    db_client,
+                    media_dir,
+                    profile,
+                    actor,
+                ).await?;
                 profile
             } else {
                 profile
@@ -104,15 +109,33 @@ pub async fn get_or_import_profile_by_actor_id(
         },
         Err(DatabaseError::NotFound(_)) => {
             let actor = fetch_actor(instance, actor_id).await?;
-            let mut profile_data = prepare_remote_profile_data(
-                instance,
-                media_dir,
-                actor,
-            ).await?;
-            log::info!("fetched profile {}", profile_data.acct);
-            profile_data.clean()?;
-            let profile = create_profile(db_client, profile_data).await?;
-            profile
+            let actor_address = actor.address(&instance.host())
+                .map_err(|_| ValidationError("invalid actor ID"))?;
+            match get_profile_by_acct(db_client, &actor_address.acct()).await {
+                Ok(profile) => {
+                    // WARNING: Possible actor ID change
+                    log::info!("re-fetched profile {}", profile.acct);
+                    let profile = update_remote_profile(
+                        db_client,
+                        media_dir,
+                        profile,
+                        actor,
+                    ).await?;
+                    profile
+                },
+                Err(DatabaseError::NotFound(_)) => {
+                    let mut profile_data = prepare_remote_profile_data(
+                        instance,
+                        media_dir,
+                        actor,
+                    ).await?;
+                    log::info!("fetched profile {}", profile_data.acct);
+                    profile_data.clean()?;
+                    let profile = create_profile(db_client, profile_data).await?;
+                    profile
+                },
+                Err(other_error) => return Err(other_error.into()),
+            }
         },
         Err(other_error) => return Err(other_error.into()),
     };

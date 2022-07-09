@@ -25,6 +25,7 @@ pub async fn handle_undo_follow(
     let target_actor_id = object.object
         .ok_or(ValidationError("invalid object"))?;
     let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
+    // acct equals username if profile is local
     let target_profile = get_profile_by_acct(db_client, &target_username).await?;
     match unfollow(db_client, &source_profile.id, &target_profile.id).await {
         Ok(_) => (),
