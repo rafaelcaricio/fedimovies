@@ -4,7 +4,7 @@ use std::path::Path;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::activity::Object;
-use crate::activitypub::actor::ActorAddress;
+use crate::activitypub::actor::{Actor, ActorAddress};
 use crate::activitypub::handlers::{
     create_note::handle_note,
     update_person::update_actor,
@@ -19,11 +19,11 @@ use crate::models::profiles::queries::{
     get_profile_by_acct,
     create_profile,
 };
-use crate::models::profiles::types::DbActorProfile;
+use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
 use super::fetchers::{
     fetch_actor,
+    fetch_avatar_and_banner,
     fetch_object,
-    fetch_profile_by_actor_id,
     perform_webfinger_query,
     FetchError,
 };
@@ -56,6 +56,45 @@ impl From<ImportError> for HttpError {
     }
 }
 
+fn get_actor_host(actor_id: &str) -> Result<String, url::ParseError> {
+    let actor_host = url::Url::parse(actor_id)?
+        .host_str()
+        .ok_or(url::ParseError::EmptyHost)?
+        .to_owned();
+    Ok(actor_host)
+}
+
+async fn prepare_remote_profile_data(
+    instance: &Instance,
+    media_dir: &Path,
+    actor: Actor,
+) -> Result<ProfileCreateData, ImportError> {
+    let actor_host = get_actor_host(&actor.id)
+        .map_err(|_| ValidationError("invalid actor ID"))?;
+    if actor_host == instance.host() {
+        return Err(ImportError::LocalObject);
+    };
+    let actor_address = format!(
+        "{}@{}",
+        actor.preferred_username,
+        actor_host,
+    );
+    let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
+    let (identity_proofs, extra_fields) = actor.parse_attachments();
+    let profile_data = ProfileCreateData {
+        username: actor.preferred_username.clone(),
+        display_name: actor.name.clone(),
+        acct: actor_address,
+        bio: actor.summary.clone(),
+        avatar,
+        banner,
+        identity_proofs,
+        extra_fields,
+        actor_json: Some(actor),
+    };
+    Ok(profile_data)
+}
+
 pub async fn get_or_import_profile_by_actor_id(
     db_client: &impl GenericClient,
     instance: &Instance,
@@ -77,14 +116,12 @@ pub async fn get_or_import_profile_by_actor_id(
             }
         },
         Err(DatabaseError::NotFound(_)) => {
-            let mut profile_data = fetch_profile_by_actor_id(
-                instance, actor_id, media_dir,
-            )
-                .await
-                .map_err(|err| {
-                    log::warn!("failed to fetch {} ({})", actor_id, err);
-                    err
-                })?;
+            let actor = fetch_actor(instance, actor_id).await?;
+            let mut profile_data = prepare_remote_profile_data(
+                instance,
+                media_dir,
+                actor,
+            ).await?;
             log::info!("fetched profile {}", profile_data.acct);
             profile_data.clean()?;
             let profile = create_profile(db_client, profile_data).await?;
@@ -106,10 +143,11 @@ pub async fn import_profile_by_actor_address(
         return Err(ImportError::LocalObject);
     };
     let actor_id = perform_webfinger_query(instance, actor_address).await?;
-    let mut profile_data = fetch_profile_by_actor_id(
+    let actor = fetch_actor(instance, &actor_id).await?;
+    let mut profile_data = prepare_remote_profile_data(
         instance,
-        &actor_id,
         media_dir,
+        actor,
     ).await?;
     if profile_data.acct != actor_address.acct() {
         // Redirected to different server

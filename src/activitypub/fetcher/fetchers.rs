@@ -8,15 +8,11 @@ use crate::activitypub::actor::{Actor, ActorAddress};
 use crate::activitypub::constants::ACTIVITY_CONTENT_TYPE;
 use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};
-use crate::models::profiles::types::ProfileCreateData;
 use crate::utils::files::{save_file, FileError};
 use crate::webfinger::types::JsonResourceDescriptor;
 
 #[derive(thiserror::Error, Debug)]
 pub enum FetchError {
-    #[error("invalid URL")]
-    UrlError(#[from] url::ParseError),
-
     #[error(transparent)]
     SignatureError(#[from] SignatureError),
 
@@ -148,40 +144,6 @@ pub async fn fetch_avatar_and_banner(
         None => None,
     };
     Ok((avatar, banner))
-}
-
-pub async fn fetch_profile_by_actor_id(
-    instance: &Instance,
-    actor_url: &str,
-    media_dir: &Path,
-) -> Result<ProfileCreateData, FetchError> {
-    let actor = fetch_actor(instance, actor_url).await?;
-    let actor_host = url::Url::parse(&actor.id)?
-        .host_str()
-        .ok_or(url::ParseError::EmptyHost)?
-        .to_owned();
-    if actor_host == instance.host() {
-        return Err(FetchError::OtherError("trying to fetch local profile"));
-    };
-    let actor_address = format!(
-        "{}@{}",
-        actor.preferred_username,
-        actor_host,
-    );
-    let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
-    let (identity_proofs, extra_fields) = actor.parse_attachments();
-    let profile_data = ProfileCreateData {
-        username: actor.preferred_username.clone(),
-        display_name: actor.name.clone(),
-        acct: actor_address,
-        bio: actor.summary.clone(),
-        avatar,
-        banner,
-        identity_proofs,
-        extra_fields,
-        actor_json: Some(actor),
-    };
-    Ok(profile_data)
 }
 
 pub async fn fetch_object(

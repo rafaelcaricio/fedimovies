@@ -106,7 +106,10 @@ pub async fn handle_note(
         instance,
         media_dir,
         &author_id,
-    ).await?;
+    ).await.map_err(|err| {
+        log::warn!("failed to import {} ({})", author_id, err);
+        err
+    })?;
     let content = get_note_content(&object)?;
 
     let mut attachments: Vec<Uuid> = Vec::new();
