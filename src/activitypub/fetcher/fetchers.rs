@@ -115,7 +115,10 @@ pub async fn fetch_actor(
     actor_url: &str,
 ) -> Result<Actor, FetchError> {
     let actor_json = send_request(instance, actor_url, &[]).await?;
-    let actor = serde_json::from_str(&actor_json)?;
+    let actor: Actor = serde_json::from_str(&actor_json)?;
+    if actor.id != actor_url {
+        log::warn!("redirected from {} to {}", actor_url, actor.id);
+    };
     Ok(actor)
 }
 
