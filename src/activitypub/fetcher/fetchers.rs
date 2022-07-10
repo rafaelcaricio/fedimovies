@@ -22,7 +22,7 @@ pub enum FetchError {
     #[error("json parse error")]
     JsonParseError(#[from] serde_json::Error),
 
-    #[error("file error")]
+    #[error(transparent)]
     FileError(#[from] FileError),
 
     #[error("{0}")]
