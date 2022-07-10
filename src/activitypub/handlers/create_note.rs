@@ -155,7 +155,9 @@ pub async fn handle_note(
                 if let Some(tag_name) = tag.name {
                     // Ignore invalid tags
                     if let Ok(tag_name) = normalize_tag(&tag_name) {
-                        tags.push(tag_name);
+                        if !tags.contains(&tag_name) {
+                            tags.push(tag_name);
+                        };
                     };
                 };
             } else if tag.tag_type == MENTION {
