@@ -185,7 +185,11 @@ pub async fn handle_note(
                             continue;
                         },
                         Err(error) => {
-                            log::warn!("failed to find mentioned profile {}: {}", href, error);
+                            log::warn!(
+                                "failed to find mentioned profile by ID {}: {}",
+                                href,
+                                error,
+                            );
                         },
                     };
                 };
@@ -216,7 +220,11 @@ pub async fn handle_note(
                                 Ok(profile) => profile,
                                 Err(ImportError::FetchError(error)) => {
                                     // Ignore mention if fetcher fails
-                                    log::warn!("{}", error);
+                                    log::warn!(
+                                        "failed to find mentioned profile {}: {}",
+                                        actor_address.acct(),
+                                        error,
+                                    );
                                     continue;
                                 },
                                 Err(other_error) => {
