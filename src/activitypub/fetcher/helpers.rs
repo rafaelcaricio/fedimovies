@@ -56,35 +56,22 @@ impl From<ImportError> for HttpError {
     }
 }
 
-fn get_actor_host(actor_id: &str) -> Result<String, url::ParseError> {
-    let actor_host = url::Url::parse(actor_id)?
-        .host_str()
-        .ok_or(url::ParseError::EmptyHost)?
-        .to_owned();
-    Ok(actor_host)
-}
-
 async fn prepare_remote_profile_data(
     instance: &Instance,
     media_dir: &Path,
     actor: Actor,
 ) -> Result<ProfileCreateData, ImportError> {
-    let actor_host = get_actor_host(&actor.id)
+    let actor_address = actor.address(&instance.host())
         .map_err(|_| ValidationError("invalid actor ID"))?;
-    if actor_host == instance.host() {
+    if actor_address.is_local {
         return Err(ImportError::LocalObject);
     };
-    let actor_address = format!(
-        "{}@{}",
-        actor.preferred_username,
-        actor_host,
-    );
     let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
     let (identity_proofs, extra_fields) = actor.parse_attachments();
     let profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
         display_name: actor.name.clone(),
-        acct: actor_address,
+        acct: actor_address.acct(),
         bio: actor.summary.clone(),
         avatar,
         banner,

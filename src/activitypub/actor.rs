@@ -162,6 +162,22 @@ fn parse_extra_field(
 }
 
 impl Actor {
+    pub fn address(
+        &self,
+        this_instance_host: &str,
+    ) -> Result<ActorAddress, url::ParseError> {
+        let actor_host = url::Url::parse(&self.id)?
+            .host_str()
+            .ok_or(url::ParseError::EmptyHost)?
+            .to_owned();
+        let is_local = actor_host == this_instance_host;
+        let actor_address = ActorAddress {
+            username: self.preferred_username.clone(),
+            instance: actor_host,
+            is_local,
+        };
+        Ok(actor_address)
+    }
 
     pub fn parse_attachments(&self) -> (Vec<IdentityProof>, Vec<ExtraField>) {
         let mut identity_proofs = vec![];
@@ -365,7 +381,20 @@ mod tests {
     };
     use super::*;
 
+    const INSTANCE_HOST: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_get_actor_address() {
+        let actor = Actor {
+            id: "https://test.org/users/1".to_string(),
+            preferred_username: "test".to_string(),
+            ..Default::default()
+        };
+        let actor_address = actor.address(INSTANCE_HOST).unwrap();
+        assert_eq!(actor_address.is_local, false);
+        assert_eq!(actor_address.acct(), "test@test.org");
+    }
 
     #[test]
     fn test_local_actor() {
