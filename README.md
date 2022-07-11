@@ -2,14 +2,14 @@
 
 Federated social network with smart contracts.
 
-Built on [ActivityPub](https://activitypub.rocks/) protocol, self-hosted, lightweight.
+Built on [ActivityPub](https://www.w3.org/TR/activitypub/) protocol, self-hosted, lightweight. Part of the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
 Unique features enabled by blockchain integration:
 
-- [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
+- [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361). A combination of domain-based and key-based identity.
 - Donations.
-- Paid subscriptions.
-- Proving membership with a token.
+- Recurring payments. Subscribers-only posts.
+- Token-gated registration (can be used to verify membership in some group or to stop bots).
 - Converting posts into NFTs.
 
 Currently only Ethereum and other EVM-compatible blockchains are supported.
