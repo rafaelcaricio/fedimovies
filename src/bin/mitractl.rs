@@ -1,6 +1,7 @@
 use anyhow::Error;
 use chrono::{Duration, Utc};
 use clap::Parser;
+use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use mitra::activitypub::builders::delete_note::prepare_delete_note;
@@ -79,6 +80,20 @@ struct ListInviteCodes;
 struct RefetchActor {
     #[clap(short)]
     id: String,
+}
+
+impl RefetchActor {
+    async fn execute(
+        &self,
+        config: &Config,
+        db_client: &impl GenericClient,
+    ) -> Result<(), Error> {
+        let profile = get_profile_by_actor_id(db_client, &self.id).await?;
+        let actor = fetch_actor(&config.instance(), &self.id).await?;
+        update_remote_profile(db_client, &config.media_dir(), profile, actor).await?;
+        println!("profile updated");
+        Ok(())
+    }
 }
 
 /// Delete profile
@@ -165,13 +180,7 @@ async fn main() {
                         println!("{}", code);
                     };
                 },
-                SubCommand::RefetchActor(subopts) => {
-                    let actor_id = subopts.id;
-                    let profile = get_profile_by_actor_id(db_client, &actor_id).await.unwrap();
-                    let actor = fetch_actor(&config.instance(), &actor_id).await.unwrap();
-                    update_remote_profile(db_client, &config.media_dir(), profile, actor).await.unwrap();
-                    println!("profile updated");
-                },
+                SubCommand::RefetchActor(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteProfile(subopts) => {
                     let profile = get_profile_by_id(db_client, &subopts.id).await.unwrap();
                     let mut maybe_delete_person = None;
