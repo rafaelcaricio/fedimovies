@@ -46,8 +46,8 @@ pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> 
     Ok(cleaned_bio)
 }
 
-const FIELD_NAME_MAX_SIZE: usize = 100;
-const FIELD_VALUE_MAX_SIZE: usize = 2000;
+const FIELD_NAME_MAX_SIZE: usize = 500;
+const FIELD_VALUE_MAX_SIZE: usize = 5000;
 
 /// Validates extra fields and removes fields with empty labels
 pub fn clean_extra_fields(extra_fields: &[ExtraField])

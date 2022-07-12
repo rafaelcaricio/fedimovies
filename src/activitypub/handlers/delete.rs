@@ -33,7 +33,7 @@ pub async fn handle_delete(
         actix_rt::spawn(async move {
             deletion_queue.process(&config).await;
         });
-        log::info!("deleted profie {}", profile.acct);
+        log::info!("deleted profile {}", profile.acct);
         return Ok(Some(PERSON));
     };
     let post = match get_post_by_object_id(db_client, &object_id).await {
