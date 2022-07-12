@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -229,6 +230,19 @@ impl Instance {
     }
 }
 
+extern "C" {
+    fn geteuid() -> u32;
+}
+
+fn check_directory_owner(path: &Path) -> () {
+    let metadata = std::fs::metadata(path)
+        .expect("can't read file metadata");
+    let current_uid = unsafe { geteuid() };
+    if metadata.uid() != current_uid {
+        panic!("directory owner is not the current user");
+    };
+}
+
 /// Generates new instance RSA key or returns existing key
 fn read_instance_rsa_key(storage_dir: &Path) -> RsaPrivateKey {
     let private_key_path = storage_dir.join("instance_rsa_key");
@@ -261,10 +275,12 @@ pub fn parse_config() -> Config {
     config.environment = env.environment;
     config.config_path = env.config_path;
     config.version = env.crate_version;
+
     // Validate config
     if !config.storage_dir.exists() {
         panic!("storage directory does not exist");
     };
+    check_directory_owner(&config.storage_dir);
     config.try_instance_url().expect("invalid instance URI");
     if let Some(blockchain_config) = config.blockchain.as_ref() {
         blockchain_config.try_ethereum_chain_id().unwrap();

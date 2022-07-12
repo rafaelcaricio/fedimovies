@@ -133,7 +133,15 @@ Most methods are similar to Mastodon API, but Mitra is not fully compatible.
 
 [OpenAPI spec](./docs/openapi.yaml) (incomplete)
 
-## CLI commands
+## CLI
+
+Commands must be run as the same user as the web service:
+
+```
+su mitra -c "mitractl generate-invite-code"
+```
+
+### Commands
 
 Generate RSA private key:
 
