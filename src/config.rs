@@ -194,6 +194,7 @@ impl Config {
     }
 }
 
+#[derive(Clone)]
 pub struct Instance {
     _url: Url,
     _version: String,

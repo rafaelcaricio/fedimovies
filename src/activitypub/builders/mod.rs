@@ -1,4 +1,5 @@
 pub mod accept_follow;
+pub mod add_person;
 pub mod announce_note;
 pub mod create_note;
 pub mod delete_note;

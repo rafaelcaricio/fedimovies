@@ -2,6 +2,7 @@
 
 // Activity types
 pub const ACCEPT: &str = "Accept";
+pub const ADD: &str = "Add";
 pub const ANNOUNCE: &str = "Announce";
 pub const CREATE: &str = "Create";
 pub const DELETE: &str = "Delete";
