@@ -215,7 +215,7 @@ pub async fn prepare_create_note(
     instance: Instance,
     author: &User,
     post: &Post,
-) -> Result<OutgoingActivity, DatabaseError> {
+) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     assert_eq!(author.id, post.author.id);
     let subscribers = if matches!(post.visibility, Visibility::Subscribers) {
         get_subscribers(db_client, &author.id).await?

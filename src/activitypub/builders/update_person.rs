@@ -55,7 +55,7 @@ pub async fn prepare_update_person(
     db_client: &impl GenericClient,
     instance: Instance,
     user: &User,
-) -> Result<OutgoingActivity, DatabaseError> {
+) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     let activity = build_update_person(&instance.url(), user)
         .map_err(|_| ConversionError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;

@@ -47,7 +47,7 @@ pub async fn prepare_undo_announce_note(
     user: &User,
     post: &Post,
     repost_id: &Uuid,
-) -> Result<OutgoingActivity, DatabaseError> {
+) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     assert_ne!(&post.id, repost_id);
     let (recipients, primary_recipient) = get_announce_note_recipients(
         db_client,

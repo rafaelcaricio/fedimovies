@@ -43,7 +43,7 @@ pub fn prepare_follow(
     user: &User,
     target_actor: &Actor,
     follow_request_id: &Uuid,
-) -> OutgoingActivity {
+) -> OutgoingActivity<Activity> {
     let activity = build_follow(
         &instance.url(),
         &user.profile,

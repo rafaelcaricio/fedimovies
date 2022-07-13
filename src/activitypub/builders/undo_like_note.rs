@@ -40,7 +40,7 @@ pub async fn prepare_undo_like_note(
     user: &User,
     post: &Post,
     reaction_id: &Uuid,
-) -> Result<OutgoingActivity, DatabaseError> {
+) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     let (recipients, primary_recipient) = get_like_note_recipients(
         db_client,
         &instance.url(),

@@ -44,7 +44,7 @@ pub fn prepare_accept_follow(
     user: &User,
     source_actor: &Actor,
     follow_activity_id: &str,
-) -> OutgoingActivity {
+) -> OutgoingActivity<Activity> {
     let activity = build_accept_follow(
         &instance.url(),
         &user.profile,

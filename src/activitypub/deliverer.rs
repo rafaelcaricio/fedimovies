@@ -1,11 +1,11 @@
 use actix_web::http::Method;
 use rsa::RsaPrivateKey;
+use serde::Serialize;
 
 use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};
 use crate::models::users::types::User;
 use crate::utils::crypto::deserialize_private_key;
-use super::activity::Activity;
 use super::actor::Actor;
 use super::constants::{ACTIVITY_CONTENT_TYPE, ACTOR_KEY_SUFFIX};
 use super::identifiers::local_actor_id;
@@ -77,7 +77,7 @@ async fn send_activity(
 async fn deliver_activity_worker(
     instance: Instance,
     sender: User,
-    activity: Activity,
+    activity: impl Serialize,
     recipients: Vec<Actor>,
 ) -> Result<(), DelivererError> {
     let actor_key = deserialize_private_key(&sender.private_key)?;
@@ -114,14 +114,14 @@ async fn deliver_activity_worker(
     Ok(())
 }
 
-pub struct OutgoingActivity {
+pub struct OutgoingActivity<A: Serialize> {
     pub instance: Instance,
     pub sender: User,
-    pub activity: Activity,
+    pub activity: A,
     pub recipients: Vec<Actor>,
 }
 
-impl OutgoingActivity {
+impl<A: Serialize + 'static> OutgoingActivity<A> {
     pub async fn deliver(self) -> Result<(), DelivererError> {
         deliver_activity_worker(
             self.instance,

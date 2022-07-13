@@ -53,7 +53,7 @@ pub fn prepare_undo_follow(
     user: &User,
     target_actor: &Actor,
     follow_request_id: &Uuid,
-) -> OutgoingActivity {
+) -> OutgoingActivity<Activity> {
     let activity = build_undo_follow(
         &instance.url(),
         &user.profile,

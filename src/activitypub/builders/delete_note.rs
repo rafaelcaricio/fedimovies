@@ -41,7 +41,7 @@ pub async fn prepare_delete_note(
     instance: Instance,
     author: &User,
     post: &Post,
-) -> Result<OutgoingActivity, DatabaseError> {
+) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     assert_eq!(author.id, post.author.id);
     let activity = build_delete_note(&instance.url(), post);
     let recipients = get_note_recipients(db_client, author, post).await?;
