@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
-use crate::utils::id::new_uuid;
 use super::constants::{AP_CONTEXT, AP_PUBLIC};
 use super::views::{
     get_actor_url,
@@ -220,34 +219,9 @@ pub fn create_activity_undo_announce(
     )
 }
 
-pub fn create_activity_accept_follow(
-    instance_url: &str,
-    actor_profile: &DbActorProfile,
-    follow_activity_id: &str,
-    source_actor_id: &str,
-) -> Activity {
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
-        id: follow_activity_id.to_string(),
-        object_type: FOLLOW.to_string(),
-        ..Default::default()
-    };
-    // Accept(Follow) is idempotent so its ID can be random
-    let activity_id = get_object_url(instance_url, &new_uuid());
-    let activity = create_activity(
-        instance_url,
-        &actor_profile.username,
-        ACCEPT,
-        activity_id,
-        object,
-        vec![source_actor_id.to_string()],
-        vec![],
-    );
-    activity
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::utils::id::new_uuid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
@@ -271,25 +245,5 @@ mod tests {
         );
         assert_eq!(activity.object, json!(note_id));
         assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, note_author_id]));
-    }
-
-    #[test]
-    fn test_create_activity_accept_follow() {
-        let target = DbActorProfile {
-            username: "user".to_string(),
-            ..Default::default()
-        };
-        let follow_activity_id = "https://test.remote/objects/999";
-        let follower_id = "https://test.remote/users/123";
-        let activity = create_activity_accept_follow(
-            INSTANCE_URL,
-            &target,
-            follow_activity_id,
-            follower_id,
-        );
-
-        assert_eq!(activity.id.starts_with(INSTANCE_URL), true);
-        assert_eq!(activity.object["id"], follow_activity_id);
-        assert_eq!(activity.to.unwrap(), json!([follower_id]));
     }
 }

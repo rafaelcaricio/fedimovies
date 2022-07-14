@@ -1,8 +1,8 @@
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::{create_activity_accept_follow, Activity},
-    deliverer::deliver_activity,
+    activity::Activity,
+    builders::accept_follow::prepare_accept_follow,
     fetcher::helpers::{get_or_import_profile_by_actor_id, ImportError},
     receiver::{get_object_id, parse_actor_id},
     vocabulary::PERSON,
@@ -37,13 +37,12 @@ pub async fn handle_follow(
     };
 
     // Send activity
-    let new_activity = create_activity_accept_follow(
-        &config.instance_url(),
-        &target_user.profile,
+    prepare_accept_follow(
+        config.instance(),
+        &target_user,
+        &source_actor,
         &activity.id,
-        &source_actor.id,
-    );
-    let recipients = vec![source_actor];
-    deliver_activity(config, &target_user, new_activity, recipients);
+    ).spawn_deliver();
+
     Ok(Some(PERSON))
 }
