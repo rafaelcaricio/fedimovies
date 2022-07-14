@@ -220,31 +220,6 @@ pub fn create_activity_undo_announce(
     )
 }
 
-pub fn create_activity_follow(
-    instance_url: &str,
-    actor_profile: &DbActorProfile,
-    follow_request_id: &Uuid,
-    target_actor_id: &str,
-) -> Activity {
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
-        id: target_actor_id.to_owned(),
-        object_type: PERSON.to_string(),
-        ..Default::default()
-    };
-    let activity_id = get_object_url(instance_url, follow_request_id);
-    let activity = create_activity(
-        instance_url,
-        &actor_profile.username,
-        FOLLOW,
-        activity_id,
-        object,
-        vec![target_actor_id.to_string()],
-        vec![],
-    );
-    activity
-}
-
 pub fn create_activity_accept_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
@@ -296,39 +271,6 @@ mod tests {
         );
         assert_eq!(activity.object, json!(note_id));
         assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, note_author_id]));
-    }
-
-    #[test]
-    fn test_create_activity_follow() {
-        let follower = DbActorProfile {
-            username: "follower".to_string(),
-            ..Default::default()
-        };
-        let follow_request_id = new_uuid();
-        let target_actor_id = "https://test.remote/actor/test";
-        let activity = create_activity_follow(
-            INSTANCE_URL,
-            &follower,
-            &follow_request_id,
-            target_actor_id,
-        );
-
-        assert_eq!(
-            activity.id,
-            format!("{}/objects/{}", INSTANCE_URL, follow_request_id),
-        );
-        assert_eq!(activity.activity_type, "Follow");
-        assert_eq!(
-            activity.actor,
-            format!("{}/users/{}", INSTANCE_URL, follower.username),
-        );
-        assert_eq!(activity.object["id"], target_actor_id);
-        assert_eq!(activity.object["type"], "Person");
-        assert_eq!(activity.object["actor"], Value::Null);
-        assert_eq!(activity.object["object"], Value::Null);
-        assert_eq!(activity.object["content"], Value::Null);
-        assert_eq!(activity.to.unwrap(), json!([target_actor_id]));
-        assert_eq!(activity.cc.unwrap(), json!([]));
     }
 
     #[test]

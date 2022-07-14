@@ -2,12 +2,11 @@ use actix_web::{get, post, patch, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
-use crate::activitypub::activity::create_activity_follow;
 use crate::activitypub::builders::{
+    follow::prepare_follow,
     undo_follow::prepare_undo_follow,
     update_person::prepare_update_person,
 };
-use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
@@ -334,14 +333,13 @@ async fn follow_account(
     if let Some(remote_actor) = target.actor_json {
         // Create follow request if target is remote
         match create_follow_request(db_client, &current_user.id, &target.id).await {
-            Ok(request) => {
-                let activity = create_activity_follow(
-                    &config.instance_url(),
-                    &current_user.profile,
-                    &request.id,
-                    &remote_actor.id,
-                );
-                deliver_activity(&config, &current_user, activity, vec![remote_actor]);
+            Ok(follow_request) => {
+                prepare_follow(
+                    config.instance(),
+                    &current_user,
+                    &remote_actor,
+                    &follow_request.id,
+                ).spawn_deliver();
             },
             Err(DatabaseError::AlreadyExists(_)) => (), // already following
             Err(other_error) => return Err(other_error.into()),

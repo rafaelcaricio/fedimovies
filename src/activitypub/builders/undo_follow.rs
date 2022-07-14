@@ -16,8 +16,8 @@ use crate::models::users::types::User;
 fn build_undo_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
-    follow_request_id: &Uuid,
     target_actor_id: &str,
+    follow_request_id: &Uuid,
 ) -> Activity {
     let follow_activity_id = get_object_url(
         instance_url,
@@ -57,8 +57,8 @@ pub fn prepare_undo_follow(
     let activity = build_undo_follow(
         &instance.url(),
         &user.profile,
-        follow_request_id,
         &target_actor.id,
+        follow_request_id,
     );
     let recipients = vec![target_actor.clone()];
     OutgoingActivity {
