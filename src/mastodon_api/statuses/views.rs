@@ -6,10 +6,10 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
 use crate::activitypub::activity::{
-    create_activity_announce,
     create_activity_undo_announce,
 };
 use crate::activitypub::builders::{
+    announce_note::prepare_announce_note,
     create_note::prepare_create_note,
     delete_note::prepare_delete_note,
     like_note::prepare_like_note,
@@ -308,15 +308,13 @@ async fn reblog(
     post.repost_count += 1;
 
     // Federate
-    let Audience { recipients, .. } =
-        get_announce_recipients(db_client, &config.instance_url(), &current_user, &post).await?;
-    let activity = create_activity_announce(
-        &config.instance_url(),
-        &current_user.profile,
+    prepare_announce_note(
+        db_client,
+        config.instance(),
+        &current_user,
         &post,
         &repost.id,
-    );
-    deliver_activity(&config, &current_user, activity, recipients);
+    ).await?.spawn_deliver();
 
     let status = build_status(
         db_client,

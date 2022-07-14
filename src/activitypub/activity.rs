@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
 use super::constants::{AP_CONTEXT, AP_PUBLIC};
 use super::views::{
@@ -130,27 +129,6 @@ pub fn create_activity(
     }
 }
 
-pub fn create_activity_announce(
-    instance_url: &str,
-    actor_profile: &DbActorProfile,
-    post: &Post,
-    repost_id: &Uuid,
-) -> Activity {
-    let object_id = post.get_object_id(instance_url);
-    let activity_id = get_object_url(instance_url, repost_id);
-    let recipient_id = post.author.actor_id(instance_url);
-    let activity = create_activity(
-        instance_url,
-        &actor_profile.username,
-        ANNOUNCE,
-        activity_id,
-        object_id,
-        vec![AP_PUBLIC.to_string(), recipient_id],
-        vec![get_followers_url(instance_url, &actor_profile.username)],
-    );
-    activity
-}
-
 pub fn create_activity_undo_announce(
     instance_url: &str,
     actor_profile: &DbActorProfile,
@@ -179,44 +157,10 @@ pub fn create_activity_undo_announce(
 
 #[cfg(test)]
 mod tests {
-    use crate::activitypub::actor::Actor;
     use crate::utils::id::new_uuid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
-
-    #[test]
-    fn test_create_activity_announce() {
-        let post_author_id = "https://test.net/user/test";
-        let post_author = DbActorProfile {
-            actor_json: Some(Actor {
-                id: post_author_id.to_string(),
-                ..Default::default()
-            }),
-            actor_id: Some(post_author_id.to_string()),
-            ..Default::default()
-        };
-        let post_id = "https://test.net/obj/123";
-        let post = Post {
-            author: post_author.clone(),
-            object_id: Some(post_id.to_string()),
-            ..Default::default()
-        };
-        let announcer = DbActorProfile::default();
-        let repost_id = new_uuid();
-        let activity = create_activity_announce(
-            INSTANCE_URL,
-            &announcer,
-            &post,
-            &repost_id,
-        );
-        assert_eq!(
-            activity.id,
-            format!("{}/objects/{}", INSTANCE_URL, repost_id),
-        );
-        assert_eq!(activity.object, post_id);
-        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, post_author_id]));
-    }
 
     #[test]
     fn test_create_activity_undo_announce() {
