@@ -10,7 +10,9 @@ use web3::{
     types::{BlockId, BlockNumber, FilterBuilder, U256},
 };
 
-use crate::config::BlockchainConfig;
+use crate::activitypub::builders::add_person::prepare_add_person;
+use crate::activitypub::identifiers::LocalActorCollection;
+use crate::config::{BlockchainConfig, Instance};
 use crate::database::{Pool, get_database_client};
 use crate::errors::{ConversionError, DatabaseError};
 use crate::models::notifications::queries::{
@@ -52,6 +54,7 @@ fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
 
 /// Search for subscription update events
 pub async fn check_subscriptions(
+    instance: &Instance,
     web3: &Web3<Http>,
     contract: &Contract<Http>,
     sync_state: &mut SyncState,
@@ -161,6 +164,14 @@ pub async fn check_subscriptions(
                             &subscription.sender_id,
                             &subscription.recipient_id,
                         ).await?;
+                        if let Some(ref remote_sender) = sender.actor_json {
+                            prepare_add_person(
+                                instance,
+                                &recipient,
+                                remote_sender,
+                                LocalActorCollection::Subscribers,
+                            ).spawn_deliver();
+                        };
                     };
                 };
             },
@@ -184,6 +195,14 @@ pub async fn check_subscriptions(
                     &sender.id,
                     &recipient.id,
                 ).await?;
+                if let Some(ref remote_sender) = sender.actor_json {
+                    prepare_add_person(
+                        instance,
+                        &recipient,
+                        remote_sender,
+                        LocalActorCollection::Subscribers,
+                    ).spawn_deliver();
+                };
             },
             Err(other_error) => return Err(other_error.into()),
         };

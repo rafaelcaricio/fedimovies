@@ -5,7 +5,7 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::config::Config;
+use crate::config::{Config, Instance};
 use crate::database::Pool;
 use crate::ethereum::contracts::Blockchain;
 use crate::ethereum::nft::process_nft_events;
@@ -61,6 +61,7 @@ async fn nft_monitor_task(
 }
 
 async fn subscription_monitor_task(
+    instance: &Instance,
     maybe_blockchain: Option<&mut Blockchain>,
     db_pool: &Pool,
 ) -> Result<(), Error> {
@@ -73,6 +74,7 @@ async fn subscription_monitor_task(
         None => return Ok(()), // feature not enabled
     };
     check_subscriptions(
+        instance,
         &blockchain.contract_set.web3,
         subscription,
         &mut blockchain.sync_state,
@@ -81,7 +83,7 @@ async fn subscription_monitor_task(
 }
 
 pub fn run(
-    _config: Config,
+    config: Config,
     mut maybe_blockchain: Option<Blockchain>,
     db_pool: Pool,
 ) -> () {
@@ -109,6 +111,7 @@ pub fn run(
                     },
                     Task::SubscriptionMonitor => {
                         subscription_monitor_task(
+                            &config.instance(),
                             maybe_blockchain.as_mut(),
                             &db_pool,
                         ).await
