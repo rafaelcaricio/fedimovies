@@ -13,9 +13,15 @@ use web3::{
 use crate::config::BlockchainConfig;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{ConversionError, DatabaseError};
-use crate::models::notifications::queries::create_subscription_notification;
+use crate::models::notifications::queries::{
+    create_subscription_notification,
+    create_subscription_expiration_notification,
+};
 use crate::models::profiles::currencies::Currency;
-use crate::models::profiles::queries::search_profile_by_wallet_address;
+use crate::models::profiles::queries::{
+    get_profile_by_id,
+    search_profile_by_wallet_address,
+};
 use crate::models::relationships::queries::unsubscribe;
 use crate::models::subscriptions::queries::{
     create_subscription,
@@ -143,6 +149,11 @@ pub async fn check_subscriptions(
                         &expires_at,
                         &block_date,
                     ).await?;
+                    log::info!(
+                        "subscription updated: {0} to {1}",
+                        subscription.sender_id,
+                        subscription.recipient_id,
+                    );
                     if expires_at > subscription.expires_at {
                         // Subscription was extended
                         create_subscription_notification(
@@ -151,11 +162,6 @@ pub async fn check_subscriptions(
                             &subscription.recipient_id,
                         ).await?;
                     };
-                    log::info!(
-                        "subscription updated: {0} to {1}",
-                        subscription.sender_id,
-                        subscription.recipient_id,
-                    );
                 };
             },
             Err(DatabaseError::NotFound(_)) => {
@@ -168,16 +174,16 @@ pub async fn check_subscriptions(
                     &expires_at,
                     &block_date,
                 ).await?;
-                create_subscription_notification(
-                    db_client,
-                    &sender.id,
-                    &recipient.id,
-                ).await?;
                 log::info!(
                     "subscription created: {0} to {1}",
                     sender.id,
                     recipient.id,
                 );
+                create_subscription_notification(
+                    db_client,
+                    &sender.id,
+                    &recipient.id,
+                ).await?;
             },
             Err(other_error) => return Err(other_error.into()),
         };
@@ -191,6 +197,14 @@ pub async fn check_subscriptions(
             subscription.sender_id,
             subscription.recipient_id,
         );
+        let sender = get_profile_by_id(db_client, &subscription.sender_id).await?;
+        if sender.is_local() {
+            create_subscription_expiration_notification(
+                db_client,
+                &subscription.recipient_id,
+                &subscription.sender_id,
+            ).await?;
+        };
     };
 
     if sync_state.update(&contract.address(), to_block) {

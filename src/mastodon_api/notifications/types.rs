@@ -47,6 +47,8 @@ impl ApiNotification {
             EventType::Mention => "mention",
             EventType::Repost => "reblog",
             EventType::Subscription => "subscription",
+            EventType::SubscriptionStart => "", // not supported
+            EventType::SubscriptionExpiration => "subscription_expiration",
         };
         Self {
             id: notification.id.to_string(),

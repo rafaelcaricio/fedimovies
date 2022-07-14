@@ -20,6 +20,8 @@ pub enum EventType {
     Mention,
     Repost,
     Subscription,
+    SubscriptionStart,
+    SubscriptionExpiration,
 }
 
 impl From<&EventType> for i16 {
@@ -32,6 +34,8 @@ impl From<&EventType> for i16 {
             EventType::Mention => 5,
             EventType::Repost => 6,
             EventType::Subscription => 7,
+            EventType::SubscriptionStart => panic!("not supported"),
+            EventType::SubscriptionExpiration => 9,
         }
     }
 }
@@ -48,6 +52,8 @@ impl TryFrom<i16> for EventType {
             5 => Self::Mention,
             6 => Self::Repost,
             7 => Self::Subscription,
+            8 => Self::SubscriptionStart,
+            9 => Self::SubscriptionExpiration,
             _ => return Err(ConversionError),
         };
         Ok(event_type)
