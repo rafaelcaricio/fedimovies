@@ -1,7 +1,7 @@
 use actix_web::http::Method;
 use rsa::RsaPrivateKey;
 
-use crate::config::{Config, Instance};
+use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};
 use crate::models::users::types::User;
 use crate::utils::crypto::deserialize_private_key;
@@ -139,18 +139,4 @@ impl OutgoingActivity {
             });
         });
     }
-}
-
-pub fn deliver_activity(
-    config: &Config,
-    sender: &User,
-    activity: Activity,
-    recipients: Vec<Actor>,
-) -> () {
-    OutgoingActivity {
-        instance: config.instance(),
-        sender: sender.clone(),
-        activity,
-        recipients,
-    }.spawn_deliver();
 }

@@ -5,17 +5,14 @@ use actix_web::{delete, get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
-use crate::activitypub::activity::{
-    create_activity_undo_announce,
-};
 use crate::activitypub::builders::{
     announce_note::prepare_announce_note,
     create_note::prepare_create_note,
     delete_note::prepare_delete_note,
     like_note::prepare_like_note,
+    undo_announce_note::prepare_undo_announce_note,
     undo_like_note::prepare_undo_like_note,
 };
-use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
@@ -44,8 +41,6 @@ use crate::models::reactions::queries::{
 use super::helpers::{
     build_status,
     build_status_list,
-    get_announce_recipients,
-    Audience,
 };
 use super::types::{Status, StatusData, TransactionData};
 
@@ -345,15 +340,13 @@ async fn unreblog(
     let post = get_post_by_id(db_client, &status_id).await?;
 
     // Federate
-    let Audience { recipients, primary_recipient } =
-        get_announce_recipients(db_client, &config.instance_url(), &current_user, &post).await?;
-    let activity = create_activity_undo_announce(
-        &config.instance_url(),
-        &current_user.profile,
+    prepare_undo_announce_note(
+        db_client,
+        config.instance(),
+        &current_user,
+        &post,
         repost_id,
-        &primary_recipient,
-    );
-    deliver_activity(&config, &current_user, activity, recipients);
+    ).await?.spawn_deliver();
 
     let status = build_status(
         db_client,
