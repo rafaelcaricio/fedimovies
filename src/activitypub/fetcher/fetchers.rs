@@ -1,6 +1,7 @@
 use std::path::Path;
+use std::time::Duration;
 
-use reqwest::Method;
+use reqwest::{Client, Method};
 use serde_json::Value;
 
 use crate::activitypub::activity::Object;
@@ -10,6 +11,8 @@ use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};
 use crate::utils::files::{save_file, FileError};
 use crate::webfinger::types::JsonResourceDescriptor;
+
+const FETCHER_CONNECTION_TIMEOUT: u64 = 30;
 
 #[derive(thiserror::Error, Debug)]
 pub enum FetchError {
@@ -29,13 +32,20 @@ pub enum FetchError {
     OtherError(&'static str),
 }
 
+fn build_client() -> reqwest::Result<Client> {
+    let connect_timeout = Duration::from_secs(FETCHER_CONNECTION_TIMEOUT);
+    Client::builder()
+        .connect_timeout(connect_timeout)
+        .build()
+}
+
 /// Sends GET request to fetch AP object
 async fn send_request(
     instance: &Instance,
     url: &str,
     query_params: &[(&str, &str)],
 ) -> Result<String, FetchError> {
-    let client = reqwest::Client::new();
+    let client = build_client()?;
     let mut request_builder = client.get(url);
     if !query_params.is_empty() {
         request_builder = request_builder.query(query_params);
@@ -73,7 +83,8 @@ pub async fn fetch_file(
     url: &str,
     output_dir: &Path,
 ) -> Result<(String, Option<String>), FetchError> {
-    let response = reqwest::get(url).await?;
+    let client = build_client()?;
+    let response = client.get(url).send().await?;
     let file_data = response.bytes().await?;
     let (file_name, media_type) = save_file(file_data.to_vec(), output_dir)?;
     Ok((file_name, media_type))
@@ -89,7 +100,7 @@ pub async fn perform_webfinger_query(
         "https://{}/.well-known/webfinger",
         actor_address.instance,
     );
-    let client = reqwest::Client::new();
+    let client = build_client()?;
     let mut request_builder = client.get(&webfinger_url);
     if !instance.is_private {
         // Public instance should set User-Agent header

@@ -59,7 +59,6 @@ async fn send_activity(
             inbox_url,
         );
     } else {
-        // Default timeout is 30s
         let response = request.send().await?;
         let response_status = response.status();
         let response_text = response.text().await?;
