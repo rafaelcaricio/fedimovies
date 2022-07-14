@@ -6,13 +6,15 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
 use crate::activitypub::activity::{
-    create_activity_like,
     create_activity_undo_like,
     create_activity_announce,
     create_activity_undo_announce,
 };
-use crate::activitypub::builders::create_note::prepare_create_note;
-use crate::activitypub::builders::delete_note::prepare_delete_note;
+use crate::activitypub::builders::{
+    create_note::prepare_create_note,
+    delete_note::prepare_delete_note,
+    like_note::prepare_like_note,
+};
 use crate::activitypub::deliverer::deliver_activity;
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
@@ -227,17 +229,13 @@ async fn favourite(
 
     if let Some(reaction) = maybe_reaction_created {
         // Federate
-        let Audience { recipients, primary_recipient } =
-            get_like_recipients(db_client, &config.instance_url(), &post).await?;
-        let object_id = post.get_object_id(&config.instance_url());
-        let activity = create_activity_like(
-            &config.instance_url(),
-            &current_user.profile,
-            &object_id,
+        prepare_like_note(
+            db_client,
+            config.instance(),
+            &current_user,
+            &post,
             &reaction.id,
-            &primary_recipient,
-        );
-        deliver_activity(&config, &current_user, activity, recipients);
+        ).await?.spawn_deliver();
     };
 
     let status = build_status(

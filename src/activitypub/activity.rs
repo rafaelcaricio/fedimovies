@@ -130,26 +130,6 @@ pub fn create_activity(
     }
 }
 
-pub fn create_activity_like(
-    instance_url: &str,
-    actor_profile: &DbActorProfile,
-    object_id: &str,
-    reaction_id: &Uuid,
-    recipient_id: &str,
-) -> Activity {
-    let activity_id = get_object_url(instance_url, reaction_id);
-    let activity = create_activity(
-        instance_url,
-        &actor_profile.username,
-        LIKE,
-        activity_id,
-        object_id,
-        vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
-        vec![],
-    );
-    activity
-}
-
 pub fn create_activity_undo_like(
     instance_url: &str,
     actor_profile: &DbActorProfile,
@@ -226,27 +206,6 @@ mod tests {
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
-
-    #[test]
-    fn test_create_activity_like() {
-        let author = DbActorProfile::default();
-        let note_id = "https://example.com/objects/123";
-        let note_author_id = "https://example.com/users/test";
-        let reaction_id = new_uuid();
-        let activity = create_activity_like(
-            INSTANCE_URL,
-            &author,
-            note_id,
-            &reaction_id,
-            note_author_id,
-        );
-        assert_eq!(
-            activity.id,
-            format!("{}/objects/{}", INSTANCE_URL, reaction_id),
-        );
-        assert_eq!(activity.object, json!(note_id));
-        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, note_author_id]));
-    }
 
     #[test]
     fn test_create_activity_undo_like() {
