@@ -221,6 +221,7 @@ pub fn create_activity_undo_announce(
 
 #[cfg(test)]
 mod tests {
+    use crate::activitypub::actor::Actor;
     use crate::utils::id::new_uuid;
     use super::*;
 
@@ -245,5 +246,82 @@ mod tests {
         );
         assert_eq!(activity.object, json!(note_id));
         assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, note_author_id]));
+    }
+
+    #[test]
+    fn test_create_activity_undo_like() {
+        let author = DbActorProfile::default();
+        let note_author_id = "https://example.com/users/test";
+        let reaction_id = new_uuid();
+        let activity = create_activity_undo_like(
+            INSTANCE_URL,
+            &author,
+            &reaction_id,
+            note_author_id,
+        );
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}/undo", INSTANCE_URL, reaction_id),
+        );
+        assert_eq!(
+            activity.object,
+            format!("{}/objects/{}", INSTANCE_URL, reaction_id),
+        );
+        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, note_author_id]));
+    }
+
+    #[test]
+    fn test_create_activity_announce() {
+        let post_author_id = "https://test.net/user/test";
+        let post_author = DbActorProfile {
+            actor_json: Some(Actor {
+                id: post_author_id.to_string(),
+                ..Default::default()
+            }),
+            actor_id: Some(post_author_id.to_string()),
+            ..Default::default()
+        };
+        let post_id = "https://test.net/obj/123";
+        let post = Post {
+            author: post_author.clone(),
+            object_id: Some(post_id.to_string()),
+            ..Default::default()
+        };
+        let announcer = DbActorProfile::default();
+        let repost_id = new_uuid();
+        let activity = create_activity_announce(
+            INSTANCE_URL,
+            &announcer,
+            &post,
+            &repost_id,
+        );
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}", INSTANCE_URL, repost_id),
+        );
+        assert_eq!(activity.object, post_id);
+        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, post_author_id]));
+    }
+
+    #[test]
+    fn test_create_activity_undo_announce() {
+        let announcer = DbActorProfile::default();
+        let post_author_id = "https://example.com/users/test";
+        let repost_id = new_uuid();
+        let activity = create_activity_undo_announce(
+            INSTANCE_URL,
+            &announcer,
+            &repost_id,
+            post_author_id,
+        );
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}/undo", INSTANCE_URL, repost_id),
+        );
+        assert_eq!(
+            activity.object,
+            format!("{}/objects/{}", INSTANCE_URL, repost_id),
+        );
+        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, post_author_id]));
     }
 }
