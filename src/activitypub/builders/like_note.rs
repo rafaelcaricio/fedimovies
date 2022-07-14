@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     activity::{create_activity, Activity},
+    actor::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     views::get_object_url,
@@ -10,7 +11,6 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::errors::DatabaseError;
-use crate::mastodon_api::statuses::helpers::{get_like_recipients, Audience};
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
@@ -35,6 +35,19 @@ fn build_like_note(
     activity
 }
 
+pub async fn get_like_note_recipients(
+    _db_client: &impl GenericClient,
+    instance_url: &str,
+    post: &Post,
+) -> Result<(Vec<Actor>, String), DatabaseError> {
+    let mut recipients: Vec<Actor> = Vec::new();
+    let primary_recipient = post.author.actor_id(instance_url);
+    if let Some(remote_actor) = post.author.actor_json.as_ref() {
+        recipients.push(remote_actor.clone());
+    };
+    Ok((recipients, primary_recipient))
+}
+
 pub async fn prepare_like_note(
     db_client: &impl GenericClient,
     instance: Instance,
@@ -42,8 +55,11 @@ pub async fn prepare_like_note(
     post: &Post,
     reaction_id: &Uuid,
 ) -> Result<OutgoingActivity, DatabaseError> {
-    let Audience { recipients, primary_recipient } =
-        get_like_recipients(db_client, &instance.url(), post).await?;
+    let (recipients, primary_recipient) = get_like_note_recipients(
+        db_client,
+        &instance.url(),
+        post,
+    ).await?;
     let note_id = post.get_object_id(&instance.url());
     let activity = build_like_note(
         &instance.url(),

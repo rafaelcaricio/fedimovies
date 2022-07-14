@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     activity::{create_activity, Activity},
+    actor::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     views::{get_followers_url, get_object_url},
@@ -10,9 +11,9 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::errors::DatabaseError;
-use crate::mastodon_api::statuses::helpers::{get_announce_recipients, Audience};
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
+use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;
 
 fn build_announce_note(
@@ -36,6 +37,26 @@ fn build_announce_note(
     activity
 }
 
+pub async fn get_announce_note_recipients(
+    db_client: &impl GenericClient,
+    instance_url: &str,
+    current_user: &User,
+    post: &Post,
+) -> Result<(Vec<Actor>, String), DatabaseError> {
+    let followers = get_followers(db_client, &current_user.id, None, None).await?;
+    let mut recipients: Vec<Actor> = Vec::new();
+    for profile in followers {
+        if let Some(remote_actor) = profile.actor_json {
+            recipients.push(remote_actor);
+        };
+    };
+    let primary_recipient = post.author.actor_id(instance_url);
+    if let Some(remote_actor) = post.author.actor_json.as_ref() {
+        recipients.push(remote_actor.clone());
+    };
+    Ok((recipients, primary_recipient))
+}
+
 pub async fn prepare_announce_note(
     db_client: &impl GenericClient,
     instance: Instance,
@@ -44,8 +65,12 @@ pub async fn prepare_announce_note(
     repost_id: &Uuid,
 ) -> Result<OutgoingActivity, DatabaseError> {
     assert_ne!(&post.id, repost_id);
-    let Audience { recipients, .. } =
-        get_announce_recipients(db_client, &instance.url(), user, post).await?;
+    let (recipients, _) = get_announce_note_recipients(
+        db_client,
+        &instance.url(),
+        user,
+        post,
+    ).await?;
     let activity = build_announce_note(
         &instance.url(),
         &user.profile,

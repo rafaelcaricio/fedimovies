@@ -10,10 +10,10 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::errors::DatabaseError;
-use crate::mastodon_api::statuses::helpers::{get_like_recipients, Audience};
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
+use super::like_note::get_like_note_recipients;
 
 fn build_undo_like(
     instance_url: &str,
@@ -44,8 +44,11 @@ pub async fn prepare_undo_like_note(
     post: &Post,
     reaction_id: &Uuid,
 ) -> Result<OutgoingActivity, DatabaseError> {
-    let Audience { recipients, primary_recipient } =
-        get_like_recipients(db_client, &instance.url(), post).await?;
+    let (recipients, primary_recipient) = get_like_note_recipients(
+        db_client,
+        &instance.url(),
+        post,
+    ).await?;
     let activity = build_undo_like(
         &instance.url(),
         &user.profile,

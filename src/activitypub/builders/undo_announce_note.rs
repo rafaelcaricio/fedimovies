@@ -10,10 +10,10 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::errors::DatabaseError;
-use crate::mastodon_api::statuses::helpers::{get_announce_recipients, Audience};
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
+use super::announce_note::get_announce_note_recipients;
 
 fn build_undo_announce(
     instance_url: &str,
@@ -49,8 +49,12 @@ pub async fn prepare_undo_announce_note(
     repost_id: &Uuid,
 ) -> Result<OutgoingActivity, DatabaseError> {
     assert_ne!(&post.id, repost_id);
-    let Audience { recipients, primary_recipient } =
-        get_announce_recipients(db_client, &instance.url(), user, post).await?;
+    let (recipients, primary_recipient) = get_announce_note_recipients(
+        db_client,
+        &instance.url(),
+        user,
+        post,
+    ).await?;
     let activity = build_undo_announce(
         &instance.url(),
         &user.profile,
