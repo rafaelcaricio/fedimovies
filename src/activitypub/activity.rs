@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use super::constants::AP_CONTEXT;
-use super::views::get_actor_url;
+use super::identifiers::local_actor_id;
 use super::vocabulary::*;
 
 #[derive(Deserialize, Serialize)]
@@ -108,10 +108,7 @@ pub fn create_activity(
     primary_audience: Vec<String>,
     secondary_audience: Vec<String>,
 ) -> Activity {
-    let actor_id = get_actor_url(
-        instance_url,
-        actor_name,
-    );
+    let actor_id = local_actor_id(instance_url, actor_name);
     Activity {
         context: json!(AP_CONTEXT),
         id: activity_id,

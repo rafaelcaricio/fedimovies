@@ -9,7 +9,7 @@ use serde::Deserialize;
 use url::Url;
 
 use crate::activitypub::constants::ACTOR_KEY_SUFFIX;
-use crate::activitypub::views::get_instance_actor_url;
+use crate::activitypub::identifiers::local_instance_actor_id;
 use crate::errors::ConversionError;
 use crate::ethereum::utils::{parse_caip2_chain_id, ChainIdError};
 use crate::models::profiles::currencies::Currency;
@@ -223,7 +223,7 @@ impl Instance {
     }
 
     pub fn actor_id(&self) -> String {
-        get_instance_actor_url(&self.url())
+        local_instance_actor_id(&self.url())
     }
 
     pub fn actor_key_id(&self) -> String {

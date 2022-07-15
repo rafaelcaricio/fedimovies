@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::activitypub::actor::Actor;
-use crate::activitypub::views::get_actor_url;
+use crate::activitypub::identifiers::local_actor_id;
 use crate::database::json_macro::{json_from_sql, json_to_sql};
 use crate::errors::ValidationError;
 use crate::ethereum::identity::DidPkh;
@@ -98,7 +98,7 @@ impl DbActorProfile {
         // TODO: use actor_id field
         match self.actor_json {
             Some(ref actor) => actor.id.clone(),
-            None => get_actor_url(instance_url, &self.username),
+            None => local_actor_id(instance_url, &self.username),
         }
     }
 

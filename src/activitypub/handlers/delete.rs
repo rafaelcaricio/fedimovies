@@ -2,7 +2,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::Activity,
-    receiver::get_object_id,
+    receiver::find_object_id,
     vocabulary::{NOTE, PERSON},
 };
 use crate::config::Config;
@@ -19,7 +19,7 @@ pub async fn handle_delete(
     db_client: &mut impl GenericClient,
     activity: Activity,
 ) -> HandlerResult {
-    let object_id = get_object_id(&activity.object)?;
+    let object_id = find_object_id(&activity.object)?;
     if object_id == activity.actor {
         // Self-delete
         let profile = match get_profile_by_actor_id(db_client, &object_id).await {

@@ -13,15 +13,7 @@ use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
 use super::constants::{ACTOR_KEY_SUFFIX, AP_CONTEXT};
-use super::identifiers::LocalActorCollection;
-use super::views::{
-    get_actor_url,
-    get_inbox_url,
-    get_outbox_url,
-    get_followers_url,
-    get_following_url,
-    get_subscribers_url,
-};
+use super::identifiers::{local_actor_id, LocalActorCollection};
 use super::vocabulary::{IDENTITY_PROOF, IMAGE, PERSON, PROPERTY_VALUE, SERVICE};
 
 const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
@@ -253,12 +245,12 @@ pub fn get_local_actor(
     instance_url: &str,
 ) -> Result<Actor, ActorKeyError> {
     let username = &user.profile.username;
-    let actor_id = get_actor_url(instance_url, username);
-    let inbox = get_inbox_url(instance_url, username);
-    let outbox = get_outbox_url(instance_url, username);
-    let followers = get_followers_url(instance_url, username);
-    let following = get_following_url(instance_url, username);
-    let subscribers = get_subscribers_url(instance_url, username);
+    let actor_id = local_actor_id(instance_url, username);
+    let inbox = LocalActorCollection::Inbox.of(&actor_id);
+    let outbox = LocalActorCollection::Outbox.of(&actor_id);
+    let followers = LocalActorCollection::Followers.of(&actor_id);
+    let following = LocalActorCollection::Following.of(&actor_id);
+    let subscribers = LocalActorCollection::Subscribers.of(&actor_id);
 
     let private_key = deserialize_private_key(&user.private_key)?;
     let public_key_pem = get_public_key_pem(&private_key)?;

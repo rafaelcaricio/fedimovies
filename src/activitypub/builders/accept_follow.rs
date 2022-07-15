@@ -5,7 +5,7 @@ use crate::activitypub::{
     actor::Actor,
     constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
-    views::get_object_url,
+    identifiers::local_object_id,
     vocabulary::{ACCEPT, FOLLOW},
 };
 use crate::config::Instance;
@@ -26,7 +26,7 @@ fn build_accept_follow(
         ..Default::default()
     };
     // Accept(Follow) is idempotent so its ID can be random
-    let activity_id = get_object_url(instance_url, &new_uuid());
+    let activity_id = local_object_id(instance_url, &new_uuid());
     let activity = create_activity(
         instance_url,
         &actor_profile.username,

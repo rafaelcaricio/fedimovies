@@ -8,7 +8,7 @@ use crate::utils::crypto::deserialize_private_key;
 use super::activity::Activity;
 use super::actor::Actor;
 use super::constants::{ACTIVITY_CONTENT_TYPE, ACTOR_KEY_SUFFIX};
-use super::views::get_actor_url;
+use super::identifiers::local_actor_id;
 
 #[derive(thiserror::Error, Debug)]
 pub enum DelivererError {
@@ -83,7 +83,7 @@ async fn deliver_activity_worker(
     let actor_key = deserialize_private_key(&sender.private_key)?;
     let actor_key_id = format!(
         "{}{}",
-        get_actor_url(
+        local_actor_id(
             &instance.url(),
             &sender.profile.username,
         ),

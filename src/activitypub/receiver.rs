@@ -109,7 +109,7 @@ pub fn parse_property_value<T: DeserializeOwned>(value: &Value) -> Result<Vec<T>
 }
 
 /// Parses object json value and returns its ID as string
-pub fn get_object_id(object: &Value) -> Result<String, ValidationError> {
+pub fn find_object_id(object: &Value) -> Result<String, ValidationError> {
     let object_id = match object.as_str() {
         Some(object_id) => object_id.to_owned(),
         None => {
@@ -152,7 +152,7 @@ pub async fn receive_activity(
         .unwrap_or("Unknown");
 
     let is_self_delete = if activity_type == DELETE {
-        let object_id = get_object_id(&activity.object)?;
+        let object_id = find_object_id(&activity.object)?;
         activity.actor == object_id
     } else { false };
     // Don't fetch signer if this is Delete(Person) activity
@@ -327,14 +327,14 @@ mod tests {
     }
 
     #[test]
-    fn test_get_object_id_from_string() {
+    fn test_find_object_id_from_string() {
         let value = json!("test_id");
-        assert_eq!(get_object_id(&value).unwrap(), "test_id");
+        assert_eq!(find_object_id(&value).unwrap(), "test_id");
     }
 
     #[test]
-    fn test_get_object_id_from_object() {
+    fn test_find_object_id_from_object() {
         let value = json!({"id": "test_id", "type": "Note"});
-        assert_eq!(get_object_id(&value).unwrap(), "test_id");
+        assert_eq!(find_object_id(&value).unwrap(), "test_id");
     }
 }

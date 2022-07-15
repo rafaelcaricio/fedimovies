@@ -1,7 +1,7 @@
 use ammonia::clean_text;
 use chrono::{DateTime, NaiveDateTime, Utc};
 
-use crate::activitypub::views::{get_actor_url, get_object_url};
+use crate::activitypub::identifiers::{local_actor_id, local_object_id};
 use crate::config::Instance;
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
@@ -17,7 +17,7 @@ fn make_entry(
     instance_url: &str,
     post: &Post,
 ) -> String {
-    let object_id = get_object_url(instance_url, &post.id);
+    let object_id = local_object_id(instance_url, &post.id);
     let content_escaped = clean_text(&post.content);
     let content_cleaned = clean_html_all(&post.content);
     // Use trimmed content for title
@@ -49,7 +49,7 @@ pub fn make_feed(
     profile: &DbActorProfile,
     posts: Vec<Post>,
 ) -> String {
-    let actor_url = get_actor_url(&instance.url(), &profile.username);
+    let actor_url = local_actor_id(&instance.url(), &profile.username);
     let actor_name = profile.display_name.as_ref()
         .unwrap_or(&profile.username);
     let actor_address = profile.actor_address(&instance.host());

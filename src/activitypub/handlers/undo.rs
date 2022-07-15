@@ -2,7 +2,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::Activity,
-    receiver::get_object_id,
+    receiver::find_object_id,
     vocabulary::{ANNOUNCE, LIKE},
 };
 use crate::errors::{DatabaseError, ValidationError};
@@ -22,7 +22,7 @@ pub async fn handle_undo(
     activity: Activity,
 ) -> HandlerResult {
     let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
-    let object_id = get_object_id(&activity.object)?;
+    let object_id = find_object_id(&activity.object)?;
     match get_reaction_by_activity_id(db_client, &object_id).await {
         Ok(reaction) => {
             // Undo(Like)

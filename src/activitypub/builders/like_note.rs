@@ -6,7 +6,7 @@ use crate::activitypub::{
     actor::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
-    views::get_object_url,
+    identifiers::local_object_id,
     vocabulary::LIKE,
 };
 use crate::config::Instance;
@@ -22,7 +22,7 @@ fn build_like_note(
     reaction_id: &Uuid,
     recipient_id: &str,
 ) -> Activity {
-    let activity_id = get_object_url(instance_url, reaction_id);
+    let activity_id = local_object_id(instance_url, reaction_id);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,

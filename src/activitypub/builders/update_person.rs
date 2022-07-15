@@ -6,7 +6,7 @@ use crate::activitypub::{
     actor::{get_local_actor, Actor, ActorKeyError},
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
-    views::{get_followers_url, get_object_url},
+    identifiers::{local_actor_followers, local_object_id},
     vocabulary::UPDATE,
 };
 use crate::config::Instance;
@@ -21,7 +21,7 @@ fn build_update_person(
 ) -> Result<Activity, ActorKeyError> {
     let actor = get_local_actor(user, instance_url)?;
     // Update(Person) is idempotent so its ID can be random
-    let activity_id = get_object_url(instance_url, &new_uuid());
+    let activity_id = local_object_id(instance_url, &new_uuid());
     let activity = create_activity(
         instance_url,
         &user.profile.username,
@@ -30,7 +30,7 @@ fn build_update_person(
         actor,
         vec![
             AP_PUBLIC.to_string(),
-            get_followers_url(instance_url, &user.profile.username),
+            local_actor_followers(instance_url, &user.profile.username),
         ],
         vec![],
     );

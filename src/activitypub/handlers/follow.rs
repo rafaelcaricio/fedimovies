@@ -4,7 +4,7 @@ use crate::activitypub::{
     activity::Activity,
     builders::accept_follow::prepare_accept_follow,
     fetcher::helpers::{get_or_import_profile_by_actor_id, ImportError},
-    receiver::{get_object_id, parse_actor_id},
+    receiver::{find_object_id, parse_actor_id},
     vocabulary::PERSON,
 };
 use crate::config::Config;
@@ -26,7 +26,7 @@ pub async fn handle_follow(
     ).await?;
     let source_actor = source_profile.actor_json
         .ok_or(ImportError::LocalObject)?;
-    let target_actor_id = get_object_id(&activity.object)?;
+    let target_actor_id = find_object_id(&activity.object)?;
     let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
     let target_user = get_user_by_name(db_client, &target_username).await?;
     match follow(db_client, &source_profile.id, &target_user.profile.id).await {

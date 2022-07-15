@@ -2,8 +2,11 @@ use actix_web::{get, web, HttpResponse};
 use regex::Regex;
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::views::{get_actor_url, get_instance_actor_url};
 use crate::activitypub::constants::ACTIVITY_CONTENT_TYPE;
+use crate::activitypub::identifiers::{
+    local_actor_id,
+    local_instance_actor_id,
+};
 use crate::config::{Config, Instance};
 use crate::database::{Pool, get_database_client};
 use crate::errors::{HttpError, ValidationError};
@@ -38,12 +41,12 @@ async fn get_user_info(
         return Err(HttpError::NotFoundError("user"));
     }
     let actor_url = if username == instance.host() {
-        get_instance_actor_url(&instance.url())
+        local_instance_actor_id(&instance.url())
     } else {
         if !is_registered_user(db_client, username).await? {
             return Err(HttpError::NotFoundError("user"));
         };
-        get_actor_url(&instance.url(), username)
+        local_actor_id(&instance.url(), username)
     };
     let link = Link {
         rel: "self".to_string(),

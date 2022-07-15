@@ -5,7 +5,7 @@ use crate::activitypub::{
     activity::{create_activity, Activity},
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
-    views::{get_followers_url, get_object_url},
+    identifiers::{local_actor_followers, local_object_id},
     vocabulary::UNDO,
 };
 use crate::config::Instance;
@@ -21,14 +21,14 @@ fn build_undo_announce(
     repost_id: &Uuid,
     recipient_id: &str,
 ) -> Activity {
-    let object_id = get_object_url(
-        instance_url,
-        repost_id,
-    );
+    let object_id = local_object_id(instance_url, repost_id);
     let activity_id = format!("{}/undo", object_id);
     let primary_audience = vec![
         AP_PUBLIC.to_string(),
         recipient_id.to_string(),
+    ];
+    let secondary_audience = vec![
+        local_actor_followers(instance_url, &actor_profile.username),
     ];
     create_activity(
         instance_url,
@@ -37,7 +37,7 @@ fn build_undo_announce(
         activity_id,
         object_id,
         primary_audience,
-        vec![get_followers_url(instance_url, &actor_profile.username)],
+        secondary_audience,
     )
 }
 

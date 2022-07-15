@@ -5,7 +5,7 @@ use crate::activitypub::{
     activity::{create_activity, Activity},
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
-    views::get_object_url,
+    identifiers::local_object_id,
     vocabulary::UNDO,
 };
 use crate::config::Instance;
@@ -21,10 +21,7 @@ fn build_undo_like(
     reaction_id: &Uuid,
     recipient_id: &str,
 ) -> Activity {
-    let object_id = get_object_url(
-        instance_url,
-        reaction_id,
-    );
+    let object_id = local_object_id(instance_url, reaction_id);
     let activity_id = format!("{}/undo", object_id);
     create_activity(
         instance_url,

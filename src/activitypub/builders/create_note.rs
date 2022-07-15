@@ -7,7 +7,12 @@ use crate::activitypub::{
     actor::Actor,
     constants::{AP_CONTEXT, AP_PUBLIC},
     deliverer::OutgoingActivity,
-    views::{get_actor_url, get_followers_url, get_object_url, get_subscribers_url},
+    identifiers::{
+        local_actor_id,
+        local_actor_followers,
+        local_actor_subscribers,
+        local_object_id,
+    },
     vocabulary::{CREATE, DOCUMENT, HASHTAG, MENTION, NOTE},
 };
 use crate::config::Instance;
@@ -56,14 +61,8 @@ pub fn build_note(
     post: &Post,
     subscribers: Vec<DbActorProfile>,
 ) -> Note {
-    let object_id = get_object_url(
-        instance_url,
-        &post.id,
-    );
-    let actor_id = get_actor_url(
-        instance_url,
-        &post.author.username,
-    );
+    let object_id = local_object_id(instance_url, &post.id);
+    let actor_id = local_actor_id(instance_url, &post.author.username);
     let attachments: Vec<Attachment> = post.attachments.iter().map(|db_item| {
         let url = get_file_url(instance_url, &db_item.file_name);
         let media_type = db_item.media_type.clone();
@@ -76,20 +75,20 @@ pub fn build_note(
     }).collect();
     let mut primary_audience = vec![];
     let mut secondary_audience = vec![];
-    let followers_collection_url =
-        get_followers_url(instance_url, &post.author.username);
-    let subscribers_collection_url =
-        get_subscribers_url(instance_url, &post.author.username);
+    let followers_collection_id =
+        local_actor_followers(instance_url, &post.author.username);
+    let subscribers_collection_id =
+        local_actor_subscribers(instance_url, &post.author.username);
     match post.visibility {
         Visibility::Public => {
             primary_audience.push(AP_PUBLIC.to_string());
-            secondary_audience.push(followers_collection_url);
+            secondary_audience.push(followers_collection_id);
         },
         Visibility::Followers => {
-            primary_audience.push(followers_collection_url);
+            primary_audience.push(followers_collection_id);
         },
         Visibility::Subscribers => {
-            primary_audience.push(subscribers_collection_url);
+            primary_audience.push(subscribers_collection_id);
         },
         Visibility::Direct => (),
     };
@@ -268,7 +267,7 @@ mod tests {
         assert_eq!(note.content, post.content);
         assert_eq!(note.to, vec![AP_PUBLIC]);
         assert_eq!(note.cc, vec![
-            get_followers_url(INSTANCE_URL, "author"),
+            local_actor_followers(INSTANCE_URL, "author"),
         ]);
     }
 
@@ -281,7 +280,7 @@ mod tests {
         let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
 
         assert_eq!(note.to, vec![
-            get_followers_url(INSTANCE_URL, &post.author.username),
+            local_actor_followers(INSTANCE_URL, &post.author.username),
         ]);
         assert_eq!(note.cc.is_empty(), true);
     }
@@ -302,7 +301,7 @@ mod tests {
         );
         assert_eq!(note.to, vec![
             AP_PUBLIC.to_string(),
-            get_actor_url(INSTANCE_URL, &parent.author.username),
+            local_actor_id(INSTANCE_URL, &parent.author.username),
         ]);
     }
 

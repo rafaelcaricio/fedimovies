@@ -6,7 +6,7 @@ use crate::activitypub::{
     actor::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
-    views::{get_followers_url, get_object_url},
+    identifiers::{local_actor_followers, local_object_id},
     vocabulary::ANNOUNCE,
 };
 use crate::config::Instance;
@@ -23,8 +23,9 @@ fn build_announce_note(
     repost_id: &Uuid,
 ) -> Activity {
     let object_id = post.get_object_id(instance_url);
-    let activity_id = get_object_url(instance_url, repost_id);
+    let activity_id = local_object_id(instance_url, repost_id);
     let recipient_id = post.author.actor_id(instance_url);
+    let followers = local_actor_followers(instance_url, &actor_profile.username);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
@@ -32,7 +33,7 @@ fn build_announce_note(
         activity_id,
         object_id,
         vec![AP_PUBLIC.to_string(), recipient_id],
-        vec![get_followers_url(instance_url, &actor_profile.username)],
+        vec![followers],
     );
     activity
 }

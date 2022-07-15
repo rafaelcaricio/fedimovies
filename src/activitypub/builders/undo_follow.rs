@@ -6,7 +6,7 @@ use crate::activitypub::{
     actor::Actor,
     constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
-    views::{get_actor_url, get_object_url},
+    identifiers::{local_actor_id, local_object_id},
     vocabulary::{FOLLOW, UNDO},
 };
 use crate::config::Instance;
@@ -19,11 +19,11 @@ fn build_undo_follow(
     target_actor_id: &str,
     follow_request_id: &Uuid,
 ) -> Activity {
-    let follow_activity_id = get_object_url(
+    let follow_activity_id = local_object_id(
         instance_url,
         follow_request_id,
     );
-    let follow_actor_id = get_actor_url(
+    let follow_actor_id = local_actor_id(
         instance_url,
         &actor_profile.username,
     );

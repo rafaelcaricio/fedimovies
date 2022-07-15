@@ -23,39 +23,13 @@ use super::collections::{
     OrderedCollectionPage,
 };
 use super::constants::ACTIVITY_CONTENT_TYPE;
+use super::identifiers::{
+    local_actor_followers,
+    local_actor_following,
+    local_actor_subscribers,
+    local_actor_outbox,
+};
 use super::receiver::receive_activity;
-
-pub fn get_actor_url(instance_url: &str, username: &str) -> String {
-    format!("{}/users/{}", instance_url, username)
-}
-
-pub fn get_inbox_url(instance_url: &str, username: &str) -> String {
-    format!("{}/users/{}/inbox", instance_url, username)
-}
-
-pub fn get_outbox_url(instance_url: &str, username: &str) -> String {
-    format!("{}/users/{}/outbox", instance_url, username)
-}
-
-pub fn get_followers_url(instance_url: &str, username: &str) -> String {
-    format!("{}/users/{}/followers", instance_url, username)
-}
-
-pub fn get_following_url(instance_url: &str, username: &str) -> String {
-    format!("{}/users/{}/following", instance_url, username)
-}
-
-pub fn get_subscribers_url(instance_url: &str, username: &str) -> String {
-    format!("{}/users/{}/subscribers", instance_url, username)
-}
-
-pub fn get_instance_actor_url(instance_url: &str) -> String {
-    format!("{}/actor", instance_url)
-}
-
-pub fn get_object_url(instance_url: &str, internal_object_id: &Uuid) -> String {
-    format!("{}/objects/{}", instance_url, internal_object_id)
-}
 
 fn is_activitypub_request(headers: &HeaderMap) -> bool {
     const CONTENT_TYPES: [&str; 4] = [
@@ -139,7 +113,7 @@ async fn outbox(
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let instance = config.instance();
-    let collection_id = get_outbox_url(&instance.url(), &username);
+    let collection_id = local_actor_outbox(&instance.url(), &username);
     let first_page_id = format!("{}?page=true", collection_id);
     if query_params.page.is_none() {
         let collection = OrderedCollection::new(
@@ -196,7 +170,10 @@ async fn followers_collection(
         // Social graph is not available
         return Err(HttpError::PermissionError);
     }
-    let collection_id = get_followers_url(&config.instance_url(), &username);
+    let collection_id = local_actor_followers(
+        &config.instance_url(),
+        &username,
+    );
     let collection = OrderedCollection::new(collection_id, None);
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)
@@ -214,7 +191,10 @@ async fn following_collection(
         // Social graph is not available
         return Err(HttpError::PermissionError);
     }
-    let collection_id = get_following_url(&config.instance_url(), &username);
+    let collection_id = local_actor_following(
+        &config.instance_url(),
+        &username,
+    );
     let collection = OrderedCollection::new(collection_id, None);
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)
@@ -232,7 +212,10 @@ async fn subscribers_collection(
         // Subscriber list is hidden
         return Err(HttpError::PermissionError);
     }
-    let collection_id = get_subscribers_url(&config.instance_url(), &username);
+    let collection_id = local_actor_subscribers(
+        &config.instance_url(),
+        &username,
+    );
     let collection = OrderedCollection::new(collection_id, None);
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)

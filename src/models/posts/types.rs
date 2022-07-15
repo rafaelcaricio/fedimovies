@@ -5,7 +5,7 @@ use postgres_types::FromSql;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
-use crate::activitypub::views::get_object_url;
+use crate::activitypub::identifiers::local_object_id;
 use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
 use crate::errors::{ConversionError, DatabaseError, ValidationError};
 use crate::models::attachments::types::DbMediaAttachment;
@@ -156,7 +156,7 @@ impl Post {
     pub fn get_object_id(&self, instance_url: &str) -> String {
         match &self.object_id {
             Some(object_id) => object_id.to_string(),
-            None => get_object_url(instance_url, &self.id),
+            None => local_object_id(instance_url, &self.id),
         }
     }
 }
