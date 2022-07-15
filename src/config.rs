@@ -204,6 +204,15 @@ pub struct Instance {
 }
 
 impl Instance {
+    #[cfg(test)]
+    pub fn new(url: Url, actor_key: RsaPrivateKey) -> Self {
+        Self {
+            _url: url,
+            _version: "0.0.0".to_string(),
+            actor_key,
+            is_private: true,
+        }
+    }
 
     pub fn url(&self) -> String {
         self._url.origin().ascii_serialization()

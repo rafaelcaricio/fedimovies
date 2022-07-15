@@ -374,6 +374,7 @@ pub fn get_instance_actor(
 
 #[cfg(test)]
 mod tests {
+    use url::Url;
     use crate::models::profiles::types::DbActorProfile;
     use crate::utils::crypto::{
         generate_weak_private_key,
@@ -413,7 +414,39 @@ mod tests {
         let actor = get_local_actor(&user, INSTANCE_URL).unwrap();
         assert_eq!(actor.id, "https://example.com/users/testuser");
         assert_eq!(actor.preferred_username, user.profile.username);
+        assert_eq!(actor.inbox, "https://example.com/users/testuser/inbox");
+        assert_eq!(actor.outbox, "https://example.com/users/testuser/outbox");
+        assert_eq!(
+            actor.followers.unwrap(),
+            "https://example.com/users/testuser/followers",
+        );
+        assert_eq!(
+            actor.following.unwrap(),
+            "https://example.com/users/testuser/following",
+        );
+        assert_eq!(
+            actor.subscribers.unwrap(),
+            "https://example.com/users/testuser/subscribers",
+        );
+        assert_eq!(
+            actor.public_key.id,
+            "https://example.com/users/testuser#main-key",
+        );
         assert_eq!(actor.attachment.unwrap().len(), 0);
         assert_eq!(actor.summary, user.profile.bio);
+    }
+
+    #[test]
+    fn test_instance_actor() {
+        let instance_url = Url::parse("https://example.com/").unwrap();
+        let instance_rsa_key = generate_weak_private_key().unwrap();
+        let instance = Instance::new(instance_url, instance_rsa_key);
+        let actor = get_instance_actor(&instance).unwrap();
+        assert_eq!(actor.id, "https://example.com/actor");
+        assert_eq!(actor.object_type, "Service");
+        assert_eq!(actor.preferred_username, "example.com");
+        assert_eq!(actor.inbox, "https://example.com/actor/inbox");
+        assert_eq!(actor.outbox, "https://example.com/actor/outbox");
+        assert_eq!(actor.public_key.id, "https://example.com/actor#main-key");
     }
 }
