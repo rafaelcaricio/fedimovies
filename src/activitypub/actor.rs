@@ -13,6 +13,7 @@ use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
 use super::constants::{ACTOR_KEY_SUFFIX, AP_CONTEXT};
+use super::identifiers::LocalActorCollection;
 use super::views::{
     get_actor_url,
     get_inbox_url,
@@ -339,8 +340,8 @@ pub fn get_instance_actor(
     instance: &Instance,
 ) -> Result<Actor, ActorKeyError> {
     let actor_id = instance.actor_id();
-    let actor_inbox = format!("{}/inbox", actor_id);
-    let actor_outbox = format!("{}/outbox", actor_id);
+    let actor_inbox = LocalActorCollection::Inbox.of(&actor_id);
+    let actor_outbox = LocalActorCollection::Outbox.of(&actor_id);
     let public_key_pem = get_public_key_pem(&instance.actor_key)?;
     let public_key = PublicKey {
         id: instance.actor_key_id(),
