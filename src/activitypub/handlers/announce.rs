@@ -3,7 +3,8 @@ use tokio_postgres::GenericClient;
 use crate::activitypub::{
     activity::Activity,
     fetcher::helpers::{get_or_import_profile_by_actor_id, import_post},
-    receiver::{find_object_id, parse_object_id},
+    identifiers::parse_local_object_id,
+    receiver::find_object_id,
     vocabulary::NOTE,
 };
 use crate::config::Config;
@@ -30,7 +31,7 @@ pub async fn handle_announce(
         &activity.actor,
     ).await?;
     let object_id = find_object_id(&activity.object)?;
-    let post_id = match parse_object_id(&config.instance_url(), &object_id) {
+    let post_id = match parse_local_object_id(&config.instance_url(), &object_id) {
         Ok(post_id) => post_id,
         Err(_) => {
             // Try to get remote post

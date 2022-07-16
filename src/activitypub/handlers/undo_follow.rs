@@ -2,7 +2,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::{Activity, Object},
-    receiver::parse_actor_id,
+    identifiers::parse_local_actor_id,
     vocabulary::FOLLOW,
 };
 use crate::config::Config;
@@ -24,7 +24,10 @@ pub async fn handle_undo_follow(
     let source_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
     let target_actor_id = object.object
         .ok_or(ValidationError("invalid object"))?;
-    let target_username = parse_actor_id(&config.instance_url(), &target_actor_id)?;
+    let target_username = parse_local_actor_id(
+        &config.instance_url(),
+        &target_actor_id,
+    )?;
     // acct equals username if profile is local
     let target_profile = get_profile_by_acct(db_client, &target_username).await?;
     match unfollow(db_client, &source_profile.id, &target_profile.id).await {

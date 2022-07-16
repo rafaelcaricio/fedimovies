@@ -2,7 +2,7 @@ use chrono::Utc;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::activity::Object;
-use crate::activitypub::receiver::parse_object_id;
+use crate::activitypub::identifiers::parse_local_object_id;
 use crate::activitypub::vocabulary::NOTE;
 use crate::errors::DatabaseError;
 use crate::models::posts::queries::{
@@ -18,7 +18,7 @@ pub async fn handle_update_note(
     instance_url: &str,
     object: Object,
 ) -> HandlerResult {
-    let post_id = match parse_object_id(instance_url, &object.id) {
+    let post_id = match parse_local_object_id(instance_url, &object.id) {
         Ok(post_id) => post_id,
         Err(_) => {
             let post = match get_post_by_object_id(db_client, &object.id).await {

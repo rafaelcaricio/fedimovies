@@ -2,7 +2,8 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::Activity,
-    receiver::{find_object_id, parse_object_id},
+    identifiers::parse_local_object_id,
+    receiver::find_object_id,
     vocabulary::FOLLOW,
 };
 use crate::config::Config;
@@ -21,7 +22,10 @@ pub async fn handle_reject_follow(
 ) -> HandlerResult {
     let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
     let object_id = find_object_id(&activity.object)?;
-    let follow_request_id = parse_object_id(&config.instance_url(), &object_id)?;
+    let follow_request_id = parse_local_object_id(
+        &config.instance_url(),
+        &object_id,
+    )?;
     let follow_request = get_follow_request_by_id(db_client, &follow_request_id).await?;
     if follow_request.target_id != actor_profile.id {
         return Err(ValidationError("actor is not a target").into());

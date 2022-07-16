@@ -9,7 +9,7 @@ use crate::activitypub::handlers::{
     create_note::handle_note,
     update_person::update_remote_profile,
 };
-use crate::activitypub::receiver::parse_object_id;
+use crate::activitypub::identifiers::parse_local_object_id;
 use crate::config::{Config, Instance};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::models::posts::queries::get_post_by_object_id;
@@ -193,7 +193,7 @@ pub async fn import_post(
     loop {
         let object_id = match maybe_object_id_to_fetch {
             Some(object_id) => {
-                if parse_object_id(&instance.url(), &object_id).is_ok() {
+                if parse_local_object_id(&instance.url(), &object_id).is_ok() {
                     // Object is a local post
                     assert!(objects.len() > 0);
                     break;

@@ -4,21 +4,19 @@ use std::path::Path;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::activitypub::activity::{Attachment, Object};
-use crate::activitypub::constants::AP_PUBLIC;
-use crate::activitypub::fetcher::fetchers::fetch_file;
-use crate::activitypub::fetcher::helpers::{
-    get_or_import_profile_by_actor_id,
-    import_profile_by_actor_address,
-    ImportError,
+use crate::activitypub::{
+    activity::{Attachment, Object},
+    constants::AP_PUBLIC,
+    fetcher::fetchers::fetch_file,
+    fetcher::helpers::{
+        get_or_import_profile_by_actor_id,
+        import_profile_by_actor_address,
+        ImportError,
+    },
+    identifiers::{parse_local_actor_id, parse_local_object_id},
+    receiver::{parse_array, parse_property_value},
+    vocabulary::{DOCUMENT, HASHTAG, IMAGE, MENTION, NOTE},
 };
-use crate::activitypub::receiver::{
-    parse_actor_id,
-    parse_array,
-    parse_object_id,
-    parse_property_value,
-};
-use crate::activitypub::vocabulary::{DOCUMENT, HASHTAG, IMAGE, MENTION, NOTE};
 use crate::config::Instance;
 use crate::errors::{DatabaseError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
@@ -163,7 +161,7 @@ pub async fn handle_note(
             } else if tag.tag_type == MENTION {
                 // Try to find profile by actor ID.
                 if let Some(href) = tag.href {
-                    if let Ok(username) = parse_actor_id(&instance.url(), &href) {
+                    if let Ok(username) = parse_local_actor_id(&instance.url(), &href) {
                         let user = get_user_by_name(db_client, &username).await?;
                         if !mentions.contains(&user.id) {
                             mentions.push(user.id);
@@ -245,7 +243,7 @@ pub async fn handle_note(
     };
     let in_reply_to_id = match object.in_reply_to {
         Some(object_id) => {
-            match parse_object_id(&instance.url(), &object_id) {
+            match parse_local_object_id(&instance.url(), &object_id) {
                 Ok(post_id) => {
                     // Local post
                     let post = get_post_by_id(db_client, &post_id).await?;
