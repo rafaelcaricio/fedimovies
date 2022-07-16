@@ -10,7 +10,10 @@ use web3::{
     types::{BlockId, BlockNumber, FilterBuilder, U256},
 };
 
-use crate::activitypub::builders::add_person::prepare_add_person;
+use crate::activitypub::builders::{
+    add_person::prepare_add_person,
+    remove_person::prepare_remove_person,
+};
 use crate::activitypub::identifiers::LocalActorCollection;
 use crate::config::{BlockchainConfig, Instance};
 use crate::database::{Pool, get_database_client};
@@ -31,7 +34,10 @@ use crate::models::subscriptions::queries::{
     get_expired_subscriptions,
     get_subscription_by_participants,
 };
-use crate::models::users::queries::get_user_by_wallet_address;
+use crate::models::users::queries::{
+    get_user_by_id,
+    get_user_by_wallet_address,
+};
 use super::errors::EthereumError;
 use super::signatures::{
     encode_uint256,
@@ -217,7 +223,15 @@ pub async fn check_subscriptions(
             subscription.recipient_id,
         );
         let sender = get_profile_by_id(db_client, &subscription.sender_id).await?;
-        if sender.is_local() {
+        if let Some(ref remote_sender) = sender.actor_json {
+            let recipient = get_user_by_id(db_client, &subscription.recipient_id).await?;
+            prepare_remove_person(
+                instance,
+                &recipient,
+                remote_sender,
+                LocalActorCollection::Subscribers,
+            ).spawn_deliver();
+        } else {
             create_subscription_expiration_notification(
                 db_client,
                 &subscription.recipient_id,

@@ -6,6 +6,7 @@ pub mod delete_note;
 pub mod delete_person;
 pub mod follow;
 pub mod like_note;
+pub mod remove_person;
 pub mod undo_announce_note;
 pub mod undo_follow;
 pub mod undo_like_note;

@@ -5,14 +5,14 @@ use crate::activitypub::{
     constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id, LocalActorCollection},
-    vocabulary::ADD,
+    vocabulary::{ADD, REMOVE},
 };
 use crate::config::Instance;
 use crate::models::users::types::User;
 use crate::utils::id::new_uuid;
 
 #[derive(Serialize)]
-pub struct AddPerson {
+pub struct AddOrRemovePerson {
     #[serde(rename = "@context")]
     context: String,
 
@@ -27,19 +27,21 @@ pub struct AddPerson {
     to: Vec<String>,
 }
 
-fn build_add_person(
+fn build_update_collection(
     instance_url: &str,
     sender_username: &str,
     person_id: &str,
     collection: LocalActorCollection,
-) -> AddPerson {
+    remove: bool,
+) -> AddOrRemovePerson {
     let actor_id = local_actor_id(instance_url, sender_username);
     let activity_id = local_object_id(instance_url, &new_uuid());
+    let activity_type = if remove { REMOVE } else { ADD };
     let collection_id = collection.of(&actor_id);
-    AddPerson {
+    AddOrRemovePerson {
         context: AP_CONTEXT.to_string(),
         id: activity_id,
-        activity_type: ADD.to_string(),
+        activity_type: activity_type.to_string(),
         actor: actor_id,
         object: person_id.to_string(),
         target: collection_id,
@@ -47,17 +49,19 @@ fn build_add_person(
     }
 }
 
-pub fn prepare_add_person(
+pub fn prepare_update_collection(
     instance: &Instance,
     sender: &User,
     person: &Actor,
     collection: LocalActorCollection,
-) -> OutgoingActivity<AddPerson> {
-    let activity = build_add_person(
+    remove: bool,
+) -> OutgoingActivity<AddOrRemovePerson> {
+    let activity = build_update_collection(
         &instance.url(),
         &sender.profile.username,
         &person.id,
         collection,
+        remove,
     );
     let recipients = vec![person.clone()];
     OutgoingActivity {
@@ -66,6 +70,15 @@ pub fn prepare_add_person(
         activity,
         recipients,
     }
+}
+
+pub fn prepare_add_person(
+    instance: &Instance,
+    sender: &User,
+    person: &Actor,
+    collection: LocalActorCollection,
+) -> OutgoingActivity<AddOrRemovePerson> {
+    prepare_update_collection(instance, sender, person, collection, false)
 }
 
 #[cfg(test)]
@@ -79,11 +92,12 @@ mod tests {
         let sender_username = "local";
         let person_id = "https://test.remote/actor/test";
         let collection = LocalActorCollection::Subscribers;
-        let activity = build_add_person(
+        let activity = build_update_collection(
             INSTANCE_URL,
             sender_username,
             person_id,
             collection,
+            false,
         );
 
         assert_eq!(activity.activity_type, "Add");

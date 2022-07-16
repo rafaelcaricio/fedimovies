@@ -11,6 +11,7 @@ pub const FOLLOW: &str = "Follow";
 pub const LIKE: &str = "Like";
 pub const QUESTION: &str = "Question";
 pub const REJECT: &str = "Reject";
+pub const REMOVE: &str = "Remove";
 pub const UNDO: &str = "Undo";
 pub const UPDATE: &str = "Update";
 
