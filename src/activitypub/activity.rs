@@ -95,7 +95,14 @@ pub struct Activity {
 
     pub actor: String,
     pub object: Value,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<Value>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Value>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cc: Option<Value>,
 }
 
@@ -115,6 +122,7 @@ pub fn create_activity(
         activity_type: activity_type.to_string(),
         actor: actor_id,
         object: serde_json::to_value(object).unwrap(),
+        target: None,
         to: Some(json!(primary_audience)),
         cc: Some(json!(secondary_audience)),
     }

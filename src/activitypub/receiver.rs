@@ -10,11 +10,13 @@ use super::activity::{Activity, Object};
 use super::fetcher::helpers::import_post;
 use super::handlers::{
     accept_follow::handle_accept_follow,
+    add::handle_add,
     announce::handle_announce,
     delete::handle_delete,
     follow::handle_follow,
     like::handle_like,
     reject_follow::handle_reject_follow,
+    remove::handle_remove,
     undo::handle_undo,
     undo_follow::handle_undo_follow,
     update_note::handle_update_note,
@@ -192,6 +194,14 @@ pub async fn receive_activity(
         (UPDATE, PERSON) => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_update_person(db_client, &config.media_dir(), activity).await?
+        },
+        (ADD, _) => {
+            require_actor_signature(&activity.actor, &signer_id)?;
+            handle_add(config, db_client, activity).await?
+        },
+        (REMOVE, _) => {
+            require_actor_signature(&activity.actor, &signer_id)?;
+            handle_remove(config, db_client, activity).await?
         },
         _ => {
             log::warn!("activity type is not supported: {}", activity_raw);
