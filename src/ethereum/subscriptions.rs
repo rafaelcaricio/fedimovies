@@ -45,7 +45,7 @@ use super::signatures::{
     CallArgs,
     SignatureData,
 };
-use super::sync::{save_current_block_number, SyncState};
+use super::sync::SyncState;
 use super::utils::{address_to_string, parse_address};
 
 const ETHEREUM: Currency = Currency::Ethereum;
@@ -240,9 +240,7 @@ pub async fn check_subscriptions(
         };
     };
 
-    if sync_state.update(&contract.address(), to_block) {
-        save_current_block_number(&sync_state.storage_dir, sync_state.current_block)?;
-    };
+    sync_state.update(&contract.address(), to_block)?;
     Ok(())
 }
 

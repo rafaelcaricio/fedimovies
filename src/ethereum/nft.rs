@@ -23,7 +23,7 @@ use crate::models::posts::queries::{
 };
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
-use super::sync::{save_current_block_number, SyncState};
+use super::sync::SyncState;
 use super::utils::parse_address;
 
 const TOKEN_WAIT_TIME: i64 = 10; // in minutes
@@ -123,9 +123,7 @@ pub async fn process_nft_events(
         };
     };
 
-    if sync_state.update(&contract.address(), to_block) {
-        save_current_block_number(&sync_state.storage_dir, sync_state.current_block)?;
-    };
+    sync_state.update(&contract.address(), to_block)?;
     Ok(())
 }
 

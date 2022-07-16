@@ -36,6 +36,8 @@ registrations_open: false
 #  api_url: 'http://127.0.0.1:8545'
 #  explorer_url: null
 #  signing_key: null
+#  chain_sync_step: 1000
+#  chain_reorg_max_depth: 10
 
 # IPFS integration
 #ipfs_api_url: 'http://127.0.0.1:5001'

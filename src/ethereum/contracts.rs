@@ -175,10 +175,11 @@ pub async fn get_contracts(
     };
 
     let current_block = get_current_block_number(&web3, storage_dir).await?;
-    log::info!("current block is {}", current_block);
     let sync_state = SyncState::new(
         current_block,
         sync_targets,
+        config.chain_sync_step,
+        config.chain_reorg_max_depth,
         storage_dir,
     );
 

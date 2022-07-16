@@ -74,11 +74,9 @@ fn parse_env() -> EnvConfig {
     }
 }
 
-fn default_log_level() -> LogLevel { LogLevel::Info }
+fn default_chain_sync_step() -> u64 { 1000 }
 
-fn default_login_message() -> String { "Do not sign this message on other sites!".to_string() }
-
-fn default_post_character_limit() -> usize { 2000 }
+fn default_chain_reorg_max_depth() -> u64 { 10 }
 
 #[derive(Clone, Deserialize)]
 pub struct BlockchainConfig {
@@ -93,6 +91,11 @@ pub struct BlockchainConfig {
     pub explorer_url: Option<String>,
     // Instance private key
     pub signing_key: String,
+
+    #[serde(default = "default_chain_sync_step")]
+    pub chain_sync_step: u64,
+    #[serde(default = "default_chain_reorg_max_depth")]
+    pub chain_reorg_max_depth: u64,
 }
 
 impl BlockchainConfig {
@@ -104,6 +107,12 @@ impl BlockchainConfig {
         self.try_ethereum_chain_id().unwrap()
     }
 }
+
+fn default_log_level() -> LogLevel { LogLevel::Info }
+
+fn default_login_message() -> String { "Do not sign this message on other sites!".to_string() }
+
+fn default_post_character_limit() -> usize { 2000 }
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
