@@ -82,11 +82,21 @@ impl SyncState {
         }
     }
 
-    pub fn get_scan_range(&self, contract_address: &Address) -> (u64, u64) {
+    pub fn get_scan_range(
+        &self,
+        contract_address: &Address,
+        latest_block: u64,
+    ) -> (u64, u64) {
         let current_block = self.contracts[contract_address];
         // Take reorgs into account
-        let safe_current_block = current_block.saturating_sub(self.reorg_max_depth);
-        (safe_current_block, safe_current_block + self.sync_step)
+        let latest_safe_block = latest_block.saturating_sub(self.reorg_max_depth);
+        let next_block = std::cmp::min(
+            current_block + self.sync_step,
+            latest_safe_block,
+        );
+        // Next block should not be less than current block
+        let next_block = std::cmp::max(current_block, next_block);
+        (current_block, next_block)
     }
 
     pub fn is_out_of_sync(&self, contract_address: &Address) -> bool {
@@ -129,7 +139,7 @@ mod tests {
             10,
             Path::new("test"),
         );
-        let (from_block, to_block) = sync_state.get_scan_range(&address);
+        let (from_block, to_block) = sync_state.get_scan_range(&address, 555);
         assert_eq!(from_block, 0);
         assert_eq!(to_block, 100);
     }
@@ -144,8 +154,8 @@ mod tests {
             10,
             Path::new("test"),
         );
-        let (from_block, to_block) = sync_state.get_scan_range(&address);
-        assert_eq!(from_block, 490);
-        assert_eq!(to_block, 590);
+        let (from_block, to_block) = sync_state.get_scan_range(&address, 555);
+        assert_eq!(from_block, 500);
+        assert_eq!(to_block, 545);
     }
 }

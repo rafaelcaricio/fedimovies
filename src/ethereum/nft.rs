@@ -64,10 +64,9 @@ pub async fn process_nft_events(
 
     // Search for Transfer events
     let event_abi = contract.abi().event("Transfer")?;
-    let (from_block, to_block) = sync_state.get_scan_range(&contract.address());
-    let to_block = std::cmp::min(
+    let (from_block, to_block) = sync_state.get_scan_range(
+        &contract.address(),
         web3.eth().block_number().await?.as_u64(),
-        to_block,
     );
     let filter = FilterBuilder::default()
         .address(vec![contract.address()])
