@@ -16,6 +16,8 @@ The following activities are supported:
 - Follow(Person)
 - Update(Person)
 - Delete(Person)
+- Add(Person)
+- Remove(Person)
 
 And these additional standards:
 
@@ -49,5 +51,45 @@ Identity proofs are represented as attachments of `IdentityProof` type:
   "type": "IdentityProof",
   "signatureAlgorithm": "<proof-type>",
   "signatureValue": "<proof>"
+}
+```
+
+## Subscription events
+
+Local actor profiles have `subscribers` property which points to the collection of actor's paid subscribers.
+
+The `Add` activity is used to notify the subscriber about successful subscription payment. Upon receipt of this activity, the receiving server should add specified `object` to actors's `subscribers` collection (specified in `target` property):
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams"
+  ],
+  "actor": "https://example.com/users/alice",
+  "id": "https://example.com/activities/00000000-0000-0000-0000-000000000001",
+  "object": "https://example.com/users/bob",
+  "target": "https://example.com/users/alice/collections/subscribers",
+  "to": [
+    "https://example.com/users/bob"
+  ],
+  "type": "Add"
+}
+```
+
+The `Remove` activity is used to notify the subscriber about expired subscription. Upon receipt of this activity, the receiving server should remove specified `object` from actors's `subscribers` collection (specified in `target` property):
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams"
+  ],
+  "actor": "https://example.com/users/alice",
+  "id": "https://example.com/activities/00000000-0000-0000-0000-000000000002",
+  "object": "https://example.com/users/bob",
+  "target": "https://example.com/users/alice/collections/subscribers",
+  "to": [
+    "https://example.com/users/bob"
+  ],
+  "type": "Remove"
 }
 ```
