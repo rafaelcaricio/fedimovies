@@ -121,7 +121,7 @@ pub struct OutgoingActivity<A: Serialize> {
     pub recipients: Vec<Actor>,
 }
 
-impl<A: Serialize + 'static> OutgoingActivity<A> {
+impl<A: Serialize + Send + 'static> OutgoingActivity<A> {
     pub async fn deliver(self) -> Result<(), DelivererError> {
         deliver_activity_worker(
             self.instance,
@@ -132,7 +132,7 @@ impl<A: Serialize + 'static> OutgoingActivity<A> {
     }
 
     pub fn spawn_deliver(self) -> () {
-        actix_rt::spawn(async move {
+        tokio::spawn(async move {
             self.deliver().await.unwrap_or_else(|err| {
                 log::error!("{}", err);
             });

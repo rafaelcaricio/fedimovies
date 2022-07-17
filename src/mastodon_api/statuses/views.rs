@@ -161,7 +161,7 @@ async fn delete_status(
     };
     let deletion_queue = delete_post(db_client, &status_id).await?;
     let config_clone = config.clone();
-    actix_rt::spawn(async move {
+    tokio::spawn(async move {
         deletion_queue.process(&config_clone).await;
     });
 

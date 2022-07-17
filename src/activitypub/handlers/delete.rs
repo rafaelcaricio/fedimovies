@@ -30,7 +30,7 @@ pub async fn handle_delete(
         };
         let deletion_queue = delete_profile(db_client, &profile.id).await?;
         let config = config.clone();
-        actix_rt::spawn(async move {
+        tokio::spawn(async move {
             deletion_queue.process(&config).await;
         });
         log::info!("deleted profile {}", profile.acct);
@@ -48,7 +48,7 @@ pub async fn handle_delete(
     };
     let deletion_queue = delete_post(db_client, &post.id).await?;
     let config = config.clone();
-    actix_rt::spawn(async move {
+    tokio::spawn(async move {
         deletion_queue.process(&config).await;
     });
     Ok(Some(NOTE))
