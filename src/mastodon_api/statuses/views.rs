@@ -207,7 +207,7 @@ async fn favourite(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
-    if !post.is_public() || post.repost_of_id.is_some() {
+    if post.repost_of_id.is_some() {
         return Err(HttpError::NotFoundError("post"));
     };
     let maybe_reaction_created = match create_reaction(

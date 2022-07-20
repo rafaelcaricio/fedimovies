@@ -11,7 +11,7 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::errors::DatabaseError;
-use crate::models::posts::types::Post;
+use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
 
@@ -21,15 +21,20 @@ fn build_like_note(
     note_id: &str,
     reaction_id: &Uuid,
     recipient_id: &str,
+    is_public: bool,
 ) -> Activity {
     let activity_id = local_object_id(instance_url, reaction_id);
+    let mut primary_audience = vec![recipient_id.to_string()];
+    if is_public {
+        primary_audience.push(AP_PUBLIC.to_string());
+    };
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
         LIKE,
         activity_id,
         note_id,
-        vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
+        primary_audience,
         vec![],
     );
     activity
@@ -67,6 +72,7 @@ pub async fn prepare_like_note(
         &note_id,
         reaction_id,
         &primary_recipient,
+        matches!(post.visibility, Visibility::Public),
     );
     Ok(OutgoingActivity {
         instance,
@@ -96,12 +102,13 @@ mod tests {
             note_id,
             &reaction_id,
             note_author_id,
+            true,
         );
         assert_eq!(
             activity.id,
             format!("{}/objects/{}", INSTANCE_URL, reaction_id),
         );
         assert_eq!(activity.object, json!(note_id));
-        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, note_author_id]));
+        assert_eq!(activity.to.unwrap(), json!([note_author_id, AP_PUBLIC]));
     }
 }
