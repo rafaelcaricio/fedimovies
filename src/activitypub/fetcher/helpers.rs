@@ -22,7 +22,8 @@ use crate::models::profiles::queries::{
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
 use super::fetchers::{
     fetch_actor,
-    fetch_avatar_and_banner,
+    fetch_actor_avatar,
+    fetch_actor_banner,
     fetch_object,
     perform_webfinger_query,
     FetchError,
@@ -66,7 +67,8 @@ async fn prepare_remote_profile_data(
     if actor_address.is_local {
         return Err(ImportError::LocalObject);
     };
-    let (avatar, banner) = fetch_avatar_and_banner(&actor, media_dir).await?;
+    let avatar = fetch_actor_avatar(&actor, media_dir, None).await;
+    let banner = fetch_actor_banner(&actor, media_dir, None).await;
     let (identity_proofs, extra_fields) = actor.parse_attachments();
     let profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),

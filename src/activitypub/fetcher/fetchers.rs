@@ -133,31 +133,50 @@ pub async fn fetch_actor(
     Ok(actor)
 }
 
-pub async fn fetch_avatar_and_banner(
+pub async fn fetch_actor_avatar(
     actor: &Actor,
     media_dir: &Path,
-) -> Result<(Option<String>, Option<String>), FetchError> {
-    let avatar = match &actor.icon {
+    default: Option<String>,
+) -> Option<String> {
+    match &actor.icon {
         Some(icon) => {
-            let (file_name, _) = fetch_file(
-                &icon.url,
-                media_dir,
-            ).await?;
-            Some(file_name)
+            match fetch_file(&icon.url, media_dir).await {
+                Ok((file_name, _)) => Some(file_name),
+                Err(error) => {
+                    log::warn!(
+                        "failed to fetch avatar for {} ({})",
+                        actor.id,
+                        error,
+                    );
+                    default
+                },
+            }
         },
         None => None,
-    };
-    let banner = match &actor.image {
+    }
+}
+
+pub async fn fetch_actor_banner(
+    actor: &Actor,
+    media_dir: &Path,
+    default: Option<String>,
+) -> Option<String> {
+    match &actor.image {
         Some(image) => {
-            let (file_name, _) = fetch_file(
-                &image.url,
-                media_dir,
-            ).await?;
-            Some(file_name)
+            match fetch_file(&image.url, media_dir).await {
+                Ok((file_name, _)) => Some(file_name),
+                Err(error) => {
+                    log::warn!(
+                        "failed to fetch banner for {} ({})",
+                        actor.id,
+                        error,
+                    );
+                    default
+                },
+            }
         },
         None => None,
-    };
-    Ok((avatar, banner))
+    }
 }
 
 pub async fn fetch_object(
