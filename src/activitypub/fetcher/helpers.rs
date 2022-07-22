@@ -98,15 +98,26 @@ pub async fn get_or_import_profile_by_actor_id(
     let profile = match get_profile_by_actor_id(db_client, actor_id).await {
         Ok(profile) => {
             if profile.possibly_outdated() {
-                let actor = fetch_actor(instance, actor_id).await?;
-                log::info!("re-fetched profile {}", profile.acct);
-                let profile = update_remote_profile(
-                    db_client,
-                    media_dir,
-                    profile,
-                    actor,
-                ).await?;
-                profile
+                // Try to re-fetch actor profile
+                match fetch_actor(instance, actor_id).await {
+                    Ok(actor) => {
+                        log::info!("re-fetched profile {}", profile.acct);
+                        let profile_updated = update_remote_profile(
+                            db_client,
+                            media_dir,
+                            profile,
+                            actor,
+                        ).await?;
+                        profile_updated
+                    },
+                    Err(err) => {
+                        // Ignore error and return stored profile
+                        log::warn!(
+                            "failed to re-fetch {} ({})", profile.acct, err,
+                        );
+                        profile
+                    },
+                }
             } else {
                 profile
             }
@@ -119,13 +130,13 @@ pub async fn get_or_import_profile_by_actor_id(
                 Ok(profile) => {
                     // WARNING: Possible actor ID change
                     log::info!("re-fetched profile {}", profile.acct);
-                    let profile = update_remote_profile(
+                    let profile_updated = update_remote_profile(
                         db_client,
                         media_dir,
                         profile,
                         actor,
                     ).await?;
-                    profile
+                    profile_updated
                 },
                 Err(DatabaseError::NotFound(_)) => {
                     let mut profile_data = prepare_remote_profile_data(
