@@ -69,7 +69,8 @@ async fn prepare_remote_profile_data(
     };
     let avatar = fetch_actor_avatar(&actor, media_dir, None).await;
     let banner = fetch_actor_banner(&actor, media_dir, None).await;
-    let (identity_proofs, extra_fields) = actor.parse_attachments();
+    let (identity_proofs, payment_options, extra_fields) =
+        actor.parse_attachments();
     let profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
         display_name: actor.name.clone(),
@@ -78,7 +79,7 @@ async fn prepare_remote_profile_data(
         avatar,
         banner,
         identity_proofs,
-        payment_options: vec![],
+        payment_options,
         extra_fields,
         actor_json: Some(actor),
     };

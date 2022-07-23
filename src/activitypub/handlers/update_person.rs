@@ -56,7 +56,8 @@ pub async fn update_remote_profile(
     };
     let avatar = fetch_actor_avatar(&actor, media_dir, profile.avatar_file_name).await;
     let banner = fetch_actor_banner(&actor, media_dir, profile.banner_file_name).await;
-    let (identity_proofs, extra_fields) = actor.parse_attachments();
+    let (identity_proofs, payment_options, extra_fields) =
+        actor.parse_attachments();
     let mut profile_data = ProfileUpdateData {
         display_name: actor.name.clone(),
         bio: actor.summary.clone(),
@@ -64,7 +65,7 @@ pub async fn update_remote_profile(
         avatar,
         banner,
         identity_proofs,
-        payment_options: vec![],
+        payment_options,
         extra_fields,
         actor_json: Some(actor),
     };

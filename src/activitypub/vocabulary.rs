@@ -34,4 +34,5 @@ pub const ORDERED_COLLECTION_PAGE: &str = "OrderedCollectionPage";
 // Misc
 pub const HASHTAG: &str = "Hashtag";
 pub const IDENTITY_PROOF: &str = "IdentityProof";
+pub const LINK: &str = "Link";
 pub const PROPERTY_VALUE: &str = "PropertyValue";

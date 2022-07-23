@@ -1,11 +1,23 @@
-use crate::activitypub::vocabulary::{IDENTITY_PROOF, PROPERTY_VALUE};
+use uuid::Uuid;
+
+use crate::activitypub::vocabulary::{
+    IDENTITY_PROOF,
+    LINK,
+    PROPERTY_VALUE,
+};
 use crate::errors::ValidationError;
 use crate::ethereum::identity::{
     ETHEREUM_EIP191_PROOF,
     DidPkh,
     verify_identity_proof,
 };
-use crate::models::profiles::types::{ExtraField, IdentityProof};
+use crate::frontend::get_subscription_page_url;
+use crate::models::profiles::types::{
+    ExtraField,
+    IdentityProof,
+    PaymentOption,
+    PaymentType,
+};
 use super::types::ActorAttachment;
 
 pub fn attach_identity_proof(
@@ -15,6 +27,7 @@ pub fn attach_identity_proof(
         object_type: IDENTITY_PROOF.to_string(),
         name: proof.issuer.to_string(),
         value: None,
+        href: None,
         signature_algorithm: Some(proof.proof_type),
         signature_value: Some(proof.value),
     }
@@ -49,6 +62,43 @@ pub fn parse_identity_proof(
     Ok(proof)
 }
 
+pub fn attach_payment_option(
+    instance_url: &str,
+    user_id: &Uuid,
+    payment_option: PaymentOption,
+) -> ActorAttachment {
+    match payment_option.payment_type {
+        PaymentType::Link => unimplemented!(),
+        PaymentType::EthereumSubscription => {
+            let name = format!("{:?}", payment_option.payment_type);
+            let subscription_page_url =
+                get_subscription_page_url(instance_url, user_id);
+            ActorAttachment {
+                object_type: LINK.to_string(),
+                name: name,
+                value: None,
+                href: Some(subscription_page_url),
+                signature_algorithm: None,
+                signature_value: None,
+            }
+        },
+    }
+}
+
+pub fn parse_payment_option(
+    attachment: &ActorAttachment,
+) -> Result<PaymentOption, ValidationError> {
+    if attachment.object_type != LINK {
+        return Err(ValidationError("invalid attachment type"));
+    };
+    let payment_option = PaymentOption {
+        payment_type: PaymentType::Link,
+        name: Some(attachment.name.clone()),
+        href: attachment.href.clone(),
+    };
+    Ok(payment_option)
+}
+
 pub fn attach_extra_field(
     field: ExtraField,
 ) -> ActorAttachment {
@@ -56,6 +106,7 @@ pub fn attach_extra_field(
         object_type: PROPERTY_VALUE.to_string(),
         name: field.name,
         value: Some(field.value),
+        href: None,
         signature_algorithm: None,
         signature_value: None,
     }
@@ -79,7 +130,10 @@ pub fn parse_extra_field(
 
 #[cfg(test)]
 mod tests {
+    use crate::utils::id::new_uuid;
     use super::*;
+
+    const INSTANCE_URL: &str = "https://example.com";
 
     #[test]
     fn test_extra_field() {
@@ -90,8 +144,30 @@ mod tests {
         };
         let attachment = attach_extra_field(field.clone());
         assert_eq!(attachment.object_type, PROPERTY_VALUE);
+
         let parsed_field = parse_extra_field(&attachment).unwrap();
         assert_eq!(parsed_field.name, field.name);
         assert_eq!(parsed_field.value, field.value);
+    }
+
+    #[test]
+    fn test_payment_option() {
+        let user_id = new_uuid();
+        let payment_option = PaymentOption::subscription();
+        let subscription_page_url =
+            format!("https://example.com/profile/{}/subscription", user_id);
+        let attachment = attach_payment_option(
+            INSTANCE_URL,
+            &user_id,
+            payment_option,
+        );
+        assert_eq!(attachment.object_type, LINK);
+        assert_eq!(attachment.name, "EthereumSubscription");
+        assert_eq!(attachment.href.as_deref().unwrap(), subscription_page_url);
+
+        let parsed_option = parse_payment_option(&attachment).unwrap();
+        assert!(matches!(parsed_option.payment_type, PaymentType::Link));
+        assert_eq!(parsed_option.name.unwrap(), "EthereumSubscription");
+        assert_eq!(parsed_option.href.unwrap(), subscription_page_url);
     }
 }

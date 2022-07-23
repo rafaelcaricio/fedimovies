@@ -4,18 +4,25 @@ use serde_json::{json, Value};
 use crate::activitypub::{
     constants::{ACTOR_KEY_SUFFIX, AP_CONTEXT},
     identifiers::{local_actor_id, LocalActorCollection},
-    vocabulary::{IDENTITY_PROOF, IMAGE, PERSON, PROPERTY_VALUE, SERVICE},
+    vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
 };
 use crate::config::Instance;
-use crate::models::profiles::types::{ExtraField, IdentityProof};
+use crate::errors::ValidationError;
+use crate::models::profiles::types::{
+    ExtraField,
+    IdentityProof,
+    PaymentOption,
+};
 use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
 use super::attachments::{
     attach_extra_field,
     attach_identity_proof,
+    attach_payment_option,
     parse_extra_field,
     parse_identity_proof,
+    parse_payment_option,
 };
 
 const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
@@ -47,6 +54,9 @@ pub struct ActorAttachment {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub href: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub signature_algorithm: Option<String>,
@@ -119,46 +129,49 @@ impl Actor {
         Ok(actor_address)
     }
 
-    pub fn parse_attachments(&self) -> (Vec<IdentityProof>, Vec<ExtraField>) {
+    pub fn parse_attachments(&self) -> (
+        Vec<IdentityProof>,
+        Vec<PaymentOption>,
+        Vec<ExtraField>,
+    ) {
         let mut identity_proofs = vec![];
+        let mut payment_options = vec![];
         let mut extra_fields = vec![];
+        let log_error = |attachment: &ActorAttachment, error| {
+            log::warn!(
+                "ignoring actor attachment of type {}: {}",
+                attachment.object_type,
+                error,
+            );
+        };
         if let Some(attachments) = &self.attachment {
             for attachment in attachments {
                 match attachment.object_type.as_str() {
                     IDENTITY_PROOF => {
                         match parse_identity_proof(&self.id, attachment) {
                             Ok(proof) => identity_proofs.push(proof),
-                            Err(error) => {
-                                 log::warn!(
-                                    "ignoring actor attachment of type {}: {}",
-                                    attachment.object_type,
-                                    error,
-                                );
-                            },
+                            Err(error) => log_error(attachment, error),
+                        };
+                    },
+                    LINK => {
+                        match parse_payment_option(attachment) {
+                            Ok(option) => payment_options.push(option),
+                            Err(error) => log_error(attachment, error),
                         };
                     },
                     PROPERTY_VALUE => {
                         match parse_extra_field(attachment) {
                             Ok(field) => extra_fields.push(field),
-                            Err(error) => {
-                                 log::warn!(
-                                    "ignoring actor attachment of type {}: {}",
-                                    attachment.object_type,
-                                    error,
-                                );
-                            },
+                            Err(error) => log_error(attachment, error),
                         };
                     },
                     _ => {
-                        log::warn!(
-                            "ignoring actor attachment of type {}",
-                            attachment.object_type,
-                        );
+                        log_error(attachment, ValidationError("unsupported type"));
                     },
                 };
             };
         };
-        (identity_proofs, extra_fields)
+        (identity_proofs, payment_options, extra_fields)
     }
 }
 
@@ -229,6 +242,14 @@ pub fn get_local_actor(
     let mut attachments = vec![];
     for proof in user.profile.identity_proofs.clone().into_inner() {
         let attachment = attach_identity_proof(proof);
+        attachments.push(attachment);
+    };
+    for payment_option in user.profile.payment_options.clone().into_inner() {
+        let attachment = attach_payment_option(
+            instance_url,
+            &user.id,
+            payment_option,
+        );
         attachments.push(attachment);
     };
     for field in user.profile.extra_fields.clone().into_inner() {

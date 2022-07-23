@@ -34,7 +34,7 @@ impl From<&EventType> for i16 {
             EventType::Mention => 5,
             EventType::Repost => 6,
             EventType::Subscription => 7,
-            EventType::SubscriptionStart => panic!("not supported"),
+            EventType::SubscriptionStart => unimplemented!("not supported"),
             EventType::SubscriptionExpiration => 9,
         }
     }
