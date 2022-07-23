@@ -94,6 +94,16 @@ pub struct PaymentOption {
     pub href: Option<String>,
 }
 
+impl PaymentOption {
+    pub fn subscription() -> Self {
+        Self {
+            payment_type: PaymentType::EthereumSubscription,
+            name: None,
+            href: None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PaymentOptions(pub Vec<PaymentOption>);
 
@@ -101,6 +111,11 @@ impl PaymentOptions {
     pub fn into_inner(self) -> Vec<PaymentOption> {
         let Self(payment_options) = self;
         payment_options
+    }
+
+    pub fn is_empty(&self) -> bool {
+        let Self(payment_options) = self;
+        payment_options.is_empty()
     }
 }
 

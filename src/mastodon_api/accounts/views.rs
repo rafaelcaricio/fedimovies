@@ -19,7 +19,10 @@ use crate::ethereum::identity::{
     create_identity_claim,
     verify_identity_proof,
 };
-use crate::ethereum::subscriptions::create_subscription_signature;
+use crate::ethereum::subscriptions::{
+    create_subscription_signature,
+    is_registered_recipient,
+};
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Status;
@@ -30,6 +33,7 @@ use crate::models::profiles::queries::{
 };
 use crate::models::profiles::types::{
     IdentityProof,
+    PaymentOption,
     ProfileUpdateData,
 };
 use crate::models::relationships::queries::{
@@ -307,6 +311,44 @@ async fn authorize_subscription(
     Ok(HttpResponse::Ok().json(signature))
 }
 
+#[post("/subscriptions_enabled")]
+async fn subscriptions_enabled(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    maybe_blockchain: web::Data<Option<ContractSet>>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let mut current_user = get_current_user(db_client, auth.token()).await?;
+    let contract_set = maybe_blockchain.as_ref().as_ref()
+        .ok_or(HttpError::NotSupported)?;
+    let wallet_address = current_user.public_wallet_address()
+        .ok_or(HttpError::PermissionError)?;
+    let is_registered = is_registered_recipient(contract_set, &wallet_address)
+        .await.map_err(|_| HttpError::InternalError)?;
+    if !is_registered {
+        return Err(ValidationError("recipient is not registered").into());
+    };
+
+    if current_user.profile.payment_options.is_empty() {
+        // Add payment option to profile
+        let mut profile_data = ProfileUpdateData::from(&current_user.profile);
+        profile_data.payment_options = vec![PaymentOption::subscription()];
+        current_user.profile = update_profile(
+            db_client,
+            &current_user.id,
+            profile_data,
+        ).await?;
+
+        // Federate
+        prepare_update_person(db_client, config.instance(), &current_user)
+            .await?.spawn_deliver();
+    };
+
+    let account = Account::from_user(current_user, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
+}
+
 #[get("/relationships")]
 async fn get_relationships_view(
     auth: BearerAuth,
@@ -512,6 +554,7 @@ pub fn account_api_scope() -> Scope {
         .service(get_identity_claim)
         .service(create_identity_proof)
         .service(authorize_subscription)
+        .service(subscriptions_enabled)
         // Routes with account ID
         .service(get_account)
         .service(follow_account)

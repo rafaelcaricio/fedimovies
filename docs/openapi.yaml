@@ -159,6 +159,22 @@ paths:
           description: User's wallet address is not known or not verified
         418:
           description: Blockchain integration is not enabled
+  /api/v1/accounts/subscription_enabled:
+    post:
+      summary: Notify server about subscription setup
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        400:
+          description: User hasn't enabled subscriptions
+        403:
+          description: User's wallet address is not known or not verified
+        418:
+          description: Blockchain integration is not enabled
   /api/v1/accounts/relationships:
     get:
       summary: Find out whether a given actor is followed, blocked, muted, etc.
@@ -717,6 +733,11 @@ components:
           type: string
           nullable: true
           example: '0xd8da6bf...'
+        subscription_page_url:
+          description: Subscription page URL
+          type: string
+          nullable: true
+          example: 'https://example.com/profile/1/subscription'
     Attachment:
       type: object
       properties:

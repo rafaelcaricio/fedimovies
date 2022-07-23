@@ -13,3 +13,10 @@ pub fn get_post_page_url(instance_url: &str, post_id: &Uuid) -> String {
 pub fn get_tag_page_url(instance_url: &str, tag_name: &str) -> String {
     format!("{}/tag/{}", instance_url, tag_name)
 }
+
+pub fn get_subscription_page_url(instance_url: &str, profile_id: &Uuid) -> String {
+    format!(
+        "{}/subscription",
+        get_profile_page_url(instance_url, profile_id),
+    )
+}

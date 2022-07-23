@@ -5,12 +5,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
+use crate::frontend::get_subscription_page_url;
 use crate::models::profiles::currencies::get_identity_proof_field_name;
 use crate::models::profiles::types::{
     DbActorProfile,
     ExtraField,
     IdentityProof,
     PaymentOption,
+    PaymentType,
     ProfileUpdateData,
 };
 use crate::models::profiles::validators::validate_username;
@@ -56,6 +58,7 @@ pub struct Account {
     pub source: Option<Source>,
 
     pub wallet_address: Option<String>,
+    pub subscription_page_url: Option<String>,
 }
 
 impl Account {
@@ -67,7 +70,7 @@ impl Account {
             .map(|name| get_file_url(instance_url, name));
 
         let mut identity_proofs = vec![];
-        for proof in profile.identity_proofs.into_inner() {
+        for proof in profile.identity_proofs.clone().into_inner() {
             // Skip proof if it doesn't map to field name
             if let Some(field_name) = get_identity_proof_field_name(&proof.proof_type) {
                 let field = AccountField {
@@ -79,8 +82,9 @@ impl Account {
                 identity_proofs.push(field);
             };
         };
+
         let mut extra_fields = vec![];
-        for extra_field in profile.extra_fields.into_inner() {
+        for extra_field in profile.extra_fields.clone().into_inner() {
             let field = AccountField {
                 name: extra_field.name,
                 value: extra_field.value,
@@ -88,6 +92,18 @@ impl Account {
             };
             extra_fields.push(field);
         };
+
+        let subscription_page_url = profile.payment_options.clone()
+            .into_inner().into_iter()
+            .map(|option| {
+                match option.payment_type {
+                    PaymentType::Link => option.href.unwrap_or_default(),
+                    PaymentType::EthereumSubscription => {
+                        get_subscription_page_url(instance_url, &profile.id)
+                    },
+                }
+            })
+            .next();
 
         Self {
             id: profile.id,
@@ -106,6 +122,7 @@ impl Account {
             statuses_count: profile.post_count,
             source: None,
             wallet_address: None,
+            subscription_page_url,
         }
     }
 

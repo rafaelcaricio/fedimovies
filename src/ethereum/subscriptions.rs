@@ -4,7 +4,7 @@ use chrono::{DateTime, TimeZone, Utc};
 
 use web3::{
     api::Web3,
-    contract::Contract,
+    contract::{Contract, Options},
     ethabi::RawLog,
     transports::Http,
     types::{BlockId, BlockNumber, FilterBuilder, U256},
@@ -38,6 +38,7 @@ use crate::models::users::queries::{
     get_user_by_id,
     get_user_by_wallet_address,
 };
+use super::contracts::ContractSet;
 use super::errors::EthereumError;
 use super::signatures::{
     encode_uint256,
@@ -262,4 +263,20 @@ pub fn create_subscription_signature(
         call_args,
     )?;
     Ok(signature)
+}
+
+pub async fn is_registered_recipient(
+    contract_set: &ContractSet,
+    user_address: &str,
+) -> Result<bool, EthereumError> {
+    let adapter = match &contract_set.subscription_adapter {
+        Some(contract) => contract,
+        None => return Ok(false),
+    };
+    let user_address = parse_address(user_address)?;
+    let result: bool = adapter.query(
+        "isSubscriptionConfigured", (user_address,),
+        None, Options::default(), None,
+    ).await?;
+    Ok(result)
 }

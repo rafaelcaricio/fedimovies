@@ -86,6 +86,7 @@ pub struct ContractSet {
     pub gate: Option<Contract<Http>>,
     pub collectible: Option<Contract<Http>>,
     pub subscription: Option<Contract<Http>>,
+    pub subscription_adapter: Option<Contract<Http>>,
 }
 
 #[derive(Clone)]
@@ -115,6 +116,7 @@ pub async fn get_contracts(
     let mut maybe_gate = None;
     let mut maybe_collectible = None;
     let mut maybe_subscription = None;
+    let mut maybe_subscription_adapter = None;
     let mut sync_targets = vec![];
 
     let gate_abi = load_abi(&config.contract_dir, GATE)?;
@@ -172,6 +174,7 @@ pub async fn get_contracts(
         log::info!("subscription contract address is {:?}", subscription.address());
         sync_targets.push(subscription.address());
         maybe_subscription = Some(subscription);
+        maybe_subscription_adapter = Some(subscription_adapter);
     };
 
     let current_block = get_current_block_number(&web3, storage_dir).await?;
@@ -188,6 +191,7 @@ pub async fn get_contracts(
         gate: maybe_gate,
         collectible: maybe_collectible,
         subscription: maybe_subscription,
+        subscription_adapter: maybe_subscription_adapter,
     };
     Ok(Blockchain { contract_set, sync_state })
 }
