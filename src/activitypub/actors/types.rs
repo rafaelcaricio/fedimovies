@@ -7,16 +7,16 @@ use crate::activitypub::{
     vocabulary::{IDENTITY_PROOF, IMAGE, PERSON, PROPERTY_VALUE, SERVICE},
 };
 use crate::config::Instance;
-use crate::errors::ValidationError;
-use crate::ethereum::identity::{
-    ETHEREUM_EIP191_PROOF,
-    DidPkh,
-    verify_identity_proof,
-};
 use crate::models::profiles::types::{ExtraField, IdentityProof};
 use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
+use super::attachments::{
+    attach_extra_field,
+    attach_identity_proof,
+    parse_extra_field,
+    parse_identity_proof,
+};
 
 const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
 
@@ -40,19 +40,19 @@ pub struct Image {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActorAttachment {
-    name: String,
+    pub name: String,
 
     #[serde(rename = "type")]
-    object_type: String,
+    pub object_type: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    value: Option<String>,
+    pub value: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    signature_algorithm: Option<String>,
+    pub signature_algorithm: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    signature_value: Option<String>,
+    pub signature_value: Option<String>,
 }
 
 // Clone and Debug traits are required by FromSql
@@ -99,51 +99,6 @@ pub struct Actor {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
-}
-
-fn parse_identity_proof(
-    actor_id: &str,
-    attachment: &ActorAttachment,
-) -> Result<IdentityProof, ValidationError> {
-    if attachment.object_type != IDENTITY_PROOF {
-        return Err(ValidationError("invalid attachment type"));
-    };
-    let proof_type = attachment.signature_algorithm.as_ref()
-        .ok_or(ValidationError("missing proof type"))?;
-    if proof_type != ETHEREUM_EIP191_PROOF {
-        return Err(ValidationError("unknown proof type"));
-    };
-    let did = attachment.name.parse::<DidPkh>()
-        .map_err(|_| ValidationError("invalid did"))?;
-    let signature = attachment.signature_value.as_ref()
-        .ok_or(ValidationError("missing signature"))?;
-    verify_identity_proof(
-        actor_id,
-        &did,
-        signature,
-    ).map_err(|_| ValidationError("invalid identity proof"))?;
-    let proof = IdentityProof {
-        issuer: did,
-        proof_type: proof_type.to_string(),
-        value: signature.to_string(),
-    };
-    Ok(proof)
-}
-
-fn parse_extra_field(
-    attachment: &ActorAttachment,
-) -> Result<ExtraField, ValidationError> {
-    if attachment.object_type != PROPERTY_VALUE {
-        return Err(ValidationError("invalid attachment type"));
-    };
-    let property_value = attachment.value.as_ref()
-        .ok_or(ValidationError("missing property value"))?;
-    let field = ExtraField {
-        name: attachment.name.clone(),
-        value: property_value.to_string(),
-        value_source: None,
-    };
-    Ok(field)
 }
 
 impl Actor {
@@ -273,23 +228,11 @@ pub fn get_local_actor(
     };
     let mut attachments = vec![];
     for proof in user.profile.identity_proofs.clone().into_inner() {
-        let attachment = ActorAttachment {
-            object_type: IDENTITY_PROOF.to_string(),
-            name: proof.issuer.to_string(),
-            value: None,
-            signature_algorithm: Some(proof.proof_type),
-            signature_value: Some(proof.value),
-        };
+        let attachment = attach_identity_proof(proof);
         attachments.push(attachment);
     };
     for field in user.profile.extra_fields.clone().into_inner() {
-        let attachment = ActorAttachment {
-            object_type: PROPERTY_VALUE.to_string(),
-            name: field.name,
-            value: Some(field.value),
-            signature_algorithm: None,
-            signature_value: None,
-        };
+        let attachment = attach_extra_field(field);
         attachments.push(attachment);
     };
     let actor = Actor {
