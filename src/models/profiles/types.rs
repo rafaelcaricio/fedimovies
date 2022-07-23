@@ -1,16 +1,22 @@
+use std::convert::TryFrom;
+
 use chrono::{DateTime, Duration, Utc};
 use postgres_types::FromSql;
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize, Deserializer, Serialize, Serializer,
+    de::Error as DeserializerError,
+};
 use uuid::Uuid;
 
 use crate::activitypub::actors::types::Actor;
 use crate::activitypub::identifiers::local_actor_id;
 use crate::database::json_macro::{json_from_sql, json_to_sql};
-use crate::errors::ValidationError;
+use crate::errors::{ConversionError, ValidationError};
 use crate::ethereum::identity::DidPkh;
 use super::validators::{
     validate_username,
     validate_display_name,
+    validate_payment_options,
     clean_bio,
     clean_extra_fields,
 };
@@ -34,6 +40,72 @@ impl IdentityProofs {
 
 json_from_sql!(IdentityProofs);
 json_to_sql!(IdentityProofs);
+
+#[derive(Clone, Debug)]
+pub enum PaymentType {
+    Link,
+    EthereumSubscription,
+}
+
+impl From<&PaymentType> for i16 {
+    fn from(payment_type: &PaymentType) -> i16 {
+        match payment_type {
+            PaymentType::Link => 1,
+            PaymentType::EthereumSubscription => 2,
+        }
+    }
+}
+
+impl TryFrom<i16> for PaymentType {
+    type Error = ConversionError;
+
+    fn try_from(value: i16) -> Result<Self, Self::Error> {
+        let payment_type = match value {
+            1 => Self::Link,
+            2 => Self::EthereumSubscription,
+            _ => return Err(ConversionError),
+        };
+        Ok(payment_type)
+    }
+}
+
+impl Serialize for PaymentType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer
+    {
+        let value: i16 = self.into();
+        serializer.serialize_i16(value)
+    }
+}
+
+impl<'de> Deserialize<'de> for PaymentType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: Deserializer<'de>
+    {
+        let value: i16 = Deserialize::deserialize(deserializer)?;
+        Self::try_from(value).map_err(DeserializerError::custom)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PaymentOption {
+    pub payment_type: PaymentType,
+    pub name: Option<String>,
+    pub href: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PaymentOptions(pub Vec<PaymentOption>);
+
+impl PaymentOptions {
+    pub fn into_inner(self) -> Vec<PaymentOption> {
+        let Self(payment_options) = self;
+        payment_options
+    }
+}
+
+json_from_sql!(PaymentOptions);
+json_to_sql!(PaymentOptions);
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ExtraField {
@@ -70,6 +142,7 @@ pub struct DbActorProfile {
     pub avatar_file_name: Option<String>,
     pub banner_file_name: Option<String>,
     pub identity_proofs: IdentityProofs,
+    pub payment_options: PaymentOptions,
     pub extra_fields: ExtraFields,
     pub follower_count: i32,
     pub following_count: i32,
@@ -143,6 +216,7 @@ impl Default for DbActorProfile {
             avatar_file_name: None,
             banner_file_name: None,
             identity_proofs: IdentityProofs(vec![]),
+            payment_options: PaymentOptions(vec![]),
             extra_fields: ExtraFields(vec![]),
             follower_count: 0,
             following_count: 0,
@@ -164,6 +238,7 @@ pub struct ProfileCreateData {
     pub avatar: Option<String>,
     pub banner: Option<String>,
     pub identity_proofs: Vec<IdentityProof>,
+    pub payment_options: Vec<PaymentOption>,
     pub extra_fields: Vec<ExtraField>,
     pub actor_json: Option<Actor>,
 }
@@ -178,6 +253,7 @@ impl ProfileCreateData {
             let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
             self.bio = Some(cleaned_bio);
         };
+        validate_payment_options(&self.payment_options)?;
         self.extra_fields = clean_extra_fields(&self.extra_fields)?;
         Ok(())
     }
@@ -190,6 +266,7 @@ pub struct ProfileUpdateData {
     pub avatar: Option<String>,
     pub banner: Option<String>,
     pub identity_proofs: Vec<IdentityProof>,
+    pub payment_options: Vec<PaymentOption>,
     pub extra_fields: Vec<ExtraField>,
     pub actor_json: Option<Actor>,
 }
@@ -204,7 +281,7 @@ impl ProfileUpdateData {
             let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
             self.bio = Some(cleaned_bio);
         };
-        // Clean extra fields and remove fields with empty labels
+        validate_payment_options(&self.payment_options)?;
         self.extra_fields = clean_extra_fields(&self.extra_fields)?;
         Ok(())
     }
@@ -220,6 +297,7 @@ impl From<&DbActorProfile> for ProfileUpdateData {
             avatar: profile.avatar_file_name,
             banner: profile.banner_file_name,
             identity_proofs: profile.identity_proofs.into_inner(),
+            payment_options: profile.payment_options.into_inner(),
             extra_fields: profile.extra_fields.into_inner(),
             actor_json: profile.actor_json,
         }
@@ -239,6 +317,18 @@ mod tests {
         let proof: IdentityProof = serde_json::from_str(json_data).unwrap();
         assert_eq!(proof.issuer.address, "0xb9c5714089478a327f09197987f16f9e5d936e8a");
         let serialized = serde_json::to_string(&proof).unwrap();
+        assert_eq!(serialized, json_data);
+    }
+
+    #[test]
+    fn test_payment_option_serialization() {
+        let json_data = r#"{"payment_type":2,"name":null,"href":null}"#;
+        let payment_option: PaymentOption = serde_json::from_str(json_data).unwrap();
+        assert!(matches!(
+            payment_option.payment_type,
+            PaymentType::EthereumSubscription,
+        ));
+        let serialized = serde_json::to_string(&payment_option).unwrap();
         assert_eq!(serialized, json_data);
     }
 

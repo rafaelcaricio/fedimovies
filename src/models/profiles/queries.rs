@@ -16,6 +16,7 @@ use super::types::{
     DbActorProfile,
     ExtraFields,
     IdentityProofs,
+    PaymentOptions,
     ProfileCreateData,
     ProfileUpdateData,
 };
@@ -31,10 +32,10 @@ pub async fn create_profile(
         INSERT INTO actor_profile (
             id, username, display_name, acct, bio, bio_source,
             avatar_file_name, banner_file_name,
-            identity_proofs, extra_fields,
+            identity_proofs, payment_options, extra_fields,
             actor_json
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING actor_profile
         ",
         &[
@@ -47,6 +48,7 @@ pub async fn create_profile(
             &profile_data.avatar,
             &profile_data.banner,
             &IdentityProofs(profile_data.identity_proofs),
+            &PaymentOptions(profile_data.payment_options),
             &ExtraFields(profile_data.extra_fields),
             &profile_data.actor_json,
         ],
@@ -70,10 +72,11 @@ pub async fn update_profile(
             avatar_file_name = $4,
             banner_file_name = $5,
             identity_proofs = $6,
-            extra_fields = $7,
-            actor_json = $8,
+            payment_options = $7,
+            extra_fields = $8,
+            actor_json = $9,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $9
+        WHERE id = $10
         RETURNING actor_profile
         ",
         &[
@@ -83,6 +86,7 @@ pub async fn update_profile(
             &data.avatar,
             &data.banner,
             &IdentityProofs(data.identity_proofs),
+            &PaymentOptions(data.payment_options),
             &ExtraFields(data.extra_fields),
             &data.actor_json,
             &profile_id,

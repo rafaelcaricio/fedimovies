@@ -1,7 +1,7 @@
 use regex::Regex;
 use crate::errors::ValidationError;
 use crate::utils::html::{clean_html, clean_html_strict};
-use super::types::ExtraField;
+use super::types::{ExtraField, PaymentOption, PaymentType};
 
 const USERNAME_RE: &str = r"^[a-zA-Z0-9_\.-]+$";
 
@@ -44,6 +44,26 @@ pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> 
         clean_html_strict(bio)
     };
     Ok(cleaned_bio)
+}
+
+pub fn validate_payment_options(payment_options: &[PaymentOption])
+    -> Result<(), ValidationError>
+{
+    for option in payment_options {
+        match option.payment_type {
+            PaymentType::Link => {
+                if option.name.is_none() || option.href.is_none() {
+                    return Err(ValidationError("invalid payment option"));
+                };
+            },
+            PaymentType::EthereumSubscription => {
+                if option.name.is_some() || option.href.is_some() {
+                    return Err(ValidationError("invalid payment option"));
+                };
+            },
+        };
+    };
+    Ok(())
 }
 
 const FIELD_NAME_MAX_SIZE: usize = 500;

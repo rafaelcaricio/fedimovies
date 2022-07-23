@@ -10,6 +10,7 @@ use crate::models::profiles::types::{
     DbActorProfile,
     ExtraField,
     IdentityProof,
+    PaymentOption,
     ProfileUpdateData,
 };
 use crate::models::profiles::validators::validate_username;
@@ -194,6 +195,7 @@ impl AccountUpdateData {
         current_avatar: &Option<String>,
         current_banner: &Option<String>,
         current_identity_proofs: &[IdentityProof],
+        current_payment_options: &[PaymentOption],
         media_dir: &Path,
     ) -> Result<ProfileUpdateData, FileError> {
         let avatar = process_b64_image_field_value(
@@ -203,6 +205,7 @@ impl AccountUpdateData {
             self.header, current_banner.clone(), media_dir,
         )?;
         let identity_proofs = current_identity_proofs.to_vec();
+        let payment_options = current_payment_options.to_vec();
         let extra_fields = self.fields_attributes.unwrap_or(vec![]);
         let profile_data = ProfileUpdateData {
             display_name: self.display_name,
@@ -211,6 +214,7 @@ impl AccountUpdateData {
             avatar,
             banner,
             identity_proofs,
+            payment_options,
             extra_fields,
             actor_json: None, // always None for local profiles
         };

@@ -8,6 +8,7 @@ CREATE TABLE actor_profile (
     avatar_file_name VARCHAR(100),
     banner_file_name VARCHAR(100),
     identity_proofs JSONB NOT NULL DEFAULT '[]',
+    payment_options JSONB NOT NULL DEFAULT '[]',
     extra_fields JSONB NOT NULL DEFAULT '[]',
     follower_count INTEGER NOT NULL CHECK (follower_count >= 0) DEFAULT 0,
     following_count INTEGER NOT NULL CHECK (following_count >= 0) DEFAULT 0,

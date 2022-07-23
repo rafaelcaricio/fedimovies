@@ -64,6 +64,7 @@ pub async fn update_remote_profile(
         avatar,
         banner,
         identity_proofs,
+        payment_options: vec![],
         extra_fields,
         actor_json: Some(actor),
     };

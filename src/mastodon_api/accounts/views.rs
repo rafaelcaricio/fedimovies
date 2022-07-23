@@ -28,7 +28,10 @@ use crate::models::profiles::queries::{
     get_profile_by_id,
     update_profile,
 };
-use crate::models::profiles::types::{IdentityProof, ProfileUpdateData};
+use crate::models::profiles::types::{
+    IdentityProof,
+    ProfileUpdateData,
+};
 use crate::models::relationships::queries::{
     create_follow_request,
     follow,
@@ -184,6 +187,7 @@ async fn update_credentials(
             &current_user.profile.avatar_file_name,
             &current_user.profile.banner_file_name,
             &current_user.profile.identity_proofs.into_inner(),
+            &current_user.profile.payment_options.into_inner(),
             &config.media_dir(),
         )
         .map_err(|err| {
