@@ -37,13 +37,6 @@ pub struct Image {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ActorCapabilities {
-    // Actor accepts ChatMessage objects
-    accepts_chat_messages: Option<bool>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ActorAttachment {
     name: String,
 
@@ -89,9 +82,6 @@ pub struct Actor {
     pub subscribers: Option<String>,
 
     pub public_key: PublicKey,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub capabilities: Option<ActorCapabilities>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub icon: Option<Image>,
@@ -259,9 +249,6 @@ pub fn get_local_actor(
         owner: actor_id.clone(),
         public_key_pem: public_key_pem,
     };
-    let capabilities = ActorCapabilities {
-        accepts_chat_messages: Some(false),
-    };
     let avatar = match &user.profile.avatar_file_name {
         Some(file_name) => {
             let image = Image {
@@ -318,7 +305,6 @@ pub fn get_local_actor(
         following: Some(following),
         subscribers: Some(subscribers),
         public_key,
-        capabilities: Some(capabilities),
         icon: avatar,
         image: banner,
         summary: user.profile.bio.clone(),
@@ -355,7 +341,6 @@ pub fn get_instance_actor(
         following: None,
         subscribers: None,
         public_key,
-        capabilities: None,
         icon: None,
         image: None,
         summary: None,
