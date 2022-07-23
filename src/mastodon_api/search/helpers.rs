@@ -2,7 +2,7 @@ use regex::Regex;
 use tokio_postgres::GenericClient;
 use url::Url;
 
-use crate::activitypub::actor::ActorAddress;
+use crate::activitypub::actors::types::ActorAddress;
 use crate::activitypub::fetcher::helpers::{
     import_post,
     import_profile_by_actor_address,

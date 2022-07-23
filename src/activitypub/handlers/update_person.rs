@@ -4,7 +4,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::Activity,
-    actor::Actor,
+    actors::types::Actor,
     fetcher::fetchers::{fetch_actor_avatar, fetch_actor_banner},
     fetcher::helpers::ImportError,
     vocabulary::PERSON,

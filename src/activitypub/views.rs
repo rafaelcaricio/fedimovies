@@ -15,8 +15,8 @@ use crate::errors::HttpError;
 use crate::frontend::{get_post_page_url, get_profile_page_url};
 use crate::models::posts::queries::{get_posts_by_author, get_thread};
 use crate::models::users::queries::get_user_by_name;
+use super::actors::types::{get_local_actor, get_instance_actor};
 use super::builders::create_note::{build_note, build_create_note};
-use super::actor::{get_local_actor, get_instance_actor};
 use super::collections::{
     COLLECTION_PAGE_SIZE,
     OrderedCollection,

@@ -4,7 +4,7 @@ use std::path::Path;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::activity::Object;
-use crate::activitypub::actor::{Actor, ActorAddress};
+use crate::activitypub::actors::types::{Actor, ActorAddress};
 use crate::activitypub::handlers::{
     create_note::handle_note,
     update_person::update_remote_profile,

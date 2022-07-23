@@ -1,6 +1,11 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use crate::activitypub::{
+    constants::{ACTOR_KEY_SUFFIX, AP_CONTEXT},
+    identifiers::{local_actor_id, LocalActorCollection},
+    vocabulary::{IDENTITY_PROOF, IMAGE, PERSON, PROPERTY_VALUE, SERVICE},
+};
 use crate::config::Instance;
 use crate::errors::ValidationError;
 use crate::ethereum::identity::{
@@ -12,9 +17,6 @@ use crate::models::profiles::types::{ExtraField, IdentityProof};
 use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
-use super::constants::{ACTOR_KEY_SUFFIX, AP_CONTEXT};
-use super::identifiers::{local_actor_id, LocalActorCollection};
-use super::vocabulary::{IDENTITY_PROOF, IMAGE, PERSON, PROPERTY_VALUE, SERVICE};
 
 const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
 

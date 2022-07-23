@@ -1,5 +1,5 @@
 use crate::activitypub::{
-    actor::Actor,
+    actors::types::Actor,
     deliverer::OutgoingActivity,
     identifiers::LocalActorCollection,
 };

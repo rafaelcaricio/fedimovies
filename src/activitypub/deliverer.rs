@@ -6,7 +6,7 @@ use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};
 use crate::models::users::types::User;
 use crate::utils::crypto::deserialize_private_key;
-use super::actor::Actor;
+use super::actors::types::Actor;
 use super::constants::{ACTIVITY_CONTENT_TYPE, ACTOR_KEY_SUFFIX};
 use super::identifiers::local_actor_id;
 

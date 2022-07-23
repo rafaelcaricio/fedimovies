@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     activity::{create_activity, Activity},
-    actor::Actor,
+    actors::types::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_followers, local_object_id},
@@ -89,7 +89,7 @@ pub async fn prepare_announce_note(
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use crate::activitypub::actor::Actor;
+    use crate::activitypub::actors::types::Actor;
     use crate::utils::id::new_uuid;
     use super::*;
 

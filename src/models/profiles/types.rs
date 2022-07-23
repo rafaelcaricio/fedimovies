@@ -3,7 +3,7 @@ use postgres_types::FromSql;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::activitypub::actor::Actor;
+use crate::activitypub::actors::types::Actor;
 use crate::activitypub::identifiers::local_actor_id;
 use crate::database::json_macro::{json_from_sql, json_to_sql};
 use crate::errors::ValidationError;
@@ -228,7 +228,7 @@ impl From<&DbActorProfile> for ProfileUpdateData {
 
 #[cfg(test)]
 mod tests {
-    use crate::activitypub::actor::Actor;
+    use crate::activitypub::actors::types::Actor;
     use super::*;
 
     const INSTANCE_HOST: &str = "example.com";

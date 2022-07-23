@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::activitypub::{
-    actor::Actor,
+    actors::types::Actor,
     constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id, LocalActorCollection},

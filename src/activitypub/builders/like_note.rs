@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     activity::{create_activity, Activity},
-    actor::Actor,
+    actors::types::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::local_object_id,

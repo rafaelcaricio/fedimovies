@@ -5,7 +5,7 @@ use reqwest::{Client, Method};
 use serde_json::Value;
 
 use crate::activitypub::activity::Object;
-use crate::activitypub::actor::{Actor, ActorAddress};
+use crate::activitypub::actors::types::{Actor, ActorAddress};
 use crate::activitypub::constants::ACTIVITY_CONTENT_TYPE;
 use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};

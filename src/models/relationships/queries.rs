@@ -453,7 +453,7 @@ pub async fn show_replies(
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
-    use crate::activitypub::actor::Actor;
+    use crate::activitypub::actors::types::Actor;
     use crate::database::test_utils::create_test_database;
     use crate::errors::DatabaseError;
     use crate::models::profiles::queries::create_profile;

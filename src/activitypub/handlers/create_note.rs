@@ -303,7 +303,7 @@ pub async fn handle_note(
 #[cfg(test)]
 mod tests {
     use crate::activitypub::activity::Object;
-    use crate::activitypub::actor::Actor;
+    use crate::activitypub::actors::types::Actor;
     use crate::activitypub::vocabulary::NOTE;
     use super::*;
 

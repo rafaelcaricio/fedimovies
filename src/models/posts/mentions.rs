@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use regex::{Captures, Regex};
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::actor::ActorAddress;
+use crate::activitypub::actors::types::ActorAddress;
 use crate::errors::{DatabaseError, ValidationError};
 use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
@@ -104,7 +104,7 @@ pub fn mention_to_address(
 
 #[cfg(test)]
 mod tests {
-    use crate::activitypub::actor::Actor;
+    use crate::activitypub::actors::types::Actor;
     use super::*;
 
     const INSTANCE_HOST: &str = "server1.com";

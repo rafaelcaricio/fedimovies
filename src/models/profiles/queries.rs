@@ -488,7 +488,7 @@ pub async fn update_post_count(
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
-    use crate::activitypub::actor::Actor;
+    use crate::activitypub::actors::types::Actor;
     use crate::database::test_utils::create_test_database;
     use crate::models::profiles::queries::create_profile;
     use crate::models::profiles::types::{

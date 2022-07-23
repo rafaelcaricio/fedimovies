@@ -4,7 +4,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::{create_activity, Activity, Attachment, Tag},
-    actor::Actor,
+    actors::types::Actor,
     constants::{AP_CONTEXT, AP_PUBLIC},
     deliverer::OutgoingActivity,
     identifiers::{

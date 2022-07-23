@@ -2,7 +2,7 @@ use serde_json::json;
 
 use crate::activitypub::{
     activity::{create_activity, Activity, Object},
-    actor::Actor,
+    actors::types::Actor,
     constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::local_object_id,
