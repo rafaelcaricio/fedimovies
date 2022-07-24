@@ -1,6 +1,9 @@
+use std::time::Duration;
+
 use actix_web::http::Method;
 use rsa::RsaPrivateKey;
 use serde::Serialize;
+use tokio::time::sleep;
 
 use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};
@@ -98,18 +101,35 @@ async fn deliver_activity_worker(
         .collect();
     inboxes.sort();
     inboxes.dedup();
+
     log::info!("sending activity to {} inboxes: {}", inboxes.len(), activity_json);
-    for inbox_url in inboxes {
-        // TODO: retry on error
-        if let Err(err) = send_activity(
-            &instance,
-            &actor_key,
-            &actor_key_id,
-            &activity_json,
-            &inbox_url,
-        ).await {
-            log::error!("failed to deliver activity to {}: {}", inbox_url, err);
+    let mut retry_count = 0;
+    let max_retries = 2;
+    while !inboxes.is_empty() && retry_count <= max_retries {
+        if retry_count > 0 {
+            // Wait 30 secs before next attempt
+            sleep(Duration::from_secs(30)).await;
         };
+        let mut failed = vec![];
+        for inbox_url in inboxes {
+            if let Err(error) = send_activity(
+                &instance,
+                &actor_key,
+                &actor_key_id,
+                &activity_json,
+                &inbox_url,
+            ).await {
+                log::error!(
+                    "failed to deliver activity to {} (attempt #{}): {}",
+                    inbox_url,
+                    retry_count + 1,
+                    error,
+                );
+                failed.push(inbox_url);
+            };
+        };
+        inboxes = failed;
+        retry_count += 1;
     };
     Ok(())
 }
