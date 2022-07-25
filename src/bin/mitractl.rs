@@ -22,6 +22,7 @@ use mitra::models::profiles::queries::{
     delete_profile,
     get_profile_by_actor_id,
     get_profile_by_id,
+    reset_subscriptions,
 };
 use mitra::models::users::queries::{
     create_invite_code,
@@ -162,11 +163,21 @@ impl DeleteOrphanedFiles {
 struct UpdateCurrentBlock {
     #[clap(short)]
     number: u64,
+
+    #[clap(long)]
+    reset_db: bool,
 }
 
 impl UpdateCurrentBlock {
-    fn execute(&self, config: &Config) -> Result<(), Error> {
+    async fn execute(
+        &self,
+        config: &Config,
+        db_client: &impl GenericClient,
+    ) -> Result<(), Error> {
         save_current_block_number(&config.storage_dir, self.number)?;
+        if self.reset_db {
+            reset_subscriptions(db_client).await?;
+        };
         println!("current block updated");
         Ok(())
     }
@@ -261,7 +272,7 @@ async fn main() {
                     println!("unused attachments deleted");
                 },
                 SubCommand::DeleteOrphanedFiles(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                SubCommand::UpdateCurrentBlock(cmd) => cmd.execute(&config).unwrap(),
+                SubCommand::UpdateCurrentBlock(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 _ => panic!(),
             };
         },
