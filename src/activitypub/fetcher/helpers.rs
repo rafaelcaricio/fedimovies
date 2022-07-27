@@ -57,13 +57,13 @@ impl From<ImportError> for HttpError {
     }
 }
 
-async fn prepare_remote_profile_data(
+async fn create_remote_profile(
+    db_client: &impl GenericClient,
     instance: &Instance,
     media_dir: &Path,
     actor: Actor,
-) -> Result<ProfileCreateData, ImportError> {
-    let actor_address = actor.address(&instance.host())
-        .map_err(|_| ValidationError("invalid actor ID"))?;
+) -> Result<DbActorProfile, ImportError> {
+    let actor_address = actor.address(&instance.host())?;
     if actor_address.is_local {
         return Err(ImportError::LocalObject);
     };
@@ -71,7 +71,7 @@ async fn prepare_remote_profile_data(
     let banner = fetch_actor_banner(&actor, media_dir, None).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
-    let profile_data = ProfileCreateData {
+    let mut profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
         display_name: actor.name.clone(),
         acct: actor_address.acct(),
@@ -83,7 +83,9 @@ async fn prepare_remote_profile_data(
         extra_fields,
         actor_json: Some(actor),
     };
-    Ok(profile_data)
+    profile_data.clean()?;
+    let profile = create_profile(db_client, profile_data).await?;
+    Ok(profile)
 }
 
 pub async fn get_or_import_profile_by_actor_id(
@@ -124,8 +126,7 @@ pub async fn get_or_import_profile_by_actor_id(
         },
         Err(DatabaseError::NotFound(_)) => {
             let actor = fetch_actor(instance, actor_id).await?;
-            let actor_address = actor.address(&instance.host())
-                .map_err(|_| ValidationError("invalid actor ID"))?;
+            let actor_address = actor.address(&instance.host())?;
             match get_profile_by_acct(db_client, &actor_address.acct()).await {
                 Ok(profile) => {
                     // WARNING: Possible actor ID change
@@ -139,14 +140,13 @@ pub async fn get_or_import_profile_by_actor_id(
                     profile_updated
                 },
                 Err(DatabaseError::NotFound(_)) => {
-                    let mut profile_data = prepare_remote_profile_data(
+                    log::info!("fetched profile {}", actor_address.acct());
+                    let profile = create_remote_profile(
+                        db_client,
                         instance,
                         media_dir,
                         actor,
                     ).await?;
-                    log::info!("fetched profile {}", profile_data.acct);
-                    profile_data.clean()?;
-                    let profile = create_profile(db_client, profile_data).await?;
                     profile
                 },
                 Err(other_error) => return Err(other_error.into()),
@@ -169,22 +169,22 @@ pub async fn import_profile_by_actor_address(
     };
     let actor_id = perform_webfinger_query(instance, actor_address).await?;
     let actor = fetch_actor(instance, &actor_id).await?;
-    let mut profile_data = prepare_remote_profile_data(
-        instance,
-        media_dir,
-        actor,
-    ).await?;
-    if profile_data.acct != actor_address.acct() {
+    let profile_acct = actor.address(&instance.host())?.acct();
+    if profile_acct != actor_address.acct() {
         // Redirected to different server
-        match get_profile_by_acct(db_client, &profile_data.acct).await {
+        match get_profile_by_acct(db_client, &profile_acct).await {
             Ok(profile) => return Ok(profile),
             Err(DatabaseError::NotFound(_)) => (),
             Err(other_error) => return Err(other_error.into()),
         };
     };
-    log::info!("fetched profile {}", profile_data.acct);
-    profile_data.clean()?;
-    let profile = create_profile(db_client, profile_data).await?;
+    log::info!("fetched profile {}", profile_acct);
+    let profile = create_remote_profile(
+        db_client,
+        instance,
+        media_dir,
+        actor,
+    ).await?;
     Ok(profile)
 }
 

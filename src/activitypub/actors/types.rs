@@ -115,10 +115,11 @@ impl Actor {
     pub fn address(
         &self,
         this_instance_host: &str,
-    ) -> Result<ActorAddress, url::ParseError> {
-        let actor_host = url::Url::parse(&self.id)?
+    ) -> Result<ActorAddress, ValidationError> {
+        let actor_host = url::Url::parse(&self.id)
+            .map_err(|_| ValidationError("invalid actor ID"))?
             .host_str()
-            .ok_or(url::ParseError::EmptyHost)?
+            .ok_or(ValidationError("invalid actor ID"))?
             .to_owned();
         let is_local = actor_host == this_instance_host;
         let actor_address = ActorAddress {
