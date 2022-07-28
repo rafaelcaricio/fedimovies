@@ -51,8 +51,8 @@ pub struct Note {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     tag: Vec<Tag>,
 
-    to: Vec<String>,
-    cc: Vec<String>,
+    pub to: Vec<String>,
+    pub cc: Vec<String>,
 }
 
 pub fn build_note(
