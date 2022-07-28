@@ -8,4 +8,5 @@ rustflags = [
     "-Aclippy::redundant_field_names",
     "-Aclippy::unused_unit",
     "-Aclippy::enum_variant_names",
+    "-Aclippy::format_push_string",
 ]

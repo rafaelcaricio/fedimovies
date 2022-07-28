@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use serde_json::{Value as JsonValue};
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{Attachment, Object},
+    activity::{Attachment, Link, Object},
     constants::AP_PUBLIC,
     fetcher::fetchers::fetch_file,
     fetcher::helpers::{
@@ -18,7 +19,7 @@ use crate::activitypub::{
     vocabulary::{DOCUMENT, HASHTAG, IMAGE, MENTION, NOTE},
 };
 use crate::config::Instance;
-use crate::errors::{DatabaseError, ValidationError};
+use crate::errors::{ConversionError, DatabaseError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
 use crate::models::posts::mentions::mention_to_address;
 use crate::models::posts::queries::{
@@ -46,15 +47,42 @@ fn get_note_author_id(object: &Object) -> Result<String, ValidationError> {
 
 const CONTENT_MAX_SIZE: usize = 100000;
 
+fn parse_object_url(value: &JsonValue) -> Result<String, ConversionError> {
+    let object_url = match value {
+        JsonValue::String(string) => string.to_owned(),
+        other_value => {
+            let links: Vec<Link> = parse_property_value(other_value)?;
+            if let Some(link) = links.get(0) {
+                link.href.clone()
+            } else {
+                return Err(ConversionError);
+            }
+        },
+    };
+    Ok(object_url)
+}
+
 pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
-    let content = object.content.as_ref()
+    let mut content = object.content.as_ref()
         // Lemmy pages and PeerTube videos have "name" property
         .or(object.name.as_ref())
-        .ok_or(ValidationError("no content"))?;
+        .ok_or(ValidationError("no content"))?
+        .to_owned();
+    if object.object_type != NOTE {
+        if let Some(ref value) = object.url {
+            // Append link to object
+            let object_url = parse_object_url(value)
+                .map_err(|_| ValidationError("invalid object URL"))?;
+            content += &format!(
+                r#"<p><a href="{0}" target="_blank" rel="noopener">{0}</a></p>"#,
+                object_url,
+            );
+        };
+    };
     if content.len() > CONTENT_MAX_SIZE {
         return Err(ValidationError("content is too long"));
     };
-    let content_safe = clean_html(content);
+    let content_safe = clean_html(&content);
     Ok(content_safe)
 }
 
@@ -302,9 +330,12 @@ pub async fn handle_note(
 
 #[cfg(test)]
 mod tests {
-    use crate::activitypub::activity::Object;
-    use crate::activitypub::actors::types::Actor;
-    use crate::activitypub::vocabulary::NOTE;
+    use serde_json::json;
+    use crate::activitypub::{
+        activity::Object,
+        actors::types::Actor,
+        vocabulary::NOTE,
+    };
     use super::*;
 
     #[test]
@@ -316,6 +347,26 @@ mod tests {
         };
         let content = get_note_content(&object).unwrap();
         assert_eq!(content, "test");
+    }
+
+    #[test]
+    fn test_get_note_content_from_video() {
+        let object = Object {
+            name: Some("test-name".to_string()),
+            content: Some("test-content".to_string()),
+            object_type: "Video".to_string(),
+            url: Some(json!([{
+                "type": "Link",
+                "mediaType": "text/html",
+                "href": "https://example.org/xyz",
+            }])),
+            ..Default::default()
+        };
+        let content = get_note_content(&object).unwrap();
+        assert_eq!(
+            content,
+            r#"test-content<p><a href="https://example.org/xyz" target="_blank" rel="noopener">https://example.org/xyz</a></p>"#,
+        );
     }
 
     #[test]
