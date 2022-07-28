@@ -114,3 +114,38 @@ impl SyncState {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_scan_range_from_zero() {
+        let address = Address::default();
+        let sync_state = SyncState::new(
+            0,
+            vec![address.clone()],
+            100,
+            10,
+            Path::new("test"),
+        );
+        let (from_block, to_block) = sync_state.get_scan_range(&address);
+        assert_eq!(from_block, 0);
+        assert_eq!(to_block, 100);
+    }
+
+    #[test]
+    fn test_get_scan_range() {
+        let address = Address::default();
+        let sync_state = SyncState::new(
+            500,
+            vec![address.clone()],
+            100,
+            10,
+            Path::new("test"),
+        );
+        let (from_block, to_block) = sync_state.get_scan_range(&address);
+        assert_eq!(from_block, 490);
+        assert_eq!(to_block, 590);
+    }
+}
