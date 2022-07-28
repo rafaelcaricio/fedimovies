@@ -3,34 +3,39 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     activity::{create_activity, Activity},
-    constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::local_object_id,
     vocabulary::UNDO,
 };
 use crate::config::Instance;
 use crate::errors::DatabaseError;
-use crate::models::posts::types::Post;
+use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
-use super::like_note::get_like_note_recipients;
+use super::like_note::{
+    get_like_note_audience,
+    get_like_note_recipients,
+};
 
 fn build_undo_like(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     reaction_id: &Uuid,
-    recipient_id: &str,
+    note_author_id: &str,
+    note_visibility: &Visibility,
 ) -> Activity {
     let object_id = local_object_id(instance_url, reaction_id);
     let activity_id = format!("{}/undo", object_id);
+    let (primary_audience, secondary_audience) =
+        get_like_note_audience(note_author_id, note_visibility);
     create_activity(
         instance_url,
         &actor_profile.username,
         UNDO,
         activity_id,
         object_id,
-        vec![AP_PUBLIC.to_string(), recipient_id.to_string()],
-        vec![],
+        primary_audience,
+        secondary_audience,
     )
 }
 
@@ -41,16 +46,18 @@ pub async fn prepare_undo_like_note(
     post: &Post,
     reaction_id: &Uuid,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
-    let (recipients, primary_recipient) = get_like_note_recipients(
+    let recipients = get_like_note_recipients(
         db_client,
         &instance.url(),
         post,
     ).await?;
+    let note_author_id = post.author.actor_id(&instance.url());
     let activity = build_undo_like(
         &instance.url(),
         &user.profile,
         reaction_id,
-        &primary_recipient,
+        &note_author_id,
+        &post.visibility,
     );
     Ok(OutgoingActivity {
         instance,
@@ -63,6 +70,7 @@ pub async fn prepare_undo_like_note(
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use crate::activitypub::constants::AP_PUBLIC;
     use crate::utils::id::new_uuid;
     use super::*;
 
@@ -78,6 +86,7 @@ mod tests {
             &author,
             &reaction_id,
             note_author_id,
+            &Visibility::Public,
         );
         assert_eq!(
             activity.id,
@@ -87,6 +96,6 @@ mod tests {
             activity.object,
             format!("{}/objects/{}", INSTANCE_URL, reaction_id),
         );
-        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, note_author_id]));
+        assert_eq!(activity.to.unwrap(), json!([note_author_id, AP_PUBLIC]));
     }
 }

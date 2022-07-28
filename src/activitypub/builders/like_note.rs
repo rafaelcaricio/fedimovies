@@ -15,19 +15,29 @@ use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
 
+pub fn get_like_note_audience(
+    note_author_id: &str,
+    note_visibility: &Visibility,
+) -> (Vec<String>, Vec<String>) {
+    let mut primary_audience = vec![note_author_id.to_string()];
+    if matches!(note_visibility, Visibility::Public) {
+        primary_audience.push(AP_PUBLIC.to_string());
+    };
+    let secondary_audience = vec![];
+    (primary_audience, secondary_audience)
+}
+
 fn build_like_note(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     note_id: &str,
     reaction_id: &Uuid,
-    recipient_id: &str,
-    is_public: bool,
+    note_author_id: &str,
+    note_visibility: &Visibility,
 ) -> Activity {
     let activity_id = local_object_id(instance_url, reaction_id);
-    let mut primary_audience = vec![recipient_id.to_string()];
-    if is_public {
-        primary_audience.push(AP_PUBLIC.to_string());
-    };
+    let (primary_audience, secondary_audience) =
+        get_like_note_audience(note_author_id, note_visibility);
     let activity = create_activity(
         instance_url,
         &actor_profile.username,
@@ -35,22 +45,21 @@ fn build_like_note(
         activity_id,
         note_id,
         primary_audience,
-        vec![],
+        secondary_audience,
     );
     activity
 }
 
 pub async fn get_like_note_recipients(
     _db_client: &impl GenericClient,
-    instance_url: &str,
+    _instance_url: &str,
     post: &Post,
-) -> Result<(Vec<Actor>, String), DatabaseError> {
+) -> Result<Vec<Actor>, DatabaseError> {
     let mut recipients: Vec<Actor> = Vec::new();
-    let primary_recipient = post.author.actor_id(instance_url);
     if let Some(remote_actor) = post.author.actor_json.as_ref() {
         recipients.push(remote_actor.clone());
     };
-    Ok((recipients, primary_recipient))
+    Ok(recipients)
 }
 
 pub async fn prepare_like_note(
@@ -60,19 +69,20 @@ pub async fn prepare_like_note(
     post: &Post,
     reaction_id: &Uuid,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
-    let (recipients, primary_recipient) = get_like_note_recipients(
+    let recipients = get_like_note_recipients(
         db_client,
         &instance.url(),
         post,
     ).await?;
     let note_id = post.get_object_id(&instance.url());
+    let note_author_id = post.author.actor_id(&instance.url());
     let activity = build_like_note(
         &instance.url(),
         &user.profile,
         &note_id,
         reaction_id,
-        &primary_recipient,
-        matches!(post.visibility, Visibility::Public),
+        &note_author_id,
+        &post.visibility,
     );
     Ok(OutgoingActivity {
         instance,
@@ -102,7 +112,7 @@ mod tests {
             note_id,
             &reaction_id,
             note_author_id,
-            true,
+            &Visibility::Public,
         );
         assert_eq!(
             activity.id,
