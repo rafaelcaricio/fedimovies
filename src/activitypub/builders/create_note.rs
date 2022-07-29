@@ -73,6 +73,7 @@ pub fn build_note(
             url: Some(url),
         }
     }).collect();
+
     let mut primary_audience = vec![];
     let mut secondary_audience = vec![];
     let followers_collection_id =
@@ -92,32 +93,26 @@ pub fn build_note(
         },
         Visibility::Direct => (),
     };
+
     let mut tags = vec![];
-    for profile in &post.mentions {
+    let mut mentions = post.mentions.clone();
+    if post.visibility == Visibility::Subscribers {
+        // Mention all subscribers
+        // (for recipients that don't support subscribers-only posts)
+        mentions.extend(subscribers);
+    };
+    for profile in mentions {
         let tag_name = format!("@{}", profile.actor_address(instance_host));
         let actor_id = profile.actor_id(instance_url);
-        primary_audience.push(actor_id.clone());
+        if !primary_audience.contains(&actor_id) {
+            primary_audience.push(actor_id.clone());
+        };
         let tag = Tag {
             name: Some(tag_name),
             tag_type: MENTION.to_string(),
             href: Some(actor_id),
         };
         tags.push(tag);
-    };
-    if matches!(post.visibility, Visibility::Subscribers) {
-        // Mention all subscribers
-        // (for recipients that don't support subscribers-only posts)
-        for profile in subscribers {
-            let tag_name = format!("@{}", profile.actor_address(instance_host));
-            let actor_id = profile.actor_id(instance_url);
-            secondary_audience.push(actor_id.clone());
-            let tag = Tag {
-                name: Some(tag_name),
-                tag_type: MENTION.to_string(),
-                href: Some(actor_id),
-            };
-            tags.push(tag);
-        };
     };
     for tag_name in &post.tags {
         let tag_page_url = get_tag_page_url(instance_url, tag_name);
@@ -217,7 +212,7 @@ pub async fn prepare_create_note(
     post: &Post,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     assert_eq!(author.id, post.author.id);
-    let subscribers = if matches!(post.visibility, Visibility::Subscribers) {
+    let subscribers = if post.visibility == Visibility::Subscribers {
         get_subscribers(db_client, &author.id).await?
     } else {
         vec![]
@@ -305,8 +300,9 @@ mod tests {
 
         assert_eq!(note.to, vec![
             local_actor_subscribers(INSTANCE_URL, &post.author.username),
+            subscriber_id.to_string(),
         ]);
-        assert_eq!(note.cc, vec![subscriber_id]);
+        assert_eq!(note.cc.is_empty(), true);
     }
 
     #[test]

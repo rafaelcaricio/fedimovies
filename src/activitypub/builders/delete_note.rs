@@ -57,7 +57,7 @@ pub async fn prepare_delete_note(
     post: &Post,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     assert_eq!(author.id, post.author.id);
-    let subscribers = if matches!(post.visibility, Visibility::Subscribers) {
+    let subscribers = if post.visibility == Visibility::Subscribers {
         get_subscribers(db_client, &author.id).await?
     } else {
         vec![]
