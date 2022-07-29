@@ -286,6 +286,53 @@ mod tests {
     }
 
     #[test]
+    fn test_build_note_subscribers_only() {
+        let post = Post {
+            visibility: Visibility::Subscribers,
+            ..Default::default()
+        };
+        let subscriber_id = "https://test.com/users/3";
+        let subscriber = DbActorProfile {
+            username: "subscriber".to_string(),
+            actor_json: Some(Actor {
+                id: subscriber_id.to_string(),
+                ..Default::default()
+            }),
+            actor_id: Some(subscriber_id.to_string()),
+            ..Default::default()
+        };
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![subscriber]);
+
+        assert_eq!(note.to, vec![
+            local_actor_subscribers(INSTANCE_URL, &post.author.username),
+        ]);
+        assert_eq!(note.cc, vec![subscriber_id]);
+    }
+
+    #[test]
+    fn test_build_note_direct() {
+        let mentioned_id = "https://test.com/users/3";
+        let mentioned = DbActorProfile {
+            username: "mention".to_string(),
+            actor_json: Some(Actor {
+                id: mentioned_id.to_string(),
+                ..Default::default()
+            }),
+            actor_id: Some(mentioned_id.to_string()),
+            ..Default::default()
+        };
+        let post = Post {
+            visibility: Visibility::Direct,
+            mentions: vec![mentioned],
+            ..Default::default()
+        };
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
+
+        assert_eq!(note.to, vec![mentioned_id]);
+        assert_eq!(note.cc.is_empty(), true);
+    }
+
+    #[test]
     fn test_build_note_with_local_parent() {
         let parent = Post::default();
         let post = Post {

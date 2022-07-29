@@ -76,3 +76,45 @@ pub async fn prepare_delete_note(
         recipients,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use crate::activitypub::{
+        constants::AP_PUBLIC,
+        identifiers::local_actor_followers,
+    };
+    use super::*;
+
+    const INSTANCE_HOST: &str = "example.com";
+    const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_build_delete_note() {
+        let author = DbActorProfile {
+            username: "author".to_string(),
+            ..Default::default()
+        };
+        let post = Post { author, ..Default::default() };
+        let activity = build_delete_note(
+            INSTANCE_HOST,
+            INSTANCE_URL,
+            &post,
+            vec![],
+        );
+
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}/delete", INSTANCE_URL, post.id),
+        );
+        assert_eq!(
+            activity.object["id"],
+            format!("{}/objects/{}", INSTANCE_URL, post.id),
+        );
+        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC]));
+        assert_eq!(
+            activity.cc.unwrap(),
+            json!([local_actor_followers(INSTANCE_URL, "author")]),
+        );
+    }
+}
