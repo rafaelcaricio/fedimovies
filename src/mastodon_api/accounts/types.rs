@@ -15,6 +15,7 @@ use crate::models::profiles::types::{
     ProfileUpdateData,
 };
 use crate::models::profiles::validators::validate_username;
+use crate::models::subscriptions::types::Subscription;
 use crate::models::users::types::{
     validate_local_username,
     User,
@@ -332,6 +333,27 @@ pub struct FollowListQueryParams {
 
     #[serde(default = "default_follow_list_page_size")]
     pub limit: u8,
+}
+
+#[derive(Serialize)]
+pub struct ApiSubscription {
+    pub id: i32,
+    pub sender: Account,
+    pub sender_address: String,
+}
+
+impl ApiSubscription {
+    pub fn from_subscription(
+        instance_url: &str,
+        subscription: Subscription,
+    ) -> Self {
+        let sender = Account::from_profile(subscription.sender, instance_url);
+        Self {
+            id: subscription.id,
+            sender,
+            sender_address: subscription.sender_address,
+        }
+    }
 }
 
 #[cfg(test)]

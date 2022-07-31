@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use chrono::{DateTime, Utc};
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
@@ -6,7 +8,7 @@ use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
 use crate::models::relationships::queries::{subscribe, subscribe_opt};
 use crate::models::relationships::types::RelationshipType;
-use super::types::DbSubscription;
+use super::types::{DbSubscription, Subscription};
 
 pub async fn create_subscription(
     db_client: &mut impl GenericClient,
@@ -108,6 +110,32 @@ pub async fn get_expired_subscriptions(
     ).await?;
    let subscriptions = rows.iter()
         .map(|row| row.try_get("subscription"))
+        .collect::<Result<_, _>>()?;
+    Ok(subscriptions)
+}
+
+pub async fn get_incoming_subscriptions(
+    db_client: &impl GenericClient,
+    recipient_id: &Uuid,
+    max_subscription_id: Option<i32>,
+    limit: i64,
+) -> Result<Vec<Subscription>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT subscription, actor_profile AS sender
+        FROM actor_profile
+        JOIN subscription
+        ON (actor_profile.id = subscription.sender_id)
+        WHERE
+            subscription.recipient_id = $1
+            AND ($2::integer IS NULL OR subscription.id < $2)
+        ORDER BY subscription.id DESC
+        LIMIT $3
+        ",
+        &[&recipient_id, &max_subscription_id, &limit],
+    ).await?;
+    let subscriptions = rows.iter()
+        .map(Subscription::try_from)
         .collect::<Result<_, _>>()?;
     Ok(subscriptions)
 }

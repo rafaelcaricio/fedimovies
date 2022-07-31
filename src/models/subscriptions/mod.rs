@@ -1,2 +1,2 @@
 pub mod queries;
-mod types;
+pub mod types;

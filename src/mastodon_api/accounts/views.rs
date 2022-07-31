@@ -52,6 +52,7 @@ use crate::models::relationships::queries::{
     show_reposts,
     unfollow,
 };
+use crate::models::subscriptions::queries::get_incoming_subscriptions;
 use crate::models::users::queries::{
     is_valid_invite_code,
     create_user,
@@ -76,6 +77,7 @@ use super::types::{
     SearchDidQueryParams,
     StatusListQueryParams,
     SubscriptionQueryParams,
+    ApiSubscription,
 };
 
 #[post("")]
@@ -584,6 +586,36 @@ async fn get_account_following(
     Ok(response)
 }
 
+#[get("/{account_id}/subscribers")]
+async fn get_account_subscribers(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    account_id: web::Path<Uuid>,
+    query_params: web::Query<FollowListQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let profile = get_profile_by_id(db_client, &account_id).await?;
+    if profile.id != current_user.id {
+        // Social graph is hidden
+        let subscriptions: Vec<ApiSubscription> = vec![];
+        return Ok(HttpResponse::Ok().json(subscriptions));
+    };
+    let instance_url = config.instance_url();
+    let subscriptions: Vec<ApiSubscription> = get_incoming_subscriptions(
+        db_client,
+        &profile.id,
+        query_params.max_id,
+        query_params.limit.into(),
+    )
+        .await?
+        .into_iter()
+        .map(|item| ApiSubscription::from_subscription(&instance_url, item))
+        .collect();
+    Ok(HttpResponse::Ok().json(subscriptions))
+}
+
 pub fn account_api_scope() -> Scope {
     web::scope("/api/v1/accounts")
         // Routes without account ID
@@ -603,4 +635,5 @@ pub fn account_api_scope() -> Scope {
         .service(get_account_statuses)
         .service(get_account_followers)
         .service(get_account_following)
+        .service(get_account_subscribers)
 }

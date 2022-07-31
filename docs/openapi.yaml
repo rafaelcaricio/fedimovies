@@ -342,6 +342,36 @@ paths:
                 example: '<https://example.org/api/v1/accounts/1/following?limit=40&max_id=7628164>; rel="next"'
         404:
           description: Profile not found
+  /api/v1/accounts/{account_id}/subscribers:
+    get:
+      summary: Subscriptions to the given actor.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+        - name: max_id
+          in: query
+          description: Return results with subscription ID older than this value.
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: Maximum number of results to return.
+          required: false
+          schema:
+            type: integer
+            default: 40
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                description: Subscription list
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscription'
+        404:
+          description: Profile not found
   /api/v1/accounts/{account_id}/follow:
     post:
       summary: Follow the given actor.
@@ -997,6 +1027,18 @@ components:
           type: string
           nullable: true
           example: '0x5fe80cdea7f...'
+    Subscription:
+      type: object
+      properties:
+        id:
+          description: Subscription ID.
+          type: number
+        sender:
+          $ref: '#/components/schemas/Account'
+        sender_address:
+          description: Sender address.
+          type: string
+          example: '0xd8da6bf...'
     Tag:
       type: object
       properties:
