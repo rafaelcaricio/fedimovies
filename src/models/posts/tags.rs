@@ -3,8 +3,8 @@ use regex::{Captures, Regex};
 use crate::errors::ValidationError;
 use crate::frontend::get_tag_page_url;
 
-const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s)#(?P<tag>\S+)";
-const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?]?(<br>)?)$";
+const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s|[\(])#(?P<tag>\S+)";
+const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?\)]?(<br>)?)$";
 const HASHTAG_NAME_RE: &str = r"^\w+$";
 
 /// Finds anything that looks like a hashtag
@@ -63,16 +63,16 @@ mod tests {
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
+    const TEXT_WITH_TAGS: &str = concat!(
+        "@user1@server1 some text #TestTag.\n",
+        "#TAG1 #tag1 #test_underscore #test*special ",
+        "more text (#tag2) text #tag3, #tag4:<br>\n",
+        "end with #tag5",
+    );
 
     #[test]
     fn test_find_tags() {
-        let text = concat!(
-            "@user1@server1 some text #TestTag.\n",
-            "#TAG1 #tag1 #test_underscore #test*special ",
-            "more text #tag2, #tag3:<br>\n",
-            "end with #tag4",
-        );
-        let tags = find_tags(text);
+        let tags = find_tags(TEXT_WITH_TAGS);
 
         assert_eq!(tags, vec![
             "testtag",
@@ -80,27 +80,23 @@ mod tests {
             "tag2",
             "tag3",
             "tag4",
+            "tag5",
         ]);
     }
 
     #[test]
     fn test_replace_tags() {
-        let text = concat!(
-            "@user1@server1 some text #TestTag.\n",
-            "#TAG1 #tag1 #test_underscore #test*special ",
-            "more text #tag2, #tag3:<br>\n",
-            "end with #tag4",
-        );
-        let tags = find_tags(text);
-        let output = replace_tags(INSTANCE_URL, &text, &tags);
+        let tags = find_tags(TEXT_WITH_TAGS);
+        let output = replace_tags(INSTANCE_URL, TEXT_WITH_TAGS, &tags);
 
         let expected_output = concat!(
             r#"@user1@server1 some text <a class="hashtag" href="https://example.com/tag/testtag">#TestTag</a>."#, "\n",
             r#"<a class="hashtag" href="https://example.com/tag/tag1">#TAG1</a> <a class="hashtag" href="https://example.com/tag/tag1">#tag1</a> "#,
             r#"#test_underscore #test*special "#,
-            r#"more text <a class="hashtag" href="https://example.com/tag/tag2">#tag2</a>, "#,
-            r#"<a class="hashtag" href="https://example.com/tag/tag3">#tag3</a>:<br>"#, "\n",
-            r#"end with <a class="hashtag" href="https://example.com/tag/tag4">#tag4</a>"#,
+            r#"more text (<a class="hashtag" href="https://example.com/tag/tag2">#tag2</a>) text "#,
+            r#"<a class="hashtag" href="https://example.com/tag/tag3">#tag3</a>, "#,
+            r#"<a class="hashtag" href="https://example.com/tag/tag4">#tag4</a>:<br>"#, "\n",
+            r#"end with <a class="hashtag" href="https://example.com/tag/tag5">#tag5</a>"#,
         );
         assert_eq!(output, expected_output);
     }

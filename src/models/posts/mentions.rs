@@ -10,8 +10,8 @@ use crate::models::profiles::types::DbActorProfile;
 
 // See also: USERNAME_RE in models::profiles::validators
 const MENTION_RE: &str = r"@?(?P<user>[\w\.-]+)@(?P<instance>.+)";
-const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s)@(?P<user>[\w\.-]+)@(?P<instance>\S+)";
-const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<instance>[\w\.-]+\w)(?P<after>(\.|<br>|\.<br>)?)$";
+const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s|[\(])@(?P<user>[\w\.-]+)@(?P<instance>\S+)";
+const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<instance>[\w\.-]+\w)(?P<after>[\.,:?\)]?(<br>)?)$";
 
 /// Finds everything that looks like a mention
 fn find_mentions(
@@ -109,22 +109,24 @@ mod tests {
 
     const INSTANCE_HOST: &str = "server1.com";
     const INSTANCE_URL: &str = "https://server1.com";
+    const TEXT_WITH_MENTIONS: &str = concat!(
+        "@user1@server1.com ",
+        "(@user2@server2.com boosted) ",
+        "@user3@server2.com.\n",
+        "@@invalid@server2.com ",
+        "@test@server3.com@nospace@server4.com ",
+        "@notmention email@unknown.org ",
+        "@user2@server2.com copy ",
+        "some text",
+    );
 
     #[test]
     fn test_find_mentions() {
-        let text = concat!(
-            "@user1@server1.com ",
-            "@user2@server2.com ",
-            "@@invalid@server2.com ",
-            "@test@server3.com@nospace@server4.com ",
-            "@notmention ",
-            "@user2@server2.com copy ",
-            "some text",
-        );
-        let results = find_mentions(INSTANCE_HOST, text);
+        let results = find_mentions(INSTANCE_HOST, TEXT_WITH_MENTIONS);
         assert_eq!(results, vec![
             "user1",
             "user2@server2.com",
+            "user3@server2.com",
         ]);
     }
 
@@ -135,7 +137,7 @@ mod tests {
             username: "user1".to_string(),
             ..Default::default()
         };
-        // Remote actor
+        // Remote actors
         let profile_2 = DbActorProfile {
             username: "user2".to_string(),
             actor_json: Some(Actor {
@@ -145,20 +147,33 @@ mod tests {
             }),
             ..Default::default()
         };
-        let text = concat!(
-            "@user1@server1.com @user2@server2.com.\n",
-            "sometext @notmention @test@unknown.org"
-        );
+        let profile_3 = DbActorProfile {
+            username: "user3".to_string(),
+            actor_json: Some(Actor {
+                id: "https://server2.com/actors/user3".to_string(),
+                url: Some("https://server2.com/@user3".to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
         let mention_map = HashMap::from([
             ("user1".to_string(), profile_1),
             ("user2@server2.com".to_string(), profile_2),
+            ("user3@server2.com".to_string(), profile_3),
         ]);
-        let result = replace_mentions(&mention_map, INSTANCE_HOST, INSTANCE_URL, text);
+        let result = replace_mentions(
+            &mention_map,
+            INSTANCE_HOST,
+            INSTANCE_URL,
+            TEXT_WITH_MENTIONS,
+        );
 
         let expected_result = concat!(
             r#"<span class="h-card"><a class="u-url mention" href="https://server1.com/users/user1">@user1</a></span> "#,
-            r#"<span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span>."#, "\n",
-            r#"sometext @notmention @test@unknown.org"#,
+            r#"(<span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> boosted) "#,
+            r#"<span class="h-card"><a class="u-url mention" href="https://server2.com/@user3">@user3</a></span>."#, "\n",
+            r#"@@invalid@server2.com @test@server3.com@nospace@server4.com "#,
+            r#"@notmention email@unknown.org <span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> copy some text"#,
         );
         assert_eq!(result, expected_result);
     }
