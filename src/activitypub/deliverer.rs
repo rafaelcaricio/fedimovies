@@ -77,6 +77,12 @@ async fn send_activity(
     Ok(())
 }
 
+// 30 secs, 5 mins, 50 mins, 8 hours
+fn backoff(retry_count: u32) -> Duration {
+    debug_assert!(retry_count > 0);
+    Duration::from_secs(3 * 10_u64.pow(retry_count))
+}
+
 async fn deliver_activity_worker(
     instance: Instance,
     sender: User,
@@ -107,8 +113,8 @@ async fn deliver_activity_worker(
     let max_retries = 2;
     while !inboxes.is_empty() && retry_count <= max_retries {
         if retry_count > 0 {
-            // Wait 30 secs before next attempt
-            sleep(Duration::from_secs(30)).await;
+            // Wait before next attempt
+            sleep(backoff(retry_count)).await;
         };
         let mut failed = vec![];
         for inbox_url in inboxes {
@@ -157,5 +163,16 @@ impl<A: Serialize + Send + 'static> OutgoingActivity<A> {
                 log::error!("{}", err);
             });
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_backoff() {
+        assert_eq!(backoff(1).as_secs(), 30);
+        assert_eq!(backoff(2).as_secs(), 300);
     }
 }
