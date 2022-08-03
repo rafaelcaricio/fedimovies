@@ -27,12 +27,13 @@ pub async fn handle_remove(
         &activity.actor,
     ).await?;
     let actor = actor_profile.actor_json.ok_or(ImportError::LocalObject)?;
-    let object_id = find_object_id(&activity.object)?;
-    let username = parse_local_actor_id(&config.instance_url(), &object_id)?;
-    let user = get_user_by_name(db_client, &username).await?;
     let target_value = activity.target.ok_or(ValidationError("target is missing"))?;
     let target_id = find_object_id(&target_value)?;
     if Some(target_id) == actor.subscribers {
+        // Removing from subscribers
+        let object_id = find_object_id(&activity.object)?;
+        let username = parse_local_actor_id(&config.instance_url(), &object_id)?;
+        let user = get_user_by_name(db_client, &username).await?;
         // actor is recipient, user is sender
         match unsubscribe(db_client, &user.id, &actor_profile.id).await {
             Ok(_) => {
