@@ -1,11 +1,12 @@
 use std::str::FromStr;
 
-use regex::Regex;
 use secp256k1::SecretKey;
 use web3::{
     signing::Key,
     types::Address,
 };
+
+use crate::utils::caip2::ChainId;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ChainIdError {
@@ -20,16 +21,13 @@ pub enum ChainIdError {
 }
 
 /// Parses CAIP-2 chain ID
-/// https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md
 pub fn parse_caip2_chain_id(chain_id: &str) -> Result<u32, ChainIdError> {
-    // eip155 namespace: ethereum chain
-    let caip2_re = Regex::new(r"(?P<namespace>\w+):(?P<chain_id>\w+)").unwrap();
-    let caip2_caps = caip2_re.captures(chain_id)
-        .ok_or(ChainIdError::InvalidChainId)?;
-    if &caip2_caps["namespace"] != "eip155" {
+    let chain_id = chain_id.parse::<ChainId>()
+        .map_err(|_| ChainIdError::InvalidChainId)?;
+    if chain_id.namespace != "eip155" {
         return Err(ChainIdError::UnsupportedChain);
     };
-    let eth_chain_id: u32 = caip2_caps["chain_id"].parse()?;
+    let eth_chain_id: u32 = chain_id.reference.parse()?;
     Ok(eth_chain_id)
 }
 

@@ -7,6 +7,7 @@ use serde::{
 };
 
 use crate::errors::ValidationError;
+use crate::utils::caip2::ChainId;
 use crate::utils::currencies::Currency;
 use super::signatures::recover_address;
 use super::utils::address_to_string;
@@ -17,16 +18,15 @@ pub const ETHEREUM_EIP191_PROOF: &str = "ethereum-eip191-00";
 // https://github.com/w3c-ccg/did-pkh/blob/main/did-pkh-method-draft.md
 #[derive(Clone, Debug, PartialEq)]
 pub struct DidPkh {
-    network_id: String,
-    chain_id: String,
+    chain_id: ChainId,
     pub address: String,
 }
 
 impl DidPkh {
     pub fn from_address(currency: &Currency, address: &str) -> Self {
-        let (network_id, chain_id) = currency.caip2();
+        let chain_id = currency.chain_id();
         let address = currency.normalize_address(address);
-        Self { network_id, chain_id, address }
+        Self { chain_id, address }
     }
 }
 
@@ -34,8 +34,8 @@ impl ToString for DidPkh {
     fn to_string(&self) -> String {
         format!(
             "did:pkh:{}:{}:{}",
-            self.network_id,
-            self.chain_id,
+            self.chain_id.namespace,
+            self.chain_id.reference,
             self.address,
         )
     }
@@ -55,8 +55,10 @@ impl FromStr for DidPkh {
         let did_pkh_re = Regex::new(DID_PKH_RE).unwrap();
         let caps = did_pkh_re.captures(value).ok_or(DidParseError)?;
         let did = Self {
-            network_id: caps["network"].to_string(),
-            chain_id: caps["chain"].to_string(),
+            chain_id: ChainId {
+                namespace: caps["network"].to_string(),
+                reference: caps["chain"].to_string(),
+            },
             address: caps["address"].to_string(),
         };
         Ok(did)
