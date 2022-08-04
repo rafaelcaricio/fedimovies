@@ -10,7 +10,7 @@ use crate::models::cleanup::{
     DeletionQueue,
 };
 use crate::models::relationships::types::RelationshipType;
-use crate::utils::currencies::{get_currency_field_name, Currency};
+use crate::utils::currencies::Currency;
 use crate::utils::id::new_uuid;
 use super::types::{
     DbActorProfile,
@@ -383,7 +383,7 @@ pub async fn search_profile_by_wallet_address(
     wallet_address: &str,
     prefer_verified: bool,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let field_name = get_currency_field_name(currency);
+    let field_name = currency.field_name();
     let did_str = DidPkh::from_address(currency, wallet_address).to_string();
     // If currency is Ethereum,
     // search over extra fields must be case insensitive.

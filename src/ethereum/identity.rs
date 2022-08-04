@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::str::FromStr;
 
 use regex::Regex;
@@ -27,6 +28,10 @@ impl DidPkh {
         let chain_id = currency.chain_id();
         let address = currency.normalize_address(address);
         Self { chain_id, address }
+    }
+
+    pub fn currency(&self) -> Option<Currency> {
+        (&self.chain_id).try_into().ok()
     }
 }
 
@@ -138,6 +143,7 @@ mod tests {
     fn test_did_string_conversion() {
         let address = "0xB9C5714089478a327F09197987f16f9E5d936E8a";
         let did = DidPkh::from_address(&ETHEREUM, address);
+        assert_eq!(did.currency().unwrap(), ETHEREUM);
         assert_eq!(did.address, address.to_lowercase());
 
         let did_str = did.to_string();

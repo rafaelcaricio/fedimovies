@@ -19,7 +19,6 @@ use crate::models::users::types::{
     validate_local_username,
     User,
 };
-use crate::utils::currencies::get_identity_proof_field_name;
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
 
 /// https://docs.joinmastodon.org/entities/field/
@@ -72,7 +71,8 @@ impl Account {
         let mut identity_proofs = vec![];
         for proof in profile.identity_proofs.clone().into_inner() {
             // Skip proof if it doesn't map to field name
-            if let Some(field_name) = get_identity_proof_field_name(&proof.proof_type) {
+            if let Some(currency) = proof.issuer.currency() {
+                let field_name = currency.field_name();
                 let field = AccountField {
                     name: field_name,
                     value: proof.issuer.address,
