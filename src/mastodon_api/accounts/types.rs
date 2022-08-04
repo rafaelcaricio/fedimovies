@@ -6,7 +6,6 @@ use uuid::Uuid;
 
 use crate::errors::ValidationError;
 use crate::frontend::get_subscription_page_url;
-use crate::models::profiles::currencies::get_identity_proof_field_name;
 use crate::models::profiles::types::{
     DbActorProfile,
     ExtraField,
@@ -20,6 +19,7 @@ use crate::models::users::types::{
     validate_local_username,
     User,
 };
+use crate::utils::currencies::get_identity_proof_field_name;
 use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
 
 /// https://docs.joinmastodon.org/entities/field/

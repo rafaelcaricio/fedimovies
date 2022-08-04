@@ -10,8 +10,8 @@ use crate::models::cleanup::{
     DeletionQueue,
 };
 use crate::models::relationships::types::RelationshipType;
+use crate::utils::currencies::{get_currency_field_name, Currency};
 use crate::utils::id::new_uuid;
-use super::currencies::{get_currency_field_name, Currency};
 use super::types::{
     DbActorProfile,
     ExtraFields,

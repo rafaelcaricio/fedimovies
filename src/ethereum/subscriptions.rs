@@ -22,7 +22,6 @@ use crate::models::notifications::queries::{
     create_subscription_notification,
     create_subscription_expiration_notification,
 };
-use crate::models::profiles::currencies::Currency;
 use crate::models::profiles::queries::{
     get_profile_by_id,
     search_profile_by_wallet_address,
@@ -38,6 +37,7 @@ use crate::models::users::queries::{
     get_user_by_id,
     get_user_by_wallet_address,
 };
+use crate::utils::currencies::Currency;
 use super::contracts::ContractSet;
 use super::errors::EthereumError;
 use super::signatures::{

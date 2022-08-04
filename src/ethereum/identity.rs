@@ -7,7 +7,7 @@ use serde::{
 };
 
 use crate::errors::ValidationError;
-use crate::models::profiles::currencies::Currency;
+use crate::utils::currencies::Currency;
 use super::signatures::recover_address;
 use super::utils::address_to_string;
 

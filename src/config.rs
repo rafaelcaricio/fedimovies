@@ -12,12 +12,12 @@ use crate::activitypub::constants::ACTOR_KEY_SUFFIX;
 use crate::activitypub::identifiers::local_instance_actor_id;
 use crate::errors::ConversionError;
 use crate::ethereum::utils::{parse_caip2_chain_id, ChainIdError};
-use crate::models::profiles::currencies::Currency;
 use crate::utils::crypto::{
     deserialize_private_key,
     generate_private_key,
     serialize_private_key,
 };
+use crate::utils::currencies::Currency;
 use crate::utils::files::{set_file_permissions, write_file};
 
 #[derive(Clone, Debug)]
