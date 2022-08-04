@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use regex::Regex;
 use tokio_postgres::GenericClient;
 use url::Url;
@@ -9,12 +11,14 @@ use crate::activitypub::fetcher::helpers::{
 };
 use crate::config::Config;
 use crate::errors::{ValidationError, HttpError};
+use crate::ethereum::identity::DidPkh;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
     search_profile,
+    search_profile_by_did,
     search_profile_by_wallet_address,
 };
 use crate::models::profiles::types::DbActorProfile;
@@ -28,6 +32,7 @@ enum SearchQuery {
     ProfileQuery(String, Option<String>),
     Url(String),
     WalletAddress(String),
+    Did(DidPkh),
     Unknown,
 }
 
@@ -48,6 +53,10 @@ fn parse_profile_query(query: &str) ->
 
 fn parse_search_query(search_query: &str) -> SearchQuery {
     let search_query = search_query.trim();
+    // DID is a valid URI so it should be tried before Url::parse
+    if let Ok(did) = DidPkh::from_str(search_query) {
+        return SearchQuery::Did(did);
+    };
     if Url::parse(search_query).is_ok() {
         return SearchQuery::Url(search_query.to_string());
     };
@@ -160,6 +169,13 @@ pub async fn search(
                 db_client,
                 &config.default_currency(),
                 &address,
+                false,
+            ).await?;
+        },
+        SearchQuery::Did(did) => {
+            profiles = search_profile_by_did(
+                db_client,
+                &did,
                 false,
             ).await?;
         },

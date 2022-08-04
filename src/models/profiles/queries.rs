@@ -2,6 +2,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::database::catch_unique_violation;
+use crate::database::query_macro::query;
 use crate::errors::DatabaseError;
 use crate::ethereum::identity::DidPkh;
 use crate::models::cleanup::{
@@ -377,19 +378,13 @@ pub async fn search_profile(
     Ok(profiles)
 }
 
-pub async fn search_profile_by_wallet_address(
+pub async fn search_profile_by_did(
     db_client: &impl GenericClient,
-    currency: &Currency,
-    wallet_address: &str,
+    did: &DidPkh,
     prefer_verified: bool,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let field_name = currency.field_name();
-    let did_str = DidPkh::from_address(currency, wallet_address).to_string();
-    // If currency is Ethereum,
-    // search over extra fields must be case insensitive.
-    // This query does not scan user_account.wallet_address because
-    // login addresses are private by default.
-    let rows = db_client.query(
+    let did_str = did.to_string();
+    let identity_proof_query =
         "
         SELECT actor_profile, TRUE AS is_verified
         FROM actor_profile
@@ -397,22 +392,49 @@ pub async fn search_profile_by_wallet_address(
             EXISTS (
                 SELECT 1
                 FROM jsonb_array_elements(actor_profile.identity_proofs) AS proof
-                WHERE proof ->> 'issuer' = $3
+                WHERE proof ->> 'issuer' = $did
             )
-        UNION ALL
-        SELECT actor_profile, FALSE
-        FROM actor_profile
-        WHERE
-            EXISTS (
-                SELECT 1
-                FROM jsonb_array_elements(actor_profile.extra_fields) AS field
-                WHERE
-                    field ->> 'name' ILIKE $1
-                    AND field ->> 'value' ILIKE $2
-            )
-        ",
-        &[&field_name, &wallet_address, &did_str],
-    ).await?;
+        ";
+    let rows = if let Some(currency) = did.currency() {
+        // If currency is Ethereum,
+        // search over extra fields must be case insensitive.
+        #[allow(unreachable_patterns)]
+        let value_op = match currency {
+            Currency::Ethereum => "ILIKE",
+            _ => "LIKE",
+        };
+        // This query does not scan user_account.wallet_address because
+        // login addresses are private by default.
+        let statement = format!(
+            "
+            {identity_proof_query}
+            UNION ALL
+            SELECT actor_profile, FALSE
+            FROM actor_profile
+            WHERE
+                EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements(actor_profile.extra_fields) AS field
+                    WHERE
+                        field ->> 'name' ILIKE $field_name
+                        AND field ->> 'value' {value_op} $field_value
+                )
+            ",
+            identity_proof_query=identity_proof_query,
+            value_op=value_op,
+        );
+        let field_name = currency.field_name();
+        let query = query!(
+            &statement,
+            did=did_str,
+            field_name=field_name,
+            field_value=did.address,
+        )?;
+        db_client.query(query.sql(), query.parameters()).await?
+    } else {
+        let query = query!(identity_proof_query, did=did_str)?;
+        db_client.query(query.sql(), query.parameters()).await?
+    };
     let mut verified = vec![];
     let mut unverified = vec![];
     for row in rows {
@@ -430,6 +452,16 @@ pub async fn search_profile_by_wallet_address(
         [verified, unverified].concat()
     };
     Ok(results)
+}
+
+pub async fn search_profile_by_wallet_address(
+    db_client: &impl GenericClient,
+    currency: &Currency,
+    wallet_address: &str,
+    prefer_verified: bool,
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    let did = DidPkh::from_address(currency, wallet_address);
+    search_profile_by_did(db_client, &did, prefer_verified).await
 }
 
 pub async fn update_follower_count(
