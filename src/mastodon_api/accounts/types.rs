@@ -294,6 +294,11 @@ impl Default for RelationshipMap {
 }
 
 #[derive(Deserialize)]
+pub struct SearchDidQueryParams {
+    pub did: String,
+}
+
+#[derive(Deserialize)]
 pub struct FollowData {
     #[serde(default = "default_showing_reblogs")]
     pub reblogs: bool,

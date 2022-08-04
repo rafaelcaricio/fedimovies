@@ -29,6 +29,7 @@ use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_id,
+    search_profile_by_did,
     update_profile,
 };
 use crate::models::profiles::types::{
@@ -68,6 +69,7 @@ use super::types::{
     IdentityClaim,
     IdentityProofData,
     RelationshipQueryParams,
+    SearchDidQueryParams,
     StatusListQueryParams,
     SubscriptionQueryParams,
 };
@@ -151,18 +153,6 @@ pub async fn create_account(
     log::warn!("created user {}", user.id);
     let account = Account::from_user(user, &config.instance_url());
     Ok(HttpResponse::Created().json(account))
-}
-
-#[get("/{account_id}")]
-async fn get_account(
-    config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
-    account_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
-    let db_client = &**get_database_client(&db_pool).await?;
-    let profile = get_profile_by_id(db_client, &account_id).await?;
-    let account = Account::from_profile(profile, &config.instance_url());
-    Ok(HttpResponse::Ok().json(account))
 }
 
 #[get("/verify_credentials")]
@@ -365,6 +355,34 @@ async fn get_relationships_view(
     Ok(HttpResponse::Ok().json(vec![relationship]))
 }
 
+#[get("/search_did")]
+async fn search_by_did(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    query_params: web::Query<SearchDidQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let did: DidPkh = query_params.did.parse()
+        .map_err(|_| ValidationError("invalid DID"))?;
+    let profiles = search_profile_by_did(db_client, &did, false).await?;
+    let accounts: Vec<Account> = profiles.into_iter()
+        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .collect();
+    Ok(HttpResponse::Ok().json(accounts))
+}
+
+#[get("/{account_id}")]
+async fn get_account(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    account_id: web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let profile = get_profile_by_id(db_client, &account_id).await?;
+    let account = Account::from_profile(profile, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
+}
+
 #[post("/{account_id}/follow")]
 async fn follow_account(
     auth: BearerAuth,
@@ -548,13 +566,14 @@ pub fn account_api_scope() -> Scope {
     web::scope("/api/v1/accounts")
         // Routes without account ID
         .service(create_account)
-        .service(get_relationships_view)
         .service(verify_credentials)
         .service(update_credentials)
         .service(get_identity_claim)
         .service(create_identity_proof)
         .service(authorize_subscription)
         .service(subscriptions_enabled)
+        .service(get_relationships_view)
+        .service(search_by_did)
         // Routes with account ID
         .service(get_account)
         .service(follow_account)

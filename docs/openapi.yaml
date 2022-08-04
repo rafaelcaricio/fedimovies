@@ -196,6 +196,28 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Relationship'
+  /api/v1/accounts/search_did:
+    get:
+      summary: Search profile by DID
+      parameters:
+        - name: did
+          in: query
+          description: Decentralized identifier (DID)
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                description: Profile list
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        400:
+          description: Invalid DID
   /api/v1/accounts/{account_id}:
     get:
       summary: View information about a profile.
