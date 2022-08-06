@@ -324,14 +324,14 @@ pub struct StatusListQueryParams {
     pub limit: i64,
 }
 
-fn default_follow_list_page_size() -> i64 { 40 }
+fn default_follow_list_page_size() -> u8 { 40 }
 
 #[derive(Deserialize)]
 pub struct FollowListQueryParams {
     pub max_id: Option<i32>,
 
     #[serde(default = "default_follow_list_page_size")]
-    pub limit: i64,
+    pub limit: u8,
 }
 
 #[cfg(test)]

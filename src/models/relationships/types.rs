@@ -5,7 +5,8 @@ use tokio_postgres::Row;
 use uuid::Uuid;
 
 use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
-use crate::errors::ConversionError;
+use crate::errors::{ConversionError, DatabaseError};
+use crate::models::profiles::types::DbActorProfile;
 
 #[derive(Debug)]
 pub enum RelationshipType {
@@ -124,4 +125,20 @@ pub struct DbFollowRequest {
     pub source_id: Uuid,
     pub target_id: Uuid,
     pub request_status: FollowRequestStatus,
+}
+
+pub struct RelatedActorProfile {
+    pub relationship_id: i32,
+    pub profile: DbActorProfile,
+}
+
+impl TryFrom<&Row> for RelatedActorProfile {
+
+    type Error = DatabaseError;
+
+    fn try_from(row: &Row) -> Result<Self, Self::Error> {
+        let relationship_id = row.try_get("id")?;
+        let profile = row.try_get("actor_profile")?;
+        Ok(Self { relationship_id, profile })
+    }
 }

@@ -16,6 +16,7 @@ use super::types::{
     DbFollowRequest,
     DbRelationship,
     FollowRequestStatus,
+    RelatedActorProfile,
     RelationshipType,
 };
 
@@ -257,12 +258,34 @@ pub async fn get_follow_request_by_path(
 pub async fn get_followers(
     db_client: &impl GenericClient,
     profile_id: &Uuid,
-    max_relationship_id: Option<i32>,
-    limit: Option<i64>,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let rows = db_client.query(
         "
         SELECT actor_profile
+        FROM actor_profile
+        JOIN relationship
+        ON (actor_profile.id = relationship.source_id)
+        WHERE
+            relationship.target_id = $1
+            AND relationship.relationship_type = $2
+        ",
+        &[&profile_id, &RelationshipType::Follow],
+    ).await?;
+    let profiles = rows.iter()
+        .map(|row| row.try_get("actor_profile"))
+        .collect::<Result<_, _>>()?;
+    Ok(profiles)
+}
+
+pub async fn get_followers_paginated(
+    db_client: &impl GenericClient,
+    profile_id: &Uuid,
+    max_relationship_id: Option<i32>,
+    limit: i64,
+) -> Result<Vec<RelatedActorProfile>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT relationship.id, actor_profile
         FROM actor_profile
         JOIN relationship
         ON (actor_profile.id = relationship.source_id)
@@ -275,21 +298,43 @@ pub async fn get_followers(
         ",
         &[&profile_id, &RelationshipType::Follow, &max_relationship_id, &limit],
     ).await?;
+    let related_profiles = rows.iter()
+        .map(RelatedActorProfile::try_from)
+        .collect::<Result<_, _>>()?;
+    Ok(related_profiles)
+}
+
+pub async fn get_following(
+    db_client: &impl GenericClient,
+    profile_id: &Uuid,
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT actor_profile
+        FROM actor_profile
+        JOIN relationship
+        ON (actor_profile.id = relationship.target_id)
+        WHERE
+            relationship.source_id = $1
+            AND relationship.relationship_type = $2
+        ",
+        &[&profile_id, &RelationshipType::Follow],
+    ).await?;
     let profiles = rows.iter()
         .map(|row| row.try_get("actor_profile"))
         .collect::<Result<_, _>>()?;
     Ok(profiles)
 }
 
-pub async fn get_following(
+pub async fn get_following_paginated(
     db_client: &impl GenericClient,
     profile_id: &Uuid,
     max_relationship_id: Option<i32>,
-    limit: Option<i64>,
-) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    limit: i64,
+) -> Result<Vec<RelatedActorProfile>, DatabaseError> {
     let rows = db_client.query(
         "
-        SELECT actor_profile
+        SELECT relationship.id, actor_profile
         FROM actor_profile
         JOIN relationship
         ON (actor_profile.id = relationship.target_id)
@@ -302,10 +347,10 @@ pub async fn get_following(
         ",
         &[&profile_id, &RelationshipType::Follow, &max_relationship_id, &limit],
     ).await?;
-    let profiles = rows.iter()
-        .map(|row| row.try_get("actor_profile"))
+    let related_profiles = rows.iter()
+        .map(RelatedActorProfile::try_from)
         .collect::<Result<_, _>>()?;
-    Ok(profiles)
+    Ok(related_profiles)
 }
 
 pub async fn subscribe(
@@ -486,8 +531,7 @@ mod tests {
             follow_request.request_status,
             FollowRequestStatus::Pending,
         ));
-        let following = get_following(db_client, &source.id, None, None)
-            .await.unwrap();
+        let following = get_following(db_client, &source.id).await.unwrap();
         assert!(following.is_empty());
         // Accept follow request
         follow_request_accepted(db_client, &follow_request.id).await.unwrap();
@@ -500,8 +544,7 @@ mod tests {
             follow_request.request_status,
             FollowRequestStatus::Accepted,
         ));
-        let following = get_following(db_client, &source.id, None, None)
-            .await.unwrap();
+        let following = get_following(db_client, &source.id).await.unwrap();
         assert_eq!(following[0].id, target.id);
         // Unfollow
         let follow_request_id = unfollow(db_client, &source.id, &target.id)
@@ -513,8 +556,7 @@ mod tests {
             follow_request_result,
             Err(DatabaseError::NotFound("follow request")),
         ));
-        let following = get_following(db_client, &source.id, None, None)
-            .await.unwrap();
+        let following = get_following(db_client, &source.id).await.unwrap();
         assert!(following.is_empty());
     }
 }

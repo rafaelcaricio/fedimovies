@@ -180,7 +180,7 @@ pub async fn get_note_recipients(
     let mut audience = vec![];
     match post.visibility {
         Visibility::Public | Visibility::Followers => {
-            let followers = get_followers(db_client, &current_user.id, None, None).await?;
+            let followers = get_followers(db_client, &current_user.id).await?;
             audience.extend(followers);
         },
         Visibility::Subscribers => {

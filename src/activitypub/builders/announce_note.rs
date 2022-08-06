@@ -44,7 +44,7 @@ pub async fn get_announce_note_recipients(
     current_user: &User,
     post: &Post,
 ) -> Result<(Vec<Actor>, String), DatabaseError> {
-    let followers = get_followers(db_client, &current_user.id, None, None).await?;
+    let followers = get_followers(db_client, &current_user.id).await?;
     let mut recipients: Vec<Actor> = Vec::new();
     for profile in followers {
         if let Some(remote_actor) = profile.actor_json {

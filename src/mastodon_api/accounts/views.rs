@@ -1,4 +1,7 @@
-use actix_web::{get, post, patch, web, HttpResponse, Scope};
+use actix_web::{
+    get, patch, post, web,
+    HttpRequest, HttpResponse, Scope,
+};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
@@ -24,6 +27,7 @@ use crate::ethereum::subscriptions::{
     is_registered_recipient,
 };
 use crate::mastodon_api::oauth::auth::get_current_user;
+use crate::mastodon_api::pagination::get_paginated_response;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::queries::get_posts_by_author;
@@ -40,8 +44,8 @@ use crate::models::profiles::types::{
 use crate::models::relationships::queries::{
     create_follow_request,
     follow,
-    get_followers,
-    get_following,
+    get_followers_paginated,
+    get_following_paginated,
     hide_replies,
     hide_reposts,
     show_replies,
@@ -513,6 +517,7 @@ async fn get_account_followers(
     db_pool: web::Data<Pool>,
     account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
+    request: HttpRequest,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -522,16 +527,24 @@ async fn get_account_followers(
         let accounts: Vec<Account> = vec![];
         return Ok(HttpResponse::Ok().json(accounts));
     };
-    let followers = get_followers(
+    let followers = get_followers_paginated(
         db_client,
         &profile.id,
         query_params.max_id,
-        Some(query_params.limit),
+        query_params.limit.into(),
     ).await?;
+    let max_index = usize::from(query_params.limit.saturating_sub(1));
+    let maybe_last_id = followers.get(max_index).map(|item| item.relationship_id);
     let accounts: Vec<Account> = followers.into_iter()
-        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .map(|item| Account::from_profile(item.profile, &config.instance_url()))
         .collect();
-    Ok(HttpResponse::Ok().json(accounts))
+    let response = get_paginated_response(
+        &config.instance_url(),
+        request.uri().path(),
+        accounts,
+        maybe_last_id,
+    );
+    Ok(response)
 }
 
 #[get("/{account_id}/following")]
@@ -541,6 +554,7 @@ async fn get_account_following(
     db_pool: web::Data<Pool>,
     account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
+    request: HttpRequest,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -550,16 +564,24 @@ async fn get_account_following(
         let accounts: Vec<Account> = vec![];
         return Ok(HttpResponse::Ok().json(accounts));
     };
-    let following = get_following(
+    let following = get_following_paginated(
         db_client,
         &profile.id,
         query_params.max_id,
-        Some(query_params.limit),
+        query_params.limit.into(),
     ).await?;
+    let max_index = usize::from(query_params.limit.saturating_sub(1));
+    let maybe_last_id = following.get(max_index).map(|item| item.relationship_id);
     let accounts: Vec<Account> = following.into_iter()
-        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .map(|item| Account::from_profile(item.profile, &config.instance_url()))
         .collect();
-    Ok(HttpResponse::Ok().json(accounts))
+    let response = get_paginated_response(
+        &config.instance_url(),
+        request.uri().path(),
+        accounts,
+        maybe_last_id,
+    );
+    Ok(response)
 }
 
 pub fn account_api_scope() -> Scope {

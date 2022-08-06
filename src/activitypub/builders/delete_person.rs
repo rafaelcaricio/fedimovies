@@ -34,8 +34,8 @@ async fn get_delete_person_recipients(
     db_client: &impl GenericClient,
     user_id: &Uuid,
 ) -> Result<Vec<Actor>, DatabaseError> {
-    let followers = get_followers(db_client, user_id, None, None).await?;
-    let following = get_following(db_client, user_id, None, None).await?;
+    let followers = get_followers(db_client, user_id).await?;
+    let following = get_following(db_client, user_id).await?;
     let mut recipients = vec![];
     for profile in followers.into_iter().chain(following.into_iter()) {
         if let Some(remote_actor) = profile.actor_json {

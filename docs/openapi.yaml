@@ -298,6 +298,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Account'
+          headers:
+            Link:
+              description: Link to the next page
+              schema:
+                type: string
+                example: '<https://example.org/api/v1/accounts/1/followers?limit=40&max_id=7628164>; rel="next"'
         404:
           description: Profile not found
   /api/v1/accounts/{account_id}/following:
@@ -328,6 +334,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Account'
+          headers:
+            Link:
+              description: Link to the next page
+              schema:
+                type: string
+                example: '<https://example.org/api/v1/accounts/1/following?limit=40&max_id=7628164>; rel="next"'
         404:
           description: Profile not found
   /api/v1/accounts/{account_id}/follow:
