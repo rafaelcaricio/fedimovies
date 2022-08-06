@@ -5,8 +5,9 @@ pub mod markers;
 pub mod media;
 pub mod notifications;
 pub mod oauth;
+mod pagination;
 pub mod search;
 pub mod statuses;
 pub mod timelines;
 
-pub const MASTODON_API_VERSION: &str = "3.0.0";
+const MASTODON_API_VERSION: &str = "3.0.0";
