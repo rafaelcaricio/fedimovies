@@ -30,9 +30,6 @@ pub fn get_paginated_response(
         );
         HttpResponse::Ok()
             .append_header(("Link", pagination_header))
-            // Link header needs to be exposed
-            // https://github.com/actix/actix-extras/issues/192
-            .append_header(("Access-Control-Expose-Headers", "Link"))
             .json(items)
     } else {
         HttpResponse::Ok().json(items)
