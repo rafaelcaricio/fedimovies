@@ -1,6 +1,6 @@
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use tokio_postgres::GenericClient;
-use uuid::Uuid;
 
 use crate::activitypub::{
     actors::types::Actor,
@@ -26,6 +26,7 @@ pub struct Announce {
     actor: String,
     id: String,
     object: String,
+    published: DateTime<Utc>,
 
     to: Vec<String>,
     cc: Vec<String>,
@@ -34,12 +35,12 @@ pub struct Announce {
 fn build_announce_note(
     instance_url: &str,
     sender_username: &str,
-    post: &Post,
-    repost_id: &Uuid,
+    repost: &Post,
 ) -> Announce {
     let actor_id = local_actor_id(instance_url, sender_username);
+    let post = repost.repost_of.as_ref().unwrap();
     let object_id = post.get_object_id(instance_url);
-    let activity_id = local_object_id(instance_url, repost_id);
+    let activity_id = local_object_id(instance_url, &repost.id);
     let recipient_id = post.author.actor_id(instance_url);
     let followers = local_actor_followers(instance_url, sender_username);
     Announce {
@@ -48,6 +49,7 @@ fn build_announce_note(
         actor: actor_id,
         id: activity_id,
         object: object_id,
+        published: repost.created_at,
         to: vec![AP_PUBLIC.to_string(), recipient_id],
         cc: vec![followers],
     }
@@ -77,10 +79,9 @@ pub async fn prepare_announce_note(
     db_client: &impl GenericClient,
     instance: Instance,
     user: &User,
-    post: &Post,
-    repost_id: &Uuid,
+    repost: &Post,
 ) -> Result<OutgoingActivity<Announce>, DatabaseError> {
-    assert_ne!(&post.id, repost_id);
+    let post = repost.repost_of.as_ref().unwrap();
     let (recipients, _) = get_announce_note_recipients(
         db_client,
         &instance.url(),
@@ -90,8 +91,7 @@ pub async fn prepare_announce_note(
     let activity = build_announce_note(
         &instance.url(),
         &user.profile.username,
-        post,
-        repost_id,
+        repost,
     );
     Ok(OutgoingActivity {
         instance,
@@ -105,7 +105,6 @@ pub async fn prepare_announce_note(
 mod tests {
     use crate::activitypub::actors::types::Actor;
     use crate::models::profiles::types::DbActorProfile;
-    use crate::utils::id::new_uuid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
@@ -127,17 +126,28 @@ mod tests {
             object_id: Some(post_id.to_string()),
             ..Default::default()
         };
-        let announcer = DbActorProfile::default();
-        let repost_id = new_uuid();
+        let repost_author = DbActorProfile {
+            username: "announcer".to_string(),
+            ..Default::default()
+        };
+        let repost = Post {
+            author: repost_author.clone(),
+            repost_of_id: Some(post.id),
+            repost_of: Some(Box::new(post)),
+            ..Default::default()
+        };
         let activity = build_announce_note(
             INSTANCE_URL,
-            &announcer.username,
-            &post,
-            &repost_id,
+            &repost_author.username,
+            &repost,
         );
         assert_eq!(
             activity.id,
-            format!("{}/objects/{}", INSTANCE_URL, repost_id),
+            format!("{}/objects/{}", INSTANCE_URL, repost.id),
+        );
+        assert_eq!(
+            activity.actor,
+            format!("{}/users/announcer", INSTANCE_URL),
         );
         assert_eq!(activity.object, post_id);
         assert_eq!(activity.to, vec![AP_PUBLIC, post_author_id]);

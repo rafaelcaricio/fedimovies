@@ -299,16 +299,16 @@ async fn reblog(
         repost_of_id: Some(status_id.into_inner()),
         ..Default::default()
     };
-    let repost = create_post(db_client, &current_user.id, repost_data).await?;
+    let mut repost = create_post(db_client, &current_user.id, repost_data).await?;
     post.repost_count += 1;
+    repost.repost_of = Some(Box::new(post));
 
     // Federate
     prepare_announce_note(
         db_client,
         config.instance(),
         &current_user,
-        &post,
-        &repost.id,
+        &repost,
     ).await?.spawn_deliver();
 
     let status = build_status(
