@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 
 use mitra::activitypub::views as activitypub;
 use mitra::atom::views as atom;
-use mitra::config::{Environment, parse_config};
+use mitra::config::{parse_config, Environment};
 use mitra::database::{get_database_client, create_pool};
 use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::contracts::get_contracts;
