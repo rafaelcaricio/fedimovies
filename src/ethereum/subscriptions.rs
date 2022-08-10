@@ -15,7 +15,7 @@ use crate::activitypub::builders::{
     remove_person::prepare_remove_person,
 };
 use crate::activitypub::identifiers::LocalActorCollection;
-use crate::config::{BlockchainConfig, Instance};
+use crate::config::{EthereumConfig, Instance};
 use crate::database::{Pool, get_database_client};
 use crate::errors::{ConversionError, DatabaseError};
 use crate::models::notifications::queries::{
@@ -245,7 +245,7 @@ pub async fn check_subscriptions(
 }
 
 pub fn create_subscription_signature(
-    blockchain_config: &BlockchainConfig,
+    blockchain_config: &EthereumConfig,
     user_address: &str,
     price: u64,
 ) -> Result<SignatureData, EthereumError> {

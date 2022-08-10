@@ -11,7 +11,7 @@ fn default_chain_sync_step() -> u64 { 1000 }
 fn default_chain_reorg_max_depth() -> u64 { 10 }
 
 #[derive(Clone, Deserialize)]
-pub struct BlockchainConfig {
+pub struct EthereumConfig {
     // CAIP-2 chain ID
     pub chain_id: ChainId,
     // Additional information for clients
@@ -30,12 +30,25 @@ pub struct BlockchainConfig {
     pub chain_reorg_max_depth: u64,
 }
 
-impl BlockchainConfig {
+impl EthereumConfig {
     pub fn try_ethereum_chain_id(&self) -> Result<u32, ChainIdError> {
         parse_caip2_chain_id(&self.chain_id)
     }
 
     pub fn ethereum_chain_id(&self) -> u32 {
         self.try_ethereum_chain_id().unwrap()
+    }
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(untagged)]
+pub enum BlockchainConfig {
+    Ethereum(EthereumConfig),
+}
+
+impl BlockchainConfig {
+    pub fn ethereum_config(&self) -> Option<&EthereumConfig> {
+        let Self::Ethereum(ethereum_config) = self;
+        Some(ethereum_config)
     }
 }

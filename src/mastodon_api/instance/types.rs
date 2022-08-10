@@ -41,6 +41,8 @@ fn get_full_api_version(version: &str) -> String {
 
 impl InstanceInfo {
     pub fn create(config: &Config, maybe_blockchain: Option<&ContractSet>) -> Self {
+        let ethereum_config = config.blockchain.as_ref()
+            .and_then(|conf| conf.ethereum_config());
         let blockchain_features = maybe_blockchain.map(|contract_set| {
             BlockchainFeatures {
                 minter: contract_set.collectible.is_some(),
@@ -56,14 +58,14 @@ impl InstanceInfo {
             registrations: config.registrations_open,
             login_message: config.login_message.clone(),
             post_character_limit: config.post_character_limit,
-            blockchain_id: config.blockchain.as_ref()
+            blockchain_id: ethereum_config
                 .map(|val| val.chain_id.to_string()),
-            blockchain_explorer_url: config.blockchain.as_ref()
+            blockchain_explorer_url: ethereum_config
                 .and_then(|val| val.explorer_url.clone()),
-            blockchain_contract_address: config.blockchain.as_ref()
+            blockchain_contract_address: ethereum_config
                 .map(|val| val.contract_address.clone()),
             blockchain_features: blockchain_features,
-            blockchain_info: config.blockchain.as_ref()
+            blockchain_info: ethereum_config
                 .and_then(|val| val.chain_info.clone()),
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),
         }

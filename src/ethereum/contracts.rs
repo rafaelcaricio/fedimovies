@@ -8,7 +8,7 @@ use web3::{
     transports::Http,
 };
 
-use crate::config::BlockchainConfig;
+use crate::config::EthereumConfig;
 use super::api::connect;
 use super::errors::EthereumError;
 use super::sync::{
@@ -96,7 +96,7 @@ pub struct Blockchain {
 }
 
 pub async fn get_contracts(
-    config: &BlockchainConfig,
+    config: &EthereumConfig,
     storage_dir: &Path,
 ) -> Result<Blockchain, EthereumError> {
     let web3 = connect(&config.api_url)?;

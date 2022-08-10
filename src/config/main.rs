@@ -243,9 +243,11 @@ pub fn parse_config() -> Config {
     check_directory_owner(&config.storage_dir);
     config.try_instance_url().expect("invalid instance URI");
     if let Some(blockchain_config) = config.blockchain.as_ref() {
-        blockchain_config.try_ethereum_chain_id().unwrap();
-        if !blockchain_config.contract_dir.exists() {
-            panic!("contract directory does not exist");
+        if let Some(ethereum_config) = blockchain_config.ethereum_config() {
+            ethereum_config.try_ethereum_chain_id().unwrap();
+            if !ethereum_config.contract_dir.exists() {
+                panic!("contract directory does not exist");
+            };
         };
     };
     if config.ipfs_api_url.is_some() != config.ipfs_gateway_url.is_some() {

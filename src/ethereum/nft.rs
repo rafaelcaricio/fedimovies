@@ -11,7 +11,7 @@ use web3::{
     types::{BlockNumber, FilterBuilder},
 };
 
-use crate::config::BlockchainConfig;
+use crate::config::EthereumConfig;
 use crate::database::{Pool, get_database_client};
 use crate::errors::DatabaseError;
 use crate::ipfs::utils::parse_ipfs_url;
@@ -127,7 +127,7 @@ pub async fn process_nft_events(
 }
 
 pub fn create_mint_signature(
-    blockchain_config: &BlockchainConfig,
+    blockchain_config: &EthereumConfig,
     user_address: &str,
     token_uri: &str,
 ) -> Result<SignatureData, EthereumError> {

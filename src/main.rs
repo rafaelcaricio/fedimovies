@@ -53,9 +53,13 @@ async fn main() -> std::io::Result<()> {
     );
 
     let maybe_blockchain = if let Some(blockchain_config) = &config.blockchain {
-        // Create blockchain interface
-        get_contracts(blockchain_config, &config.storage_dir).await
-            .map(Some).unwrap()
+        if let Some(ethereum_config) = blockchain_config.ethereum_config() {
+            // Create blockchain interface
+            get_contracts(ethereum_config, &config.storage_dir).await
+                .map(Some).unwrap()
+        } else {
+            None
+        }
     } else {
         None
     };
@@ -148,12 +152,14 @@ async fn main() -> std::io::Result<()> {
             .service(nodeinfo::get_nodeinfo)
             .service(nodeinfo::get_nodeinfo_2_0);
         if let Some(blockchain_config) = &config.blockchain {
-            // Serve artifacts if available
-            app = app.service(actix_files::Files::new(
-                "/contracts",
-                &blockchain_config.contract_dir,
-            ));
-        }
+            if let Some(ethereum_config) = blockchain_config.ethereum_config() {
+                // Serve artifacts if available
+                app = app.service(actix_files::Files::new(
+                    "/contracts",
+                    &ethereum_config.contract_dir,
+                ));
+            };
+        };
         app
     })
     .workers(num_workers)

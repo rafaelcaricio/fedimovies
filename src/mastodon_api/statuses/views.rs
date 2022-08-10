@@ -425,7 +425,9 @@ async fn get_signature(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let blockchain_config = config.blockchain.as_ref()
+    let ethereum_config = config.blockchain.as_ref()
+        .ok_or(HttpError::NotSupported)?
+        .ethereum_config()
         .ok_or(HttpError::NotSupported)?;
     // Wallet address must be public because minting exposes it
     let wallet_address = current_user.public_wallet_address()
@@ -440,7 +442,7 @@ async fn get_signature(
         .ok_or(HttpError::PermissionError)?;
     let token_uri = get_ipfs_url(&ipfs_cid);
     let signature = create_mint_signature(
-        blockchain_config,
+        ethereum_config,
         &wallet_address,
         &token_uri,
     ).map_err(|_| HttpError::InternalError)?;
