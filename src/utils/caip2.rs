@@ -2,6 +2,7 @@
 use std::str::FromStr;
 
 use regex::Regex;
+use serde::{Deserialize, Deserializer, de::Error as DeserializerError};
 
 const CAIP2_RE: &str = r"(?P<namespace>[-a-z0-9]{3,8}):(?P<reference>[-a-zA-Z0-9]{1,32})";
 
@@ -29,6 +30,21 @@ impl FromStr for ChainId {
     }
 }
 
+impl ToString for ChainId {
+    fn to_string(&self) -> String {
+        format!("{}:{}", self.namespace, self.reference)
+    }
+}
+
+impl<'de> Deserialize<'de> for ChainId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        String::deserialize(deserializer)?
+            .parse().map_err(DeserializerError::custom)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -39,6 +55,7 @@ mod tests {
         let chain_id = value.parse::<ChainId>().unwrap();
         assert_eq!(chain_id.namespace, "bip122");
         assert_eq!(chain_id.reference, "000000000019d6689c085ae165831e93");
+        assert_eq!(chain_id.to_string(), value);
     }
 
     #[test]
@@ -47,6 +64,7 @@ mod tests {
         let chain_id = value.parse::<ChainId>().unwrap();
         assert_eq!(chain_id.namespace, "eip155");
         assert_eq!(chain_id.reference, "1");
+        assert_eq!(chain_id.to_string(), value);
     }
 
     #[test]

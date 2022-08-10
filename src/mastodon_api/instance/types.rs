@@ -57,7 +57,7 @@ impl InstanceInfo {
             login_message: config.login_message.clone(),
             post_character_limit: config.post_character_limit,
             blockchain_id: config.blockchain.as_ref()
-                .map(|val| val.chain_id.clone()),
+                .map(|val| val.chain_id.to_string()),
             blockchain_explorer_url: config.blockchain.as_ref()
                 .and_then(|val| val.explorer_url.clone()),
             blockchain_contract_address: config.blockchain.as_ref()

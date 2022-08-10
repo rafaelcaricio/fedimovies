@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use serde::Deserialize;
 
 use crate::ethereum::utils::{parse_caip2_chain_id, ChainIdError};
+use crate::utils::caip2::ChainId;
 
 fn default_chain_sync_step() -> u64 { 1000 }
 
@@ -11,8 +12,8 @@ fn default_chain_reorg_max_depth() -> u64 { 10 }
 
 #[derive(Clone, Deserialize)]
 pub struct BlockchainConfig {
-    // CAIP-2 chain ID (https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md)
-    pub chain_id: String,
+    // CAIP-2 chain ID
+    pub chain_id: ChainId,
     // Additional information for clients
     pub chain_info: Option<HashMap<String, String>>,
     pub contract_address: String,

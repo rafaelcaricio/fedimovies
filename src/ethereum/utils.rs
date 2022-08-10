@@ -10,9 +10,6 @@ use crate::utils::caip2::ChainId;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ChainIdError {
-    #[error("invalid chain ID")]
-    InvalidChainId,
-
     #[error("unsupported chain")]
     UnsupportedChain,
 
@@ -21,9 +18,7 @@ pub enum ChainIdError {
 }
 
 /// Parses CAIP-2 chain ID
-pub fn parse_caip2_chain_id(chain_id: &str) -> Result<u32, ChainIdError> {
-    let chain_id = chain_id.parse::<ChainId>()
-        .map_err(|_| ChainIdError::InvalidChainId)?;
+pub fn parse_caip2_chain_id(chain_id: &ChainId) -> Result<u32, ChainIdError> {
     if chain_id.namespace != "eip155" {
         return Err(ChainIdError::UnsupportedChain);
     };
@@ -54,15 +49,15 @@ mod tests {
 
     #[test]
     fn test_parse_caip2_chain_id() {
-        let chain_id = "eip155:1";
-        let result = parse_caip2_chain_id(chain_id).unwrap();
+        let chain_id: ChainId = "eip155:1".parse().unwrap();
+        let result = parse_caip2_chain_id(&chain_id).unwrap();
         assert_eq!(result, 1);
     }
 
     #[test]
     fn test_parse_caip2_chain_id_unsupported() {
-        let chain_id = "bip122:000000000019d6689c085ae165831e93";
-        let error = parse_caip2_chain_id(chain_id).err().unwrap();
+        let chain_id: ChainId = "bip122:000000000019d6689c085ae165831e93".parse().unwrap();
+        let error = parse_caip2_chain_id(&chain_id).err().unwrap();
         assert!(matches!(error, ChainIdError::UnsupportedChain));
     }
 }
