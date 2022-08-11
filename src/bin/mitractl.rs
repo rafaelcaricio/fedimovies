@@ -82,7 +82,6 @@ struct ListInviteCodes;
 /// Re-fetch actor profile by actor ID
 #[derive(Parser)]
 struct RefetchActor {
-    #[clap(short)]
     id: String,
 }
 
@@ -103,21 +102,18 @@ impl RefetchActor {
 /// Delete profile
 #[derive(Parser)]
 struct DeleteProfile {
-    #[clap(short)]
     id: Uuid,
 }
 
 /// Delete post
 #[derive(Parser)]
 struct DeletePost {
-    #[clap(short)]
     id: Uuid,
 }
 
 /// Delete old remote posts
 #[derive(Parser)]
 struct DeleteExtraneousPosts {
-    #[clap(short)]
     days: i64,
 
     #[clap(long)]
@@ -127,7 +123,6 @@ struct DeleteExtraneousPosts {
 /// Delete attachments that don't belong to any post
 #[derive(Parser)]
 struct DeleteUnusedAttachments {
-    #[clap(short)]
     days: i64,
 }
 
@@ -161,7 +156,6 @@ impl DeleteOrphanedFiles {
 /// Update blockchain synchronization starting block
 #[derive(Parser)]
 struct UpdateCurrentBlock {
-    #[clap(short)]
     number: u64,
 
     #[clap(long)]

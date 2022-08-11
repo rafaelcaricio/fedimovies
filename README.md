@@ -164,25 +164,25 @@ mitractl list-invite-codes
 Delete profile:
 
 ```
-mitractl delete-profile -i 55a3005f-f293-4168-ab70-6ab09a879679
+mitractl delete-profile 55a3005f-f293-4168-ab70-6ab09a879679
 ```
 
 Delete post:
 
 ```
-mitractl delete-post -i 55a3005f-f293-4168-ab70-6ab09a879679
+mitractl delete-post 55a3005f-f293-4168-ab70-6ab09a879679
 ```
 
 Remove remote posts and media older than 30 days:
 
 ```
-mitractl delete-extraneous-posts -d 30
+mitractl delete-extraneous-posts 30
 ```
 
 Delete attachments that doesn't belong to any post:
 
 ```
-mitractl delete-unused-attachments -d 5
+mitractl delete-unused-attachments 5
 ```
 
 Generate ethereum address:
@@ -194,7 +194,7 @@ mitractl generate-ethereum-address
 Update blockchain synchronization starting block:
 
 ```shell
-mitractl update-current-block -n 2000000
+mitractl update-current-block 2000000
 ```
 
 ## License
