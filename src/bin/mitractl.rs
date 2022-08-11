@@ -115,9 +115,6 @@ struct DeletePost {
 #[derive(Parser)]
 struct DeleteExtraneousPosts {
     days: i64,
-
-    #[clap(long)]
-    dry_run: bool,
 }
 
 /// Delete attachments that don't belong to any post
@@ -249,10 +246,8 @@ async fn main() {
                     let created_before = Utc::now() - Duration::days(subopts.days);
                     let posts = find_extraneous_posts(db_client, &created_before).await.unwrap();
                     for post_id in posts {
-                        if !subopts.dry_run {
-                            let deletion_queue = delete_post(db_client, &post_id).await.unwrap();
-                            deletion_queue.process(&config).await;
-                        };
+                        let deletion_queue = delete_post(db_client, &post_id).await.unwrap();
+                        deletion_queue.process(&config).await;
                         println!("post {} deleted", post_id);
                     };
                 },
