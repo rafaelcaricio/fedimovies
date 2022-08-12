@@ -9,6 +9,7 @@ pub mod notifications;
 pub mod oauth;
 pub mod posts;
 pub mod profiles;
+pub mod properties;
 pub mod reactions;
 pub mod relationships;
 pub mod subscriptions;
