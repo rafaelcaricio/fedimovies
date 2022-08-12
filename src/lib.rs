@@ -1,5 +1,6 @@
 pub mod activitypub;
 pub mod atom;
+pub mod cli;
 pub mod config;
 pub mod database;
 mod errors;
