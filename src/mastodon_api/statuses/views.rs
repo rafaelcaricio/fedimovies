@@ -429,8 +429,9 @@ async fn get_signature(
         .ok_or(HttpError::NotSupported)?
         .ethereum_config()
         .ok_or(HttpError::NotSupported)?;
-    // Wallet address must be public because minting exposes it
-    let wallet_address = current_user.public_wallet_address()
+    // User must have a public wallet address
+    let wallet_address = current_user
+        .public_wallet_address(&config.default_currency())
         .ok_or(HttpError::PermissionError)?;
     let post = get_post_by_id(db_client, &status_id).await?;
     if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {

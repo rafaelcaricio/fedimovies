@@ -300,9 +300,11 @@ async fn authorize_subscription(
         .ok_or(HttpError::NotSupported)?
         .ethereum_config()
         .ok_or(HttpError::NotSupported)?;
-    // Wallet address must be public, because subscribers should be able
+    // The user must have a public wallet address,
+    // because subscribers should be able
     // to verify that payments are actually sent to the recipient.
-    let wallet_address = current_user.public_wallet_address()
+    let wallet_address = current_user
+        .public_wallet_address(&config.default_currency())
         .ok_or(HttpError::PermissionError)?;
     let signature = create_subscription_signature(
         ethereum_config,
@@ -323,7 +325,8 @@ async fn subscriptions_enabled(
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     let contract_set = maybe_blockchain.as_ref().as_ref()
         .ok_or(HttpError::NotSupported)?;
-    let wallet_address = current_user.public_wallet_address()
+    let wallet_address = current_user
+        .public_wallet_address(&config.default_currency())
         .ok_or(HttpError::PermissionError)?;
     let is_registered = is_registered_recipient(contract_set, &wallet_address)
         .await.map_err(|_| HttpError::InternalError)?;

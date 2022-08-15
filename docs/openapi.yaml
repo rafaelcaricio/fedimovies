@@ -159,7 +159,7 @@ paths:
           description: User's wallet address is not known or not verified
         418:
           description: Blockchain integration is not enabled
-  /api/v1/accounts/subscription_enabled:
+  /api/v1/accounts/subscriptions_enabled:
     post:
       summary: Notify server about subscription setup
       responses:
@@ -792,11 +792,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Field'
-        wallet_address:
-          description: Ethereum wallet address (visibile only to the current user).
-          type: string
-          nullable: true
-          example: '0xd8da6bf...'
         subscription_page_url:
           description: Subscription page URL
           type: string

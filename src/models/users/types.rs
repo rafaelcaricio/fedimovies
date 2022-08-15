@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::errors::ValidationError;
 use crate::models::profiles::types::DbActorProfile;
+use crate::utils::currencies::Currency;
 
 #[allow(dead_code)]
 #[derive(FromSql)]
@@ -23,7 +24,7 @@ pub struct DbUser {
 #[cfg_attr(test, derive(Default))]
 pub struct User {
     pub id: Uuid,
-    pub wallet_address: Option<String>,
+    pub wallet_address: Option<String>, // login address
     pub password_hash: Option<String>,
     pub private_key: String,
     pub profile: DbActorProfile,
@@ -44,12 +45,17 @@ impl User {
         }
     }
 
-    /// Returns login address if it is verified
-    pub fn public_wallet_address(&self) -> Option<String> {
-        let wallet_address = self.wallet_address.clone()?;
-        let is_verified = self.profile.identity_proofs.clone().into_inner().iter()
-            .any(|proof| proof.issuer.address == wallet_address);
-        if is_verified { Some(wallet_address) } else { None }
+    /// Returns wallet address if it is verified
+    pub fn public_wallet_address(&self, currency: &Currency) -> Option<String> {
+        for proof in self.profile.identity_proofs.clone().into_inner() {
+            // Return first match (it's safe if user is local)
+            if let Some(ref address_currency) = proof.issuer.currency() {
+                if address_currency == currency {
+                    return Some(proof.issuer.address);
+                };
+            };
+        };
+        None
     }
 }
 
@@ -76,12 +82,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_public_wallet_address_hidden_by_default() {
+    fn test_public_wallet_address_login_address_not_exposed() {
         let user = User {
             wallet_address: Some("0x1234".to_string()),
             ..Default::default()
         };
-        assert_eq!(user.public_wallet_address(), None);
+        let ethereum = Currency::Ethereum;
+        assert_eq!(user.public_wallet_address(&ethereum), None);
     }
 
     #[test]

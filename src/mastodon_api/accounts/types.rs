@@ -57,7 +57,6 @@ pub struct Account {
 
     pub source: Option<Source>,
 
-    pub wallet_address: Option<String>,
     pub subscription_page_url: Option<String>,
 }
 
@@ -122,7 +121,6 @@ impl Account {
             following_count: profile.following_count,
             statuses_count: profile.post_count,
             source: None,
-            wallet_address: None,
             subscription_page_url,
         }
     }
@@ -140,11 +138,8 @@ impl Account {
             note: user.profile.bio_source.clone(),
             fields: fields_sources,
         };
-        // Expose login address only if it's verified
-        let wallet_address = user.public_wallet_address();
         let mut account = Self::from_profile(user.profile, instance_url);
         account.source = Some(source);
-        account.wallet_address = wallet_address;
         account
     }
 }
@@ -388,7 +383,6 @@ mod tests {
             format!("{}/media/test", INSTANCE_URL),
         );
         assert!(account.source.is_none());
-        assert!(account.wallet_address.is_none());
     }
 
     #[test]
@@ -410,6 +404,5 @@ mod tests {
             account.source.unwrap().note.unwrap(),
             bio_source,
         );
-        assert_eq!(account.wallet_address, None);
     }
 }
