@@ -41,14 +41,35 @@ impl EthereumConfig {
 }
 
 #[derive(Clone, Deserialize)]
+pub struct MoneroConfig {
+    pub chain_id: ChainId,
+    pub daemon_url: String,
+    pub wallet_url: String,
+    pub wallet_name: String,
+    pub wallet_password: Option<String>,
+}
+
+#[derive(Clone, Deserialize)]
 #[serde(untagged)]
 pub enum BlockchainConfig {
     Ethereum(EthereumConfig),
+    Monero(MoneroConfig),
 }
 
 impl BlockchainConfig {
     pub fn ethereum_config(&self) -> Option<&EthereumConfig> {
-        let Self::Ethereum(ethereum_config) = self;
-        Some(ethereum_config)
+        if let Self::Ethereum(ethereum_config) = self {
+            Some(ethereum_config)
+        } else {
+            None
+        }
+    }
+
+    pub fn monero_config(&self) -> Option<&MoneroConfig> {
+        if let Self::Monero(monero_config) = self {
+            Some(monero_config)
+        } else {
+            None
+        }
     }
 }

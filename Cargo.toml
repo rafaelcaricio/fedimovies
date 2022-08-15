@@ -38,6 +38,8 @@ env_logger = { version = "0.9.0", default-features = false }
 # Used to guess media type of a file
 mime_guess = "2.0.3"
 mime-sniffer = "0.1.2"
+# Used to query Monero node
+monero-rpc = "0.2.0"
 # Used to determine the number of CPUs on the system
 num_cpus = "1.13.0"
 # Used for working with regular expressions

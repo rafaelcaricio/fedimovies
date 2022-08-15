@@ -22,5 +22,12 @@ blockchain:
   chain_sync_step: 100
   chain_reorg_max_depth: 0
 
+#blockchain:
+#  chain_id: monero:regtest
+#  daemon_url: 'http://127.0.0.1:58081'
+#  wallet_url: 'http://127.0.0.1:58083'
+#  wallet_name: test
+#  wallet_password: test
+
 ipfs_api_url: 'http://127.0.0.1:5001'
 ipfs_gateway_url: 'http://127.0.0.1:8001'

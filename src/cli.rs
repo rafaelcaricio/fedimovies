@@ -1,4 +1,4 @@
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use chrono::{Duration, Utc};
 use clap::Parser;
 use tokio_postgres::GenericClient;
@@ -26,6 +26,7 @@ use crate::models::users::queries::{
     get_invite_codes,
     get_user_by_id,
 };
+use crate::monero::wallet::create_monero_wallet;
 use crate::utils::crypto::{generate_private_key, serialize_private_key};
 use crate::utils::files::remove_files;
 
@@ -48,8 +49,9 @@ pub enum SubCommand {
     DeletePost(DeletePost),
     DeleteExtraneousPosts(DeleteExtraneousPosts),
     DeleteUnusedAttachments(DeleteUnusedAttachments),
-    UpdateCurrentBlock(UpdateCurrentBlock),
     DeleteOrphanedFiles(DeleteOrphanedFiles),
+    UpdateCurrentBlock(UpdateCurrentBlock),
+    CreateMoneroWallet(CreateMoneroWallet),
 }
 
 /// Generate RSA private key
@@ -286,6 +288,24 @@ impl UpdateCurrentBlock {
             reset_subscriptions(db_client).await?;
         };
         println!("current block updated");
+        Ok(())
+    }
+}
+
+/// Create Monero wallet
+#[derive(Parser)]
+pub struct CreateMoneroWallet;
+
+impl CreateMoneroWallet {
+    pub async fn execute(
+        &self,
+        config: &Config,
+    ) -> Result<(), Error> {
+        let monero_config = config.blockchain.as_ref()
+            .and_then(|conf| conf.monero_config())
+            .ok_or(anyhow!("monero configuration not found"))?;
+        create_monero_wallet(monero_config).await?;
+        println!("wallet created");
         Ok(())
     }
 }

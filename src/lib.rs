@@ -11,6 +11,7 @@ mod ipfs;
 pub mod logger;
 pub mod mastodon_api;
 pub mod models;
+pub mod monero;
 pub mod nodeinfo;
 pub mod scheduler;
 pub mod utils;
