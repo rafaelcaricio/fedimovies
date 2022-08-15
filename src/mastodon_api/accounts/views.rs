@@ -95,17 +95,17 @@ pub async fn create_account(
             .ok_or(ValidationError("invite code is required"))?;
         if !is_valid_invite_code(db_client, invite_code).await? {
             return Err(ValidationError("invalid invite code").into());
-        }
-    }
+        };
+    };
 
-    let password_hash = if let Some(password) = account_data.password.as_ref() {
+    let maybe_password_hash = if let Some(password) = account_data.password.as_ref() {
         let password_hash = hash_password(password)
             .map_err(|_| HttpError::InternalError)?;
         Some(password_hash)
     } else {
         None
     };
-    let wallet_address = if let Some(message) = account_data.message.as_ref() {
+    let maybe_wallet_address = if let Some(message) = account_data.message.as_ref() {
         let signature = account_data.signature.as_ref()
             .ok_or(ValidationError("signature is required"))?;
         let wallet_address = verify_eip4361_signature(
@@ -118,11 +118,14 @@ pub async fn create_account(
     } else {
         None
     };
-    assert!(password_hash.is_some() || wallet_address.is_some());
+    if maybe_wallet_address.is_some() == maybe_password_hash.is_some() {
+        // Either password or EIP-4361 auth must be used (but not both)
+        return Err(ValidationError("invalid login data").into());
+    };
 
     if let Some(contract_set) = maybe_blockchain.as_ref() {
         // Wallet address is required if blockchain integration is enabled
-        let wallet_address = wallet_address.as_ref()
+        let wallet_address = maybe_wallet_address.as_ref()
             .ok_or(ValidationError("wallet address is required"))?;
         let is_allowed = is_allowed_user(contract_set, wallet_address).await
             .map_err(|_| HttpError::InternalError)?;
@@ -145,9 +148,9 @@ pub async fn create_account(
         account_data.into_inner();
     let user_data = UserCreateData {
         username,
-        password_hash,
+        password_hash: maybe_password_hash,
         private_key_pem,
-        wallet_address,
+        wallet_address: maybe_wallet_address,
         invite_code,
     };
     let user = match create_user(db_client, user_data).await {
