@@ -56,6 +56,7 @@ use crate::models::subscriptions::queries::get_incoming_subscriptions;
 use crate::models::users::queries::{
     is_valid_invite_code,
     create_user,
+    get_user_by_did,
 };
 use crate::models::users::types::UserCreateData;
 use crate::utils::crypto::{
@@ -259,6 +260,15 @@ async fn create_identity_proof(
         if did.address != address {
             return Err(ValidationError("DID doesn't match current identity").into());
         };
+    };
+    match get_user_by_did(db_client, &did).await {
+        Ok(user) => {
+            if user.id != current_user.id {
+                return Err(ValidationError("DID already associated with another user").into());
+            };
+        },
+        Err(DatabaseError::NotFound(_)) => (),
+        Err(other_error) => return Err(other_error.into()),
     };
     verify_identity_proof(
         &actor_id,

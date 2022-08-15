@@ -3,8 +3,10 @@ use uuid::Uuid;
 
 use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
+use crate::ethereum::identity::DidPkh;
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
+use crate::utils::currencies::Currency;
 use super::types::{DbUser, User, UserCreateData};
 use super::utils::generate_invite_code;
 
@@ -161,7 +163,7 @@ pub async fn is_registered_user(
     Ok(maybe_row.is_some())
 }
 
-pub async fn get_user_by_wallet_address(
+pub async fn get_user_by_login_address(
     db_client: &impl GenericClient,
     wallet_address: &str,
 ) -> Result<User, DatabaseError> {
@@ -178,6 +180,40 @@ pub async fn get_user_by_wallet_address(
     let db_profile: DbActorProfile = row.try_get("actor_profile")?;
     let user = User::new(db_user, db_profile);
     Ok(user)
+}
+
+pub async fn get_user_by_did(
+    db_client: &impl GenericClient,
+    did: &DidPkh,
+) -> Result<User, DatabaseError> {
+    // DIDs must be locally unique
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT user_account, actor_profile
+        FROM user_account JOIN actor_profile USING (id)
+        WHERE
+            EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(actor_profile.identity_proofs) AS proof
+                WHERE proof ->> 'issuer' = $1
+            )
+        ",
+        &[&did.to_string()],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
+    let db_user: DbUser = row.try_get("user_account")?;
+    let db_profile: DbActorProfile = row.try_get("actor_profile")?;
+    let user = User::new(db_user, db_profile);
+    Ok(user)
+}
+
+pub async fn get_user_by_wallet_address(
+    db_client: &impl GenericClient,
+    currency: &Currency,
+    wallet_address: &str,
+) -> Result<User, DatabaseError> {
+    let did = DidPkh::from_address(currency, wallet_address);
+    get_user_by_did(db_client, &did).await
 }
 
 pub async fn get_user_count(

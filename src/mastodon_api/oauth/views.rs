@@ -8,7 +8,7 @@ use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::models::oauth::queries::save_oauth_token;
 use crate::models::users::queries::{
     get_user_by_name,
-    get_user_by_wallet_address,
+    get_user_by_login_address,
 };
 use crate::utils::crypto::verify_password;
 use crate::utils::currencies::validate_wallet_address;
@@ -37,7 +37,7 @@ async fn token_view(
             let wallet_address = request_data.wallet_address.as_ref()
                 .ok_or(ValidationError("wallet address is required"))?;
             validate_wallet_address(&config.default_currency(), wallet_address)?;
-            get_user_by_wallet_address(db_client, wallet_address).await?
+            get_user_by_login_address(db_client, wallet_address).await?
         },
         "eip4361" => {
             let message = request_data.message.as_ref()
@@ -50,7 +50,7 @@ async fn token_view(
                 &config.instance().host(),
                 &config.login_message,
             )?;
-            get_user_by_wallet_address(db_client, &wallet_address).await?
+            get_user_by_login_address(db_client, &wallet_address).await?
         },
         _ => {
             return Err(ValidationError("unsupported grant type").into());

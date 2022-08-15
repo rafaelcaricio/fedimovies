@@ -131,7 +131,11 @@ pub async fn check_subscriptions(
                 continue;
             },
         };
-        let recipient = get_user_by_wallet_address(db_client, &recipient_address).await?;
+        let recipient = get_user_by_wallet_address(
+            db_client,
+            &ETHEREUM,
+            &recipient_address,
+        ).await?;
 
         match get_subscription_by_participants(
             db_client,

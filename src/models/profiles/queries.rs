@@ -404,7 +404,7 @@ pub async fn search_profile_by_did(
             _ => "LIKE",
         };
         // This query does not scan user_account.wallet_address because
-        // login addresses are private by default.
+        // login addresses are private.
         let statement = format!(
             "
             {identity_proof_query}
