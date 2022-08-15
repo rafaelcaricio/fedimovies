@@ -235,6 +235,11 @@ impl AccountUpdateData {
     }
 }
 
+#[derive(Deserialize)]
+pub struct IdentityClaimQueryParams {
+    pub did: String,
+}
+
 #[derive(Serialize)]
 pub struct IdentityClaim {
     pub claim: String,
@@ -242,6 +247,7 @@ pub struct IdentityClaim {
 
 #[derive(Deserialize)]
 pub struct IdentityProofData {
+    pub did: String,
     pub signature: String,
 }
 

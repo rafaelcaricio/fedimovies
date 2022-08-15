@@ -101,6 +101,14 @@ paths:
   /api/v1/accounts/identity_proof:
     get:
       summary: Get unsigned data for identity proof.
+      parameters:
+        - name: did
+          in: query
+          description: Identifier (DID)
+          required: true
+          schema:
+            type: string
+            example: 'did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a'
       responses:
         200:
           description: Successful operation
@@ -113,8 +121,8 @@ paths:
                     description: Identity claim serialized as compact JSON.
                     type: string
                     example: '{"id":"https://example.com/users/1","ownerOf":"did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a"}'
-        403:
-          description: User's wallet address is not known
+        400:
+          description: Invalid request parameters
     post:
       summary: Submit identity proof.
       requestBody:
@@ -123,6 +131,10 @@ paths:
             schema:
               type: object
               properties:
+                did:
+                  description: Identifier (DID)
+                  type: string
+                  example: 'did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a'
                 signature:
                   description: Signature value.
                   type: string
@@ -135,9 +147,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Account'
         400:
-          description: Invalid signature.
-        403:
-          description: User's wallet address is not known
+          description: Invalid proof data.
   /api/v1/accounts/authorize_subscription:
     get:
       summary: Get authorization for setting up paid subscription.

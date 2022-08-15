@@ -72,6 +72,7 @@ use super::types::{
     FollowData,
     FollowListQueryParams,
     IdentityClaim,
+    IdentityClaimQueryParams,
     IdentityProofData,
     RelationshipQueryParams,
     SearchDidQueryParams,
@@ -224,13 +225,13 @@ async fn get_identity_claim(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
+    query_params: web::Query<IdentityClaimQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let actor_id = current_user.profile.actor_id(&config.instance_url());
-    let wallet_address = current_user.wallet_address.as_ref()
-        .ok_or(HttpError::PermissionError)?;
-    let did = DidPkh::from_address(&config.default_currency(), wallet_address);
+    let did = query_params.did.parse::<DidPkh>()
+        .map_err(|_| ValidationError("invalid DID"))?;
     let claim = create_identity_claim(&actor_id, &did)
         .map_err(|_| HttpError::InternalError)?;
     let response = IdentityClaim { claim };
@@ -247,9 +248,18 @@ async fn create_identity_proof(
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     let actor_id = current_user.profile.actor_id(&config.instance_url());
-    let wallet_address = current_user.wallet_address.as_ref()
-        .ok_or(HttpError::PermissionError)?;
-    let did = DidPkh::from_address(&config.default_currency(), wallet_address);
+    let did = proof_data.did.parse::<DidPkh>()
+        .map_err(|_| ValidationError("invalid DID"))?;
+    if did.currency() != Some(config.default_currency()) {
+        return Err(ValidationError("unsupported chain ID").into());
+    };
+    let maybe_public_address =
+        current_user.public_wallet_address(&config.default_currency());
+    if let Some(address) = maybe_public_address {
+        if did.address != address {
+            return Err(ValidationError("DID doesn't match current identity").into());
+        };
+    };
     verify_identity_proof(
         &actor_id,
         &did,
