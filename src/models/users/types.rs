@@ -71,16 +71,6 @@ pub fn validate_local_username(username: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-/// Verifies that wallet address is valid ethereum address
-pub fn validate_wallet_address(wallet_address: &str) -> Result<(), ValidationError> {
-    // Address should be lowercase
-    let address_regexp = Regex::new(r"^0x[a-f0-9]{40}$").unwrap();
-    if !address_regexp.is_match(wallet_address) {
-        return Err(ValidationError("address is not lowercase"));
-    };
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,15 +90,5 @@ mod tests {
         assert_eq!(result_1.is_ok(), true);
         let result_2 = validate_local_username("name&");
         assert_eq!(result_2.is_ok(), false);
-    }
-
-    #[test]
-    fn test_validate_wallet_address() {
-        let result_1 = validate_wallet_address("0xab5801a7d398351b8be11c439e05c5b3259aec9b");
-        assert_eq!(result_1.is_ok(), true);
-        let result_2 = validate_wallet_address("ab5801a7d398351b8be11c439e05c5b3259aec9b");
-        assert_eq!(result_2.is_ok(), false);
-        let result_3 = validate_wallet_address("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B");
-        assert_eq!(result_3.is_ok(), false);
     }
 }
