@@ -12,6 +12,29 @@ services:
       - "55432:5432"
     volumes:
       - mitra_postgres:/var/lib/postgresql/data
-  
+
+  # https://github.com/farcaster-project/containers
+  monerod:
+    profiles:
+      - monero
+    image: ghcr.io/farcaster-project/containers/monerod:0.18.0.0
+    environment:
+      NETWORK: regtest
+      OFFLINE: --offline
+      DIFFICULTY: 1
+    ports:
+      - "58081:18081"
+  monero-wallet-rpc:
+    profiles:
+      - monero
+    image: ghcr.io/farcaster-project/containers/monero-wallet-rpc:0.18.0.0
+    environment:
+      MONERO_DAEMON_ADDRESS: monerod:18081
+      WALLET_RPC_PORT: 18083
+    depends_on:
+      - "monerod"
+    ports:
+      - "58083:18083"
+
 volumes:
   mitra_postgres:
