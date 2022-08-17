@@ -22,7 +22,7 @@ anyhow = "1.0.58"
 # Used for working with RSA keys, HTTP signatures and file uploads
 base64 = "0.13.0"
 # Used for working with dates
-chrono = { version = "0.4.19", features = ["serde"] }
+chrono = { version = "0.4.22", features = ["serde"] }
 # Used to build admin CLI tool
 clap = { version = "3.1.8", default-features = false, features = ["std", "derive"] }
 # Used for pooling database connections
@@ -41,7 +41,7 @@ mime-sniffer = "0.1.2"
 # Used to determine the number of CPUs on the system
 num_cpus = "1.13.0"
 # Used for working with regular expressions
-regex = "1.5.4"
+regex = "1.6.0"
 # Used to generate random numbers
 rand = "0.8.4"
 # Used for managing database migrations

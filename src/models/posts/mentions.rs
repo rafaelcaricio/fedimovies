@@ -71,6 +71,7 @@ pub fn replace_mentions(
                 // Replace with a link to profile.
                 // Actor URL may differ from actor ID.
                 let url = profile.actor_url(instance_url);
+                #[allow(clippy::to_string_in_format_args)]
                 return format!(
                     // https://microformats.org/wiki/h-card
                     r#"{}<span class="h-card"><a class="u-url mention" href="{}">@{}</a></span>{}"#,
