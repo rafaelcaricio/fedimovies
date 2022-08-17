@@ -684,6 +684,34 @@ paths:
           description: User's wallet address is not known or not verified
         418:
           description: Blockchain integration is not enabled
+  /api/v1/subscriptions/invoices:
+    post:
+      summary: Create invoice
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sender:
+                  description: Sender actor address (webfinger account URI).
+                  type: string
+                  example: user@example.org
+                recipient:
+                  description: Recipient ID.
+                  type: string
+                  format: uuid
+      responses:
+        200:
+          description: Invoice created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        404:
+          description: Sender or recipient not found.
+        418:
+          description: Blockchain integration is not enabled.
   /api/v1/timelines/public:
     get:
       summary: View local public posts.
@@ -924,6 +952,24 @@ components:
           description: IPFS gateway URL.
           type: string
           nullable: true
+    Invoice:
+      type: object
+      properties:
+        id:
+          description: Invoice ID.
+          type: string
+          format: uuid
+        sender_id:
+          description: The profile ID of the sender.
+          type: string
+          format: uuid
+        recipient_id:
+          description: The profile ID of the recipient.
+          type: string
+          format: uuid
+        payment_address:
+          description: Payment address.
+          type: string
     Mention:
       type: object
       properties:

@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse, Scope};
+use actix_web::{post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use crate::activitypub::builders::update_person::prepare_update_person;
@@ -12,15 +12,23 @@ use crate::ethereum::subscriptions::{
 };
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::models::profiles::queries::update_profile;
+use crate::models::invoices::queries::create_invoice;
+use crate::models::profiles::queries::{
+    get_profile_by_acct,
+    update_profile,
+};
 use crate::models::profiles::types::{
     MoneroSubscription,
     PaymentOption,
     PaymentType,
     ProfileUpdateData,
 };
+use crate::models::users::queries::get_user_by_id;
+use crate::monero::wallet::create_monero_address;
 use crate::utils::currencies::Currency;
 use super::types::{
+    Invoice,
+    InvoiceData,
     SubscriptionQueryParams,
     SubscriptionSettings,
 };
@@ -123,8 +131,36 @@ pub async fn subscriptions_enabled(
     Ok(HttpResponse::Ok().json(account))
 }
 
+#[post("/invoices")]
+async fn create_invoice_view(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    invoice_data: web::Json<InvoiceData>,
+) -> Result<HttpResponse, HttpError> {
+    let monero_config = config.blockchain()
+        .ok_or(HttpError::NotSupported)?
+        .monero_config()
+        .ok_or(HttpError::NotSupported)?;
+    let db_client = &**get_database_client(&db_pool).await?;
+    let sender = get_profile_by_acct(db_client, &invoice_data.sender).await?;
+    let recipient = get_user_by_id(db_client, &invoice_data.recipient).await?;
+    let payment_address = create_monero_address(monero_config).await
+        .map_err(|_| HttpError::InternalError)?
+        .to_string();
+    let db_invoice = create_invoice(
+        db_client,
+        &sender.id,
+        &recipient.id,
+        &monero_config.chain_id,
+        &payment_address,
+    ).await?;
+    let invoice = Invoice::from(db_invoice);
+    Ok(HttpResponse::Ok().json(invoice))
+}
+
 pub fn subscription_api_scope() -> Scope {
     web::scope("/api/v1/subscriptions")
         .route("/authorize", web::get().to(authorize_subscription))
         .route("/enable", web::post().to(subscriptions_enabled))
+        .service(create_invoice_view)
 }
