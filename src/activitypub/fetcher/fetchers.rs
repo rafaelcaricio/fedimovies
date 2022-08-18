@@ -79,6 +79,8 @@ async fn send_request(
     Ok(data)
 }
 
+const FILE_MAX_SIZE: usize = 1024 * 1024 * 10;
+
 pub async fn fetch_file(
     url: &str,
     output_dir: &Path,
@@ -86,6 +88,9 @@ pub async fn fetch_file(
     let client = build_client()?;
     let response = client.get(url).send().await?;
     let file_data = response.bytes().await?;
+    if file_data.len() > FILE_MAX_SIZE {
+        return Err(FetchError::OtherError("file is too large"));
+    };
     let (file_name, media_type) = save_file(file_data.to_vec(), output_dir, None)?;
     Ok((file_name, media_type))
 }
