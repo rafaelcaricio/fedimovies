@@ -30,7 +30,6 @@ use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::pagination::get_paginated_response;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Status;
-use crate::mastodon_api::uploads::UploadError;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_id,
@@ -194,18 +193,7 @@ async fn update_credentials(
             &current_user.profile.identity_proofs.into_inner(),
             &current_user.profile.payment_options.into_inner(),
             &config.media_dir(),
-        )
-        .map_err(|err| {
-            match err {
-                UploadError::Base64DecodingError(_) => {
-                    HttpError::ValidationError("base64 decoding error".into())
-                },
-                UploadError::InvalidMediaType => {
-                    HttpError::ValidationError("invalid media type".into())
-                },
-                _ => HttpError::InternalError,
-            }
-        })?;
+        )?;
     profile_data.clean()?;
     current_user.profile = update_profile(
         db_client,

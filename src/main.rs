@@ -25,11 +25,10 @@ use mitra::mastodon_api::oauth::views::oauth_api_scope;
 use mitra::mastodon_api::search::views::search_api_scope;
 use mitra::mastodon_api::statuses::views::status_api_scope;
 use mitra::mastodon_api::timelines::views::timeline_api_scope;
+use mitra::mastodon_api::UPLOAD_MAX_SIZE;
 use mitra::nodeinfo::views as nodeinfo;
 use mitra::scheduler;
 use mitra::webfinger::views as webfinger;
-
-const MAX_UPLOAD_SIZE: usize = 1024 * 1024 * 10;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -119,8 +118,8 @@ async fn main() -> std::io::Result<()> {
                 }
             })
             .wrap(create_auth_error_handler())
-            .app_data(web::PayloadConfig::default().limit(MAX_UPLOAD_SIZE))
-            .app_data(web::JsonConfig::default().limit(MAX_UPLOAD_SIZE))
+            .app_data(web::PayloadConfig::default().limit(UPLOAD_MAX_SIZE * 2))
+            .app_data(web::JsonConfig::default().limit(UPLOAD_MAX_SIZE * 2))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(db_pool.clone()))
             .app_data(web::Data::new(maybe_contract_set.clone()))
