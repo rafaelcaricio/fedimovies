@@ -69,18 +69,18 @@ thiserror = "1.0.24"
 # Async runtime
 tokio = { version = "1.17.0", features = ["macros"] }
 # Used for working with Postgresql database
-tokio-postgres = { version = "0.7.5", features = ["with-chrono-0_4", "with-uuid-0_8", "with-serde_json-1"] }
-postgres-types = { version = "0.2.2", features = ["derive", "with-chrono-0_4", "with-uuid-0_8", "with-serde_json-1"] }
-postgres-protocol = "0.6.1"
+tokio-postgres = { version = "0.7.6", features = ["with-chrono-0_4", "with-uuid-1", "with-serde_json-1"] }
+postgres-types = { version = "0.2.3", features = ["derive", "with-chrono-0_4", "with-uuid-1", "with-serde_json-1"] }
+postgres-protocol = "0.6.4"
 # Used to construct PostgreSQL queries
 postgres_query = { git = "https://github.com/nolanderc/rust-postgres-query", rev = "b4422051c8a31fbba4a35f88004c1cefb1878dd5" }
 postgres_query_macro = { git = "https://github.com/nolanderc/rust-postgres-query", rev = "b4422051c8a31fbba4a35f88004c1cefb1878dd5" }
 # Used to work with URLs
 url = "2.2.2"
 # Used to generate lexicographically sortable IDs
-ulid = { version = "0.4.1", features = ["uuid"] }
+ulid = { version = "1.0.0", features = ["uuid"] }
 # Used to work with UUIDs
-uuid = { version = "0.8.2", features = ["serde", "v4"] }
+uuid = { version = "1.1.2", features = ["serde", "v4"] }
 # Used to query ethereum node
 web3 = { version = "0.18.0", default-features = false, features = ["http", "http-tls", "signing"] }
 
