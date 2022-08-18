@@ -5,8 +5,8 @@ use crate::config::Config;
 use crate::database::{Pool, get_database_client};
 use crate::errors::HttpError;
 use crate::mastodon_api::oauth::auth::get_current_user;
+use crate::mastodon_api::uploads::{UploadError, save_b64_file};
 use crate::models::attachments::queries::create_attachment;
-use crate::utils::files::{FileError, save_b64_file};
 use super::types::{AttachmentCreateData, Attachment};
 
 #[post("")]
@@ -22,7 +22,9 @@ async fn create_attachment_view(
         &attachment_data.file,
         &config.media_dir(),
     ).map_err(|err| match err {
-        FileError::Base64DecodingError(err) => HttpError::ValidationError(err.to_string()),
+        UploadError::Base64DecodingError(err) => {
+            HttpError::ValidationError(err.to_string())
+        },
         _ => HttpError::InternalError,
     })?;
     let db_attachment = create_attachment(

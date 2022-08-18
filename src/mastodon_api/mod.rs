@@ -9,5 +9,6 @@ mod pagination;
 pub mod search;
 pub mod statuses;
 pub mod timelines;
+mod uploads;
 
 const MASTODON_API_VERSION: &str = "3.0.0";

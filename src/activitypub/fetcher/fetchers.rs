@@ -9,7 +9,7 @@ use crate::activitypub::actors::types::{Actor, ActorAddress};
 use crate::activitypub::constants::ACTIVITY_CONTENT_TYPE;
 use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};
-use crate::utils::files::{save_file, FileError};
+use crate::utils::files::save_file;
 use crate::webfinger::types::JsonResourceDescriptor;
 
 const FETCHER_CONNECTION_TIMEOUT: u64 = 30;
@@ -26,7 +26,7 @@ pub enum FetchError {
     JsonParseError(#[from] serde_json::Error),
 
     #[error(transparent)]
-    FileError(#[from] FileError),
+    FileError(#[from] std::io::Error),
 
     #[error("{0}")]
     OtherError(&'static str),
@@ -86,7 +86,7 @@ pub async fn fetch_file(
     let client = build_client()?;
     let response = client.get(url).send().await?;
     let file_data = response.bytes().await?;
-    let (file_name, media_type) = save_file(file_data.to_vec(), output_dir)?;
+    let (file_name, media_type) = save_file(file_data.to_vec(), output_dir, None)?;
     Ok((file_name, media_type))
 }
 

@@ -4,6 +4,7 @@ use std::fs::{
     File,
     Permissions,
 };
+use std::io::Error;
 use std::io::prelude::*;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -12,19 +13,7 @@ use mime_guess::get_mime_extensions_str;
 use mime_sniffer::MimeTypeSniffer;
 use sha2::{Digest, Sha256};
 
-#[derive(thiserror::Error, Debug)]
-pub enum FileError {
-    #[error(transparent)]
-    WriteError(#[from] std::io::Error),
-
-    #[error("base64 decoding error")]
-    Base64DecodingError(#[from] base64::DecodeError),
-
-    #[error("invalid media type")]
-    InvalidMediaType,
-}
-
-fn sniff_media_type(data: &[u8]) -> Option<String> {
+pub fn sniff_media_type(data: &[u8]) -> Option<String> {
     data.sniff_mime_type().map(|val| val.to_string())
 }
 
@@ -42,13 +31,13 @@ fn get_file_name(data: &[u8], media_type: Option<&str>) -> String {
     file_name
 }
 
-pub fn write_file(data: &[u8], file_path: &Path) -> Result<(), FileError> {
+pub fn write_file(data: &[u8], file_path: &Path) -> Result<(), Error> {
     let mut file = File::create(file_path)?;
     file.write_all(data)?;
     Ok(())
 }
 
-pub fn set_file_permissions(file_path: &Path, mode: u32) -> Result<(), FileError> {
+pub fn set_file_permissions(file_path: &Path, mode: u32) -> Result<(), Error> {
     let permissions = Permissions::from_mode(mode);
     set_permissions(file_path, permissions)?;
     Ok(())
@@ -57,38 +46,11 @@ pub fn set_file_permissions(file_path: &Path, mode: u32) -> Result<(), FileError
 pub fn save_file(
     data: Vec<u8>,
     output_dir: &Path,
-) -> Result<(String, Option<String>), FileError> {
-    let media_type = sniff_media_type(&data);
+    media_type: Option<String>,
+) -> Result<(String, Option<String>), Error> {
+    // Sniff media type if not provided
+    let media_type = media_type.or(sniff_media_type(&data));
     let file_name = get_file_name(&data, media_type.as_deref());
-    let file_path = output_dir.join(&file_name);
-    write_file(&data, &file_path)?;
-    Ok((file_name, media_type))
-}
-
-pub fn save_b64_file(
-    b64data: &str,
-    output_dir: &Path,
-) -> Result<(String, Option<String>), FileError> {
-    let data = base64::decode(b64data)?;
-    let media_type = sniff_media_type(&data);
-    let file_name = get_file_name(&data, media_type.as_deref());
-    let file_path = output_dir.join(&file_name);
-    write_file(&data, &file_path)?;
-    Ok((file_name, media_type))
-}
-
-pub fn save_validated_b64_file(
-    b64data: &str,
-    output_dir: &Path,
-    media_type_prefix: &str,
-) -> Result<(String, String), FileError> {
-    let data = base64::decode(b64data)?;
-    let media_type = sniff_media_type(&data)
-        .ok_or(FileError::InvalidMediaType)?;
-    if !media_type.starts_with(media_type_prefix) {
-        return Err(FileError::InvalidMediaType);
-    }
-    let file_name = get_file_name(&data, Some(&media_type));
     let file_path = output_dir.join(&file_name);
     write_file(&data, &file_path)?;
     Ok((file_name, media_type))

@@ -30,6 +30,7 @@ use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::pagination::get_paginated_response;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Status;
+use crate::mastodon_api::uploads::UploadError;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_id,
@@ -64,7 +65,6 @@ use crate::utils::crypto::{
     generate_private_key,
     serialize_private_key,
 };
-use crate::utils::files::FileError;
 use super::helpers::get_relationship;
 use super::types::{
     Account,
@@ -197,10 +197,10 @@ async fn update_credentials(
         )
         .map_err(|err| {
             match err {
-                FileError::Base64DecodingError(_) => {
+                UploadError::Base64DecodingError(_) => {
                     HttpError::ValidationError("base64 decoding error".into())
                 },
-                FileError::InvalidMediaType => {
+                UploadError::InvalidMediaType => {
                     HttpError::ValidationError("invalid media type".into())
                 },
                 _ => HttpError::InternalError,

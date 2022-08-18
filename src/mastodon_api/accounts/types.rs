@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::errors::ValidationError;
 use crate::frontend::get_subscription_page_url;
+use crate::mastodon_api::uploads::{UploadError, save_validated_b64_file};
 use crate::models::profiles::types::{
     DbActorProfile,
     ExtraField,
@@ -20,7 +21,7 @@ use crate::models::users::types::{
     validate_local_username,
     User,
 };
-use crate::utils::files::{FileError, save_validated_b64_file, get_file_url};
+use crate::utils::files::get_file_url;
 
 /// https://docs.joinmastodon.org/entities/field/
 #[derive(Serialize)]
@@ -182,7 +183,7 @@ fn process_b64_image_field_value(
     form_value: Option<String>,
     db_value: Option<String>,
     output_dir: &Path,
-) -> Result<Option<String>, FileError> {
+) -> Result<Option<String>, UploadError> {
     let maybe_file_name = match form_value {
         Some(b64_data) => {
             if b64_data.is_empty() {
@@ -210,7 +211,7 @@ impl AccountUpdateData {
         current_identity_proofs: &[IdentityProof],
         current_payment_options: &[PaymentOption],
         media_dir: &Path,
-    ) -> Result<ProfileUpdateData, FileError> {
+    ) -> Result<ProfileUpdateData, UploadError> {
         let avatar = process_b64_image_field_value(
             self.avatar, current_avatar.clone(), media_dir,
         )?;
