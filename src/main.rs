@@ -1,10 +1,9 @@
 use actix_cors::Cors;
 use actix_web::{
-    http::header,
-    web,
-    App, HttpServer,
     dev::Service,
     middleware::Logger as ActixLogger,
+    web,
+    App, HttpServer,
 };
 use tokio::sync::Mutex;
 
@@ -95,13 +94,9 @@ async fn main() -> std::io::Result<()> {
                     })
                     .allow_any_method()
                     .allow_any_header()
+                    .expose_any_header()
             },
         };
-        let cors_config = cors_config
-            // Link header needs to be explicitly exposed
-            // because expose_any_header doesn't work
-            // https://github.com/actix/actix-extras/issues/192
-            .expose_headers(vec![header::LINK]);
         let mut app = App::new()
             .wrap(cors_config)
             .wrap(ActixLogger::new("%r : %s : %{r}a"))
