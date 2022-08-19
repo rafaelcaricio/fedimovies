@@ -1,14 +1,24 @@
 use monero_rpc::RpcClient;
-use monero_rpc::monero::Address;
+use monero_rpc::monero::{Address, util::address::Error as AddressError};
 
 use crate::config::MoneroConfig;
+use crate::errors::DatabaseError;
 
-const DEFAULT_ACCOUNT: u32 = 0;
+pub const DEFAULT_ACCOUNT: u32 = 0;
 
 #[derive(thiserror::Error, Debug)]
 pub enum MoneroError {
     #[error(transparent)]
     WalletError(#[from] anyhow::Error),
+
+    #[error(transparent)]
+    AddressError(#[from] AddressError),
+
+    #[error(transparent)]
+    DatabaseError(#[from] DatabaseError),
+
+    #[error("other error")]
+    OtherError(&'static str),
 }
 
 /// http://monerotoruzizulg5ttgat2emf4d6fbmiea25detrmmy7erypseyteyd.onion/resources/developer-guides/wallet-rpc.html#create_wallet

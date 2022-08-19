@@ -13,12 +13,14 @@ use crate::ethereum::subscriptions::{
     check_ethereum_subscriptions,
     update_expired_subscriptions,
 };
+use crate::monero::subscriptions::check_monero_subscriptions;
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 enum Task {
     NftMonitor,
     EthereumSubscriptionMonitor,
     SubscriptionExpirationMonitor,
+    MoneroPaymentMonitor,
 }
 
 impl Task {
@@ -28,6 +30,7 @@ impl Task {
             Self::NftMonitor => 30,
             Self::EthereumSubscriptionMonitor => 300,
             Self::SubscriptionExpirationMonitor => 300,
+            Self::MoneroPaymentMonitor => 30,
         }
     }
 }
@@ -88,6 +91,20 @@ async fn ethereum_subscription_monitor_task(
     ).await.map_err(Error::from)
 }
 
+async fn monero_payment_monitor_task(
+    config: &Config,
+    db_pool: &Pool,
+) -> Result<(), Error> {
+    let maybe_monero_config = config.blockchain()
+        .and_then(|conf| conf.monero_config());
+    let monero_config = match maybe_monero_config {
+        Some(monero_config) => monero_config,
+        None => return Ok(()), // not configured
+    };
+    check_monero_subscriptions(monero_config, db_pool).await?;
+    Ok(())
+}
+
 pub fn run(
     config: Config,
     mut maybe_blockchain: Option<Blockchain>,
@@ -98,6 +115,7 @@ pub fn run(
         scheduler_state.insert(Task::NftMonitor, None);
         scheduler_state.insert(Task::EthereumSubscriptionMonitor, None);
         scheduler_state.insert(Task::SubscriptionExpirationMonitor, None);
+        scheduler_state.insert(Task::MoneroPaymentMonitor, None);
 
         let mut interval = tokio::time::interval(Duration::from_secs(5));
         let mut token_waitlist_map: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
@@ -128,6 +146,9 @@ pub fn run(
                             &config.instance(),
                             &db_pool,
                         ).await.map_err(Error::from)
+                    },
+                    Task::MoneroPaymentMonitor => {
+                        monero_payment_monitor_task(&config, &db_pool).await
                     },
                 };
                 task_result.unwrap_or_else(|err| {

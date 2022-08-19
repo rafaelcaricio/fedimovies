@@ -5,7 +5,7 @@ use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
 use crate::utils::caip2::ChainId;
 use crate::utils::id::new_uuid;
-use super::types::DbInvoice;
+use super::types::{DbInvoice, InvoiceStatus};
 
 pub async fn create_invoice(
     db_client: &impl GenericClient,
@@ -39,12 +39,64 @@ pub async fn create_invoice(
     Ok(invoice)
 }
 
+pub async fn get_invoice_by_address(
+    db_client: &impl GenericClient,
+    chain_id: &ChainId,
+    payment_address: &str,
+) -> Result<DbInvoice, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT invoice
+        FROM invoice WHERE chain_id = $1 AND payment_address = $2
+        ",
+        &[&chain_id, &payment_address],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("invoice"))?;
+    let invoice = row.try_get("invoice")?;
+    Ok(invoice)
+}
+
+pub async fn get_invoices_by_status(
+    db_client: &impl GenericClient,
+    chain_id: &ChainId,
+    status: InvoiceStatus,
+) -> Result<Vec<DbInvoice>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT invoice
+        FROM invoice WHERE chain_id = $1 AND invoice_status = $2
+        ",
+        &[&chain_id, &status],
+    ).await?;
+    let invoices = rows.iter()
+        .map(|row| row.try_get("invoice"))
+        .collect::<Result<_, _>>()?;
+    Ok(invoices)
+}
+
+pub async fn set_invoice_status(
+    db_client: &impl GenericClient,
+    invoice_id: &Uuid,
+    status: InvoiceStatus,
+) -> Result<(), DatabaseError> {
+    let updated_count = db_client.execute(
+        "
+        UPDATE invoice SET invoice_status = $2
+        WHERE id = $1
+        ",
+        &[&invoice_id, &status],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("invoice"));
+    };
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
     use crate::database::test_utils::create_test_database;
     use crate::models::{
-        invoices::types::InvoiceStatus,
         profiles::queries::create_profile,
         profiles::types::ProfileCreateData,
         users::queries::create_user,
