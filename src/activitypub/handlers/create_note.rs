@@ -21,13 +21,13 @@ use crate::activitypub::{
 use crate::config::Instance;
 use crate::errors::{ConversionError, DatabaseError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
+use crate::models::posts::hashtags::normalize_hashtag;
 use crate::models::posts::mentions::mention_to_address;
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
     get_post_by_object_id,
 };
-use crate::models::posts::tags::normalize_tag;
 use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::profiles::queries::get_profile_by_acct;
 use crate::models::profiles::types::DbActorProfile;
@@ -180,7 +180,7 @@ pub async fn handle_note(
             if tag.tag_type == HASHTAG {
                 if let Some(tag_name) = tag.name {
                     // Ignore invalid tags
-                    if let Ok(tag_name) = normalize_tag(&tag_name) {
+                    if let Ok(tag_name) = normalize_hashtag(&tag_name) {
                         if !tags.contains(&tag_name) {
                             tags.push(tag_name);
                         };

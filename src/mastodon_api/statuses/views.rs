@@ -21,9 +21,9 @@ use crate::ipfs::store as ipfs_store;
 use crate::ipfs::posts::PostMetadata;
 use crate::ipfs::utils::get_ipfs_url;
 use crate::mastodon_api::oauth::auth::get_current_user;
+use crate::models::posts::hashtags::{find_hashtags, replace_hashtags};
 use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
-use crate::models::posts::tags::{find_tags, replace_tags};
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
@@ -72,9 +72,9 @@ async fn create_status(
         .map(|profile| profile.id));
     post_data.mentions.sort();
     post_data.mentions.dedup();
-    // Tags
-    post_data.tags = find_tags(&post_data.content);
-    post_data.content = replace_tags(
+    // Hashtags
+    post_data.tags = find_hashtags(&post_data.content);
+    post_data.content = replace_hashtags(
         &instance.url(),
         &post_data.content,
         &post_data.tags,

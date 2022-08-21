@@ -8,7 +8,7 @@ const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?\)]?(
 const HASHTAG_NAME_RE: &str = r"^\w+$";
 
 /// Finds anything that looks like a hashtag
-pub fn find_tags(text: &str) -> Vec<String> {
+pub fn find_hashtags(text: &str) -> Vec<String> {
     let hashtag_re = Regex::new(HASHTAG_RE).unwrap();
     let hashtag_secondary_re = Regex::new(HASHTAG_SECONDARY_RE).unwrap();
     let mut tags = vec![];
@@ -24,7 +24,7 @@ pub fn find_tags(text: &str) -> Vec<String> {
 }
 
 /// Replaces hashtags with links
-pub fn replace_tags(instance_url: &str, text: &str, tags: &[String]) -> String {
+pub fn replace_hashtags(instance_url: &str, text: &str, tags: &[String]) -> String {
     let hashtag_re = Regex::new(HASHTAG_RE).unwrap();
     let hashtag_secondary_re = Regex::new(HASHTAG_SECONDARY_RE).unwrap();
     let result = hashtag_re.replace_all(text, |caps: &Captures| {
@@ -49,7 +49,7 @@ pub fn replace_tags(instance_url: &str, text: &str, tags: &[String]) -> String {
     result.to_string()
 }
 
-pub fn normalize_tag(tag: &str) -> Result<String, ValidationError> {
+pub fn normalize_hashtag(tag: &str) -> Result<String, ValidationError> {
     let hashtag_name_re = Regex::new(HASHTAG_NAME_RE).unwrap();
     let tag_name = tag.trim_start_matches('#');
     if !hashtag_name_re.is_match(tag_name) {
@@ -71,8 +71,8 @@ mod tests {
     );
 
     #[test]
-    fn test_find_tags() {
-        let tags = find_tags(TEXT_WITH_TAGS);
+    fn test_find_hashtags() {
+        let tags = find_hashtags(TEXT_WITH_TAGS);
 
         assert_eq!(tags, vec![
             "testtag",
@@ -85,9 +85,9 @@ mod tests {
     }
 
     #[test]
-    fn test_replace_tags() {
-        let tags = find_tags(TEXT_WITH_TAGS);
-        let output = replace_tags(INSTANCE_URL, TEXT_WITH_TAGS, &tags);
+    fn test_replace_hashtags() {
+        let tags = find_hashtags(TEXT_WITH_TAGS);
+        let output = replace_hashtags(INSTANCE_URL, TEXT_WITH_TAGS, &tags);
 
         let expected_output = concat!(
             r#"@user1@server1 some text <a class="hashtag" href="https://example.com/tag/testtag">#TestTag</a>."#, "\n",
@@ -102,9 +102,9 @@ mod tests {
     }
 
     #[test]
-    fn test_normalize_tag() {
+    fn test_normalize_hashtag() {
         let tag = "#ActivityPub";
-        let output = normalize_tag(tag).unwrap();
+        let output = normalize_hashtag(tag).unwrap();
 
         assert_eq!(output, "activitypub");
     }
