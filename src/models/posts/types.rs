@@ -123,6 +123,18 @@ impl Post {
         if db_author.is_local() != db_post.object_id.is_none() {
             return Err(ConversionError);
         };
+        if db_post.repost_of_id.is_some() && (
+            db_post.content.len() != 0 ||
+            db_post.in_reply_to_id.is_some() ||
+            db_post.ipfs_cid.is_some() ||
+            db_post.token_id.is_some() ||
+            db_post.token_tx_id.is_some() ||
+            !db_attachments.is_empty() ||
+            !db_mentions.is_empty() ||
+            !db_tags.is_empty()
+        ) {
+            return Err(ConversionError);
+        };
         let post = Self {
             id: db_post.id,
             author: db_author,
