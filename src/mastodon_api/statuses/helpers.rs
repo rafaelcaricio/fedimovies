@@ -3,7 +3,7 @@ use tokio_postgres::GenericClient;
 use crate::errors::DatabaseError;
 use crate::models::posts::helpers::{
     add_user_actions,
-    add_reposted_posts,
+    add_related_posts,
 };
 use crate::models::posts::types::Post;
 use crate::models::users::types::User;
@@ -16,7 +16,7 @@ pub async fn build_status(
     user: Option<&User>,
     mut post: Post,
 ) -> Result<Status, DatabaseError> {
-    add_reposted_posts(db_client, vec![&mut post]).await?;
+    add_related_posts(db_client, vec![&mut post]).await?;
     if let Some(user) = user {
         add_user_actions(db_client, &user.id, vec![&mut post]).await?;
     };
@@ -30,7 +30,7 @@ pub async fn build_status_list(
     user: Option<&User>,
     mut posts: Vec<Post>,
 ) -> Result<Vec<Status>, DatabaseError> {
-    add_reposted_posts(db_client, posts.iter_mut().collect()).await?;
+    add_related_posts(db_client, posts.iter_mut().collect()).await?;
     if let Some(user) = user {
         add_user_actions(db_client, &user.id, posts.iter_mut().collect()).await?;
     };

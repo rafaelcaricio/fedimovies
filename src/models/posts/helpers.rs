@@ -9,24 +9,35 @@ use crate::models::users::types::User;
 use super::queries::{get_posts, find_reposted_by_user};
 use super::types::{Post, PostActions, Visibility};
 
-pub async fn add_reposted_posts(
+pub async fn add_related_posts(
     db_client: &impl GenericClient,
     posts: Vec<&mut Post>,
 ) -> Result<(), DatabaseError> {
-    let reposted_ids: Vec<Uuid> = posts.iter()
-        .filter_map(|post| post.repost_of_id)
-        .collect();
-    if reposted_ids.is_empty() {
+    let mut related_ids = vec![];
+    for post in posts.iter() {
+        if let Some(repost_of_id) = post.repost_of_id {
+            related_ids.push(repost_of_id);
+        };
+        related_ids.extend(post.links.clone());
+    };
+    if related_ids.is_empty() {
         return Ok(());
     };
-    let reposted = get_posts(db_client, reposted_ids).await?;
+    let related = get_posts(db_client, related_ids).await?;
     for post in posts {
         if let Some(ref repost_of_id) = post.repost_of_id {
-            let repost_of = reposted.iter()
+            let repost_of = related.iter()
                 .find(|post| post.id == *repost_of_id)
                 .ok_or(DatabaseError::NotFound("post"))?
                 .clone();
             post.repost_of = Some(Box::new(repost_of));
+        };
+        if let Some(quote_id) = post.links.get(0) {
+            let quote = related.iter()
+                .find(|post| post.id == *quote_id)
+                .ok_or(DatabaseError::NotFound("post"))?
+                .clone();
+            post.quote = Some(Box::new(quote));
         };
     };
     Ok(())

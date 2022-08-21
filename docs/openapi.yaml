@@ -996,6 +996,9 @@ components:
         id:
           type: string
           format: uuid
+        uri:
+          description: URI of the post used for federation.
+          type: string
         created_at:
           description: The date when this post was created.
           type: string
@@ -1005,6 +1008,9 @@ components:
           type: string
           format: dateTime
           nullable: true
+        account:
+          description: The profile that authored this post.
+          $ref: '#/components/schemas/Account'
         content:
           description: HTML-encoded post content.
           type: string
@@ -1013,7 +1019,9 @@ components:
           $ref: '#/components/schemas/Visibility'
         media_attachments:
           description: Media that is attached to this post.
-          $ref: '#/components/schemas/Attachment'
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
         mentions:
           description: Mentions of users within the post.
           type: array
@@ -1032,6 +1040,12 @@ components:
           type: string
           nullable: true
           example: '0x5fe80cdea7f...'
+        reblog:
+          description: The post being reposted.
+          type: object
+        quote:
+          description: The post being quoted.
+          type: object
     Subscription:
       type: object
       properties:

@@ -75,6 +75,7 @@ pub struct Status {
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
+    quote: Option<Box<Status>>,
 }
 
 impl Status {
@@ -96,6 +97,10 @@ impl Status {
         } else {
             None
         };
+        let quote = post.quote.map(|quote| {
+            let status = Status::from_post(*quote, instance_url);
+            Box::new(status)
+        });
         let visibility = match post.visibility {
             Visibility::Public => "public",
             Visibility::Direct => "direct",
@@ -123,6 +128,7 @@ impl Status {
             ipfs_cid: post.ipfs_cid,
             token_id: post.token_id,
             token_tx_id: post.token_tx_id,
+            quote: quote,
         }
     }
 }

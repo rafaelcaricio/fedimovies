@@ -107,6 +107,7 @@ pub struct Post {
     pub actions: Option<PostActions>,
     pub in_reply_to: Option<Box<Post>>,
     pub repost_of: Option<Box<Post>>,
+    pub quote: Option<Box<Post>>,
 }
 
 impl Post {
@@ -161,6 +162,7 @@ impl Post {
             actions: None,
             in_reply_to: None,
             repost_of: None,
+            quote: None,
         };
         Ok(post)
     }
@@ -203,6 +205,7 @@ impl Default for Post {
             actions: None,
             in_reply_to: None,
             repost_of: None,
+            quote: None,
         }
     }
 }
