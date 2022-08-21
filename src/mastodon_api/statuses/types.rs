@@ -163,6 +163,7 @@ impl TryFrom<StatusData> for PostCreateData {
             attachments: value.media_ids.unwrap_or(vec![]),
             mentions: value.mentions.unwrap_or(vec![]),
             tags: vec![],
+            links: vec![],
             object_id: None,
             created_at: None,
         };

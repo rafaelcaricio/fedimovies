@@ -112,6 +112,12 @@ CREATE TABLE post_tag (
     PRIMARY KEY (post_id, tag_id)
 );
 
+CREATE TABLE post_link (
+    source_id UUID NOT NULL REFERENCES post (id) ON DELETE CASCADE,
+    target_id UUID NOT NULL REFERENCES post (id) ON DELETE CASCADE,
+    PRIMARY KEY (source_id, target_id)
+);
+
 CREATE TABLE notification (
     id SERIAL PRIMARY KEY,
     sender_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,

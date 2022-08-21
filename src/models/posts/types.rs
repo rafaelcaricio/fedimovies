@@ -94,6 +94,7 @@ pub struct Post {
     pub attachments: Vec<DbMediaAttachment>,
     pub mentions: Vec<DbActorProfile>,
     pub tags: Vec<String>,
+    pub links: Vec<Uuid>,
     pub object_id: Option<String>,
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
@@ -115,6 +116,7 @@ impl Post {
         db_attachments: Vec<DbMediaAttachment>,
         db_mentions: Vec<DbActorProfile>,
         db_tags: Vec<String>,
+        db_links: Vec<Uuid>,
     ) -> Result<Self, ConversionError> {
         // Consistency checks
         if db_post.author_id != db_author.id {
@@ -131,7 +133,8 @@ impl Post {
             db_post.token_tx_id.is_some() ||
             !db_attachments.is_empty() ||
             !db_mentions.is_empty() ||
-            !db_tags.is_empty()
+            !db_tags.is_empty() ||
+            !db_links.is_empty()
         ) {
             return Err(ConversionError);
         };
@@ -148,6 +151,7 @@ impl Post {
             attachments: db_attachments,
             mentions: db_mentions,
             tags: db_tags,
+            links: db_links,
             object_id: db_post.object_id,
             ipfs_cid: db_post.ipfs_cid,
             token_id: db_post.token_id,
@@ -189,6 +193,7 @@ impl Default for Post {
             attachments: vec![],
             mentions: vec![],
             tags: vec![],
+            links: vec![],
             object_id: None,
             ipfs_cid: None,
             token_id: None,
@@ -212,7 +217,15 @@ impl TryFrom<&Row> for Post {
         let db_attachments: Vec<DbMediaAttachment> = row.try_get("attachments")?;
         let db_mentions: Vec<DbActorProfile> = row.try_get("mentions")?;
         let db_tags: Vec<String> = row.try_get("tags")?;
-        let post = Self::new(db_post, db_profile, db_attachments, db_mentions, db_tags)?;
+        let db_links: Vec<Uuid> = row.try_get("links")?;
+        let post = Self::new(
+            db_post,
+            db_profile,
+            db_attachments,
+            db_mentions,
+            db_tags,
+            db_links,
+        )?;
         Ok(post)
     }
 }
@@ -226,6 +239,7 @@ pub struct PostCreateData {
     pub attachments: Vec<Uuid>,
     pub mentions: Vec<Uuid>,
     pub tags: Vec<String>,
+    pub links: Vec<Uuid>,
     pub object_id: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
 }
@@ -267,6 +281,7 @@ mod tests {
             attachments: vec![],
             mentions: vec![],
             tags: vec![],
+            links: vec![],
             object_id: None,
             created_at: None,
         };
@@ -283,6 +298,7 @@ mod tests {
             attachments: vec![],
             mentions: vec![],
             tags: vec![],
+            links: vec![],
             object_id: None,
             created_at: None,
         };

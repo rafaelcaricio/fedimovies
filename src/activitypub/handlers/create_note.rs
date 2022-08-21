@@ -321,6 +321,7 @@ pub async fn handle_note(
         attachments: attachments,
         mentions: mentions,
         tags: tags,
+        links: vec![],
         object_id: Some(object.id),
         created_at: object.published,
     };

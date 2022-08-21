@@ -96,7 +96,7 @@ pub async fn create_post(
     if attachments_rows.len() != data.attachments.len() {
         // Some attachments were not found
         return Err(DatabaseError::NotFound("attachment"));
-    }
+    };
     let db_attachments: Vec<DbMediaAttachment> = attachments_rows.iter()
         .map(|row| row.try_get("media_attachment"))
         .collect::<Result<_, _>>()?;
@@ -104,7 +104,7 @@ pub async fn create_post(
     let mentions_rows = transaction.query(
         "
         INSERT INTO mention (post_id, profile_id)
-        SELECT $1, unnest($2::uuid[])
+        SELECT $1, actor_profile.id FROM actor_profile WHERE id = ANY($2)
         RETURNING (
             SELECT actor_profile FROM actor_profile
             WHERE actor_profile.id = profile_id
@@ -141,6 +141,21 @@ pub async fn create_post(
     };
     let db_tags: Vec<String> = tags_rows.iter()
         .map(|row| row.try_get("tag_name"))
+        .collect::<Result<_, _>>()?;
+    // Create links
+    let links_rows = transaction.query(
+        "
+        INSERT INTO post_link (source_id, target_id)
+        SELECT $1, post.id FROM post WHERE id = ANY($2)
+        RETURNING target_id
+        ",
+        &[&db_post.id, &data.links],
+    ).await?;
+    if links_rows.len() != data.links.len() {
+        return Err(DatabaseError::NotFound("post"));
+    };
+    let db_links: Vec<Uuid> = links_rows.iter()
+        .map(|row| row.try_get("target_id"))
         .collect::<Result<_, _>>()?;
     // Update counters
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
@@ -194,7 +209,14 @@ pub async fn create_post(
     };
 
     transaction.commit().await?;
-    let post = Post::new(db_post, author, db_attachments, db_mentions, db_tags)?;
+    let post = Post::new(
+        db_post,
+        author,
+        db_attachments,
+        db_mentions,
+        db_tags,
+        db_links,
+    )?;
     Ok(post)
 }
 
@@ -218,6 +240,12 @@ pub const RELATED_TAGS: &str =
         JOIN post_tag ON post_tag.tag_id = tag.id
         WHERE post_tag.post_id = post.id
     ) AS tags";
+
+pub const RELATED_LINKS: &str =
+    "ARRAY(
+        SELECT post_link.target_id FROM post_link
+        WHERE post_link.source_id = post.id
+    ) AS links";
 
 fn build_visibility_filter() -> String {
     format!(
@@ -266,7 +294,8 @@ pub async fn get_home_timeline(
             post, actor_profile,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
@@ -331,6 +360,7 @@ pub async fn get_home_timeline(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
         relationship_follow=i16::from(&RelationshipType::Follow),
         relationship_subscription=i16::from(&RelationshipType::Subscription),
         relationship_hide_reposts=i16::from(&RelationshipType::HideReposts),
@@ -362,7 +392,8 @@ pub async fn get_local_timeline(
             post, actor_profile,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
@@ -375,6 +406,7 @@ pub async fn get_local_timeline(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
         visibility_public=i16::from(&Visibility::Public),
     );
     let query = query!(
@@ -400,7 +432,8 @@ pub async fn get_posts(
             post, actor_profile,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id = ANY($1)
@@ -408,6 +441,7 @@ pub async fn get_posts(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
     );
     let rows = db_client.query(
         statement.as_str(),
@@ -446,7 +480,8 @@ pub async fn get_posts_by_author(
             post, actor_profile,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE {condition}
@@ -456,6 +491,7 @@ pub async fn get_posts_by_author(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
         condition=condition,
     );
     let query = query!(
@@ -486,7 +522,8 @@ pub async fn get_posts_by_tag(
             post, actor_profile,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
@@ -502,6 +539,7 @@ pub async fn get_posts_by_tag(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
         visibility_filter=build_visibility_filter(),
     );
     let query = query!(
@@ -528,7 +566,8 @@ pub async fn get_post_by_id(
             post, actor_profile,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id = $1
@@ -536,6 +575,7 @@ pub async fn get_post_by_id(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
     );
     let maybe_row = db_client.query_opt(
         statement.as_str(),
@@ -579,7 +619,8 @@ pub async fn get_thread(
             post, actor_profile,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM post
         JOIN thread ON post.id = thread.id
         JOIN actor_profile ON post.author_id = actor_profile.id
@@ -589,6 +630,7 @@ pub async fn get_thread(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
         visibility_filter=build_visibility_filter(),
     );
     let query = query!(
@@ -616,7 +658,8 @@ pub async fn get_post_by_object_id(
             post, actor_profile,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.object_id = $1
@@ -624,6 +667,7 @@ pub async fn get_post_by_object_id(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
     );
     let maybe_row = db_client.query_opt(
         statement.as_str(),
@@ -644,7 +688,8 @@ pub async fn get_post_by_ipfs_cid(
             post, actor_profile,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.ipfs_cid = $1
@@ -652,6 +697,7 @@ pub async fn get_post_by_ipfs_cid(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
     );
     let result = db_client.query_opt(
         statement.as_str(),
@@ -1086,19 +1132,42 @@ mod tests {
     #[serial]
     async fn test_create_post() {
         let db_client = &mut create_test_database().await;
-        let profile_data = ProfileCreateData {
+        let author_data = ProfileCreateData {
             username: "test".to_string(),
             ..Default::default()
         };
-        let profile = create_profile(db_client, profile_data).await.unwrap();
+        let author = create_profile(db_client, author_data).await.unwrap();
         let post_data = PostCreateData {
             content: "test post".to_string(),
             ..Default::default()
         };
-        let post = create_post(db_client, &profile.id, post_data).await.unwrap();
+        let post = create_post(db_client, &author.id, post_data).await.unwrap();
         assert_eq!(post.content, "test post");
-        assert_eq!(post.author.id, profile.id);
+        assert_eq!(post.author.id, author.id);
+        assert_eq!(post.attachments.is_empty(), true);
+        assert_eq!(post.mentions.is_empty(), true);
+        assert_eq!(post.tags.is_empty(), true);
+        assert_eq!(post.links.is_empty(), true);
         assert_eq!(post.updated_at, None);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_create_post_with_link() {
+        let db_client = &mut create_test_database().await;
+        let author_data = ProfileCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let author = create_profile(db_client, author_data).await.unwrap();
+        let post_data_1 = PostCreateData::default();
+        let post_1 = create_post(db_client, &author.id, post_data_1).await.unwrap();
+        let post_data_2 = PostCreateData {
+            links: vec![post_1.id],
+            ..Default::default()
+        };
+        let post_2 = create_post(db_client, &author.id, post_data_2).await.unwrap();
+        assert_eq!(post_2.links, vec![post_1.id]);
     }
 
     #[tokio::test]

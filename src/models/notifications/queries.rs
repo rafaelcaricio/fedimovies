@@ -7,6 +7,7 @@ use crate::errors::DatabaseError;
 use crate::models::posts::helpers::add_user_actions;
 use crate::models::posts::queries::{
     RELATED_ATTACHMENTS,
+    RELATED_LINKS,
     RELATED_MENTIONS,
     RELATED_TAGS,
 };
@@ -127,7 +128,8 @@ pub async fn get_notifications(
             notification, sender, post, post_author,
             {related_attachments},
             {related_mentions},
-            {related_tags}
+            {related_tags},
+            {related_links}
         FROM notification
         JOIN actor_profile AS sender
         ON notification.sender_id = sender.id
@@ -144,6 +146,7 @@ pub async fn get_notifications(
         related_attachments=RELATED_ATTACHMENTS,
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
     );
     let rows = db_client.query(
         statement.as_str(),

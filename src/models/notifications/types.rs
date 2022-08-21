@@ -97,12 +97,14 @@ impl TryFrom<&Row> for Notification {
                 let db_attachments: Vec<DbMediaAttachment> = row.try_get("attachments")?;
                 let db_mentions: Vec<DbActorProfile> = row.try_get("mentions")?;
                 let db_tags: Vec<String> = row.try_get("tags")?;
+                let db_links: Vec<Uuid> = row.try_get("links")?;
                 let post = Post::new(
                     db_post,
                     db_post_author,
                     db_attachments,
                     db_mentions,
                     db_tags,
+                    db_links,
                 )?;
                 Some(post)
             },
