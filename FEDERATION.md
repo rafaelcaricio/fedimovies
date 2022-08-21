@@ -13,6 +13,7 @@ The following activities are supported:
 - Undo(Like)
 - Announce(Note)
 - Undo(Announce)
+- Update(Note)
 - Follow(Person)
 - Update(Person)
 - Delete(Person)

@@ -1,10 +1,10 @@
 # Mitra
 
-Federated social network with smart contracts.
+Federated social network with blockchain integration.
 
 Built on [ActivityPub](https://www.w3.org/TR/activitypub/) protocol, self-hosted, lightweight. Part of the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
-Unique features enabled by blockchain integration:
+Unique features:
 
 - [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361). A combination of domain-based and key-based identity.
 - Donations.
@@ -12,9 +12,12 @@ Unique features enabled by blockchain integration:
 - Token-gated registration (can be used to verify membership in some group or to stop bots).
 - Converting posts into NFTs.
 
-Currently only Ethereum and other EVM-compatible blockchains are supported.
+Supported blockchains:
 
-Smart contracts repo: https://codeberg.org/silverpill/mitra-contracts
+- Ethereum and other EVM-compatible blockchains.
+- Monero (WIP).
+
+Ethereum contracts repo: https://codeberg.org/silverpill/mitra-contracts
 
 Frontend repo: https://codeberg.org/silverpill/mitra-web
 
