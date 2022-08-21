@@ -205,6 +205,7 @@ pub async fn import_post(
     // Fetch ancestors by going through inReplyTo references
     // TODO: fetch replies too
     #[allow(clippy::while_let_loop)]
+    #[allow(clippy::manual_map)]
     loop {
         let object_id = match maybe_object_id_to_fetch {
             Some(object_id) => {
@@ -212,7 +213,7 @@ pub async fn import_post(
                     // Object is a local post
                     assert!(objects.len() > 0);
                     break;
-                }
+                };
                 match get_post_by_object_id(db_client, &object_id).await {
                     Ok(post) => {
                         // Object already fetched
@@ -252,11 +253,21 @@ pub async fn import_post(
             // Don't re-fetch object on the next iteration
             maybe_object = Some(object);
         } else {
-            maybe_object_id_to_fetch = object.in_reply_to.clone();
+            maybe_object_id_to_fetch = if let Some(ref object_id) = object.in_reply_to {
+                // Fetch parent object on next iteration
+                Some(object_id.to_owned())
+            } else if let Some(ref object_id) = object.quote_url {
+                // Fetch quoted object on next iteration
+                // (only if object doesn't have a parent).
+                Some(object_id.to_owned())
+            } else {
+                // Stop
+                None
+            };
             maybe_object = None;
             objects.push(object);
         };
-    }
+    };
     let initial_object_id = objects[0].id.clone();
 
     // Objects are ordered according to their place in reply tree,
@@ -271,7 +282,7 @@ pub async fn import_post(
             &redirects,
         ).await?;
         posts.push(post);
-    }
+    };
 
     let initial_post = posts.into_iter()
         .find(|post| post.object_id.as_ref() == Some(&initial_object_id))

@@ -114,6 +114,27 @@ fn get_note_visibility(
     Visibility::Direct
 }
 
+async fn get_internal_post_id(
+    db_client: &impl GenericClient,
+    instance_url: &str,
+    object_id: &String,
+    redirects: &HashMap<String, String>,
+) -> Result<Uuid, ImportError> {
+    match parse_local_object_id(instance_url, object_id) {
+        Ok(post_id) => {
+            // Local post
+            let post = get_post_by_id(db_client, &post_id).await?;
+            Ok(post.id)
+        },
+        Err(_) => {
+            let real_object_id = redirects.get(object_id)
+                .unwrap_or(object_id);
+            let post = get_post_by_object_id(db_client, real_object_id).await?;
+            Ok(post.id)
+        },
+    }
+}
+
 pub async fn handle_note(
     db_client: &mut impl GenericClient,
     instance: &Instance,
@@ -175,6 +196,7 @@ pub async fn handle_note(
     };
     let mut mentions: Vec<Uuid> = Vec::new();
     let mut tags = vec![];
+    let mut links = vec![];
     if let Some(list) = object.tag {
         for tag in list {
             if tag.tag_type == HASHTAG {
@@ -269,21 +291,26 @@ pub async fn handle_note(
             };
         };
     };
+    if let Some(ref object_id) = object.quote_url {
+        log::warn!("link to object found: {}", object_id);
+        let quoted_id = get_internal_post_id(
+            db_client,
+            &instance.url(),
+            object_id,
+            redirects,
+        ).await?;
+        links.push(quoted_id);
+    };
+
     let in_reply_to_id = match object.in_reply_to {
-        Some(object_id) => {
-            match parse_local_object_id(&instance.url(), &object_id) {
-                Ok(post_id) => {
-                    // Local post
-                    let post = get_post_by_id(db_client, &post_id).await?;
-                    Some(post.id)
-                },
-                Err(_) => {
-                    let note_id = redirects.get(&object_id)
-                        .unwrap_or(&object_id);
-                    let post = get_post_by_object_id(db_client, note_id).await?;
-                    Some(post.id)
-                },
-            }
+        Some(ref object_id) => {
+            let in_reply_to_id = get_internal_post_id(
+                db_client,
+                &instance.url(),
+                object_id,
+                redirects,
+            ).await?;
+            Some(in_reply_to_id)
         },
         None => None,
     };
@@ -321,7 +348,7 @@ pub async fn handle_note(
         attachments: attachments,
         mentions: mentions,
         tags: tags,
-        links: vec![],
+        links: links,
         object_id: Some(object.id),
         created_at: object.published,
     };

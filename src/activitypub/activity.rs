@@ -79,6 +79,9 @@ pub struct Object {
     pub content: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub quote_url: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<Vec<Tag>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
