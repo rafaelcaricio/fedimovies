@@ -1,5 +1,6 @@
 pub mod attachments;
 pub mod cleanup;
+pub mod invoices;
 pub mod markers;
 pub mod notifications;
 pub mod oauth;
