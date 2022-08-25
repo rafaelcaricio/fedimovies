@@ -251,11 +251,6 @@ pub struct IdentityProofData {
     pub signature: String,
 }
 
-#[derive(Deserialize)]
-pub struct SubscriptionQueryParams {
-    pub price: u64,
-}
-
 // TODO: actix currently doesn't support parameter arrays
 // https://github.com/actix/actix-web/issues/2044
 #[derive(Deserialize)]

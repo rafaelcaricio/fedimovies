@@ -8,6 +8,7 @@ pub mod oauth;
 mod pagination;
 pub mod search;
 pub mod statuses;
+pub mod subscriptions;
 pub mod timelines;
 mod uploads;
 
