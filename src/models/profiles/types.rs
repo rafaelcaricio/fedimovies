@@ -5,6 +5,8 @@ use postgres_types::FromSql;
 use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
     de::Error as DeserializerError,
+    ser::SerializeMap,
+    __private::ser::FlatMapSerializer,
 };
 use uuid::Uuid;
 
@@ -16,7 +18,6 @@ use crate::ethereum::identity::DidPkh;
 use super::validators::{
     validate_username,
     validate_display_name,
-    validate_payment_options,
     clean_bio,
     clean_extra_fields,
 };
@@ -41,7 +42,6 @@ impl IdentityProofs {
 json_from_sql!(IdentityProofs);
 json_to_sql!(IdentityProofs);
 
-#[derive(Clone, Debug)]
 pub enum PaymentType {
     Link,
     EthereumSubscription,
@@ -69,38 +69,58 @@ impl TryFrom<i16> for PaymentType {
     }
 }
 
-impl Serialize for PaymentType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer
-    {
-        let value: i16 = self.into();
-        serializer.serialize_i16(value)
-    }
-}
-
-impl<'de> Deserialize<'de> for PaymentType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: Deserializer<'de>
-    {
-        let value: i16 = Deserialize::deserialize(deserializer)?;
-        Self::try_from(value).map_err(DeserializerError::custom)
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct PaymentOption {
-    pub payment_type: PaymentType,
-    pub name: Option<String>,
-    pub href: Option<String>,
+pub struct PaymentLink {
+    pub name: String,
+    pub href: String,
 }
 
-impl PaymentOption {
-    pub fn subscription() -> Self {
-        Self {
-            payment_type: PaymentType::EthereumSubscription,
-            name: None,
-            href: None,
-        }
+#[derive(Clone, Debug)]
+pub enum PaymentOption {
+    Link(PaymentLink),
+    EthereumSubscription,
+}
+
+// Integer tags are not supported https://github.com/serde-rs/serde/issues/745
+// Workaround: https://stackoverflow.com/a/65576570
+impl<'de> Deserialize<'de> for PaymentOption {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let payment_type = value.get("payment_type")
+            .and_then(serde_json::Value::as_u64)
+            .and_then(|val| i16::try_from(val).ok())
+            .and_then(|val| PaymentType::try_from(val).ok())
+            .ok_or(DeserializerError::custom("invalid payment type"))?;
+        let payment_option = match payment_type {
+            PaymentType::Link => {
+                let link = PaymentLink::deserialize(value)
+                    .map_err(DeserializerError::custom)?;
+                Self::Link(link)
+            },
+            PaymentType::EthereumSubscription => Self::EthereumSubscription,
+        };
+        Ok(payment_option)
+    }
+}
+
+impl Serialize for PaymentOption {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer,
+    {
+        let mut map = serializer.serialize_map(None)?;
+        let payment_type = match self {
+            Self::Link(_) => PaymentType::Link,
+            Self::EthereumSubscription => PaymentType::EthereumSubscription,
+        };
+        map.serialize_entry("payment_type", &i16::from(&payment_type))?;
+
+        match self {
+            Self::Link(link) => link.serialize(FlatMapSerializer(&mut map))?,
+            Self::EthereumSubscription => (),
+        };
+        map.end()
     }
 }
 
@@ -268,7 +288,6 @@ impl ProfileCreateData {
             let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
             self.bio = Some(cleaned_bio);
         };
-        validate_payment_options(&self.payment_options)?;
         self.extra_fields = clean_extra_fields(&self.extra_fields)?;
         Ok(())
     }
@@ -296,7 +315,6 @@ impl ProfileUpdateData {
             let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
             self.bio = Some(cleaned_bio);
         };
-        validate_payment_options(&self.payment_options)?;
         self.extra_fields = clean_extra_fields(&self.extra_fields)?;
         Ok(())
     }
@@ -336,15 +354,29 @@ mod tests {
     }
 
     #[test]
-    fn test_payment_option_serialization() {
+    fn test_payment_option_link_serialization() {
+        let json_data = r#"{"payment_type":1,"name":"test","href":"https://test.com"}"#;
+        let payment_option: PaymentOption = serde_json::from_str(json_data).unwrap();
+        let link = match payment_option {
+            PaymentOption::Link(ref link) => link,
+            _ => panic!("wrong option"),
+        };
+        assert_eq!(link.name, "test");
+        assert_eq!(link.href, "https://test.com");
+        let serialized = serde_json::to_string(&payment_option).unwrap();
+        assert_eq!(serialized, json_data);
+    }
+
+    #[test]
+    fn test_payment_option_ethereum_subscription_serialization() {
         let json_data = r#"{"payment_type":2,"name":null,"href":null}"#;
         let payment_option: PaymentOption = serde_json::from_str(json_data).unwrap();
         assert!(matches!(
-            payment_option.payment_type,
-            PaymentType::EthereumSubscription,
+            payment_option,
+            PaymentOption::EthereumSubscription,
         ));
         let serialized = serde_json::to_string(&payment_option).unwrap();
-        assert_eq!(serialized, json_data);
+        assert_eq!(serialized, r#"{"payment_type":2}"#);
     }
 
     #[test]

@@ -345,7 +345,7 @@ async fn subscriptions_enabled(
     if current_user.profile.payment_options.is_empty() {
         // Add payment option to profile
         let mut profile_data = ProfileUpdateData::from(&current_user.profile);
-        profile_data.payment_options = vec![PaymentOption::subscription()];
+        profile_data.payment_options = vec![PaymentOption::EthereumSubscription];
         current_user.profile = update_profile(
             db_client,
             &current_user.id,

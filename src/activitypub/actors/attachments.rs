@@ -15,8 +15,8 @@ use crate::frontend::get_subscription_page_url;
 use crate::models::profiles::types::{
     ExtraField,
     IdentityProof,
+    PaymentLink,
     PaymentOption,
-    PaymentType,
 };
 use super::types::ActorAttachment;
 
@@ -67,10 +67,10 @@ pub fn attach_payment_option(
     user_id: &Uuid,
     payment_option: PaymentOption,
 ) -> ActorAttachment {
-    match payment_option.payment_type {
-        PaymentType::Link => unimplemented!(),
-        PaymentType::EthereumSubscription => {
-            let name = format!("{:?}", payment_option.payment_type);
+    match payment_option {
+        PaymentOption::Link(_) => unimplemented!(),
+        PaymentOption::EthereumSubscription => {
+            let name = "EthereumSubscription".to_string();
             let subscription_page_url =
                 get_subscription_page_url(instance_url, user_id);
             ActorAttachment {
@@ -91,11 +91,13 @@ pub fn parse_payment_option(
     if attachment.object_type != LINK {
         return Err(ValidationError("invalid attachment type"));
     };
-    let payment_option = PaymentOption {
-        payment_type: PaymentType::Link,
-        name: Some(attachment.name.clone()),
-        href: attachment.href.clone(),
-    };
+    let href = attachment.href.as_ref()
+        .ok_or(ValidationError("href attribute is required"))?
+        .to_string();
+    let payment_option = PaymentOption::Link(PaymentLink {
+        name: attachment.name.clone(),
+        href: href,
+    });
     Ok(payment_option)
 }
 
@@ -153,7 +155,7 @@ mod tests {
     #[test]
     fn test_payment_option() {
         let user_id = new_uuid();
-        let payment_option = PaymentOption::subscription();
+        let payment_option = PaymentOption::EthereumSubscription;
         let subscription_page_url =
             format!("https://example.com/profile/{}/subscription", user_id);
         let attachment = attach_payment_option(
@@ -166,8 +168,11 @@ mod tests {
         assert_eq!(attachment.href.as_deref().unwrap(), subscription_page_url);
 
         let parsed_option = parse_payment_option(&attachment).unwrap();
-        assert!(matches!(parsed_option.payment_type, PaymentType::Link));
-        assert_eq!(parsed_option.name.unwrap(), "EthereumSubscription");
-        assert_eq!(parsed_option.href.unwrap(), subscription_page_url);
+        let link = match parsed_option {
+            PaymentOption::Link(link) => link,
+            _ => panic!("wrong option"),
+        };
+        assert_eq!(link.name, "EthereumSubscription");
+        assert_eq!(link.href, subscription_page_url);
     }
 }

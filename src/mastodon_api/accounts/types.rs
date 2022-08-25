@@ -12,7 +12,6 @@ use crate::models::profiles::types::{
     ExtraField,
     IdentityProof,
     PaymentOption,
-    PaymentType,
     ProfileUpdateData,
 };
 use crate::models::profiles::validators::validate_username;
@@ -97,9 +96,9 @@ impl Account {
         let subscription_page_url = profile.payment_options.clone()
             .into_inner().into_iter()
             .map(|option| {
-                match option.payment_type {
-                    PaymentType::Link => option.href.unwrap_or_default(),
-                    PaymentType::EthereumSubscription => {
+                match option {
+                    PaymentOption::Link(link) => link.href,
+                    PaymentOption::EthereumSubscription => {
                         get_subscription_page_url(instance_url, &profile.id)
                     },
                 }
