@@ -98,7 +98,9 @@ impl Account {
             .map(|option| {
                 match option {
                     PaymentOption::Link(link) => link.href,
-                    PaymentOption::EthereumSubscription(_) => {
+                    PaymentOption::EthereumSubscription(_) |
+                        PaymentOption::MoneroSubscription(_) =>
+                    {
                         get_subscription_page_url(instance_url, &profile.id)
                     },
                 }

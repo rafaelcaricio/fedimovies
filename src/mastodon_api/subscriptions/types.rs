@@ -11,5 +11,5 @@ pub enum SubscriptionSettings {
     #[serde(rename = "ethereum")]
     Ethereum,
     #[serde(rename = "monero")]
-    Monero { },
+    Monero { price: u64, payout_address: String },
 }

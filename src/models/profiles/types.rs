@@ -47,6 +47,7 @@ json_to_sql!(IdentityProofs);
 pub enum PaymentType {
     Link,
     EthereumSubscription,
+    MoneroSubscription,
 }
 
 impl From<&PaymentType> for i16 {
@@ -54,6 +55,7 @@ impl From<&PaymentType> for i16 {
         match payment_type {
             PaymentType::Link => 1,
             PaymentType::EthereumSubscription => 2,
+            PaymentType::MoneroSubscription => 3,
         }
     }
 }
@@ -65,6 +67,7 @@ impl TryFrom<i16> for PaymentType {
         let payment_type = match value {
             1 => Self::Link,
             2 => Self::EthereumSubscription,
+            3 => Self::MoneroSubscription,
             _ => return Err(ConversionError),
         };
         Ok(payment_type)
@@ -82,10 +85,18 @@ pub struct EthereumSubscription {
     chain_id: ChainId,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MoneroSubscription {
+    pub chain_id: ChainId,
+    pub price: u64, // piconeros per second
+    pub payout_address: String,
+}
+
 #[derive(Clone, Debug)]
 pub enum PaymentOption {
     Link(PaymentLink),
     EthereumSubscription(EthereumSubscription),
+    MoneroSubscription(MoneroSubscription),
 }
 
 impl PaymentOption {
@@ -97,6 +108,7 @@ impl PaymentOption {
         match self {
             Self::Link(_) => PaymentType::Link,
             Self::EthereumSubscription(_) => PaymentType::EthereumSubscription,
+            Self::MoneroSubscription(_) => PaymentType::MoneroSubscription,
         }
     }
 }
@@ -124,6 +136,11 @@ impl<'de> Deserialize<'de> for PaymentOption {
                     .map_err(DeserializerError::custom)?;
                 Self::EthereumSubscription(payment_info)
             },
+            PaymentType::MoneroSubscription => {
+                let payment_info = MoneroSubscription::deserialize(value)
+                    .map_err(DeserializerError::custom)?;
+                Self::MoneroSubscription(payment_info)
+            },
         };
         Ok(payment_option)
     }
@@ -140,6 +157,9 @@ impl Serialize for PaymentOption {
         match self {
             Self::Link(link) => link.serialize(FlatMapSerializer(&mut map))?,
             Self::EthereumSubscription(payment_info) => {
+                payment_info.serialize(FlatMapSerializer(&mut map))?
+            },
+            Self::MoneroSubscription(payment_info) => {
                 payment_info.serialize(FlatMapSerializer(&mut map))?
             },
         };

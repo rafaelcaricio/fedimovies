@@ -14,6 +14,7 @@ use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::profiles::queries::update_profile;
 use crate::models::profiles::types::{
+    MoneroSubscription,
     PaymentOption,
     PaymentType,
     ProfileUpdateData,
@@ -86,8 +87,21 @@ pub async fn subscriptions_enabled(
                 ));
             };
         },
-        SubscriptionSettings::Monero { } => {
-            todo!();
+        SubscriptionSettings::Monero { price, payout_address } => {
+            let monero_config = config.blockchain()
+                .and_then(|conf| conf.monero_config())
+                .ok_or(HttpError::NotSupported)?;
+            if !current_user.profile.payment_options
+                .any(PaymentType::MoneroSubscription)
+            {
+                let payment_info = MoneroSubscription {
+                    chain_id: monero_config.chain_id.clone(),
+                    price,
+                    payout_address,
+                };
+                maybe_payment_option =
+                    Some(PaymentOption::MoneroSubscription(payment_info));
+            };
         },
     };
     if let Some(payment_option) = maybe_payment_option {

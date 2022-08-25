@@ -663,6 +663,12 @@ paths:
                   enum:
                     - ethereum
                     - monero
+                price:
+                  description: Subscription price (only for Monero)
+                  type: number
+                payout_address:
+                  description: Payout address (only for Monero)
+                  type: string
               required:
                 - type
       responses:

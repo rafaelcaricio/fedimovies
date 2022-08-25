@@ -67,22 +67,27 @@ pub fn attach_payment_option(
     user_id: &Uuid,
     payment_option: PaymentOption,
 ) -> ActorAttachment {
-    match payment_option {
+    let (name, href) = match payment_option {
         // Local actors can't have payment links
         PaymentOption::Link(_) => unimplemented!(),
         PaymentOption::EthereumSubscription(_) => {
             let name = "EthereumSubscription".to_string();
-            let subscription_page_url =
-                get_subscription_page_url(instance_url, user_id);
-            ActorAttachment {
-                object_type: LINK.to_string(),
-                name: name,
-                value: None,
-                href: Some(subscription_page_url),
-                signature_algorithm: None,
-                signature_value: None,
-            }
+            let href = get_subscription_page_url(instance_url, user_id);
+            (name, href)
         },
+        PaymentOption::MoneroSubscription(_) => {
+            let name = "MoneroSubscription".to_string();
+            let href = get_subscription_page_url(instance_url, user_id);
+            (name, href)
+        },
+    };
+    ActorAttachment {
+        object_type: LINK.to_string(),
+        name: name,
+        value: None,
+        href: Some(href),
+        signature_algorithm: None,
+        signature_value: None,
     }
 }
 
