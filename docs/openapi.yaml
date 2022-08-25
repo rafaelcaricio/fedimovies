@@ -626,6 +626,8 @@ paths:
   /api/v1/subscriptions/authorize:
     get:
       summary: Get authorization for setting up Ethereum subscription.
+      security:
+        - tokenAuth: []
       parameters:
         - name: price
           in: query
@@ -647,6 +649,22 @@ paths:
   /api/v1/subscriptions/enable:
     post:
       summary: Enable subscriptions
+      security:
+        - tokenAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  description: Subscription type
+                  type: string
+                  enum:
+                    - ethereum
+                    - monero
+              required:
+                - type
       responses:
         200:
           description: Successful operation

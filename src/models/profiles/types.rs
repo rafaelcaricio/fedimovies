@@ -42,6 +42,7 @@ impl IdentityProofs {
 json_from_sql!(IdentityProofs);
 json_to_sql!(IdentityProofs);
 
+#[derive(PartialEq)]
 pub enum PaymentType {
     Link,
     EthereumSubscription,
@@ -81,6 +82,15 @@ pub enum PaymentOption {
     EthereumSubscription,
 }
 
+impl PaymentOption {
+    fn payment_type(&self) -> PaymentType {
+        match self {
+            Self::Link(_) => PaymentType::Link,
+            Self::EthereumSubscription => PaymentType::EthereumSubscription,
+        }
+    }
+}
+
 // Integer tags are not supported https://github.com/serde-rs/serde/issues/745
 // Workaround: https://stackoverflow.com/a/65576570
 impl<'de> Deserialize<'de> for PaymentOption {
@@ -110,10 +120,7 @@ impl Serialize for PaymentOption {
         where S: Serializer,
     {
         let mut map = serializer.serialize_map(None)?;
-        let payment_type = match self {
-            Self::Link(_) => PaymentType::Link,
-            Self::EthereumSubscription => PaymentType::EthereumSubscription,
-        };
+        let payment_type = self.payment_type();
         map.serialize_entry("payment_type", &i16::from(&payment_type))?;
 
         match self {
@@ -136,6 +143,14 @@ impl PaymentOptions {
     pub fn is_empty(&self) -> bool {
         let Self(payment_options) = self;
         payment_options.is_empty()
+    }
+
+    /// Returns true if payment option list contains at least one option
+    /// of the given type.
+    pub fn any(&self, payment_type: PaymentType) -> bool {
+        let Self(payment_options) = self;
+        payment_options.iter()
+            .any(|option| option.payment_type() == payment_type)
     }
 }
 
