@@ -15,7 +15,7 @@ use crate::models::{
     profiles::types::PaymentOption,
     users::queries::get_user_by_id,
 };
-use super::wallet::{DEFAULT_ACCOUNT, MoneroError};
+use super::wallet::{send_monero, DEFAULT_ACCOUNT, MoneroError};
 
 pub async fn check_monero_subscriptions(
     config: &MoneroConfig,
@@ -119,11 +119,17 @@ pub async fn check_monero_subscriptions(
             continue;
         };
         let payout_address = Address::from_str(&payment_info.payout_address)?;
-        log::info!(
-            "invoice {}, payout address {}",
-            invoice.id,
+        let _payout_amount = send_monero(
+            &wallet_client,
+            address_index.minor,
             payout_address,
-        );
+        ).await?;
+        set_invoice_status(
+            db_client,
+            &invoice.id,
+            InvoiceStatus::Forwarded,
+        ).await?;
+        log::info!("processed payment for invoice {}", invoice.id);
     };
     Ok(())
 }

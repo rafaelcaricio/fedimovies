@@ -1,5 +1,14 @@
-use monero_rpc::RpcClient;
-use monero_rpc::monero::{Address, util::address::Error as AddressError};
+use monero_rpc::{
+    RpcClient,
+    SweepAllArgs,
+    TransferPriority,
+    WalletClient,
+};
+use monero_rpc::monero::{
+    Address,
+    Amount,
+    util::address::Error as AddressError,
+};
 
 use crate::config::MoneroConfig;
 use crate::errors::DatabaseError;
@@ -45,4 +54,45 @@ pub async fn create_monero_address(
         wallet_client.create_address(DEFAULT_ACCOUNT, None).await?;
     log::info!("created monero address {}/{}", DEFAULT_ACCOUNT, address_index);
     Ok(address)
+}
+
+fn get_single_item<T: Clone>(items: Vec<T>) -> Result<T, MoneroError> {
+    if let [item] = &items[..] {
+        Ok(item.clone())
+    } else {
+        Err(MoneroError::OtherError("invalid response from wallet"))
+    }
+}
+
+/// http://monerotoruzizulg5ttgat2emf4d6fbmiea25detrmmy7erypseyteyd.onion/resources/developer-guides/wallet-rpc.html#sweep_all
+pub async fn send_monero(
+    wallet_client: &WalletClient,
+    from_address: u32,
+    to_address: Address,
+) -> Result<Amount, MoneroError> {
+    let sweep_args = SweepAllArgs {
+        address: to_address,
+        account_index: DEFAULT_ACCOUNT,
+        subaddr_indices: Some(vec![from_address]),
+        priority: TransferPriority::Default,
+        mixin: 15,
+        ring_size: 16,
+        unlock_time: 1,
+        get_tx_keys: None,
+        below_amount: None,
+        do_not_relay: None,
+        get_tx_hex: None,
+        get_tx_metadata: None,
+    };
+    let sweep_data = wallet_client.sweep_all(sweep_args).await?;
+    let tx_hash = get_single_item(sweep_data.tx_hash_list)?;
+    let amount = get_single_item(sweep_data.amount_list)?;
+    let fee = get_single_item(sweep_data.fee_list)?;
+    log::info!(
+        "sent transaction {}, amount {}, fee {}",
+        tx_hash,
+        amount,
+        fee,
+    );
+    Ok(amount)
 }
