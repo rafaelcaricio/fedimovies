@@ -294,7 +294,10 @@ impl UpdateCurrentBlock {
 
 /// Create Monero wallet
 #[derive(Parser)]
-pub struct CreateMoneroWallet;
+pub struct CreateMoneroWallet {
+    name: String,
+    password: Option<String>,
+}
 
 impl CreateMoneroWallet {
     pub async fn execute(
@@ -304,7 +307,11 @@ impl CreateMoneroWallet {
         let monero_config = config.blockchain()
             .and_then(|conf| conf.monero_config())
             .ok_or(anyhow!("monero configuration not found"))?;
-        create_monero_wallet(monero_config).await?;
+        create_monero_wallet(
+            monero_config,
+            self.name.clone(),
+            self.password.clone(),
+        ).await?;
         println!("wallet created");
         Ok(())
     }
