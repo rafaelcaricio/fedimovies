@@ -38,6 +38,7 @@ use crate::models::reactions::queries::{
     create_reaction,
     delete_reaction,
 };
+use crate::utils::currencies::Currency;
 use super::helpers::{
     build_status,
     build_status_list,
@@ -429,9 +430,9 @@ async fn get_signature(
         .ok_or(HttpError::NotSupported)?
         .ethereum_config()
         .ok_or(HttpError::NotSupported)?;
-    // User must have a public wallet address
+    // User must have a public ethereum address
     let wallet_address = current_user
-        .public_wallet_address(&config.default_currency())
+        .public_wallet_address(&Currency::Ethereum)
         .ok_or(HttpError::PermissionError)?;
     let post = get_post_by_id(db_client, &status_id).await?;
     if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {

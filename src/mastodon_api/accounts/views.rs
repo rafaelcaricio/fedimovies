@@ -63,6 +63,7 @@ use crate::utils::crypto::{
     generate_private_key,
     serialize_private_key,
 };
+use crate::utils::currencies::Currency;
 use super::helpers::get_relationship;
 use super::types::{
     Account,
@@ -237,11 +238,13 @@ async fn create_identity_proof(
     let actor_id = current_user.profile.actor_id(&config.instance_url());
     let did = proof_data.did.parse::<DidPkh>()
         .map_err(|_| ValidationError("invalid DID"))?;
-    if did.currency() != Some(config.default_currency()) {
+    if did.currency() != Some(Currency::Ethereum) {
+        // DID must point to Ethereum Mainnet because it is a valid
+        // identifier on any Ethereum chain
         return Err(ValidationError("unsupported chain ID").into());
     };
     let maybe_public_address =
-        current_user.public_wallet_address(&config.default_currency());
+        current_user.public_wallet_address(&Currency::Ethereum);
     if let Some(address) = maybe_public_address {
         if did.address != address {
             return Err(ValidationError("DID doesn't match current identity").into());

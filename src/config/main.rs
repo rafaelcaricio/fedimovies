@@ -15,7 +15,6 @@ use crate::utils::crypto::{
     generate_private_key,
     serialize_private_key,
 };
-use crate::utils::currencies::Currency;
 use crate::utils::files::{set_file_permissions, write_file};
 
 use super::blockchain::BlockchainConfig;
@@ -137,10 +136,6 @@ impl Config {
 
     pub fn media_dir(&self) -> PathBuf {
         self.storage_dir.join("media")
-    }
-
-    pub fn default_currency(&self) -> Currency {
-        Currency::Ethereum
     }
 }
 

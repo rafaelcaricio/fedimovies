@@ -36,11 +36,11 @@ pub async fn authorize_subscription(
         .ok_or(HttpError::NotSupported)?
         .ethereum_config()
         .ok_or(HttpError::NotSupported)?;
-    // The user must have a public wallet address,
+    // The user must have a public ethereum address,
     // because subscribers should be able
     // to verify that payments are actually sent to the recipient.
     let wallet_address = current_user
-        .public_wallet_address(&config.default_currency())
+        .public_wallet_address(&Currency::Ethereum)
         .ok_or(HttpError::PermissionError)?;
     let signature = create_subscription_signature(
         ethereum_config,
