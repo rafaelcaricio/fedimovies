@@ -8,12 +8,14 @@ use super::caip2::ChainId;
 #[derive(Debug, PartialEq)]
 pub enum Currency {
     Ethereum,
+    Monero,
 }
 
 impl Currency {
     fn code(&self) -> String {
         match self {
             Self::Ethereum => "ETH",
+            Self::Monero => "XMR",
         }.to_string()
     }
 
@@ -29,6 +31,7 @@ impl Currency {
     pub fn normalize_address(&self, address: &str) -> String {
         match self {
             Self::Ethereum => address.to_lowercase(),
+            Self::Monero => address.to_string(),
         }
     }
 }
@@ -37,6 +40,7 @@ impl From<&Currency> for ChainId {
     fn from(value: &Currency) -> Self {
         let (namespace, reference) = match value {
             Currency::Ethereum => ("eip155", "1"),
+            Currency::Monero => unimplemented!(),
         };
         Self {
             namespace: namespace.to_string(),
@@ -72,6 +76,7 @@ pub fn validate_wallet_address(
                 return Err(ValidationError("address is not lowercase"));
             };
         },
+        Currency::Monero => (), // no validation
     };
     Ok(())
 }

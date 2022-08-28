@@ -398,10 +398,9 @@ pub async fn search_profile_by_did(
     let rows = if let Some(currency) = did.currency() {
         // If currency is Ethereum,
         // search over extra fields must be case insensitive.
-        #[allow(unreachable_patterns)]
         let value_op = match currency {
             Currency::Ethereum => "ILIKE",
-            _ => "LIKE",
+            Currency::Monero => "LIKE",
         };
         // This query does not scan user_account.wallet_address because
         // login addresses are private.
