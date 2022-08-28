@@ -9,12 +9,16 @@ use crate::config::{Config, Instance};
 use crate::database::Pool;
 use crate::ethereum::contracts::Blockchain;
 use crate::ethereum::nft::process_nft_events;
-use crate::ethereum::subscriptions::check_subscriptions;
+use crate::ethereum::subscriptions::{
+    check_ethereum_subscriptions,
+    update_expired_subscriptions,
+};
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 enum Task {
     NftMonitor,
-    SubscriptionMonitor,
+    EthereumSubscriptionMonitor,
+    SubscriptionExpirationMonitor,
 }
 
 impl Task {
@@ -22,7 +26,8 @@ impl Task {
     fn period(&self) -> i64 {
         match self {
             Self::NftMonitor => 30,
-            Self::SubscriptionMonitor => 300,
+            Self::EthereumSubscriptionMonitor => 300,
+            Self::SubscriptionExpirationMonitor => 300,
         }
     }
 }
@@ -60,7 +65,7 @@ async fn nft_monitor_task(
     Ok(())
 }
 
-async fn subscription_monitor_task(
+async fn ethereum_subscription_monitor_task(
     instance: &Instance,
     maybe_blockchain: Option<&mut Blockchain>,
     db_pool: &Pool,
@@ -73,7 +78,7 @@ async fn subscription_monitor_task(
         Some(contract) => contract,
         None => return Ok(()), // feature not enabled
     };
-    check_subscriptions(
+    check_ethereum_subscriptions(
         instance,
         &blockchain.contract_set.web3,
         subscription,
@@ -90,7 +95,8 @@ pub fn run(
     tokio::spawn(async move {
         let mut scheduler_state = HashMap::new();
         scheduler_state.insert(Task::NftMonitor, None);
-        scheduler_state.insert(Task::SubscriptionMonitor, None);
+        scheduler_state.insert(Task::EthereumSubscriptionMonitor, None);
+        scheduler_state.insert(Task::SubscriptionExpirationMonitor, None);
 
         let mut interval = tokio::time::interval(Duration::from_secs(5));
         let mut token_waitlist_map: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
@@ -109,12 +115,18 @@ pub fn run(
                             &mut token_waitlist_map,
                         ).await
                     },
-                    Task::SubscriptionMonitor => {
-                        subscription_monitor_task(
+                    Task::EthereumSubscriptionMonitor => {
+                        ethereum_subscription_monitor_task(
                             &config.instance(),
                             maybe_blockchain.as_mut(),
                             &db_pool,
                         ).await
+                    },
+                    Task::SubscriptionExpirationMonitor => {
+                        update_expired_subscriptions(
+                            &config.instance(),
+                            &db_pool,
+                        ).await.map_err(Error::from)
                     },
                 };
                 task_result.unwrap_or_else(|err| {
@@ -122,6 +134,6 @@ pub fn run(
                 });
                 *last_run = Some(Utc::now());
             };
-        }
+        };
     });
 }

@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 
 use chrono::{DateTime, TimeZone, Utc};
+use tokio_postgres::GenericClient;
 
 use web3::{
     api::Web3,
@@ -26,6 +27,7 @@ use crate::models::profiles::queries::{
     get_profile_by_id,
     search_profile_by_wallet_address,
 };
+use crate::models::profiles::types::DbActorProfile;
 use crate::models::relationships::queries::unsubscribe;
 use crate::models::subscriptions::queries::{
     create_subscription,
@@ -37,6 +39,7 @@ use crate::models::users::queries::{
     get_user_by_id,
     get_user_by_wallet_address,
 };
+use crate::models::users::types::User;
 use crate::utils::currencies::Currency;
 use super::contracts::ContractSet;
 use super::errors::EthereumError;
@@ -59,8 +62,30 @@ fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
     Ok(datetime)
 }
 
+async fn send_subscription_notifications(
+    db_client: &impl GenericClient,
+    instance: &Instance,
+    sender: &DbActorProfile,
+    recipient: &User,
+) -> Result<(), DatabaseError> {
+    create_subscription_notification(
+        db_client,
+        &sender.id,
+        &recipient.id,
+    ).await?;
+    if let Some(ref remote_sender) = sender.actor_json {
+        prepare_add_person(
+            instance,
+            recipient,
+            remote_sender,
+            LocalActorCollection::Subscribers,
+        ).spawn_deliver();
+    };
+    Ok(())
+}
+
 /// Search for subscription update events
-pub async fn check_subscriptions(
+pub async fn check_ethereum_subscriptions(
     instance: &Instance,
     web3: &Web3<Http>,
     contract: &Contract<Http>,
@@ -154,35 +179,36 @@ pub async fn check_subscriptions(
                     );
                     continue;
                 };
-                if subscription.updated_at < block_date {
-                    // Update subscription expiration date
-                    update_subscription(
-                        db_client,
-                        subscription.id,
-                        &expires_at,
-                        &block_date,
-                    ).await?;
+                if subscription.updated_at >= block_date {
+                    // Event already processed
+                    continue;
+                };
+                // Update subscription expiration date
+                update_subscription(
+                    db_client,
+                    subscription.id,
+                    &expires_at,
+                    &block_date,
+                ).await?;
+                #[allow(clippy::comparison_chain)]
+                if expires_at > subscription.expires_at {
                     log::info!(
-                        "subscription updated: {0} to {1}",
+                        "subscription extended: {0} to {1}",
                         subscription.sender_id,
                         subscription.recipient_id,
                     );
-                    if expires_at > subscription.expires_at {
-                        // Subscription was extended
-                        create_subscription_notification(
-                            db_client,
-                            &subscription.sender_id,
-                            &subscription.recipient_id,
-                        ).await?;
-                        if let Some(ref remote_sender) = sender.actor_json {
-                            prepare_add_person(
-                                instance,
-                                &recipient,
-                                remote_sender,
-                                LocalActorCollection::Subscribers,
-                            ).spawn_deliver();
-                        };
-                    };
+                    send_subscription_notifications(
+                        db_client,
+                        instance,
+                        sender,
+                        &recipient,
+                    ).await?;
+                } else if expires_at < subscription.expires_at {
+                    log::info!(
+                        "subscription cancelled: {0} to {1}",
+                        subscription.sender_id,
+                        subscription.recipient_id,
+                    );
                 };
             },
             Err(DatabaseError::NotFound(_)) => {
@@ -200,24 +226,26 @@ pub async fn check_subscriptions(
                     sender.id,
                     recipient.id,
                 );
-                create_subscription_notification(
+                send_subscription_notifications(
                     db_client,
-                    &sender.id,
-                    &recipient.id,
+                    instance,
+                    sender,
+                    &recipient,
                 ).await?;
-                if let Some(ref remote_sender) = sender.actor_json {
-                    prepare_add_person(
-                        instance,
-                        &recipient,
-                        remote_sender,
-                        LocalActorCollection::Subscribers,
-                    ).spawn_deliver();
-                };
             },
             Err(other_error) => return Err(other_error.into()),
         };
     };
 
+    sync_state.update(&contract.address(), to_block)?;
+    Ok(())
+}
+
+pub async fn update_expired_subscriptions(
+    instance: &Instance,
+    db_pool: &Pool,
+) -> Result<(), EthereumError> {
+    let db_client = &**get_database_client(db_pool).await?;
     for subscription in get_expired_subscriptions(db_client).await? {
         // Remove relationship
         unsubscribe(db_client, &subscription.sender_id, &subscription.recipient_id).await?;
@@ -243,8 +271,6 @@ pub async fn check_subscriptions(
             ).await?;
         };
     };
-
-    sync_state.update(&contract.address(), to_block)?;
     Ok(())
 }
 
