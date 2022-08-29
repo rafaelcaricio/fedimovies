@@ -5,11 +5,22 @@ use regex::Regex;
 use serde::{Deserialize, Deserializer, de::Error as DeserializerError};
 
 const CAIP2_RE: &str = r"(?P<namespace>[-a-z0-9]{3,8}):(?P<reference>[-a-zA-Z0-9]{1,32})";
+const CAIP2_ETHEREUM_NAMESPACE: &str = "eip155";
+const ETHEREUM_MAINNET_ID: i32 = 1;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChainId {
     pub namespace: String,
     pub reference: String,
+}
+
+impl ChainId {
+    pub fn ethereum_mainnet() -> Self {
+        Self {
+            namespace: CAIP2_ETHEREUM_NAMESPACE.to_string(),
+            reference: ETHEREUM_MAINNET_ID.to_string(),
+        }
+    }
 }
 
 #[derive(thiserror::Error, Debug)]

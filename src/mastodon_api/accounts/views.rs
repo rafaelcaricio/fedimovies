@@ -58,6 +58,7 @@ use crate::models::users::queries::{
     get_user_by_did,
 };
 use crate::models::users::types::UserCreateData;
+use crate::utils::caip2::ChainId;
 use crate::utils::crypto::{
     hash_password,
     generate_private_key,
@@ -238,7 +239,7 @@ async fn create_identity_proof(
     let actor_id = current_user.profile.actor_id(&config.instance_url());
     let did = proof_data.did.parse::<DidPkh>()
         .map_err(|_| ValidationError("invalid DID"))?;
-    if did.currency() != Some(Currency::Ethereum) {
+    if did.chain_id != ChainId::ethereum_mainnet() {
         // DID must point to Ethereum Mainnet because it is a valid
         // identifier on any Ethereum chain
         return Err(ValidationError("unsupported chain ID").into());

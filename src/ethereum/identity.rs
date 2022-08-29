@@ -19,13 +19,16 @@ pub const ETHEREUM_EIP191_PROOF: &str = "ethereum-eip191-00";
 // https://github.com/w3c-ccg/did-pkh/blob/main/did-pkh-method-draft.md
 #[derive(Clone, Debug, PartialEq)]
 pub struct DidPkh {
-    chain_id: ChainId,
+    pub chain_id: ChainId,
     pub address: String,
 }
 
 impl DidPkh {
     pub fn from_address(currency: &Currency, address: &str) -> Self {
-        let chain_id = currency.chain_id();
+        let chain_id = match currency {
+            Currency::Ethereum => ChainId::ethereum_mainnet(),
+            Currency::Monero => unimplemented!(),
+        };
         let address = currency.normalize_address(address);
         Self { chain_id, address }
     }

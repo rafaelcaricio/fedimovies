@@ -23,28 +23,10 @@ impl Currency {
         format!("${}", self.code())
     }
 
-    /// Returns CAIP-2 chain ID
-    pub fn chain_id(&self) -> ChainId {
-        self.into()
-    }
-
     pub fn normalize_address(&self, address: &str) -> String {
         match self {
             Self::Ethereum => address.to_lowercase(),
             Self::Monero => address.to_string(),
-        }
-    }
-}
-
-impl From<&Currency> for ChainId {
-    fn from(value: &Currency) -> Self {
-        let (namespace, reference) = match value {
-            Currency::Ethereum => ("eip155", "1"),
-            Currency::Monero => unimplemented!(),
-        };
-        Self {
-            namespace: namespace.to_string(),
-            reference: reference.to_string(),
         }
     }
 }
@@ -54,10 +36,8 @@ impl TryFrom<&ChainId> for Currency {
 
     fn try_from(value: &ChainId) -> Result<Self, Self::Error> {
         let currency = match value.namespace.as_str() {
-            "eip155" => match value.reference.as_str() {
-                "1" => Self::Ethereum,
-                _ => return Err(ConversionError),
-            },
+            "eip155" => Self::Ethereum,
+            "monero" => Self::Monero, // not standard
             _ => return Err(ConversionError),
         };
         Ok(currency)
@@ -87,10 +67,16 @@ mod tests {
 
     #[test]
     fn test_chain_id_conversion() {
-        let ethereum = Currency::Ethereum;
-        let ethereum_chain_id = ChainId::from(&ethereum);
+        let ethereum_chain_id = ChainId::ethereum_mainnet();
         let currency = Currency::try_from(&ethereum_chain_id).unwrap();
-        assert_eq!(currency, ethereum);
+        assert_eq!(currency, Currency::Ethereum);
+
+        let monero_chain_id = ChainId {
+            namespace: "monero".to_string(),
+            reference: "mainnet".to_string(),
+        };
+        let currency = Currency::try_from(&monero_chain_id).unwrap();
+        assert_eq!(currency, Currency::Monero);
     }
 
     #[test]
