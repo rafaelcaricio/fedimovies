@@ -12,9 +12,9 @@ pub async fn apply_migrations(db_client: &mut Client) {
 
     for migration in migration_report.applied_migrations() {
         log::info!(
-            "Migration Applied -  Name: {}, Version: {}",
-            migration.name(),
+            "migration applied: version {} ({})",
             migration.version(),
+            migration.name(),
         );
     }
 }

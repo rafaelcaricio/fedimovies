@@ -15,6 +15,7 @@ use crate::activitypub::identifiers::local_actor_id;
 use crate::database::json_macro::{json_from_sql, json_to_sql};
 use crate::errors::{ConversionError, ValidationError};
 use crate::ethereum::identity::DidPkh;
+use crate::utils::caip2::ChainId;
 use super::validators::{
     validate_username,
     validate_display_name,
@@ -76,17 +77,26 @@ pub struct PaymentLink {
     pub href: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EthereumSubscription {
+    chain_id: ChainId,
+}
+
 #[derive(Clone, Debug)]
 pub enum PaymentOption {
     Link(PaymentLink),
-    EthereumSubscription,
+    EthereumSubscription(EthereumSubscription),
 }
 
 impl PaymentOption {
+    pub fn ethereum_subscription(chain_id: ChainId) -> Self {
+        Self::EthereumSubscription(EthereumSubscription { chain_id })
+    }
+
     fn payment_type(&self) -> PaymentType {
         match self {
             Self::Link(_) => PaymentType::Link,
-            Self::EthereumSubscription => PaymentType::EthereumSubscription,
+            Self::EthereumSubscription(_) => PaymentType::EthereumSubscription,
         }
     }
 }
@@ -109,7 +119,11 @@ impl<'de> Deserialize<'de> for PaymentOption {
                     .map_err(DeserializerError::custom)?;
                 Self::Link(link)
             },
-            PaymentType::EthereumSubscription => Self::EthereumSubscription,
+            PaymentType::EthereumSubscription => {
+                let payment_info = EthereumSubscription::deserialize(value)
+                    .map_err(DeserializerError::custom)?;
+                Self::EthereumSubscription(payment_info)
+            },
         };
         Ok(payment_option)
     }
@@ -125,7 +139,9 @@ impl Serialize for PaymentOption {
 
         match self {
             Self::Link(link) => link.serialize(FlatMapSerializer(&mut map))?,
-            Self::EthereumSubscription => (),
+            Self::EthereumSubscription(payment_info) => {
+                payment_info.serialize(FlatMapSerializer(&mut map))?
+            },
         };
         map.end()
     }
@@ -384,14 +400,15 @@ mod tests {
 
     #[test]
     fn test_payment_option_ethereum_subscription_serialization() {
-        let json_data = r#"{"payment_type":2,"name":null,"href":null}"#;
+        let json_data = r#"{"payment_type":2,"chain_id":"eip155:1","name":null}"#;
         let payment_option: PaymentOption = serde_json::from_str(json_data).unwrap();
-        assert!(matches!(
-            payment_option,
-            PaymentOption::EthereumSubscription,
-        ));
+        let payment_info = match payment_option {
+            PaymentOption::EthereumSubscription(ref payment_info) => payment_info,
+            _ => panic!("wrong option"),
+        };
+        assert_eq!(payment_info.chain_id, ChainId::ethereum_mainnet());
         let serialized = serde_json::to_string(&payment_option).unwrap();
-        assert_eq!(serialized, r#"{"payment_type":2}"#);
+        assert_eq!(serialized, r#"{"payment_type":2,"chain_id":"eip155:1"}"#);
     }
 
     #[test]

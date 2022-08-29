@@ -2,7 +2,13 @@
 use std::str::FromStr;
 
 use regex::Regex;
-use serde::{Deserialize, Deserializer, de::Error as DeserializerError};
+use serde::{
+    Deserialize,
+    Deserializer,
+    Serialize,
+    Serializer,
+    de::Error as DeserializerError,
+};
 
 const CAIP2_RE: &str = r"(?P<namespace>[-a-z0-9]{3,8}):(?P<reference>[-a-zA-Z0-9]{1,32})";
 const CAIP2_ETHEREUM_NAMESPACE: &str = "eip155";
@@ -44,6 +50,14 @@ impl FromStr for ChainId {
 impl ToString for ChainId {
     fn to_string(&self) -> String {
         format!("{}:{}", self.namespace, self.reference)
+    }
+}
+
+impl Serialize for ChainId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        serializer.serialize_str(&self.to_string())
     }
 }
 

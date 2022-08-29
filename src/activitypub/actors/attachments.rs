@@ -68,8 +68,9 @@ pub fn attach_payment_option(
     payment_option: PaymentOption,
 ) -> ActorAttachment {
     match payment_option {
+        // Local actors can't have payment links
         PaymentOption::Link(_) => unimplemented!(),
-        PaymentOption::EthereumSubscription => {
+        PaymentOption::EthereumSubscription(_) => {
             let name = "EthereumSubscription".to_string();
             let subscription_page_url =
                 get_subscription_page_url(instance_url, user_id);
@@ -132,6 +133,7 @@ pub fn parse_extra_field(
 
 #[cfg(test)]
 mod tests {
+    use crate::utils::caip2::ChainId;
     use crate::utils::id::new_uuid;
     use super::*;
 
@@ -155,7 +157,8 @@ mod tests {
     #[test]
     fn test_payment_option() {
         let user_id = new_uuid();
-        let payment_option = PaymentOption::EthereumSubscription;
+        let payment_option =
+            PaymentOption::ethereum_subscription(ChainId::ethereum_mainnet());
         let subscription_page_url =
             format!("https://example.com/profile/{}/subscription", user_id);
         let attachment = attach_payment_option(

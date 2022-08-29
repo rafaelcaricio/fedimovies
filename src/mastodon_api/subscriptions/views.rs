@@ -63,6 +63,9 @@ pub async fn subscriptions_enabled(
     let mut maybe_payment_option = None;
     match subscription_settings.into_inner() {
         SubscriptionSettings::Ethereum => {
+            let ethereum_config = config.blockchain.as_ref()
+                .and_then(|conf| conf.ethereum_config())
+                .ok_or(HttpError::NotSupported)?;
             let contract_set = maybe_blockchain.as_ref().as_ref()
                 .ok_or(HttpError::NotSupported)?;
             let wallet_address = current_user
@@ -78,7 +81,9 @@ pub async fn subscriptions_enabled(
                 if !is_registered {
                     return Err(ValidationError("recipient is not registered").into());
                 };
-                maybe_payment_option = Some(PaymentOption::EthereumSubscription);
+                maybe_payment_option = Some(PaymentOption::ethereum_subscription(
+                    ethereum_config.chain_id.clone(),
+                ));
             };
         },
         SubscriptionSettings::Monero { } => {
