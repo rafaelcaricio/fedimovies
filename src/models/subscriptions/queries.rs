@@ -8,6 +8,7 @@ use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
 use crate::models::relationships::queries::{subscribe, subscribe_opt};
 use crate::models::relationships::types::RelationshipType;
+use crate::utils::caip2::ChainId;
 use super::types::{DbSubscription, Subscription};
 
 pub async fn create_subscription(
@@ -15,6 +16,7 @@ pub async fn create_subscription(
     sender_id: &Uuid,
     sender_address: &str,
     recipient_id: &Uuid,
+    chain_id: &ChainId,
     expires_at: &DateTime<Utc>,
     updated_at: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
@@ -25,15 +27,17 @@ pub async fn create_subscription(
             sender_id,
             sender_address,
             recipient_id,
+            chain_id,
             expires_at,
             updated_at
         )
-        VALUES ($1, $2, $3, $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6)
         ",
         &[
             &sender_id,
             &sender_address,
             &recipient_id,
+            &chain_id,
             &expires_at,
             &updated_at,
         ],
@@ -46,6 +50,7 @@ pub async fn create_subscription(
 pub async fn update_subscription(
     db_client: &mut impl GenericClient,
     subscription_id: i32,
+    chain_id: &ChainId,
     expires_at: &DateTime<Utc>,
     updated_at: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
@@ -54,15 +59,17 @@ pub async fn update_subscription(
         "
         UPDATE subscription
         SET
-            expires_at = $1,
-            updated_at = $2
-        WHERE id = $3
+            chain_id = $2,
+            expires_at = $3,
+            updated_at = $4
+        WHERE id = $1
         RETURNING sender_id, recipient_id
         ",
         &[
+            &subscription_id,
+            &chain_id,
             &expires_at,
             &updated_at,
-            &subscription_id,
         ],
     ).await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("subscription"))?;
@@ -138,4 +145,56 @@ pub async fn get_incoming_subscriptions(
         .map(Subscription::try_from)
         .collect::<Result<_, _>>()?;
     Ok(subscriptions)
+}
+
+#[cfg(test)]
+mod tests {
+    use serial_test::serial;
+    use crate::database::test_utils::create_test_database;
+    use crate::models::{
+        profiles::queries::create_profile,
+        profiles::types::ProfileCreateData,
+        relationships::queries::has_relationship,
+        relationships::types::RelationshipType,
+        users::queries::create_user,
+        users::types::UserCreateData,
+    };
+    use super::*;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_create_subscription() {
+        let db_client = &mut create_test_database().await;
+        let sender_data = ProfileCreateData {
+            username: "sender".to_string(),
+            ..Default::default()
+        };
+        let sender = create_profile(db_client, sender_data).await.unwrap();
+        let sender_address = "0xb9c5714089478a327f09197987f16f9e5d936e8a";
+        let recipient_data = UserCreateData {
+            username: "recipient".to_string(),
+            ..Default::default()
+        };
+        let recipient = create_user(db_client, recipient_data).await.unwrap();
+        let chain_id = ChainId::ethereum_mainnet();
+        let expires_at = Utc::now();
+        let updated_at = Utc::now();
+        create_subscription(
+            db_client,
+            &sender.id,
+            sender_address,
+            &recipient.id,
+            &chain_id,
+            &expires_at,
+            &updated_at,
+        ).await.unwrap();
+
+        let is_subscribed = has_relationship(
+            db_client,
+            &sender.id,
+            &recipient.id,
+            RelationshipType::Subscription,
+        ).await.unwrap();
+        assert_eq!(is_subscribed, true);
+    }
 }

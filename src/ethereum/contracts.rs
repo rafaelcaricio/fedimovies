@@ -91,6 +91,7 @@ pub struct ContractSet {
 
 #[derive(Clone)]
 pub struct Blockchain {
+    pub config: EthereumConfig,
     pub contract_set: ContractSet,
     pub sync_state: SyncState,
 }
@@ -193,5 +194,9 @@ pub async fn get_contracts(
         subscription: maybe_subscription,
         subscription_adapter: maybe_subscription_adapter,
     };
-    Ok(Blockchain { contract_set, sync_state })
+    Ok(Blockchain {
+        config: config.clone(),
+        contract_set,
+        sync_state,
+    })
 }

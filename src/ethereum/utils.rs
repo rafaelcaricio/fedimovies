@@ -19,7 +19,7 @@ pub enum ChainIdError {
 
 /// Parses CAIP-2 chain ID
 pub fn parse_caip2_chain_id(chain_id: &ChainId) -> Result<u32, ChainIdError> {
-    if chain_id.namespace != "eip155" {
+    if !chain_id.is_ethereum() {
         return Err(ChainIdError::UnsupportedChain);
     };
     let eth_chain_id: u32 = chain_id.reference.parse()?;

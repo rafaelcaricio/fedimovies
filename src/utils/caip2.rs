@@ -13,6 +13,7 @@ use serde::{
 const CAIP2_RE: &str = r"(?P<namespace>[-a-z0-9]{3,8}):(?P<reference>[-a-zA-Z0-9]{1,32})";
 const CAIP2_ETHEREUM_NAMESPACE: &str = "eip155";
 const ETHEREUM_MAINNET_ID: i32 = 1;
+const ETHEREUM_DEVNET_ID: i32 = 31337;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChainId {
@@ -26,6 +27,17 @@ impl ChainId {
             namespace: CAIP2_ETHEREUM_NAMESPACE.to_string(),
             reference: ETHEREUM_MAINNET_ID.to_string(),
         }
+    }
+
+    pub fn ethereum_devnet() -> Self {
+        Self {
+            namespace: CAIP2_ETHEREUM_NAMESPACE.to_string(),
+            reference: ETHEREUM_DEVNET_ID.to_string(),
+        }
+    }
+
+    pub fn is_ethereum(&self) -> bool {
+        self.namespace == CAIP2_ETHEREUM_NAMESPACE
     }
 }
 
@@ -67,6 +79,48 @@ impl<'de> Deserialize<'de> for ChainId {
     {
         String::deserialize(deserializer)?
             .parse().map_err(DeserializerError::custom)
+    }
+}
+
+mod sql {
+    use postgres_protocol::types::{text_from_sql, text_to_sql};
+    use postgres_types::{
+        accepts,
+        private::BytesMut,
+        to_sql_checked,
+        FromSql,
+        IsNull,
+        ToSql,
+        Type,
+    };
+    use super::ChainId;
+
+    impl<'a> FromSql<'a> for ChainId {
+        fn from_sql(
+            _: &Type,
+            raw: &'a [u8],
+        ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+            let value_str = text_from_sql(raw)?;
+            let value: Self = value_str.parse()?;
+            Ok(value)
+        }
+
+        accepts!(VARCHAR);
+    }
+
+    impl ToSql for ChainId {
+        fn to_sql(
+            &self,
+            _: &Type,
+            out: &mut BytesMut,
+        ) -> Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
+            let value_str = self.to_string();
+            text_to_sql(&value_str, out);
+            Ok(IsNull::No)
+        }
+
+        accepts!(VARCHAR, TEXT);
+        to_sql_checked!();
     }
 }
 

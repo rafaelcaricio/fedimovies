@@ -79,6 +79,7 @@ async fn ethereum_subscription_monitor_task(
         None => return Ok(()), // feature not enabled
     };
     check_ethereum_subscriptions(
+        &blockchain.config,
         instance,
         &blockchain.contract_set.web3,
         subscription,

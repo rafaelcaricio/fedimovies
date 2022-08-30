@@ -40,6 +40,7 @@ use crate::models::users::queries::{
     get_user_by_wallet_address,
 };
 use crate::models::users::types::User;
+use crate::utils::caip2::ChainId;
 use crate::utils::currencies::Currency;
 use super::contracts::ContractSet;
 use super::errors::EthereumError;
@@ -86,6 +87,7 @@ async fn send_subscription_notifications(
 
 /// Search for subscription update events
 pub async fn check_ethereum_subscriptions(
+    config: &EthereumConfig,
     instance: &Instance,
     web3: &Web3<Http>,
     contract: &Contract<Http>,
@@ -179,14 +181,24 @@ pub async fn check_ethereum_subscriptions(
                     );
                     continue;
                 };
+                if subscription.chain_id != config.chain_id &&
+                    subscription.chain_id != ChainId::ethereum_devnet()
+                {
+                    // Switching from from devnet is allowed during migration
+                    // because there's no persistent state
+                    log::error!("can't switch to another chain");
+                    continue;
+                };
                 if subscription.updated_at >= block_date {
                     // Event already processed
                     continue;
                 };
                 // Update subscription expiration date
+                // TODO: disallow automatic chain ID updates after migration
                 update_subscription(
                     db_client,
                     subscription.id,
+                    &config.chain_id,
                     &expires_at,
                     &block_date,
                 ).await?;
@@ -218,6 +230,7 @@ pub async fn check_ethereum_subscriptions(
                     &sender.id,
                     &sender_address,
                     &recipient.id,
+                    &config.chain_id,
                     &expires_at,
                     &block_date,
                 ).await?;

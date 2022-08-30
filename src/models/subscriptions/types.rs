@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::errors::DatabaseError;
 use crate::models::profiles::types::DbActorProfile;
+use crate::utils::caip2::ChainId;
 
 #[derive(FromSql)]
 #[postgres(name = "subscription")]
@@ -15,6 +16,7 @@ pub struct DbSubscription {
     pub sender_id: Uuid,
     pub sender_address: String,
     pub recipient_id: Uuid,
+    pub chain_id: ChainId,
     pub expires_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
