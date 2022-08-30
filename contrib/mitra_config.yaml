@@ -26,18 +26,18 @@ registrations_open: false
 # List of blocked domains
 #blocked_instances: []
 
-# Blockchain integration
+# Blockchain integrations
 # Signing key for ethereum integration can be generated with `mitractl generate-ethereum-address`
-#blockchain:
-#  chain_id: eip155:31337
-#  chain_info: null
-#  contract_address: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
-#  contract_dir: /usr/share/mitra/contracts
-#  api_url: 'http://127.0.0.1:8545'
-#  explorer_url: null
-#  signing_key: null
-#  chain_sync_step: 1000
-#  chain_reorg_max_depth: 10
+#blockchains:
+#  - chain_id: eip155:31337
+#    chain_info: null
+#    contract_address: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
+#    contract_dir: /usr/share/mitra/contracts
+#    api_url: 'http://127.0.0.1:8545'
+#    explorer_url: null
+#    signing_key: null
+#    chain_sync_step: 1000
+#    chain_reorg_max_depth: 10
 
 # IPFS integration
 #ipfs_api_url: 'http://127.0.0.1:5001'

@@ -32,7 +32,7 @@ pub async fn authorize_subscription(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let ethereum_config = config.blockchain.as_ref()
+    let ethereum_config = config.blockchain()
         .ok_or(HttpError::NotSupported)?
         .ethereum_config()
         .ok_or(HttpError::NotSupported)?;
@@ -63,7 +63,7 @@ pub async fn subscriptions_enabled(
     let mut maybe_payment_option = None;
     match subscription_settings.into_inner() {
         SubscriptionSettings::Ethereum => {
-            let ethereum_config = config.blockchain.as_ref()
+            let ethereum_config = config.blockchain()
                 .and_then(|conf| conf.ethereum_config())
                 .ok_or(HttpError::NotSupported)?;
             let contract_set = maybe_blockchain.as_ref().as_ref()

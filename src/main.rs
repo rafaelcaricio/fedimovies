@@ -51,7 +51,10 @@ async fn main() -> std::io::Result<()> {
         config.environment,
     );
 
-    let maybe_blockchain = if let Some(blockchain_config) = &config.blockchain {
+    if config._blockchain.is_some() {
+        log::warn!("'blockchain' property is deprecated, use 'blockchains' instead");
+    };
+    let maybe_blockchain = if let Some(blockchain_config) = config.blockchain() {
         if let Some(ethereum_config) = blockchain_config.ethereum_config() {
             // Create blockchain interface
             get_contracts(ethereum_config, &config.storage_dir).await
@@ -147,7 +150,7 @@ async fn main() -> std::io::Result<()> {
             .service(atom::get_atom_feed)
             .service(nodeinfo::get_nodeinfo)
             .service(nodeinfo::get_nodeinfo_2_0);
-        if let Some(blockchain_config) = &config.blockchain {
+        if let Some(blockchain_config) = config.blockchain() {
             if let Some(ethereum_config) = blockchain_config.ethereum_config() {
                 // Serve artifacts if available
                 app = app.service(actix_files::Files::new(

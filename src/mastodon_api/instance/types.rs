@@ -41,7 +41,7 @@ fn get_full_api_version(version: &str) -> String {
 
 impl InstanceInfo {
     pub fn create(config: &Config, maybe_blockchain: Option<&ContractSet>) -> Self {
-        let ethereum_config = config.blockchain.as_ref()
+        let ethereum_config = config.blockchain()
             .and_then(|conf| conf.ethereum_config());
         let blockchain_features = maybe_blockchain.map(|contract_set| {
             BlockchainFeatures {

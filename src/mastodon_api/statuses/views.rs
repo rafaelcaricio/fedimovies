@@ -426,7 +426,7 @@ async fn get_signature(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let ethereum_config = config.blockchain.as_ref()
+    let ethereum_config = config.blockchain()
         .ok_or(HttpError::NotSupported)?
         .ethereum_config()
         .ok_or(HttpError::NotSupported)?;

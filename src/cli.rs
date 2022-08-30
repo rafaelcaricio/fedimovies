@@ -301,7 +301,7 @@ impl CreateMoneroWallet {
         &self,
         config: &Config,
     ) -> Result<(), Error> {
-        let monero_config = config.blockchain.as_ref()
+        let monero_config = config.blockchain()
             .and_then(|conf| conf.monero_config())
             .ok_or(anyhow!("monero configuration not found"))?;
         create_monero_wallet(monero_config).await?;

@@ -10,24 +10,23 @@ instance_short_description: My instance
 instance_description: My instance
 registrations_open: true
 
-blockchain:
+blockchains:
   # Parameters for hardhat local node
-  chain_id: eip155:31337
-  chain_info: null
-  contract_address: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
-  contract_dir: contracts
-  api_url: 'http://127.0.0.1:8546'
-  explorer_url: null
-  signing_key: 'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
-  chain_sync_step: 100
-  chain_reorg_max_depth: 0
-
-#blockchain:
-#  chain_id: monero:regtest
-#  daemon_url: 'http://127.0.0.1:58081'
-#  wallet_url: 'http://127.0.0.1:58083'
-#  wallet_name: test
-#  wallet_password: test
+  - chain_id: eip155:31337
+    chain_info: null
+    contract_address: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
+    contract_dir: contracts
+    api_url: 'http://127.0.0.1:8546'
+    explorer_url: null
+    signing_key: 'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+    chain_sync_step: 100
+    chain_reorg_max_depth: 0
+#  # Parameters for local Monero node
+#  - chain_id: monero:regtest
+#    daemon_url: 'http://127.0.0.1:58081'
+#    wallet_url: 'http://127.0.0.1:58083'
+#    wallet_name: test
+#    wallet_password: test
 
 ipfs_api_url: 'http://127.0.0.1:5001'
 ipfs_gateway_url: 'http://127.0.0.1:8001'

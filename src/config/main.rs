@@ -100,8 +100,11 @@ pub struct Config {
     #[serde(default)]
     pub blocked_instances: Vec<String>,
 
-    // Blockchain integration
-    pub blockchain: Option<BlockchainConfig>,
+    // Blockchain integrations
+    #[serde(rename = "blockchain")]
+    pub _blockchain: Option<BlockchainConfig>, // deprecated
+    #[serde(default)]
+    blockchains: Vec<BlockchainConfig>,
 
     // IPFS
     pub ipfs_api_url: Option<String>,
@@ -136,6 +139,18 @@ impl Config {
 
     pub fn media_dir(&self) -> PathBuf {
         self.storage_dir.join("media")
+    }
+
+    pub fn blockchain(&self) -> Option<&BlockchainConfig> {
+        if let Some(ref blockchain_config) = self._blockchain {
+            Some(blockchain_config)
+        } else {
+            match &self.blockchains[..] {
+                [blockchain_config] => Some(blockchain_config),
+                [] => None,
+                _ => panic!("multichain deployments are not supported"),
+            }
+        }
     }
 }
 
@@ -237,7 +252,7 @@ pub fn parse_config() -> Config {
     };
     check_directory_owner(&config.storage_dir);
     config.try_instance_url().expect("invalid instance URI");
-    if let Some(blockchain_config) = config.blockchain.as_ref() {
+    if let Some(blockchain_config) = config.blockchain() {
         if let Some(ethereum_config) = blockchain_config.ethereum_config() {
             ethereum_config.try_ethereum_chain_id().unwrap();
             if !ethereum_config.contract_dir.exists() {
