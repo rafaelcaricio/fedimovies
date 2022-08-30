@@ -1,10 +1,14 @@
+use std::convert::TryInto;
 use std::str::FromStr;
 
+use chrono::{Duration, Utc};
 use monero_rpc::{RpcClient, TransferType};
 use monero_rpc::monero::{Address, Amount};
 
-use crate::config::MoneroConfig;
+use crate::config::{Instance, MoneroConfig};
 use crate::database::{get_database_client, Pool};
+use crate::errors::DatabaseError;
+use crate::ethereum::subscriptions::send_subscription_notifications;
 use crate::models::{
     invoices::queries::{
         get_invoice_by_address,
@@ -12,16 +16,23 @@ use crate::models::{
         set_invoice_status,
     },
     invoices::types::InvoiceStatus,
+    profiles::queries::get_profile_by_id,
     profiles::types::PaymentOption,
+    subscriptions::queries::{
+        create_subscription,
+        get_subscription_by_participants,
+        update_subscription,
+    },
     users::queries::get_user_by_id,
 };
 use super::wallet::{send_monero, DEFAULT_ACCOUNT, MoneroError};
 
 pub async fn check_monero_subscriptions(
+    instance: &Instance,
     config: &MoneroConfig,
     db_pool: &Pool,
 ) -> Result<(), MoneroError> {
-    let db_client = &**get_database_client(db_pool).await?;
+    let db_client = &mut **get_database_client(db_pool).await?;
 
     let wallet_client = RpcClient::new(config.wallet_url.clone()).wallet();
     wallet_client.open_wallet(
@@ -99,8 +110,9 @@ pub async fn check_monero_subscriptions(
             // Not ready for forwarding
             continue;
         };
+        let sender = get_profile_by_id(db_client, &invoice.sender_id).await?;
         let recipient = get_user_by_id(db_client, &invoice.recipient_id).await?;
-        let maybe_payment_info = recipient.profile.payment_options
+        let maybe_payment_info = recipient.profile.payment_options.clone()
             .into_inner().into_iter()
             .find_map(|option| match option {
                 PaymentOption::MoneroSubscription(payment_info) => {
@@ -119,17 +131,78 @@ pub async fn check_monero_subscriptions(
             continue;
         };
         let payout_address = Address::from_str(&payment_info.payout_address)?;
-        let _payout_amount = send_monero(
+        let payout_amount = send_monero(
             &wallet_client,
             address_index.minor,
             payout_address,
         ).await?;
+        let duration_secs = (payout_amount.as_pico() / payment_info.price)
+            .try_into()
+            .map_err(|_| MoneroError::OtherError("invalid duration"))?;
+        let expires_at = Utc::now() + Duration::seconds(duration_secs);
+
         set_invoice_status(
             db_client,
             &invoice.id,
             InvoiceStatus::Forwarded,
         ).await?;
         log::info!("processed payment for invoice {}", invoice.id);
+
+        match get_subscription_by_participants(
+            db_client,
+            &sender.id,
+            &recipient.id,
+        ).await {
+            Ok(subscription) => {
+                if subscription.chain_id != config.chain_id {
+                    log::error!("can't switch to another chain");
+                    continue;
+                };
+                // Update subscription expiration date
+                update_subscription(
+                    db_client,
+                    subscription.id,
+                    &subscription.chain_id,
+                    &expires_at,
+                    &Utc::now(),
+                ).await?;
+                log::info!(
+                    "subscription updated: {0} to {1}",
+                    subscription.sender_id,
+                    subscription.recipient_id,
+                );
+                send_subscription_notifications(
+                    db_client,
+                    instance,
+                    &sender,
+                    &recipient,
+                ).await?;
+            },
+            Err(DatabaseError::NotFound(_)) => {
+                // New subscription
+                create_subscription(
+                    db_client,
+                    &sender.id,
+                    None, // matching by address is not required
+                    &recipient.id,
+                    &config.chain_id,
+                    &expires_at,
+                    &Utc::now(),
+                ).await?;
+                log::info!(
+                    "subscription created: {0} to {1}",
+                    sender.id,
+                    recipient.id,
+                );
+                send_subscription_notifications(
+                    db_client,
+                    instance,
+                    &sender,
+                    &recipient,
+                ).await?;
+            },
+            Err(other_error) => return Err(other_error.into()),
+        };
     };
     Ok(())
 }

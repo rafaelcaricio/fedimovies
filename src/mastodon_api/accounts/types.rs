@@ -337,7 +337,7 @@ pub struct FollowListQueryParams {
 pub struct ApiSubscription {
     pub id: i32,
     pub sender: Account,
-    pub sender_address: String,
+    pub sender_address: Option<String>,
     pub expires_at: DateTime<Utc>,
 }
 

@@ -14,7 +14,7 @@ use crate::utils::caip2::ChainId;
 pub struct DbSubscription {
     pub id: i32,
     pub sender_id: Uuid,
-    pub sender_address: String,
+    pub sender_address: Option<String>,
     pub recipient_id: Uuid,
     pub chain_id: ChainId,
     pub expires_at: DateTime<Utc>,
@@ -24,7 +24,7 @@ pub struct DbSubscription {
 pub struct Subscription {
     pub id: i32,
     pub sender: DbActorProfile,
-    pub sender_address: String,
+    pub sender_address: Option<String>,
     pub expires_at: DateTime<Utc>,
 }
 

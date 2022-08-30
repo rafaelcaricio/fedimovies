@@ -150,7 +150,7 @@ CREATE TABLE invoice (
 CREATE TABLE subscription (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     sender_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
-    sender_address VARCHAR(100) NOT NULL,
+    sender_address VARCHAR(100),
     recipient_id UUID NOT NULL REFERENCES user_account (id) ON DELETE CASCADE,
     chain_id VARCHAR(50) NOT NULL,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,

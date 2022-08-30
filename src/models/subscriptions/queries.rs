@@ -14,12 +14,13 @@ use super::types::{DbSubscription, Subscription};
 pub async fn create_subscription(
     db_client: &mut impl GenericClient,
     sender_id: &Uuid,
-    sender_address: &str,
+    sender_address: Option<&str>,
     recipient_id: &Uuid,
     chain_id: &ChainId,
     expires_at: &DateTime<Utc>,
     updated_at: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
+    assert!(chain_id.is_ethereum() == sender_address.is_some());
     let transaction = db_client.transaction().await?;
     transaction.execute(
         "
@@ -182,7 +183,7 @@ mod tests {
         create_subscription(
             db_client,
             &sender.id,
-            sender_address,
+            Some(sender_address),
             &recipient.id,
             &chain_id,
             &expires_at,

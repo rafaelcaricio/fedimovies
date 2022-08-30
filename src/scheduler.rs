@@ -101,7 +101,11 @@ async fn monero_payment_monitor_task(
         Some(monero_config) => monero_config,
         None => return Ok(()), // not configured
     };
-    check_monero_subscriptions(monero_config, db_pool).await?;
+    check_monero_subscriptions(
+        &config.instance(),
+        monero_config,
+        db_pool,
+    ).await?;
     Ok(())
 }
 

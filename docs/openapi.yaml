@@ -1127,6 +1127,7 @@ components:
         sender_address:
           description: Sender address.
           type: string
+          nullable: true
           example: '0xd8da6bf...'
         expires_at:
           description: The date when subscription expires.

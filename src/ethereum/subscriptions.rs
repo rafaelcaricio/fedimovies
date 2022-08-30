@@ -63,7 +63,7 @@ fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
     Ok(datetime)
 }
 
-async fn send_subscription_notifications(
+pub async fn send_subscription_notifications(
     db_client: &impl GenericClient,
     instance: &Instance,
     sender: &DbActorProfile,
@@ -170,13 +170,15 @@ pub async fn check_ethereum_subscriptions(
             &recipient.id,
         ).await {
             Ok(subscription) => {
-                if subscription.sender_address != sender_address {
+                let current_sender_address =
+                    subscription.sender_address.unwrap_or("''".to_string());
+                if current_sender_address != sender_address {
                     // Trust only key/address that was linked to profile
                     // when first subscription event occured.
                     // Key rotation is not supported.
                     log::error!(
                         "subscriber address changed from {} to {}",
-                        subscription.sender_address,
+                        current_sender_address,
                         sender_address,
                     );
                     continue;
@@ -228,7 +230,7 @@ pub async fn check_ethereum_subscriptions(
                 create_subscription(
                     db_client,
                     &sender.id,
-                    &sender_address,
+                    Some(&sender_address),
                     &recipient.id,
                     &config.chain_id,
                     &expires_at,
