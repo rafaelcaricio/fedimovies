@@ -23,6 +23,7 @@ pub struct Subscription {
     pub id: i32,
     pub sender: DbActorProfile,
     pub sender_address: String,
+    pub expires_at: DateTime<Utc>,
 }
 
 impl TryFrom<&Row> for Subscription {
@@ -36,6 +37,7 @@ impl TryFrom<&Row> for Subscription {
             id: db_subscription.id,
             sender: db_sender,
             sender_address: db_subscription.sender_address,
+            expires_at: db_subscription.expires_at,
         })
     }
 }

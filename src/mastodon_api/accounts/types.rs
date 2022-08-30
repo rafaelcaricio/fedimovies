@@ -336,6 +336,7 @@ pub struct ApiSubscription {
     pub id: i32,
     pub sender: Account,
     pub sender_address: String,
+    pub expires_at: DateTime<Utc>,
 }
 
 impl ApiSubscription {
@@ -348,6 +349,7 @@ impl ApiSubscription {
             id: subscription.id,
             sender,
             sender_address: subscription.sender_address,
+            expires_at: subscription.expires_at,
         }
     }
 }

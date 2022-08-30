@@ -1076,6 +1076,10 @@ components:
           description: Sender address.
           type: string
           example: '0xd8da6bf...'
+        expires_at:
+          description: The date when subscription expires.
+          type: string
+          format: dateTime
     Tag:
       type: object
       properties:
