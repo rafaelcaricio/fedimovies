@@ -1,7 +1,6 @@
-use std::collections::HashMap;
 use std::path::PathBuf;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::ethereum::utils::{parse_caip2_chain_id, ChainIdError};
 use crate::utils::caip2::ChainId;
@@ -10,17 +9,28 @@ fn default_chain_sync_step() -> u64 { 1000 }
 
 fn default_chain_reorg_max_depth() -> u64 { 10 }
 
+#[derive(Clone, Deserialize, Serialize)]
+pub struct EthereumChainMetadata {
+    pub chain_name: String,
+    pub currency_name: String,
+    pub currency_symbol: String,
+    pub currency_decimals: u8,
+    pub public_api_url: String,
+    // Block explorer base URL (should be compatible with https://eips.ethereum.org/EIPS/eip-3091)
+    pub explorer_url: Option<String>,
+}
+
 #[derive(Clone, Deserialize)]
 pub struct EthereumConfig {
     // CAIP-2 chain ID
     pub chain_id: ChainId,
     // Additional information for clients
-    pub chain_info: Option<HashMap<String, String>>,
+    // https://github.com/ethereum-lists/chains
+    pub chain_metadata: Option<EthereumChainMetadata>,
+
     pub contract_address: String,
     pub contract_dir: PathBuf,
     pub api_url: String,
-    // Block explorer base URL (should be compatible with https://eips.ethereum.org/EIPS/eip-3091)
-    pub explorer_url: Option<String>,
     // Instance private key
     pub signing_key: String,
 

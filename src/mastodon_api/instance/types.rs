@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use serde::Serialize;
+use serde_json::{to_value, Value};
 
 use crate::config::Config;
 use crate::ethereum::contracts::ContractSet;
@@ -27,7 +26,7 @@ pub struct InstanceInfo {
     blockchain_explorer_url: Option<String>,
     blockchain_contract_address: Option<String>,
     blockchain_features: Option<BlockchainFeatures>,
-    blockchain_info: Option<HashMap<String, String>>,
+    blockchain_info: Option<Value>,
     ipfs_gateway_url: Option<String>,
 }
 
@@ -49,6 +48,9 @@ impl InstanceInfo {
                 subscription: contract_set.subscription.is_some(),
             }
         });
+        let maybe_blockchain_info = ethereum_config
+            .and_then(|conf| conf.chain_metadata.as_ref())
+            .and_then(|metadata| to_value(metadata).ok());
         Self {
             uri: config.instance().host(),
             title: config.instance_title.clone(),
@@ -61,12 +63,12 @@ impl InstanceInfo {
             blockchain_id: ethereum_config
                 .map(|val| val.chain_id.to_string()),
             blockchain_explorer_url: ethereum_config
-                .and_then(|val| val.explorer_url.clone()),
+                .and_then(|conf| conf.chain_metadata.as_ref())
+                .and_then(|metadata| metadata.explorer_url.clone()),
             blockchain_contract_address: ethereum_config
                 .map(|val| val.contract_address.clone()),
             blockchain_features: blockchain_features,
-            blockchain_info: ethereum_config
-                .and_then(|val| val.chain_info.clone()),
+            blockchain_info: maybe_blockchain_info,
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),
         }
     }
