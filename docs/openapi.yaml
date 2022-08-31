@@ -918,36 +918,36 @@ components:
           description: Post character limit.
           type: integer
           example: 5000
-        blockchain_id:
-          description: CAIP-2 chain ID.
-          type: string
-          nullable: true
-          example: 'eip155:1'
-        blockchain_explorer_url:
-          description: Blockchain explorer base URL.
-          type: string
-          nullable: true
-        blockchain_contract_address:
-          description: Blockchain contract address.
-          type: string
-          nullable: true
-        blockchain_features:
-          description: Blockchain contract features.
-          type: object
-          nullable: true
-          properties:
-            minter:
-              description: Minter feature flag.
-              type: boolean
-              example: true
-            subscription:
-              description: Subscription feature flag.
-              type: boolean
-              example: true
-        blockchain_info:
-          description: Additional information about blockchain
-          type: object
-          nullable: true
+        blockchains:
+          description: Information about blockchain integrations.
+          type: array
+          items:
+            type: object
+            properties:
+              chain_id:
+                description: CAIP-2 chain ID.
+                type: string
+                example: 'eip155:1'
+              chain_metadata:
+                description: Additional information about blockchain
+                type: object
+                nullable: true
+              contract_address:
+                description: Blockchain contract address.
+                type: string
+                nullable: true
+              features:
+                description: Blockchain features.
+                type: object
+                properties:
+                  minter:
+                    description: Minter feature flag.
+                    type: boolean
+                    example: true
+                  subscriptions:
+                    description: Subscriptions feature flag.
+                    type: boolean
+                    example: true
         ipfs_gateway_url:
           description: IPFS gateway URL.
           type: string
