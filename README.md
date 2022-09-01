@@ -6,9 +6,9 @@ Built on [ActivityPub](https://www.w3.org/TR/activitypub/) protocol, self-hosted
 
 Unique features:
 
-- [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361). A combination of domain-based and key-based identity.
-- Donations.
+- [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
 - Recurring payments. Subscribers-only posts.
+- Donations.
 - Token-gated registration (can be used to verify membership in some group or to stop bots).
 - Converting posts into NFTs.
 
@@ -31,6 +31,7 @@ Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 - PostgreSQL 12+
 - IPFS node (optional, see [guide](./docs/ipfs.md))
 - Ethereum node (optional)
+- Monero node and Monero wallet (optional)
 
 ## Installation
 
