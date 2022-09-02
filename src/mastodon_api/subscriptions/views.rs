@@ -1,4 +1,4 @@
-use actix_web::{post, web, HttpResponse, Scope};
+use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use crate::activitypub::builders::update_person::prepare_update_person;
@@ -30,7 +30,7 @@ use super::types::{
     Invoice,
     InvoiceData,
     SubscriptionQueryParams,
-    SubscriptionSettings,
+    SubscriptionOption,
 };
 
 pub async fn authorize_subscription(
@@ -59,19 +59,33 @@ pub async fn authorize_subscription(
     Ok(HttpResponse::Ok().json(signature))
 }
 
+#[get("/options")]
+async fn get_subscription_options(
+    auth: BearerAuth,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let options: Vec<SubscriptionOption> = current_user.profile
+        .payment_options.into_inner().into_iter()
+        .filter_map(SubscriptionOption::from_payment_option)
+        .collect();
+    Ok(HttpResponse::Ok().json(options))
+}
+
 pub async fn subscriptions_enabled(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
     maybe_blockchain: web::Data<Option<ContractSet>>,
-    subscription_settings: web::Json<SubscriptionSettings>,
+    subscription_option: web::Json<SubscriptionOption>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
 
     let mut maybe_payment_option = None;
-    match subscription_settings.into_inner() {
-        SubscriptionSettings::Ethereum => {
+    match subscription_option.into_inner() {
+        SubscriptionOption::Ethereum => {
             let ethereum_config = config.blockchain()
                 .and_then(|conf| conf.ethereum_config())
                 .ok_or(HttpError::NotSupported)?;
@@ -95,7 +109,7 @@ pub async fn subscriptions_enabled(
                 ));
             };
         },
-        SubscriptionSettings::Monero { price, payout_address } => {
+        SubscriptionOption::Monero { price, payout_address } => {
             let monero_config = config.blockchain()
                 .and_then(|conf| conf.monero_config())
                 .ok_or(HttpError::NotSupported)?;
@@ -161,6 +175,7 @@ async fn create_invoice_view(
 pub fn subscription_api_scope() -> Scope {
     web::scope("/api/v1/subscriptions")
         .route("/authorize", web::get().to(authorize_subscription))
+        .service(get_subscription_options)
         .route("/enable", web::post().to(subscriptions_enabled))
         .service(create_invoice_view)
 }

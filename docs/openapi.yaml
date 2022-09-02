@@ -646,6 +646,20 @@ paths:
           description: User's wallet address is not known or not verified
         418:
           description: Blockchain integration is not enabled
+  /api/v1/subscriptions/options:
+    get:
+      summary: Get list of subscription options
+      security:
+        - tokenAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubscriptionOption'
   /api/v1/subscriptions/enable:
     post:
       summary: Enable subscriptions
@@ -655,22 +669,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                type:
-                  description: Subscription type
-                  type: string
-                  enum:
-                    - ethereum
-                    - monero
-                price:
-                  description: Subscription price (only for Monero)
-                  type: number
-                payout_address:
-                  description: Payout address (only for Monero)
-                  type: string
-              required:
-                - type
+              $ref: '#/components/schemas/SubscriptionOption'
       responses:
         200:
           description: Successful operation
@@ -1133,6 +1132,23 @@ components:
           description: The date when subscription expires.
           type: string
           format: dateTime
+    SubscriptionOption:
+      type: object
+      properties:
+        type:
+          description: Subscription type
+          type: string
+          enum:
+            - ethereum
+            - monero
+        price:
+          description: Subscription price (only for Monero)
+          type: number
+        payout_address:
+          description: Payout address (only for Monero)
+          type: string
+      required:
+        - type
     Tag:
       type: object
       properties:
