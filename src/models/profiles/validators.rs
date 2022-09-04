@@ -30,17 +30,18 @@ pub fn validate_display_name(display_name: &str)
     Ok(())
 }
 
-const BIO_MAX_SIZE: usize = 10000;
+const BIO_MAX_LENGTH: usize = 10000;
 
 pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> {
-    if bio.len() > BIO_MAX_SIZE {
-        return Err(ValidationError("bio is too long"));
-    };
     let cleaned_bio = if is_remote {
         // Remote profile
-        clean_html(bio)
+        let truncated_bio: String = bio.chars().take(BIO_MAX_LENGTH).collect();
+        clean_html(&truncated_bio)
     } else {
         // Local profile
+        if bio.chars().count() > BIO_MAX_LENGTH {
+            return Err(ValidationError("bio is too long"));
+        };
         clean_html_strict(bio)
     };
     Ok(cleaned_bio)
