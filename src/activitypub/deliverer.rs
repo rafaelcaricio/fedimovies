@@ -64,7 +64,8 @@ async fn send_activity(
     } else {
         let response = request.send().await?;
         let response_status = response.status();
-        let response_text = response.text().await?;
+        let response_text: String = response.text().await?
+            .chars().take(30).collect();
         log::info!(
             "response from {}: {}",
             inbox_url,
