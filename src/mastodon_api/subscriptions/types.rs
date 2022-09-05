@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -30,7 +31,7 @@ impl From<DbInvoice> for Invoice {
 }
 
 #[derive(Deserialize)]
-pub struct SubscriptionQueryParams {
+pub struct SubscriptionAuthorizationQueryParams {
     pub price: u64,
 }
 
@@ -53,4 +54,16 @@ impl SubscriptionOption {
         };
         Some(settings)
     }
+}
+
+#[derive(Deserialize)]
+pub struct SubscriptionQueryParams {
+    pub sender_id: Uuid,
+    pub recipient_id: Uuid,
+}
+
+#[derive(Serialize)]
+pub struct SubscriptionDetails {
+    pub id: i32,
+    pub expires_at: DateTime<Utc>,
 }

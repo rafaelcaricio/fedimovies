@@ -23,21 +23,24 @@ use crate::models::profiles::types::{
     PaymentType,
     ProfileUpdateData,
 };
+use crate::models::subscriptions::queries::get_subscription_by_participants;
 use crate::models::users::queries::get_user_by_id;
 use crate::monero::wallet::create_monero_address;
 use crate::utils::currencies::Currency;
 use super::types::{
     Invoice,
     InvoiceData,
-    SubscriptionQueryParams,
+    SubscriptionAuthorizationQueryParams,
+    SubscriptionDetails,
     SubscriptionOption,
+    SubscriptionQueryParams,
 };
 
 pub async fn authorize_subscription(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    query_params: web::Query<SubscriptionQueryParams>,
+    query_params: web::Query<SubscriptionAuthorizationQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -145,6 +148,24 @@ pub async fn subscriptions_enabled(
     Ok(HttpResponse::Ok().json(account))
 }
 
+#[get("/find")]
+async fn find_subscription(
+    db_pool: web::Data<Pool>,
+    query_params: web::Query<SubscriptionQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let subscription = get_subscription_by_participants(
+        db_client,
+        &query_params.sender_id,
+        &query_params.recipient_id,
+    ).await?;
+    let details = SubscriptionDetails {
+        id: subscription.id,
+        expires_at: subscription.expires_at,
+    };
+    Ok(HttpResponse::Ok().json(details))
+}
+
 #[post("/invoices")]
 async fn create_invoice_view(
     config: web::Data<Config>,
@@ -177,5 +198,6 @@ pub fn subscription_api_scope() -> Scope {
         .route("/authorize", web::get().to(authorize_subscription))
         .service(get_subscription_options)
         .route("/enable", web::post().to(subscriptions_enabled))
+        .service(find_subscription)
         .service(create_invoice_view)
 }
