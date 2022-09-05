@@ -325,6 +325,16 @@ impl Default for RelationshipMap {
     }
 }
 
+fn default_search_limit() -> i64 { 40 }
+
+#[derive(Deserialize)]
+pub struct SearchAcctQueryParams {
+    pub q: String,
+
+    #[serde(default = "default_search_limit")]
+    pub limit: i64,
+}
+
 #[derive(Deserialize)]
 pub struct SearchDidQueryParams {
     pub did: String,

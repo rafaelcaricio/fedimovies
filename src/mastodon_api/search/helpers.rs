@@ -75,7 +75,7 @@ fn parse_search_query(search_query: &str) -> SearchQuery {
     }
 }
 
-async fn search_profiles(
+async fn search_profiles_or_import(
     config: &Config,
     db_client: &impl GenericClient,
     username: String,
@@ -148,7 +148,7 @@ pub async fn search(
     let mut posts = vec![];
     match parse_search_query(search_query) {
         SearchQuery::ProfileQuery(username, instance) => {
-            profiles = search_profiles(
+            profiles = search_profiles_or_import(
                 config,
                 db_client,
                 username,
@@ -193,4 +193,26 @@ pub async fn search(
         posts,
     ).await?;
     Ok(SearchResults { accounts, statuses })
+}
+
+pub async fn search_profiles_only(
+    config: &Config,
+    db_client: &impl GenericClient,
+    search_query: &str,
+    limit: i64,
+) -> Result<Vec<Account>, HttpError> {
+    let (username, maybe_instance) = match parse_profile_query(search_query) {
+        Ok(result) => result,
+        Err(_) => return Ok(vec![]),
+    };
+    let profiles = search_profile(
+        db_client,
+        &username,
+        maybe_instance.as_ref(),
+        limit,
+    ).await?;
+    let accounts: Vec<Account> = profiles.into_iter()
+        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .collect();
+    Ok(accounts)
 }

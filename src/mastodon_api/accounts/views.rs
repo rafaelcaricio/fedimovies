@@ -24,6 +24,7 @@ use crate::ethereum::identity::{
 };
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::pagination::get_paginated_response;
+use crate::mastodon_api::search::helpers::search_profiles_only;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Status;
 use crate::mastodon_api::subscriptions::views::{
@@ -76,6 +77,7 @@ use super::types::{
     IdentityClaimQueryParams,
     IdentityProofData,
     RelationshipQueryParams,
+    SearchAcctQueryParams,
     SearchDidQueryParams,
     StatusListQueryParams,
     ApiSubscription,
@@ -311,6 +313,22 @@ async fn get_relationships_view(
         &query_params.id,
     ).await?;
     Ok(HttpResponse::Ok().json(vec![relationship]))
+}
+
+#[get("/search")]
+async fn search_by_acct(
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    query_params: web::Query<SearchAcctQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let accounts = search_profiles_only(
+        &config,
+        db_client,
+        &query_params.q,
+        query_params.limit,
+    ).await?;
+    Ok(HttpResponse::Ok().json(accounts))
 }
 
 #[get("/search_did")]
@@ -577,6 +595,7 @@ pub fn account_api_scope() -> Scope {
         .service(get_identity_claim)
         .service(create_identity_proof)
         .service(get_relationships_view)
+        .service(search_by_acct)
         .service(search_by_did)
         .route("/authorize_subscription", web::get().to(authorize_subscription))
         .route("/subscriptions_enabled",  web::post().to(subscriptions_enabled))

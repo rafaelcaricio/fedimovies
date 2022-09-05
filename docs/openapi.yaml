@@ -169,6 +169,32 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Relationship'
+  /api/v1/accounts/search:
+    get:
+      summary: Search for matching profiles by username.
+      parameters:
+        - name: q
+          in: query
+          description: What to search for
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of results. Defaults to 40.
+          required: false
+          schema:
+            type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                description: Profile list
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
   /api/v1/accounts/search_did:
     get:
       summary: Search profile by DID
