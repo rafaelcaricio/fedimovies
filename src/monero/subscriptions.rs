@@ -139,7 +139,6 @@ pub async fn check_monero_subscriptions(
         let duration_secs = (payout_amount.as_pico() / payment_info.price)
             .try_into()
             .map_err(|_| MoneroError::OtherError("invalid duration"))?;
-        let expires_at = Utc::now() + Duration::seconds(duration_secs);
 
         set_invoice_status(
             db_client,
@@ -159,6 +158,9 @@ pub async fn check_monero_subscriptions(
                     continue;
                 };
                 // Update subscription expiration date
+                let expires_at =
+                    std::cmp::max(subscription.expires_at, Utc::now()) +
+                    Duration::seconds(duration_secs);
                 update_subscription(
                     db_client,
                     subscription.id,
@@ -180,6 +182,7 @@ pub async fn check_monero_subscriptions(
             },
             Err(DatabaseError::NotFound(_)) => {
                 // New subscription
+                let expires_at = Utc::now() + Duration::seconds(duration_secs);
                 create_subscription(
                     db_client,
                     &sender.id,
