@@ -14,7 +14,7 @@ use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::invoices::queries::create_invoice;
 use crate::models::profiles::queries::{
-    get_profile_by_acct,
+    get_profile_by_id,
     update_profile,
 };
 use crate::models::profiles::types::{
@@ -177,8 +177,8 @@ async fn create_invoice_view(
         .monero_config()
         .ok_or(HttpError::NotSupported)?;
     let db_client = &**get_database_client(&db_pool).await?;
-    let sender = get_profile_by_acct(db_client, &invoice_data.sender).await?;
-    let recipient = get_user_by_id(db_client, &invoice_data.recipient).await?;
+    let sender = get_profile_by_id(db_client, &invoice_data.sender_id).await?;
+    let recipient = get_user_by_id(db_client, &invoice_data.recipient_id).await?;
     let payment_address = create_monero_address(monero_config).await
         .map_err(|_| HttpError::InternalError)?
         .to_string();

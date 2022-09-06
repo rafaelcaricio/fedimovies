@@ -7,8 +7,8 @@ use crate::models::profiles::types::PaymentOption;
 
 #[derive(Deserialize)]
 pub struct InvoiceData {
-    pub sender: String, // acct
-    pub recipient: Uuid,
+    pub sender_id: Uuid,
+    pub recipient_id: Uuid,
 }
 
 #[derive(Serialize)]

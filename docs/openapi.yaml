@@ -754,11 +754,11 @@ paths:
             schema:
               type: object
               properties:
-                sender:
-                  description: Sender actor address (webfinger account URI).
+                sender_id:
+                  description: Sender ID.
                   type: string
-                  example: user@example.org
-                recipient:
+                  format: uuid
+                recipient_id:
                   description: Recipient ID.
                   type: string
                   format: uuid
