@@ -30,6 +30,14 @@ pub struct AccountField {
     verified_at: Option<DateTime<Utc>>,
 }
 
+/// Contains only public information
+#[derive(Serialize)]
+#[serde(tag = "type", rename_all = "kebab-case")]
+pub enum AccountPaymentOption {
+    Link { name: String, href: String },
+    EthereumSubscription,
+    MoneroSubscription { price: u64 },
+}
 /// https://docs.joinmastodon.org/entities/source/
 #[derive(Serialize)]
 pub struct Source {
@@ -50,6 +58,7 @@ pub struct Account {
     pub avatar: Option<String>,
     pub header: Option<String>,
     pub identity_proofs: Vec<AccountField>,
+    pub payment_options: Vec<AccountPaymentOption>,
     pub fields: Vec<AccountField>,
     pub followers_count: i32,
     pub following_count: i32,
@@ -93,6 +102,7 @@ impl Account {
             extra_fields.push(field);
         };
 
+        // TODO: remove
         let subscription_page_url = profile.payment_options.clone()
             .into_inner().into_iter()
             .map(|option| {
@@ -107,6 +117,28 @@ impl Account {
             })
             .next();
 
+        let payment_options = profile.payment_options.clone()
+            .into_inner().into_iter()
+            .map(|option| {
+                match option {
+                    PaymentOption::Link(link) => {
+                        AccountPaymentOption::Link {
+                            name: link.name,
+                            href: link.href,
+                        }
+                    },
+                    PaymentOption::EthereumSubscription(_) => {
+                        AccountPaymentOption::EthereumSubscription
+                    },
+                    PaymentOption::MoneroSubscription(payment_info) => {
+                        AccountPaymentOption::MoneroSubscription {
+                            price: payment_info.price,
+                        }
+                    },
+                }
+            })
+            .collect();
+
         Self {
             id: profile.id,
             username: profile.username,
@@ -118,6 +150,7 @@ impl Account {
             avatar: avatar_url,
             header: header_url,
             identity_proofs,
+            payment_options,
             fields: extra_fields,
             followers_count: profile.follower_count,
             following_count: profile.following_count,

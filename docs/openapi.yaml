@@ -848,16 +848,37 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Field'
+        payment_options:
+          description: Payment options.
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                description: Payment type.
+                type: string
+                enum:
+                  - link
+                  - ethereum-subscription
+                  - monero-subscription
+              name:
+                description: Link name (only for link type).
+                type: string
+                nullable: true
+              href:
+                description: Link URL (only for link type).
+                type: string
+                nullable: true
+              price:
+                description: Subscription price (only for ethereum-subscription and monero-subscription types).
+                type: number
+                nullable: true
+                example: null
         fields:
           description: Additional metadata attached to a profile as name-value pairs.
           type: array
           items:
             $ref: '#/components/schemas/Field'
-        subscription_page_url:
-          description: Subscription page URL
-          type: string
-          nullable: true
-          example: 'https://example.com/profile/1/subscription'
     Attachment:
       type: object
       properties:
