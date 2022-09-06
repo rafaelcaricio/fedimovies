@@ -27,6 +27,8 @@ use crate::models::{
 };
 use super::wallet::{send_monero, DEFAULT_ACCOUNT, MoneroError};
 
+const INVOICE_TIMEOUT: i64 = 30 * 60; // 30 minutes
+
 pub async fn check_monero_subscriptions(
     instance: &Instance,
     config: &MoneroConfig,
@@ -48,6 +50,15 @@ pub async fn check_monero_subscriptions(
         InvoiceStatus::Open,
     ).await?;
     for invoice in open_invoices {
+        let invoice_age = Utc::now() - invoice.created_at;
+        if invoice_age.num_seconds() >= INVOICE_TIMEOUT {
+            set_invoice_status(
+                db_client,
+                &invoice.id,
+                InvoiceStatus::Timeout,
+            ).await?;
+            continue;
+        };
         let address = Address::from_str(&invoice.payment_address)?;
         let address_index = wallet_client.get_address_index(address).await?;
         address_waitlist.push(address_index.minor);

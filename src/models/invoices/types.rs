@@ -13,6 +13,7 @@ pub enum InvoiceStatus {
     Open,
     Paid,
     Forwarded,
+    Timeout,
 }
 
 impl From<&InvoiceStatus> for i16 {
@@ -21,6 +22,7 @@ impl From<&InvoiceStatus> for i16 {
             InvoiceStatus::Open => 1,
             InvoiceStatus::Paid => 2,
             InvoiceStatus::Forwarded => 3,
+            InvoiceStatus::Timeout => 4,
         }
     }
 }
@@ -33,6 +35,7 @@ impl TryFrom<i16> for InvoiceStatus {
             1 => Self::Open,
             2 => Self::Paid,
             3 => Self::Forwarded,
+            4 => Self::Timeout,
             _ => return Err(ConversionError),
         };
         Ok(invoice_status)
