@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::invoices::types::DbInvoice;
+use crate::models::invoices::types::{DbInvoice, InvoiceStatus};
 use crate::models::profiles::types::PaymentOption;
 
 #[derive(Deserialize)]
@@ -17,15 +17,23 @@ pub struct Invoice {
     pub sender_id: Uuid,
     pub recipient_id: Uuid,
     pub payment_address: String,
+    pub status: String,
 }
 
 impl From<DbInvoice> for Invoice {
     fn from(value: DbInvoice) -> Self {
+        let status = match value.invoice_status {
+            InvoiceStatus::Open => "open",
+            InvoiceStatus::Paid => "paid",
+            InvoiceStatus::Forwarded => "forwarded",
+            InvoiceStatus::Timeout => "timeout",
+        };
         Self {
             id: value.id,
             sender_id: value.sender_id,
             recipient_id: value.recipient_id,
             payment_address: value.payment_address,
+            status: status.to_string(),
         }
     }
 }

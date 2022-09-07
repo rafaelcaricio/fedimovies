@@ -773,6 +773,26 @@ paths:
           description: Sender or recipient not found.
         418:
           description: Blockchain integration is not enabled.
+  /api/v1/subscriptions/invoices/{invoice_id}:
+    get:
+      summary: View information about an invoice.
+      parameters:
+        - name: invoice_id
+          in: path
+          description: Invoice ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        404:
+          description: Invoice not found
   /api/v1/timelines/public:
     get:
       summary: View local public posts.
@@ -1052,6 +1072,14 @@ components:
         payment_address:
           description: Payment address.
           type: string
+        status:
+          description: Invoice status.
+          type: string
+          enum:
+            - open
+            - paid
+            - forwarded
+            - timeout
     Mention:
       type: object
       properties:

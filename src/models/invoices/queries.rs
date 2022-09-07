@@ -39,6 +39,22 @@ pub async fn create_invoice(
     Ok(invoice)
 }
 
+pub async fn get_invoice_by_id(
+    db_client: &impl GenericClient,
+    invoice_id: &Uuid,
+) -> Result<DbInvoice, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT invoice
+        FROM invoice WHERE id = $1
+        ",
+        &[&invoice_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("invoice"))?;
+    let invoice = row.try_get("invoice")?;
+    Ok(invoice)
+}
+
 pub async fn get_invoice_by_address(
     db_client: &impl GenericClient,
     chain_id: &ChainId,

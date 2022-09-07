@@ -1,5 +1,6 @@
 use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
+use uuid::Uuid;
 
 use crate::activitypub::builders::update_person::prepare_update_person;
 use crate::config::Config;
@@ -12,7 +13,7 @@ use crate::ethereum::subscriptions::{
 };
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::models::invoices::queries::create_invoice;
+use crate::models::invoices::queries::{create_invoice, get_invoice_by_id};
 use crate::models::profiles::queries::{
     get_profile_by_id,
     update_profile,
@@ -193,6 +194,17 @@ async fn create_invoice_view(
     Ok(HttpResponse::Ok().json(invoice))
 }
 
+#[get("/invoices/{invoice_id}")]
+async fn get_invoice(
+    db_pool: web::Data<Pool>,
+    invoice_id: web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let db_invoice = get_invoice_by_id(db_client, &invoice_id).await?;
+    let invoice = Invoice::from(db_invoice);
+    Ok(HttpResponse::Ok().json(invoice))
+}
+
 pub fn subscription_api_scope() -> Scope {
     web::scope("/api/v1/subscriptions")
         .route("/authorize", web::get().to(authorize_subscription))
@@ -200,4 +212,5 @@ pub fn subscription_api_scope() -> Scope {
         .route("/enable", web::post().to(subscriptions_enabled))
         .service(find_subscription)
         .service(create_invoice_view)
+        .service(get_invoice)
 }
