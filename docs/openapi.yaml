@@ -769,6 +769,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Invoice'
+        400:
+          description: Invalid request.
         404:
           description: Sender or recipient not found.
         418:
