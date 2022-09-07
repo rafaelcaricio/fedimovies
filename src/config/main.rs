@@ -207,9 +207,15 @@ extern "C" {
 fn check_directory_owner(path: &Path) -> () {
     let metadata = std::fs::metadata(path)
         .expect("can't read file metadata");
+    let owner_uid = metadata.uid();
     let current_uid = unsafe { geteuid() };
-    if metadata.uid() != current_uid {
-        panic!("directory owner is not the current user");
+    if owner_uid != current_uid {
+        panic!(
+            "{} owner ({}) is different from the current user ({})",
+            path.display(),
+            owner_uid,
+            current_uid,
+        );
     };
 }
 
