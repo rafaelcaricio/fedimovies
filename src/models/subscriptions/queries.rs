@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
+use crate::models::profiles::types::PaymentType;
 use crate::models::relationships::queries::{subscribe, subscribe_opt};
 use crate::models::relationships::types::RelationshipType;
 use crate::utils::caip2::ChainId;
@@ -146,6 +147,40 @@ pub async fn get_incoming_subscriptions(
         .map(Subscription::try_from)
         .collect::<Result<_, _>>()?;
     Ok(subscriptions)
+}
+
+pub async fn reset_subscriptions(
+    db_client: &impl GenericClient,
+    ethereum_contract_replaced: bool,
+) -> Result<(), DatabaseError> {
+    if ethereum_contract_replaced {
+        // Ethereum subscription configuration is stored in contract.
+        // If contract is replaced, payment option needs to be deleted.
+        db_client.execute(
+            "
+            UPDATE actor_profile
+            SET payment_options = '[]'
+            WHERE
+                actor_json IS NULL
+                AND
+                EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements(payment_options) AS option
+                    WHERE CAST(option ->> 'payment_type' AS SMALLINT) = $1
+                )
+            ",
+            &[&i16::from(&PaymentType::EthereumSubscription)],
+        ).await?;
+    };
+    db_client.execute(
+        "
+        DELETE FROM relationship
+        WHERE relationship_type = $1
+        ",
+        &[&RelationshipType::Subscription],
+    ).await?;
+    db_client.execute("DELETE FROM subscription", &[]).await?;
+    Ok(())
 }
 
 #[cfg(test)]

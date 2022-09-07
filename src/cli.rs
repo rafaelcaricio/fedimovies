@@ -19,8 +19,8 @@ use crate::models::profiles::queries::{
     delete_profile,
     get_profile_by_actor_id,
     get_profile_by_id,
-    reset_subscriptions,
 };
+use crate::models::subscriptions::queries::reset_subscriptions;
 use crate::models::users::queries::{
     create_invite_code,
     get_invite_codes,
@@ -51,6 +51,7 @@ pub enum SubCommand {
     DeleteUnusedAttachments(DeleteUnusedAttachments),
     DeleteOrphanedFiles(DeleteOrphanedFiles),
     UpdateCurrentBlock(UpdateCurrentBlock),
+    ResetSubscriptions(ResetSubscriptions),
     CreateMoneroWallet(CreateMoneroWallet),
 }
 
@@ -272,22 +273,36 @@ impl DeleteOrphanedFiles {
 #[derive(Parser)]
 pub struct UpdateCurrentBlock {
     number: u64,
-
-    #[clap(long)]
-    reset_db: bool,
 }
 
 impl UpdateCurrentBlock {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &impl GenericClient,
+        _db_client: &impl GenericClient,
     ) -> Result<(), Error> {
         save_current_block_number(&config.storage_dir, self.number)?;
-        if self.reset_db {
-            reset_subscriptions(db_client).await?;
-        };
         println!("current block updated");
+        Ok(())
+    }
+}
+
+/// Reset all subscriptions
+/// (can be used during development or when switching between chains)
+#[derive(Parser)]
+pub struct ResetSubscriptions {
+    #[clap(long)]
+    ethereum_contract_replaced: bool,
+}
+
+impl ResetSubscriptions {
+    pub async fn execute(
+        &self,
+        _config: &Config,
+        db_client: &impl GenericClient,
+    ) -> Result<(), Error> {
+        reset_subscriptions(db_client, self.ethereum_contract_replaced).await?;
+        println!("subscriptions deleted");
         Ok(())
     }
 }
