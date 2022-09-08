@@ -15,7 +15,7 @@ Unique features:
 Supported blockchains:
 
 - Ethereum and other EVM-compatible blockchains.
-- Monero (WIP).
+- Monero.
 
 Ethereum contracts repo: https://codeberg.org/silverpill/mitra-contracts
 
@@ -147,6 +147,12 @@ su mitra -c "mitractl generate-invite-code"
 
 ### Commands
 
+Print help:
+
+```shell
+mitractl --help
+```
+
 Generate RSA private key:
 
 ```
@@ -183,7 +189,7 @@ Remove remote posts and media older than 30 days:
 mitractl delete-extraneous-posts 30
 ```
 
-Delete attachments that doesn't belong to any post:
+Delete attachments that don't belong to any post:
 
 ```
 mitractl delete-unused-attachments 5
@@ -195,10 +201,16 @@ Generate ethereum address:
 mitractl generate-ethereum-address
 ```
 
-Update blockchain synchronization starting block:
+Update synchronization starting block of Ethereum blockchain:
 
 ```shell
 mitractl update-current-block 2000000
+```
+
+Create Monero wallet:
+
+```shell
+mitractl create-monero-wallet "mitra-wallet" "passw0rd"
 ```
 
 ## License
