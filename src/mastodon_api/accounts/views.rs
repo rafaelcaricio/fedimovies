@@ -27,10 +27,6 @@ use crate::mastodon_api::pagination::get_paginated_response;
 use crate::mastodon_api::search::helpers::search_profiles_only;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Status;
-use crate::mastodon_api::subscriptions::views::{
-    authorize_subscription,
-    subscriptions_enabled,
-};
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_id,
@@ -597,8 +593,6 @@ pub fn account_api_scope() -> Scope {
         .service(get_relationships_view)
         .service(search_by_acct)
         .service(search_by_did)
-        .route("/authorize_subscription", web::get().to(authorize_subscription))
-        .route("/subscriptions_enabled",  web::post().to(subscriptions_enabled))
         // Routes with account ID
         .service(get_account)
         .service(follow_account)

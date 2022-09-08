@@ -37,6 +37,7 @@ use super::types::{
     SubscriptionQueryParams,
 };
 
+#[get("/authorize")]
 pub async fn authorize_subscription(
     auth: BearerAuth,
     config: web::Data<Config>,
@@ -77,6 +78,7 @@ async fn get_subscription_options(
     Ok(HttpResponse::Ok().json(options))
 }
 
+#[post("/enable")]
 pub async fn subscriptions_enabled(
     auth: BearerAuth,
     config: web::Data<Config>,
@@ -210,9 +212,9 @@ async fn get_invoice(
 
 pub fn subscription_api_scope() -> Scope {
     web::scope("/api/v1/subscriptions")
-        .route("/authorize", web::get().to(authorize_subscription))
+        .service(authorize_subscription)
         .service(get_subscription_options)
-        .route("/enable", web::post().to(subscriptions_enabled))
+        .service(subscriptions_enabled)
         .service(find_subscription)
         .service(create_invoice_view)
         .service(get_invoice)
