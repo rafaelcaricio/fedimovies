@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
-use crate::frontend::get_subscription_page_url;
 use crate::mastodon_api::uploads::{UploadError, save_validated_b64_file};
 use crate::models::profiles::types::{
     DbActorProfile,
@@ -65,8 +64,6 @@ pub struct Account {
     pub statuses_count: i32,
 
     pub source: Option<Source>,
-
-    pub subscription_page_url: Option<String>,
 }
 
 impl Account {
@@ -101,21 +98,6 @@ impl Account {
             };
             extra_fields.push(field);
         };
-
-        // TODO: remove
-        let subscription_page_url = profile.payment_options.clone()
-            .into_inner().into_iter()
-            .map(|option| {
-                match option {
-                    PaymentOption::Link(link) => link.href,
-                    PaymentOption::EthereumSubscription(_) |
-                        PaymentOption::MoneroSubscription(_) =>
-                    {
-                        get_subscription_page_url(instance_url, &profile.id)
-                    },
-                }
-            })
-            .next();
 
         let payment_options = profile.payment_options.clone()
             .into_inner().into_iter()
@@ -156,7 +138,6 @@ impl Account {
             following_count: profile.following_count,
             statuses_count: profile.post_count,
             source: None,
-            subscription_page_url,
         }
     }
 
