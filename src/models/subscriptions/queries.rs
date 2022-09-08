@@ -77,7 +77,9 @@ pub async fn update_subscription(
     let row = maybe_row.ok_or(DatabaseError::NotFound("subscription"))?;
     let sender_id: Uuid = row.try_get("sender_id")?;
     let recipient_id: Uuid = row.try_get("recipient_id")?;
-    subscribe_opt(&transaction, &sender_id, &recipient_id).await?;
+    if *expires_at > Utc::now() {
+        subscribe_opt(&transaction, &sender_id, &recipient_id).await?;
+    };
     transaction.commit().await?;
     Ok(())
 }
