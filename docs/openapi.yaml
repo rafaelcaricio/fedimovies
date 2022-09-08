@@ -686,7 +686,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/SubscriptionOption'
-  /api/v1/subscriptions/enable:
     post:
       summary: Enable subscriptions
       security:

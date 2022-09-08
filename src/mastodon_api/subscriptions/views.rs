@@ -78,7 +78,7 @@ async fn get_subscription_options(
     Ok(HttpResponse::Ok().json(options))
 }
 
-#[post("/enable")]
+#[post("/options")]
 pub async fn subscriptions_enabled(
     auth: BearerAuth,
     config: web::Data<Config>,
