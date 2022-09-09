@@ -131,8 +131,6 @@ pub async fn create_account(
         if !is_allowed {
             return Err(ValidationError("not allowed to sign up").into());
         };
-    } else {
-        assert!(config.blockchain().is_none());
     };
 
     // Generate RSA private key for actor
