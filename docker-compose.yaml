@@ -35,6 +35,9 @@ services:
       - "monerod"
     ports:
       - "58083:18083"
+    volumes:
+      - monero_wallets:/wallets
 
 volumes:
   mitra_postgres:
+  monero_wallets:
