@@ -454,6 +454,47 @@ pub async fn get_posts(
     Ok(posts)
 }
 
+pub async fn get_related_posts(
+    db_client: &impl GenericClient,
+    posts_ids: Vec<Uuid>,
+) -> Result<Vec<Post>, DatabaseError> {
+    let statement = format!(
+        "
+        SELECT
+            post, actor_profile,
+            {related_attachments},
+            {related_mentions},
+            {related_tags},
+            {related_links}
+        FROM post
+        JOIN actor_profile ON post.author_id = actor_profile.id
+        WHERE post.id IN (
+            SELECT post.repost_of_id
+            FROM post WHERE post.id = ANY($1)
+            UNION ALL
+            SELECT post_link.target_id
+            FROM post_link WHERE post_link.source_id = ANY($1)
+            UNION ALL
+            SELECT post_link.target_id
+            FROM post_link JOIN post ON (post.repost_of_id = post_link.source_id)
+            WHERE post.id = ANY($1)
+        )
+        ",
+        related_attachments=RELATED_ATTACHMENTS,
+        related_mentions=RELATED_MENTIONS,
+        related_tags=RELATED_TAGS,
+        related_links=RELATED_LINKS,
+    );
+    let rows = db_client.query(
+        &statement,
+        &[&posts_ids],
+    ).await?;
+    let posts: Vec<Post> = rows.iter()
+        .map(Post::try_from)
+        .collect::<Result<_, _>>()?;
+    Ok(posts)
+}
+
 pub async fn get_posts_by_author(
     db_client: &impl GenericClient,
     profile_id: &Uuid,

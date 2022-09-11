@@ -6,37 +6,33 @@ use crate::models::reactions::queries::find_favourited_by_user;
 use crate::models::relationships::queries::has_relationship;
 use crate::models::relationships::types::RelationshipType;
 use crate::models::users::types::User;
-use super::queries::{get_posts, find_reposted_by_user};
+use super::queries::{get_related_posts, find_reposted_by_user};
 use super::types::{Post, PostActions, Visibility};
 
 pub async fn add_related_posts(
     db_client: &impl GenericClient,
     posts: Vec<&mut Post>,
 ) -> Result<(), DatabaseError> {
-    let mut related_ids = vec![];
-    for post in posts.iter() {
-        if let Some(repost_of_id) = post.repost_of_id {
-            related_ids.push(repost_of_id);
-        };
-        related_ids.extend(post.links.clone());
+    let posts_ids = posts.iter().map(|post| post.id).collect();
+    let related = get_related_posts(db_client, posts_ids).await?;
+    let get_post = |post_id: &Uuid| -> Result<Post, DatabaseError> {
+        let post = related.iter()
+            .find(|post| post.id == *post_id)
+            .ok_or(DatabaseError::NotFound("post"))?
+            .clone();
+        Ok(post)
     };
-    if related_ids.is_empty() {
-        return Ok(());
-    };
-    let related = get_posts(db_client, related_ids).await?;
     for post in posts {
         if let Some(ref repost_of_id) = post.repost_of_id {
-            let repost_of = related.iter()
-                .find(|post| post.id == *repost_of_id)
-                .ok_or(DatabaseError::NotFound("post"))?
-                .clone();
+            let mut repost_of = get_post(repost_of_id)?;
+            if let Some(quote_id) = repost_of.links.get(0) {
+                let quote = get_post(quote_id)?;
+                repost_of.quote = Some(Box::new(quote));
+            };
             post.repost_of = Some(Box::new(repost_of));
         };
         if let Some(quote_id) = post.links.get(0) {
-            let quote = related.iter()
-                .find(|post| post.id == *quote_id)
-                .ok_or(DatabaseError::NotFound("post"))?
-                .clone();
+            let quote = get_post(quote_id)?;
             post.quote = Some(Box::new(quote));
         };
     };
