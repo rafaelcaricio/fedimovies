@@ -1,13 +1,11 @@
-use serde_json::json;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity, Object},
+    activity::{create_activity, Activity},
     actors::types::Actor,
-    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::local_object_id,
-    vocabulary::{FOLLOW, PERSON},
+    vocabulary::FOLLOW,
 };
 use crate::config::Instance;
 use crate::models::profiles::types::DbActorProfile;
@@ -19,12 +17,7 @@ fn build_follow(
     target_actor_id: &str,
     follow_request_id: &Uuid,
 ) -> Activity {
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
-        id: target_actor_id.to_owned(),
-        object_type: PERSON.to_string(),
-        ..Default::default()
-    };
+    let object = target_actor_id.to_string();
     let activity_id = local_object_id(instance_url, follow_request_id);
     let activity = create_activity(
         instance_url,
@@ -61,7 +54,7 @@ pub fn prepare_follow(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{json, Value};
+    use serde_json::json;
     use crate::utils::id::new_uuid;
     use super::*;
 
@@ -91,11 +84,7 @@ mod tests {
             activity.actor,
             format!("{}/users/{}", INSTANCE_URL, follower.username),
         );
-        assert_eq!(activity.object["id"], target_actor_id);
-        assert_eq!(activity.object["type"], "Person");
-        assert_eq!(activity.object["actor"], Value::Null);
-        assert_eq!(activity.object["object"], Value::Null);
-        assert_eq!(activity.object["content"], Value::Null);
+        assert_eq!(activity.object, target_actor_id);
         assert_eq!(activity.to.unwrap(), json!([target_actor_id]));
         assert_eq!(activity.cc.unwrap(), json!([]));
     }
