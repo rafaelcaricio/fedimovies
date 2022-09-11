@@ -25,7 +25,12 @@ use crate::models::{
     },
     users::queries::get_user_by_id,
 };
-use super::wallet::{send_monero, DEFAULT_ACCOUNT, MoneroError};
+use super::wallet::{
+    get_subaddress_balance,
+    send_monero,
+    DEFAULT_ACCOUNT,
+    MoneroError,
+};
 
 const INVOICE_TIMEOUT: i64 = 30 * 60; // 30 minutes
 
@@ -108,17 +113,14 @@ pub async fn check_monero_subscriptions(
     for invoice in paid_invoices {
         let address = Address::from_str(&invoice.payment_address)?;
         let address_index = wallet_client.get_address_index(address).await?;
-        let balance_data = wallet_client.get_balance(
-            address_index.major,
-            Some(vec![address_index.minor]),
+        let balance_data = get_subaddress_balance(
+            &wallet_client,
+            &address_index,
         ).await?;
-        let unlocked_balance = if let [subaddress_data] = &balance_data.per_subaddress[..] {
-            subaddress_data.unlocked_balance
-        } else {
-            return Err(MoneroError::OtherError("invalid response from wallet"));
-        };
-        if unlocked_balance == Amount::ZERO {
-            // Not ready for forwarding
+        if balance_data.balance != balance_data.unlocked_balance ||
+            balance_data.balance == Amount::ZERO
+        {
+            // Don't forward payment until all outputs are unlocked
             continue;
         };
         let sender = get_profile_by_id(db_client, &invoice.sender_id).await?;

@@ -1,13 +1,15 @@
 use monero_rpc::{
     RpcClient,
+    SubaddressBalanceData,
     SweepAllArgs,
     TransferPriority,
     WalletClient,
 };
 use monero_rpc::monero::{
+    cryptonote::subaddress::Index,
+    util::address::Error as AddressError,
     Address,
     Amount,
-    util::address::Error as AddressError,
 };
 
 use crate::config::MoneroConfig;
@@ -62,6 +64,18 @@ fn get_single_item<T: Clone>(items: Vec<T>) -> Result<T, MoneroError> {
     } else {
         Err(MoneroError::OtherError("invalid response from wallet"))
     }
+}
+
+pub async fn get_subaddress_balance(
+    wallet_client: &WalletClient,
+    subaddress_index: &Index,
+) -> Result<SubaddressBalanceData, MoneroError> {
+    let balance_data = wallet_client.get_balance(
+        subaddress_index.major,
+        Some(vec![subaddress_index.minor]),
+    ).await?;
+    let subaddress_data = get_single_item(balance_data.per_subaddress)?;
+    Ok(subaddress_data)
 }
 
 /// http://monerotoruzizulg5ttgat2emf4d6fbmiea25detrmmy7erypseyteyd.onion/resources/developer-guides/wallet-rpc.html#sweep_all
