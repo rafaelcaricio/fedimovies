@@ -7,9 +7,7 @@ use crate::activitypub::deliverer::OutgoingActivity;
 use crate::activitypub::vocabulary::{DELETE, NOTE, TOMBSTONE};
 use crate::config::Instance;
 use crate::errors::DatabaseError;
-use crate::models::posts::types::{Post, Visibility};
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::relationships::queries::get_subscribers;
+use crate::models::posts::types::Post;
 use crate::models::users::types::User;
 use super::create_note::{
     build_note,
@@ -21,7 +19,6 @@ fn build_delete_note(
     instance_host: &str,
     instance_url: &str,
     post: &Post,
-    subscribers: Vec<DbActorProfile>,
 ) -> Activity {
     let object_id = post.get_object_id(instance_url);
     let object = Object {
@@ -36,7 +33,6 @@ fn build_delete_note(
         instance_host,
         instance_url,
         post,
-        subscribers,
     );
     let activity = create_activity(
         instance_url,
@@ -57,16 +53,10 @@ pub async fn prepare_delete_note(
     post: &Post,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     assert_eq!(author.id, post.author.id);
-    let subscribers = if post.visibility == Visibility::Subscribers {
-        get_subscribers(db_client, &author.id).await?
-    } else {
-        vec![]
-    };
     let activity = build_delete_note(
         &instance.host(),
         &instance.url(),
         post,
-        subscribers,
     );
     let recipients = get_note_recipients(db_client, author, post).await?;
     Ok(OutgoingActivity {
@@ -84,6 +74,7 @@ mod tests {
         constants::AP_PUBLIC,
         identifiers::local_actor_followers,
     };
+    use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_HOST: &str = "example.com";
@@ -100,7 +91,6 @@ mod tests {
             INSTANCE_HOST,
             INSTANCE_URL,
             &post,
-            vec![],
         );
 
         assert_eq!(

@@ -146,7 +146,6 @@ async fn outbox(
             &instance.host(),
             &instance.url(),
             post,
-            vec![], // subscribers-only posts are not included
         );
         Some(activity)
     }).collect();
@@ -300,7 +299,6 @@ pub async fn object_view(
         &config.instance().host(),
         &config.instance().url(),
         &post,
-        vec![], // subscribers-only posts are not accessible
     );
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)

@@ -38,6 +38,7 @@ use crate::models::reactions::queries::{
     create_reaction,
     delete_reaction,
 };
+use crate::models::relationships::queries::get_subscribers;
 use crate::utils::currencies::Currency;
 use super::helpers::{
     build_status,
@@ -71,6 +72,15 @@ async fn create_status(
     );
     post_data.mentions.extend(mention_map.values()
         .map(|profile| profile.id));
+    if post_data.visibility == Visibility::Subscribers {
+        // Mention all subscribers.
+        // This makes post accessible only to active subscribers
+        // and is required for sending activities to subscribers
+        // on other instances.
+        let subscribers = get_subscribers(db_client, &current_user.id).await?
+            .into_iter().map(|profile| profile.id);
+        post_data.mentions.extend(subscribers);
+    };
     post_data.mentions.sort();
     post_data.mentions.dedup();
     // Hashtags

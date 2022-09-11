@@ -263,6 +263,7 @@ fn build_visibility_filter() -> String {
                     AND target_id = post.author_id
                     AND relationship_type = {relationship_follow}
             )
+            -- TODO: remove and rely on mentions instead
             OR post.visibility = {visibility_subscribers} AND EXISTS (
                 SELECT 1 FROM relationship
                 WHERE

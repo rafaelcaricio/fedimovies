@@ -20,7 +20,6 @@ use crate::errors::DatabaseError;
 use crate::frontend::get_tag_page_url;
 use crate::models::posts::queries::get_post_author;
 use crate::models::posts::types::{Post, Visibility};
-use crate::models::profiles::types::DbActorProfile;
 use crate::models::relationships::queries::{get_followers, get_subscribers};
 use crate::models::users::types::User;
 use crate::utils::files::get_file_url;
@@ -59,7 +58,6 @@ pub fn build_note(
     instance_host: &str,
     instance_url: &str,
     post: &Post,
-    subscribers: Vec<DbActorProfile>,
 ) -> Note {
     let object_id = local_object_id(instance_url, &post.id);
     let actor_id = local_actor_id(instance_url, &post.author.username);
@@ -95,13 +93,7 @@ pub fn build_note(
     };
 
     let mut tags = vec![];
-    let mut mentions = post.mentions.clone();
-    if post.visibility == Visibility::Subscribers {
-        // Mention all subscribers
-        // (for recipients that don't support subscribers-only posts)
-        mentions.extend(subscribers);
-    };
-    for profile in mentions {
+    for profile in &post.mentions {
         let tag_name = format!("@{}", profile.actor_address(instance_host));
         let actor_id = profile.actor_id(instance_url);
         if !primary_audience.contains(&actor_id) {
@@ -154,9 +146,8 @@ pub fn build_create_note(
     instance_host: &str,
     instance_url: &str,
     post: &Post,
-    subscribers: Vec<DbActorProfile>,
 ) -> Activity {
-    let object = build_note(instance_host, instance_url, post, subscribers);
+    let object = build_note(instance_host, instance_url, post);
     let primary_audience = object.to.clone();
     let secondary_audience = object.cc.clone();
     let activity_id = format!("{}/create", object.id);
@@ -212,16 +203,10 @@ pub async fn prepare_create_note(
     post: &Post,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     assert_eq!(author.id, post.author.id);
-    let subscribers = if post.visibility == Visibility::Subscribers {
-        get_subscribers(db_client, &author.id).await?
-    } else {
-        vec![]
-    };
     let activity = build_create_note(
         &instance.host(),
         &instance.url(),
         post,
-        subscribers,
     );
     let recipients = get_note_recipients(db_client, author, post).await?;
     Ok(OutgoingActivity {
@@ -235,6 +220,7 @@ pub async fn prepare_create_note(
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_HOST: &str = "example.com";
@@ -247,7 +233,7 @@ mod tests {
             ..Default::default()
         };
         let post = Post { author, ..Default::default() };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
 
         assert_eq!(
             note.id,
@@ -272,7 +258,7 @@ mod tests {
             visibility: Visibility::Followers,
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
 
         assert_eq!(note.to, vec![
             local_actor_followers(INSTANCE_URL, &post.author.username),
@@ -282,10 +268,6 @@ mod tests {
 
     #[test]
     fn test_build_note_subscribers_only() {
-        let post = Post {
-            visibility: Visibility::Subscribers,
-            ..Default::default()
-        };
         let subscriber_id = "https://test.com/users/3";
         let subscriber = DbActorProfile {
             username: "subscriber".to_string(),
@@ -296,7 +278,12 @@ mod tests {
             actor_id: Some(subscriber_id.to_string()),
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![subscriber]);
+        let post = Post {
+            visibility: Visibility::Subscribers,
+            mentions: vec![subscriber],
+            ..Default::default()
+        };
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
 
         assert_eq!(note.to, vec![
             local_actor_subscribers(INSTANCE_URL, &post.author.username),
@@ -322,7 +309,7 @@ mod tests {
             mentions: vec![mentioned],
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
 
         assert_eq!(note.to, vec![mentioned_id]);
         assert_eq!(note.cc.is_empty(), true);
@@ -336,7 +323,7 @@ mod tests {
             in_reply_to: Some(Box::new(parent.clone())),
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
 
         assert_eq!(
             note.in_reply_to.unwrap(),
@@ -374,7 +361,7 @@ mod tests {
             mentions: vec![parent_author],
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post, vec![]);
+        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
 
         assert_eq!(
             note.in_reply_to.unwrap(),
@@ -399,7 +386,6 @@ mod tests {
             INSTANCE_HOST,
             INSTANCE_URL,
             &post,
-            vec![],
         );
 
         assert_eq!(
