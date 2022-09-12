@@ -82,26 +82,32 @@ fn parse_http_signature(
         .ok_or(VerificationError::ParseError("signature is missing"))?
         .to_owned();
 
-    let mut message = format!(
-        "(request-target): {} {}",
-        request_method.as_str().to_lowercase(),
-        request_uri,
-    );
+    let mut message_parts = vec![];
     for header in headers_parameter.split(' ') {
-        if header == "(request-target)" {
-            continue;
-        }
-        let header_value = request_headers.get(header)
-            .ok_or(VerificationError::HeaderError("missing header"))?
-            .to_str()
-            .map_err(|_| VerificationError::HeaderError("invalid header value"))?;
-        let message_part = format!(
-            "\n{}: {}",
-            header,
-            header_value,
-        );
-        message.push_str(&message_part);
-    }
+        let message_part = if header == "(request-target)" {
+            format!(
+                "(request-target): {} {}",
+                request_method.as_str().to_lowercase(),
+                request_uri,
+            )
+        } else if header == "(created)" {
+            let created = signature_parameters.get("created")
+                .ok_or(VerificationError::ParseError("created parameter is missing"))?;
+            format!("(created): {}", created)
+        } else if header == "(expires)" {
+            let expires = signature_parameters.get("expires")
+                .ok_or(VerificationError::ParseError("expires parameter is missing"))?;
+            format!("(expires): {}", expires)
+        } else {
+            let header_value = request_headers.get(header)
+                .ok_or(VerificationError::HeaderError("missing header"))?
+                .to_str()
+                .map_err(|_| VerificationError::HeaderError("invalid header value"))?;
+            format!("{}: {}", header, header_value)
+        };
+        message_parts.push(message_part);
+    };
+    let message = message_parts.join("\n");
 
     let signature_data = SignatureData {
         key_id,
