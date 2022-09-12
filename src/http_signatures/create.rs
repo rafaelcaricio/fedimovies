@@ -4,6 +4,8 @@ use rsa::RsaPrivateKey;
 
 use crate::utils::crypto::{sign_message, get_message_digest};
 
+pub const SIGNATURE_ALGORITHM: &str = "rsa-sha256";
+
 pub struct SignatureHeaders {
     pub host: String,
     pub date: String,
@@ -63,8 +65,9 @@ pub fn create_http_signature(
         .collect::<Vec<String>>().join(" ");
     let signature_parameter = sign_message(actor_key, &message)?;
     let signature_header = format!(
-        r#"keyId="{}",algorithm="rsa-sha256",headers="{}",signature="{}""#,
+        r#"keyId="{}",algorithm="{}",headers="{}",signature="{}""#,
         actor_key_id,
+        SIGNATURE_ALGORITHM,
         headers_parameter,
         signature_parameter,
     );

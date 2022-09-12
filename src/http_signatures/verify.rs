@@ -4,6 +4,7 @@ use actix_web::{
     HttpRequest,
     http::{Method, Uri, header::HeaderMap},
 };
+use chrono::{DateTime, TimeZone, Utc};
 use regex::Regex;
 use tokio_postgres::GenericClient;
 
@@ -48,6 +49,7 @@ struct SignatureData {
     pub key_id: String,
     pub message: String, // reconstructed message
     pub signature: String, // base64-encoded signature
+    pub created_at: Option<DateTime<Utc>>,
 }
 
 const SIGNATURE_PARAMETER_RE: &str = r#"^(?P<key>[a-zA-Z]+)="(?P<value>.+)"$"#;
@@ -81,6 +83,14 @@ fn parse_http_signature(
     let signature = signature_parameters.get("signature")
         .ok_or(VerificationError::ParseError("signature is missing"))?
         .to_owned();
+    let maybe_created_at = if let Some(created_at) = signature_parameters.get("created") {
+        created_at.parse().ok().map(|ts| Utc.timestamp(ts, 0))
+    } else {
+        request_headers.get("date")
+            .and_then(|header| header.to_str().ok())
+            .and_then(|date| DateTime::parse_from_rfc2822(date).ok())
+            .map(|datetime| datetime.with_timezone(&Utc))
+    };
 
     let mut message_parts = vec![];
     for header in headers_parameter.split(' ') {
@@ -113,6 +123,7 @@ fn parse_http_signature(
         key_id,
         message,
         signature,
+        created_at: maybe_created_at,
     };
     Ok(signature_data)
 }
@@ -138,6 +149,9 @@ pub async fn verify_http_signature(
         request.uri(),
         request.headers(),
     )?;
+    if signature_data.created_at.is_none() {
+        log::warn!("signature creation time is missing");
+    };
 
     let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
     let actor_profile = if no_fetch {
@@ -210,6 +224,7 @@ mod tests {
             "(request-target): post /user/123/inbox\nhost: example.com",
         );
         assert_eq!(signature_data.signature, "test");
+        assert_eq!(signature_data.created_at.is_some(), false);
     }
 
     #[test]
