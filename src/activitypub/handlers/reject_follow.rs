@@ -13,6 +13,7 @@ use crate::models::relationships::queries::{
     follow_request_rejected,
     get_follow_request_by_id,
 };
+use crate::models::relationships::types::FollowRequestStatus;
 use super::HandlerResult;
 
 pub async fn handle_reject_follow(
@@ -29,6 +30,10 @@ pub async fn handle_reject_follow(
     let follow_request = get_follow_request_by_id(db_client, &follow_request_id).await?;
     if follow_request.target_id != actor_profile.id {
         return Err(ValidationError("actor is not a target").into());
+    };
+    if matches!(follow_request.request_status, FollowRequestStatus::Rejected) {
+        // Ignore Reject if follow request already rejected
+        return Ok(None);
     };
     follow_request_rejected(db_client, &follow_request_id).await?;
     Ok(Some(FOLLOW))
