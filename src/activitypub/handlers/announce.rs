@@ -5,7 +5,7 @@ use crate::activitypub::{
     fetcher::helpers::{get_or_import_profile_by_actor_id, import_post},
     identifiers::parse_local_object_id,
     receiver::find_object_id,
-    vocabulary::NOTE,
+    vocabulary::{CREATE, NOTE},
 };
 use crate::config::Config;
 use crate::errors::DatabaseError;
@@ -30,6 +30,10 @@ pub async fn handle_announce(
         &config.media_dir(),
         &activity.actor,
     ).await?;
+    if activity.object["type"].as_str() == Some(CREATE) {
+        // Ignore Announce(Create) activities from Lemmy
+        return Ok(None);
+    };
     let object_id = find_object_id(&activity.object)?;
     let post_id = match parse_local_object_id(&config.instance_url(), &object_id) {
         Ok(post_id) => post_id,
