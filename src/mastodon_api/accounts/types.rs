@@ -61,6 +61,7 @@ pub struct Account {
     pub fields: Vec<AccountField>,
     pub followers_count: i32,
     pub following_count: i32,
+    pub subscribers_count: i32,
     pub statuses_count: i32,
 
     pub source: Option<Source>,
@@ -136,6 +137,7 @@ impl Account {
             fields: extra_fields,
             followers_count: profile.follower_count,
             following_count: profile.following_count,
+            subscribers_count: profile.subscriber_count,
             statuses_count: profile.post_count,
             source: None,
         }

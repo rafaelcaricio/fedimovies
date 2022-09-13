@@ -260,7 +260,7 @@ pub async fn update_expired_subscriptions(
     instance: &Instance,
     db_pool: &Pool,
 ) -> Result<(), EthereumError> {
-    let db_client = &**get_database_client(db_pool).await?;
+    let db_client = &mut **get_database_client(db_pool).await?;
     for subscription in get_expired_subscriptions(db_client).await? {
         // Remove relationship
         unsubscribe(db_client, &subscription.sender_id, &subscription.recipient_id).await?;

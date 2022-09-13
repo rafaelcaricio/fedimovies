@@ -299,7 +299,7 @@ impl ResetSubscriptions {
     pub async fn execute(
         &self,
         _config: &Config,
-        db_client: &impl GenericClient,
+        db_client: &mut impl GenericClient,
     ) -> Result<(), Error> {
         reset_subscriptions(db_client, self.ethereum_contract_replaced).await?;
         println!("subscriptions deleted");

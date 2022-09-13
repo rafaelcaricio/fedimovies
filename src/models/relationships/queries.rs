@@ -9,6 +9,7 @@ use crate::models::notifications::queries::create_follow_notification;
 use crate::models::profiles::queries::{
     update_follower_count,
     update_following_count,
+    update_subscriber_count,
 };
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::id::new_uuid;
@@ -354,26 +355,30 @@ pub async fn get_following_paginated(
 }
 
 pub async fn subscribe(
-    db_client: &impl GenericClient,
+    db_client: &mut impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
-    db_client.execute(
+    let transaction = db_client.transaction().await?;
+    transaction.execute(
         "
         INSERT INTO relationship (source_id, target_id, relationship_type)
         VALUES ($1, $2, $3)
         ",
         &[&source_id, &target_id, &RelationshipType::Subscription],
     ).await.map_err(catch_unique_violation("relationship"))?;
+    update_subscriber_count(&transaction, target_id, 1).await?;
+    transaction.commit().await?;
     Ok(())
 }
 
 pub async fn subscribe_opt(
-    db_client: &impl GenericClient,
+    db_client: &mut impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
-    db_client.execute(
+    let transaction = db_client.transaction().await?;
+    let inserted_count = transaction.execute(
         "
         INSERT INTO relationship (source_id, target_id, relationship_type)
         VALUES ($1, $2, $3)
@@ -381,15 +386,20 @@ pub async fn subscribe_opt(
         ",
         &[&source_id, &target_id, &RelationshipType::Subscription],
     ).await?;
+    if inserted_count > 0 {
+        update_subscriber_count(&transaction, target_id, 1).await?;
+    };
+    transaction.commit().await?;
     Ok(())
 }
 
 pub async fn unsubscribe(
-    db_client: &impl GenericClient,
+    db_client: &mut impl GenericClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
-    let deleted_count = db_client.execute(
+    let transaction = db_client.transaction().await?;
+    let deleted_count = transaction.execute(
         "
         DELETE FROM relationship
         WHERE
@@ -401,6 +411,8 @@ pub async fn unsubscribe(
     if deleted_count == 0 {
         return Err(DatabaseError::NotFound("relationship"));
     };
+    update_subscriber_count(&transaction, target_id, -1).await?;
+    transaction.commit().await?;
     Ok(())
 }
 

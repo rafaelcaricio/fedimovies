@@ -16,7 +16,7 @@ use super::HandlerResult;
 
 pub async fn handle_add(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_client: &mut impl GenericClient,
     activity: Activity,
 ) -> HandlerResult {
     let actor_profile = get_profile_by_actor_id(

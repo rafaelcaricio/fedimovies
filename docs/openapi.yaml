@@ -962,6 +962,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Field'
+        followers_count:
+          description: The reported followers of this profile.
+          type: number
+        following_count:
+          description: The reported follows of this profile.
+          type: number
+        subscribers_count:
+          description: The reported subscribers of this profile.
+          type: number
     Attachment:
       type: object
       properties:

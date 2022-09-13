@@ -12,6 +12,7 @@ CREATE TABLE actor_profile (
     extra_fields JSONB NOT NULL DEFAULT '[]',
     follower_count INTEGER NOT NULL CHECK (follower_count >= 0) DEFAULT 0,
     following_count INTEGER NOT NULL CHECK (following_count >= 0) DEFAULT 0,
+    subscriber_count INTEGER NOT NULL CHECK (subscriber_count >= 0) DEFAULT 0,
     post_count INTEGER NOT NULL CHECK (post_count >= 0) DEFAULT 0,
     actor_json JSONB,
     actor_id VARCHAR(200) UNIQUE GENERATED ALWAYS AS (actor_json ->> 'id') STORED,

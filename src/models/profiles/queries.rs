@@ -293,6 +293,18 @@ pub async fn delete_profile(
     ).await?;
     transaction.execute(
         "
+        UPDATE actor_profile
+        SET subscriber_count = subscriber_count - 1
+        FROM relationship
+        WHERE
+            relationship.source_id = $1
+            AND relationship.target_id = actor_profile.id
+            AND relationship.relationship_type = $2
+        ",
+        &[&profile_id, &RelationshipType::Subscription],
+    ).await?;
+    transaction.execute(
+        "
         UPDATE post
         SET reply_count = reply_count - reply.count
         FROM (
@@ -490,6 +502,25 @@ pub async fn update_following_count(
         "
         UPDATE actor_profile
         SET following_count = following_count + $1
+        WHERE id = $2
+        RETURNING actor_profile
+        ",
+        &[&change, &profile_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("profile"))?;
+    let profile = row.try_get("actor_profile")?;
+    Ok(profile)
+}
+
+pub async fn update_subscriber_count(
+    db_client: &impl GenericClient,
+    profile_id: &Uuid,
+    change: i32,
+) -> Result<DbActorProfile, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        UPDATE actor_profile
+        SET subscriber_count = subscriber_count + $1
         WHERE id = $2
         RETURNING actor_profile
         ",

@@ -22,7 +22,7 @@ pub async fn create_subscription(
     updated_at: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
     assert!(chain_id.is_ethereum() == sender_address.is_some());
-    let transaction = db_client.transaction().await?;
+    let mut transaction = db_client.transaction().await?;
     transaction.execute(
         "
         INSERT INTO subscription (
@@ -44,7 +44,7 @@ pub async fn create_subscription(
             &updated_at,
         ],
     ).await.map_err(catch_unique_violation("subscription"))?;
-    subscribe(&transaction, sender_id, recipient_id).await?;
+    subscribe(&mut transaction, sender_id, recipient_id).await?;
     transaction.commit().await?;
     Ok(())
 }
@@ -56,7 +56,7 @@ pub async fn update_subscription(
     expires_at: &DateTime<Utc>,
     updated_at: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
-    let transaction = db_client.transaction().await?;
+    let mut transaction = db_client.transaction().await?;
     let maybe_row = transaction.query_opt(
         "
         UPDATE subscription
@@ -78,7 +78,7 @@ pub async fn update_subscription(
     let sender_id: Uuid = row.try_get("sender_id")?;
     let recipient_id: Uuid = row.try_get("recipient_id")?;
     if *expires_at > Utc::now() {
-        subscribe_opt(&transaction, &sender_id, &recipient_id).await?;
+        subscribe_opt(&mut transaction, &sender_id, &recipient_id).await?;
     };
     transaction.commit().await?;
     Ok(())
@@ -152,13 +152,14 @@ pub async fn get_incoming_subscriptions(
 }
 
 pub async fn reset_subscriptions(
-    db_client: &impl GenericClient,
+    db_client: &mut impl GenericClient,
     ethereum_contract_replaced: bool,
 ) -> Result<(), DatabaseError> {
+    let transaction = db_client.transaction().await?;
     if ethereum_contract_replaced {
         // Ethereum subscription configuration is stored in contract.
         // If contract is replaced, payment option needs to be deleted.
-        db_client.execute(
+        transaction.execute(
             "
             UPDATE actor_profile
             SET payment_options = '[]'
@@ -174,14 +175,18 @@ pub async fn reset_subscriptions(
             &[&i16::from(&PaymentType::EthereumSubscription)],
         ).await?;
     };
-    db_client.execute(
+    transaction.execute(
         "
         DELETE FROM relationship
         WHERE relationship_type = $1
         ",
         &[&RelationshipType::Subscription],
     ).await?;
-    db_client.execute("DELETE FROM subscription", &[]).await?;
+    transaction.execute(
+        "UPDATE actor_profile SET subscriber_count = 0", &[],
+    ).await?;
+    transaction.execute("DELETE FROM subscription", &[]).await?;
+    transaction.commit().await?;
     Ok(())
 }
 
