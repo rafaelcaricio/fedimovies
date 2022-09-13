@@ -7,23 +7,29 @@ Built on [ActivityPub](https://www.w3.org/TR/activitypub/) protocol, self-hosted
 Unique features:
 
 - [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
-- Recurring payments. Subscribers-only posts.
+- Subscriptions (recurring payments). Subscribers-only posts.
 - Donations.
 - Token-gated registration (can be used to verify membership in some group or to stop bots).
 - Converting posts into NFTs.
 
 Supported blockchains:
 
-- Ethereum and other EVM-compatible blockchains.
 - Monero.
+- Ethereum and other EVM-compatible blockchains.
 
-Ethereum contracts repo: https://codeberg.org/silverpill/mitra-contracts
+Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about-public))
 
-Frontend repo: https://codeberg.org/silverpill/mitra-web
-
-Demo instance: https://public.mitra.social/ (invite-only)
+Network stats: https://the-federation.info/mitra
 
 Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
+
+## Code
+
+Server: https://codeberg.org/silverpill/mitra (this repo)
+
+Web client: https://codeberg.org/silverpill/mitra-web
+
+Ethereum contracts: https://codeberg.org/silverpill/mitra-contracts
 
 ## Requirements
 
