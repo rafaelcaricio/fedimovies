@@ -687,7 +687,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/SubscriptionOption'
     post:
-      summary: Enable subscriptions
+      summary: Enable subscriptions or update subscription settings
       security:
         - tokenAuth: []
       requestBody:

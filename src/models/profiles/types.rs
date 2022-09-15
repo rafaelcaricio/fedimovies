@@ -359,6 +359,22 @@ pub struct ProfileUpdateData {
 }
 
 impl ProfileUpdateData {
+    /// Adds new identity proof
+    /// or replaces the existing one if it has the same issuer.
+    pub fn add_identity_proof(&mut self, proof: IdentityProof) -> () {
+        self.identity_proofs.retain(|item| item.issuer != proof.issuer);
+        self.identity_proofs.push(proof);
+    }
+
+    /// Adds new payment option
+    /// or replaces the existing one if it has the same type.
+    pub fn add_payment_option(&mut self, option: PaymentOption) -> () {
+        self.payment_options.retain(|item| {
+            item.payment_type() != option.payment_type()
+        });
+        self.payment_options.push(option);
+    }
+
     pub fn clean(&mut self) -> Result<(), ValidationError> {
         if let Some(display_name) = &self.display_name {
             validate_display_name(display_name)?;

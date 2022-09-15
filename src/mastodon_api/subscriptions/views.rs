@@ -79,7 +79,7 @@ async fn get_subscription_options(
 }
 
 #[post("/options")]
-pub async fn subscriptions_enabled(
+pub async fn register_subscription_option(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
@@ -89,8 +89,7 @@ pub async fn subscriptions_enabled(
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
 
-    let mut maybe_payment_option = None;
-    match subscription_option.into_inner() {
+    let maybe_payment_option = match subscription_option.into_inner() {
         SubscriptionOption::Ethereum => {
             let ethereum_config = config.blockchain()
                 .and_then(|conf| conf.ethereum_config())
@@ -100,9 +99,12 @@ pub async fn subscriptions_enabled(
             let wallet_address = current_user
                 .public_wallet_address(&Currency::Ethereum)
                 .ok_or(HttpError::PermissionError)?;
-            if !current_user.profile.payment_options
+            if current_user.profile.payment_options
                 .any(PaymentType::EthereumSubscription)
             {
+                // Ignore attempts to update payment option
+                None
+            } else {
                 let is_registered = is_registered_recipient(
                     contract_set,
                     &wallet_address,
@@ -110,32 +112,26 @@ pub async fn subscriptions_enabled(
                 if !is_registered {
                     return Err(ValidationError("recipient is not registered").into());
                 };
-                maybe_payment_option = Some(PaymentOption::ethereum_subscription(
+                Some(PaymentOption::ethereum_subscription(
                     ethereum_config.chain_id.clone(),
-                ));
-            };
+                ))
+            }
         },
         SubscriptionOption::Monero { price, payout_address } => {
             let monero_config = config.blockchain()
                 .and_then(|conf| conf.monero_config())
                 .ok_or(HttpError::NotSupported)?;
-            if !current_user.profile.payment_options
-                .any(PaymentType::MoneroSubscription)
-            {
-                let payment_info = MoneroSubscription {
-                    chain_id: monero_config.chain_id.clone(),
-                    price,
-                    payout_address,
-                };
-                maybe_payment_option =
-                    Some(PaymentOption::MoneroSubscription(payment_info));
+            let payment_info = MoneroSubscription {
+                chain_id: monero_config.chain_id.clone(),
+                price,
+                payout_address,
             };
+            Some(PaymentOption::MoneroSubscription(payment_info))
         },
     };
     if let Some(payment_option) = maybe_payment_option {
-        // Add payment option to profile
         let mut profile_data = ProfileUpdateData::from(&current_user.profile);
-        profile_data.payment_options.push(payment_option);
+        profile_data.add_payment_option(payment_option);
         current_user.profile = update_profile(
             db_client,
             &current_user.id,
@@ -214,7 +210,7 @@ pub fn subscription_api_scope() -> Scope {
     web::scope("/api/v1/subscriptions")
         .service(authorize_subscription)
         .service(get_subscription_options)
-        .service(subscriptions_enabled)
+        .service(register_subscription_option)
         .service(find_subscription)
         .service(create_invoice_view)
         .service(get_invoice)

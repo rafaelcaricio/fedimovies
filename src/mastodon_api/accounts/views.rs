@@ -267,18 +267,7 @@ async fn create_identity_proof(
         value: proof_data.signature.clone(),
     };
     let mut profile_data = ProfileUpdateData::from(&current_user.profile);
-    match profile_data.identity_proofs.iter_mut()
-            .find(|item| item.issuer == proof.issuer) {
-        Some(mut item) => {
-            // Replace
-            item.proof_type = proof.proof_type;
-            item.value = proof.value;
-        },
-        None => {
-            // Add new proof
-            profile_data.identity_proofs.push(proof);
-        },
-    };
+    profile_data.add_identity_proof(proof);
     current_user.profile = update_profile(
         db_client,
         &current_user.id,
