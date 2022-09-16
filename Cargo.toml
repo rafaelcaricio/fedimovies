@@ -1,6 +1,6 @@
 [package]
 name = "mitra"
-version = "0.13.3"
+version = "0.13.4"
 description = "Mitra backend"
 license = "AGPL-3.0"
 
