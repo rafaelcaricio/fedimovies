@@ -6,7 +6,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{Attachment, Link, Object},
+    activity::{Attachment, Link, Object, Tag},
     constants::AP_PUBLIC,
     fetcher::fetchers::fetch_file,
     fetcher::helpers::{
@@ -197,7 +197,9 @@ pub async fn handle_note(
     let mut mentions: Vec<Uuid> = Vec::new();
     let mut tags = vec![];
     let mut links = vec![];
-    if let Some(list) = object.tag {
+    if let Some(value) = object.tag {
+        let list: Vec<Tag> = parse_property_value(&value)
+            .map_err(|_| ValidationError("invalid tag property"))?;
         for tag in list {
             if tag.tag_type == HASHTAG {
                 if let Some(tag_name) = tag.name {

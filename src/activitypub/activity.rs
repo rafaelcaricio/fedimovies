@@ -82,7 +82,7 @@ pub struct Object {
     pub quote_url: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tag: Option<Vec<Tag>>,
+    pub tag: Option<Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Value>,
