@@ -38,11 +38,11 @@ fn parse_profile_query(query: &str) ->
     Result<(String, Option<String>), ValidationError>
 {
     // See also: USERNAME_RE in models::profiles::validators
-    let acct_regexp = Regex::new(r"^@?(?P<user>[\w\.-]+)(@(?P<instance>[\w\.-]+))?$").unwrap();
+    let acct_regexp = Regex::new(r"^(@|!)?(?P<user>[\w\.-]+)(@(?P<instance>[\w\.-]+))?$").unwrap();
     let acct_caps = acct_regexp.captures(query)
-        .ok_or(ValidationError("invalid search query"))?;
+        .ok_or(ValidationError("invalid profile query"))?;
     let username = acct_caps.name("user")
-        .ok_or(ValidationError("invalid search query"))?
+        .ok_or(ValidationError("invalid profile query"))?
         .as_str().to_string();
     let maybe_instance = acct_caps.name("instance")
         .map(|val| val.as_str().to_string());
@@ -215,4 +215,25 @@ pub async fn search_profiles_only(
         .map(|profile| Account::from_profile(profile, &config.instance_url()))
         .collect();
     Ok(accounts)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_profile_query() {
+        let query = "@user";
+        let (username, maybe_instance) = parse_profile_query(query).unwrap();
+        assert_eq!(username, "user");
+        assert_eq!(maybe_instance, None);
+    }
+
+    #[test]
+    fn test_parse_profile_query_group() {
+        let query = "!group@example.com";
+        let (username, maybe_instance) = parse_profile_query(query).unwrap();
+        assert_eq!(username, "group");
+        assert_eq!(maybe_instance.as_deref(), Some("example.com"));
+    }
 }
