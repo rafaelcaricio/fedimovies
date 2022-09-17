@@ -5,7 +5,7 @@ use crate::activitypub::{
     fetcher::helpers::{get_or_import_profile_by_actor_id, import_post},
     identifiers::parse_local_object_id,
     receiver::find_object_id,
-    vocabulary::{CREATE, LIKE, NOTE},
+    vocabulary::{CREATE, LIKE, NOTE, UPDATE},
 };
 use crate::config::Config;
 use crate::errors::DatabaseError;
@@ -30,7 +30,7 @@ pub async fn handle_announce(
         &config.media_dir(),
         &activity.actor,
     ).await?;
-    if let Some(CREATE) | Some(LIKE) = activity.object["type"].as_str() {
+    if let Some(CREATE) | Some(LIKE) | Some(UPDATE) = activity.object["type"].as_str() {
         // Ignore Announce(Create) activities from Lemmy
         return Ok(None);
     };
