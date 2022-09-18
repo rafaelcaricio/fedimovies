@@ -121,6 +121,9 @@ pub async fn register_subscription_option(
             let monero_config = config.blockchain()
                 .and_then(|conf| conf.monero_config())
                 .ok_or(HttpError::NotSupported)?;
+            if price == 0 {
+                return Err(ValidationError("price must be greater than 0").into());
+            };
             let payment_info = MoneroSubscription {
                 chain_id: monero_config.chain_id.clone(),
                 price,
