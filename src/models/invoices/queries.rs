@@ -13,6 +13,7 @@ pub async fn create_invoice(
     recipient_id: &Uuid,
     chain_id: &ChainId,
     payment_address: &str,
+    amount: i64,
 ) -> Result<DbInvoice, DatabaseError> {
     let invoice_id = new_uuid();
     let row = db_client.query_one(
@@ -22,9 +23,10 @@ pub async fn create_invoice(
             sender_id,
             recipient_id,
             chain_id,
-            payment_address
+            payment_address,
+            amount
         )
-        VALUES ($1, $2, $3, $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING invoice
         ",
         &[
@@ -33,6 +35,7 @@ pub async fn create_invoice(
             &recipient_id,
             &chain_id,
             &payment_address,
+            &amount,
         ],
     ).await.map_err(catch_unique_violation("invoice"))?;
     let invoice = row.try_get("invoice")?;
@@ -139,17 +142,20 @@ mod tests {
             reference: "mainnet".to_string(),
         };
         let payment_address = "8MxABajuo71BZya9";
+        let amount = 100000000000109212;
         let invoice = create_invoice(
             db_client,
             &sender.id,
             &recipient.id,
             &chain_id,
             payment_address,
+            amount,
         ).await.unwrap();
         assert_eq!(invoice.sender_id, sender.id);
         assert_eq!(invoice.recipient_id, recipient.id);
         assert_eq!(invoice.chain_id, chain_id);
         assert_eq!(invoice.payment_address, payment_address);
+        assert_eq!(invoice.amount, amount);
         assert!(matches!(invoice.invoice_status, InvoiceStatus::Open));
     }
 }

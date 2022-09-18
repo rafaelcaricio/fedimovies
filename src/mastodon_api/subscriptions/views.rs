@@ -178,6 +178,9 @@ async fn create_invoice_view(
     if invoice_data.sender_id == invoice_data.recipient_id {
         return Err(ValidationError("sender must be different from recipient").into());
     };
+    if invoice_data.amount <= 0 {
+        return Err(ValidationError("amount must be positive").into());
+    };
     let db_client = &**get_database_client(&db_pool).await?;
     let sender = get_profile_by_id(db_client, &invoice_data.sender_id).await?;
     let recipient = get_user_by_id(db_client, &invoice_data.recipient_id).await?;
@@ -190,6 +193,7 @@ async fn create_invoice_view(
         &recipient.id,
         &monero_config.chain_id,
         &payment_address,
+        invoice_data.amount,
     ).await?;
     let invoice = Invoice::from(db_invoice);
     Ok(HttpResponse::Ok().json(invoice))

@@ -143,6 +143,7 @@ CREATE TABLE invoice (
     recipient_id UUID NOT NULL REFERENCES user_account (id) ON DELETE CASCADE,
     chain_id VARCHAR(50) NOT NULL,
     payment_address VARCHAR(200) NOT NULL,
+    amount BIGINT NOT NULL CHECK (amount >= 0),
     invoice_status SMALLINT NOT NULL DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (chain_id, payment_address)

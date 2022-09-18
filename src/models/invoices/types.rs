@@ -53,6 +53,7 @@ pub struct DbInvoice {
     pub recipient_id: Uuid,
     pub chain_id: ChainId,
     pub payment_address: String,
+    pub amount: i64, // requested payment amount
     pub invoice_status: InvoiceStatus,
     pub created_at: DateTime<Utc>,
 }

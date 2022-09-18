@@ -9,6 +9,7 @@ use crate::models::profiles::types::PaymentOption;
 pub struct InvoiceData {
     pub sender_id: Uuid,
     pub recipient_id: Uuid,
+    pub amount: i64,
 }
 
 #[derive(Serialize)]
@@ -17,6 +18,7 @@ pub struct Invoice {
     pub sender_id: Uuid,
     pub recipient_id: Uuid,
     pub payment_address: String,
+    pub amount: i64,
     pub status: String,
 }
 
@@ -33,6 +35,7 @@ impl From<DbInvoice> for Invoice {
             sender_id: value.sender_id,
             recipient_id: value.recipient_id,
             payment_address: value.payment_address,
+            amount: value.amount,
             status: status.to_string(),
         }
     }
