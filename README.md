@@ -17,7 +17,7 @@ Supported blockchains:
 - Monero.
 - Ethereum and other EVM-compatible blockchains.
 
-Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about-public))
+Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about))
 
 Network stats: https://the-federation.info/mitra
 
