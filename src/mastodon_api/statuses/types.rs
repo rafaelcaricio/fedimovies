@@ -38,7 +38,7 @@ pub struct Tag {
 }
 
 impl Tag {
-    fn from_tag_name(tag_name: String) -> Self {
+    pub fn from_tag_name(tag_name: String) -> Self {
         Tag {
             name: tag_name,
             // TODO: add link to tag page

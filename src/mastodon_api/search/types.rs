@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::mastodon_api::accounts::types::Account;
-use crate::mastodon_api::statuses::types::Status;
+use crate::mastodon_api::statuses::types::{Status, Tag};
 
 fn default_limit() -> i64 { 20 }
 
@@ -18,4 +18,5 @@ pub struct SearchQueryParams {
 pub struct SearchResults {
     pub accounts: Vec<Account>,
     pub statuses: Vec<Status>,
+    pub hashtags: Vec<Tag>,
 }

@@ -14,6 +14,7 @@ use crate::errors::{ValidationError, HttpError};
 use crate::ethereum::identity::DidPkh;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::helpers::build_status_list;
+use crate::mastodon_api::statuses::types::Tag;
 use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
@@ -22,12 +23,14 @@ use crate::models::profiles::queries::{
     search_profile_by_wallet_address,
 };
 use crate::models::profiles::types::DbActorProfile;
+use crate::models::tags::queries::search_tags;
 use crate::models::users::types::User;
 use crate::utils::currencies::{validate_wallet_address, Currency};
 use super::types::SearchResults;
 
 enum SearchQuery {
     ProfileQuery(String, Option<String>),
+    TagQuery(String),
     Url(String),
     WalletAddress(String),
     Did(DidPkh),
@@ -38,15 +41,26 @@ fn parse_profile_query(query: &str) ->
     Result<(String, Option<String>), ValidationError>
 {
     // See also: USERNAME_RE in models::profiles::validators
-    let acct_regexp = Regex::new(r"^(@|!)?(?P<user>[\w\.-]+)(@(?P<instance>[\w\.-]+))?$").unwrap();
-    let acct_caps = acct_regexp.captures(query)
+    let acct_query_re =
+        Regex::new(r"^(@|!)?(?P<user>[\w\.-]+)(@(?P<instance>[\w\.-]+))?$").unwrap();
+    let acct_query_caps = acct_query_re.captures(query)
         .ok_or(ValidationError("invalid profile query"))?;
-    let username = acct_caps.name("user")
+    let username = acct_query_caps.name("user")
         .ok_or(ValidationError("invalid profile query"))?
         .as_str().to_string();
-    let maybe_instance = acct_caps.name("instance")
+    let maybe_instance = acct_query_caps.name("instance")
         .map(|val| val.as_str().to_string());
     Ok((username, maybe_instance))
+}
+
+fn parse_tag_query(query: &str) -> Result<String, ValidationError> {
+    let tag_query_re = Regex::new(r"^#(?P<tag>\w+)$").unwrap();
+    let tag_query_caps = tag_query_re.captures(query)
+        .ok_or(ValidationError("invalid tag query"))?;
+    let tag = tag_query_caps.name("tag")
+        .ok_or(ValidationError("invalid tag query"))?
+        .as_str().to_string();
+    Ok(tag)
 }
 
 fn parse_search_query(search_query: &str) -> SearchQuery {
@@ -65,14 +79,13 @@ fn parse_search_query(search_query: &str) -> SearchQuery {
     ).is_ok() {
         return SearchQuery::WalletAddress(search_query.to_string());
     };
-    match parse_profile_query(search_query) {
-        Ok((username, instance)) => {
-            SearchQuery::ProfileQuery(username, instance)
-        },
-        Err(_) => {
-            SearchQuery::Unknown
-        },
-    }
+    if let Ok(tag) = parse_tag_query(search_query) {
+        return SearchQuery::TagQuery(tag);
+    };
+    if let Ok((username, maybe_instance)) = parse_profile_query(search_query) {
+        return SearchQuery::ProfileQuery(username, maybe_instance);
+    };
+    SearchQuery::Unknown
 }
 
 async fn search_profiles_or_import(
@@ -146,13 +159,21 @@ pub async fn search(
 ) -> Result<SearchResults, HttpError> {
     let mut profiles = vec![];
     let mut posts = vec![];
+    let mut tags = vec![];
     match parse_search_query(search_query) {
-        SearchQuery::ProfileQuery(username, instance) => {
+        SearchQuery::ProfileQuery(username, maybe_instance) => {
             profiles = search_profiles_or_import(
                 config,
                 db_client,
                 username,
-                instance,
+                maybe_instance,
+                limit,
+            ).await?;
+        },
+        SearchQuery::TagQuery(tag) => {
+            tags = search_tags(
+                db_client,
+                &tag,
                 limit,
             ).await?;
         },
@@ -192,7 +213,10 @@ pub async fn search(
         Some(current_user),
         posts,
     ).await?;
-    Ok(SearchResults { accounts, statuses })
+    let hashtags = tags.into_iter()
+        .map(Tag::from_tag_name)
+        .collect();
+    Ok(SearchResults { accounts, statuses, hashtags })
 }
 
 pub async fn search_profiles_only(
@@ -235,5 +259,13 @@ mod tests {
         let (username, maybe_instance) = parse_profile_query(query).unwrap();
         assert_eq!(username, "group");
         assert_eq!(maybe_instance.as_deref(), Some("example.com"));
+    }
+
+    #[test]
+    fn test_parse_tag_query() {
+        let query = "#Activity";
+        let tag = parse_tag_query(query).unwrap();
+
+        assert_eq!(tag, "Activity");
     }
 }
