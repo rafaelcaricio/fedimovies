@@ -28,7 +28,7 @@ blockchains:
     chain_reorg_max_depth: 0
 #  # Parameters for local Monero node
 #  - chain_id: monero:regtest
-#    daemon_url: 'http://127.0.0.1:58081'
+#    node_url: 'http://127.0.0.1:58081'
 #    wallet_url: 'http://127.0.0.1:58083'
 #    wallet_name: test
 #    wallet_password: test

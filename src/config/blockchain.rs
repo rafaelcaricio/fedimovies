@@ -53,7 +53,8 @@ impl EthereumConfig {
 #[derive(Clone, Deserialize)]
 pub struct MoneroConfig {
     pub chain_id: ChainId,
-    pub daemon_url: String,
+    #[serde(alias = "daemon_url")]
+    pub node_url: String,
     pub wallet_url: String,
     pub wallet_name: String,
     pub wallet_password: Option<String>,

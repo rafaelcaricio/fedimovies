@@ -46,7 +46,7 @@ registrations_open: false
 #    chain_sync_step: 1000
 #    chain_reorg_max_depth: 10
 #  - chain_id: monero:mainnet
-#    daemon_url: 'http://opennode.xmr-tw.org:18089'
+#    node_url: 'http://opennode.xmr-tw.org:18089'
 #    wallet_url: 'http://127.0.0.1:18083'
 #    wallet_name: mitra
 #    wallet_password: mitra
