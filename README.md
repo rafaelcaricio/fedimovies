@@ -51,7 +51,12 @@ cargo build --release --features production
 
 This command will produce two binaries in `target/release` directory, `mitra` and `mitractl`.
 
-Install PostgreSQL and create the database.
+Install PostgreSQL and create the database:
+
+```sql
+CREATE USER mitra WITH PASSWORD 'mitra';
+CREATE DATABASE mitra OWNER mitra;
+```
 
 Create configuration file by copying `contrib/mitra_config.yaml` and configure the instance. Default config file path is `/etc/mitra/config.yaml`, but it can be changed using `CONFIG_PATH` environment variable.
 
@@ -75,7 +80,14 @@ Download and install Mitra package:
 dpkg -i mitra.deb
 ```
 
-Install PostgreSQL and create the database. Open configuration file `/etc/mitra/config.yaml` and configure the instance.
+Install PostgreSQL and create the database:
+
+```sql
+CREATE USER mitra WITH PASSWORD 'mitra';
+CREATE DATABASE mitra OWNER mitra;
+```
+
+Open configuration file `/etc/mitra/config.yaml` and configure the instance.
 
 Start Mitra:
 
@@ -85,18 +97,44 @@ systemctl start mitra
 
 An HTTP server will be needed to handle HTTPS requests and serve the frontend. See the example of [nginx configuration file](./contrib/mitra.nginx).
 
+### Monero
+
+Install Monero node or choose a [public one](https://monero.fail/).
+
+Configure and start [monero-wallet-rpc](https://monerodocs.org/interacting/monero-wallet-rpc-reference/) daemon.
+
+Create a wallet for your instance.
+
+Add blockchain configuration to `blockchains` array in your configuration file.
+
+### Ethereum
+
+Install Ethereum client or choose a JSON-RPC API provider.
+
+Deploy contracts on the blockchain. Instructions can be found at https://codeberg.org/silverpill/mitra-contracts.
+
+Add blockchain configuration to `blockchains` array in your configuration file.
+
 ## Development
 
-### Create database
+### Start database server
 
 ```
-docker-compose up
+docker-compose up -d
 ```
 
 Test connection:
 
 ```
 psql -h localhost -p 55432 -U mitra mitra
+```
+
+### Start Monero node and wallet server
+
+(this step is optional)
+
+```
+docker-compose --profile monero up -d
 ```
 
 ### Run web service
