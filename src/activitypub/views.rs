@@ -119,6 +119,7 @@ async fn outbox(
         let collection = OrderedCollection::new(
             collection_id,
             Some(first_page_id),
+            None,
         );
         let response = HttpResponse::Ok()
             .content_type(ACTIVITY_CONTENT_TYPE)
@@ -134,7 +135,8 @@ async fn outbox(
         None, // include only public posts
         false, // exclude replies
         false, // exclude reposts
-        None, COLLECTION_PAGE_SIZE,
+        None,
+        COLLECTION_PAGE_SIZE,
     ).await?;
     let activities: Vec<_> = posts.iter().filter_map(|post| {
         if post.in_reply_to_id.is_some() || post.repost_of_id.is_some() {
@@ -162,18 +164,25 @@ async fn outbox(
 #[get("/followers")]
 async fn followers_collection(
     config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
     username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     if query_params.page.is_some() {
         // Social graph is not available
         return Err(HttpError::PermissionError);
-    }
+    };
+    let db_client = &**get_database_client(&db_pool).await?;
+    let user = get_user_by_name(db_client, &username).await?;
     let collection_id = local_actor_followers(
         &config.instance_url(),
         &username,
     );
-    let collection = OrderedCollection::new(collection_id, None);
+    let collection = OrderedCollection::new(
+        collection_id,
+        None,
+        Some(user.profile.follower_count),
+    );
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)
         .json(collection);
@@ -183,18 +192,25 @@ async fn followers_collection(
 #[get("/following")]
 async fn following_collection(
     config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
     username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     if query_params.page.is_some() {
         // Social graph is not available
         return Err(HttpError::PermissionError);
-    }
+    };
+    let db_client = &**get_database_client(&db_pool).await?;
+    let user = get_user_by_name(db_client, &username).await?;
     let collection_id = local_actor_following(
         &config.instance_url(),
         &username,
     );
-    let collection = OrderedCollection::new(collection_id, None);
+    let collection = OrderedCollection::new(
+        collection_id,
+        None,
+        Some(user.profile.following_count),
+    );
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)
         .json(collection);
@@ -204,18 +220,25 @@ async fn following_collection(
 #[get("/subscribers")]
 async fn subscribers_collection(
     config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
     username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     if query_params.page.is_some() {
         // Subscriber list is hidden
         return Err(HttpError::PermissionError);
-    }
+    };
+    let db_client = &**get_database_client(&db_pool).await?;
+    let user = get_user_by_name(db_client, &username).await?;
     let collection_id = local_actor_subscribers(
         &config.instance_url(),
         &username,
     );
-    let collection = OrderedCollection::new(collection_id, None);
+    let collection = OrderedCollection::new(
+        collection_id,
+        None,
+        Some(user.profile.subscriber_count),
+    );
     let response = HttpResponse::Ok()
         .content_type(ACTIVITY_CONTENT_TYPE)
         .json(collection);

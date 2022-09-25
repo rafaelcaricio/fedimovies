@@ -17,18 +17,23 @@ pub struct OrderedCollection {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     first: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    total_items: Option<i32>,
 }
 
 impl OrderedCollection {
     pub fn new(
         collection_id: String,
         first_page_id: Option<String>,
+        total_items: Option<i32>,
     ) -> Self {
         Self {
             context: json!(AP_CONTEXT),
             id: collection_id,
             object_type: ORDERED_COLLECTION.to_string(),
             first: first_page_id,
+            total_items,
         }
     }
 }
