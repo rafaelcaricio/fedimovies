@@ -46,6 +46,7 @@ fn get_note_author_id(object: &Object) -> Result<String, ValidationError> {
 }
 
 const CONTENT_MAX_SIZE: usize = 100000;
+const ATTACHMENTS_MAX_NUM: usize = 15;
 
 fn parse_object_url(value: &JsonValue) -> Result<String, ConversionError> {
     let object_url = match value {
@@ -186,6 +187,11 @@ pub async fn handle_note(
                 file_name,
                 attachment.media_type.or(media_type),
             ));
+            // Stop downloading if limit is reached
+            if downloaded.len() >= ATTACHMENTS_MAX_NUM {
+                log::warn!("too many attachments");
+                break;
+            };
         };
         for (file_name, media_type) in downloaded {
             let db_attachment = create_attachment(

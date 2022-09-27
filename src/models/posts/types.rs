@@ -257,7 +257,7 @@ impl PostCreateData {
         let content_trimmed = content_safe.trim();
         if content_trimmed.is_empty() {
             return Err(ValidationError("post can not be empty"));
-        }
+        };
         self.content = content_trimmed.to_string();
         Ok(())
     }
