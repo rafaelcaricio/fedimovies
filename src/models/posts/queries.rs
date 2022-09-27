@@ -252,6 +252,7 @@ fn build_visibility_filter() -> String {
         "(
             post.author_id = $current_user_id
             OR post.visibility = {visibility_public}
+            -- covers direct messages and subscribers-only posts
             OR EXISTS (
                 SELECT 1 FROM mention
                 WHERE post_id = post.id AND profile_id = $current_user_id
@@ -263,20 +264,10 @@ fn build_visibility_filter() -> String {
                     AND target_id = post.author_id
                     AND relationship_type = {relationship_follow}
             )
-            -- TODO: remove and rely on mentions instead
-            OR post.visibility = {visibility_subscribers} AND EXISTS (
-                SELECT 1 FROM relationship
-                WHERE
-                    source_id = $current_user_id
-                    AND target_id = post.author_id
-                    AND relationship_type = {relationship_subscription}
-            )
         )",
         visibility_public=i16::from(&Visibility::Public),
         visibility_followers=i16::from(&Visibility::Followers),
-        visibility_subscribers=i16::from(&Visibility::Subscribers),
         relationship_follow=i16::from(&RelationshipType::Follow),
-        relationship_subscription=i16::from(&RelationshipType::Subscription),
     )
 }
 
@@ -1324,7 +1315,7 @@ mod tests {
             ..Default::default()
         };
         let post_10 = create_post(db_client, &user_2.id, post_data_10).await.unwrap();
-        // Subscribers-only post by subscription
+        // Subscribers-only post by subscription (without mention)
         let user_data_3 = UserCreateData {
             username: "subscription".to_string(),
             ..Default::default()
@@ -1337,6 +1328,14 @@ mod tests {
             ..Default::default()
         };
         let post_11 = create_post(db_client, &user_3.id, post_data_11).await.unwrap();
+        // Subscribers-only post by subscription (with mention)
+        let post_data_12 = PostCreateData {
+            content: "subscribers only".to_string(),
+            visibility: Visibility::Subscribers,
+            mentions: vec![current_user.id],
+            ..Default::default()
+        };
+        let post_12 = create_post(db_client, &user_3.id, post_data_12).await.unwrap();
         // Repost from followed user if hiding reposts
         let user_data_4 = UserCreateData {
             username: "hide reposts".to_string(),
@@ -1345,11 +1344,11 @@ mod tests {
         let user_4 = create_user(db_client, user_data_4).await.unwrap();
         follow(db_client, &current_user.id, &user_4.id).await.unwrap();
         hide_reposts(db_client, &current_user.id, &user_4.id).await.unwrap();
-        let post_data_12 = PostCreateData {
+        let post_data_13 = PostCreateData {
             repost_of_id: Some(post_3.id),
             ..Default::default()
         };
-        let post_12 = create_post(db_client, &user_4.id, post_data_12).await.unwrap();
+        let post_13 = create_post(db_client, &user_4.id, post_data_13).await.unwrap();
 
         let timeline = get_home_timeline(db_client, &current_user.id, None, 20).await.unwrap();
         assert_eq!(timeline.len(), 7);
@@ -1363,8 +1362,9 @@ mod tests {
         assert_eq!(timeline.iter().any(|post| post.id == post_8.id), false);
         assert_eq!(timeline.iter().any(|post| post.id == post_9.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_10.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_11.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_12.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_11.id), false);
+        assert_eq!(timeline.iter().any(|post| post.id == post_12.id), true);
+        assert_eq!(timeline.iter().any(|post| post.id == post_13.id), false);
     }
 
     #[tokio::test]

@@ -104,13 +104,8 @@ pub async fn can_view_post(
         },
         Visibility::Subscribers => {
             if let Some(user) = user {
-                let is_subscriber = has_relationship(
-                    db_client,
-                    &user.id,
-                    &post.author.id,
-                    RelationshipType::Subscription,
-                ).await?;
-                is_subscriber || is_mentioned(user)
+                // Can view only if mentioned
+                is_mentioned(user)
             } else {
                 false
             }
@@ -218,6 +213,7 @@ mod tests {
         let post = Post {
             author: author.profile,
             visibility: Visibility::Subscribers,
+            mentions: vec![subscriber.profile.clone()],
             ..Default::default()
         };
         assert_eq!(
