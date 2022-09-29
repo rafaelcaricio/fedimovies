@@ -1,6 +1,8 @@
 use serde::Deserialize;
 
-fn default_page_size() -> u16 { 40 }
+use crate::mastodon_api::pagination::PageSize;
+
+fn default_page_size() -> PageSize { PageSize::new(40) }
 
 /// https://docs.joinmastodon.org/methods/instance/directory/
 #[derive(Deserialize)]
@@ -9,5 +11,5 @@ pub struct DirectoryQueryParams {
     pub offset: u16,
 
     #[serde(default = "default_page_size")]
-    pub limit: u16,
+    pub limit: PageSize,
 }

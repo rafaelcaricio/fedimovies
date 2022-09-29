@@ -2,16 +2,17 @@
 use serde::{Deserialize, Serialize};
 
 use crate::mastodon_api::accounts::types::Account;
+use crate::mastodon_api::pagination::PageSize;
 use crate::mastodon_api::statuses::types::{Status, Tag};
 
-fn default_page_size() -> u16 { 20 }
+fn default_page_size() -> PageSize { PageSize::new(20) }
 
 #[derive(Deserialize)]
 pub struct SearchQueryParams {
     pub q: String,
 
     #[serde(default = "default_page_size")]
-    pub limit: u16,
+    pub limit: PageSize,
 }
 
 #[derive(Serialize)]

@@ -22,7 +22,7 @@ async fn profile_directory(
     let profiles = get_profiles(
         db_client,
         query_params.offset,
-        query_params.limit,
+        query_params.limit.inner(),
     ).await?;
     let accounts: Vec<Account> = profiles
         .into_iter()

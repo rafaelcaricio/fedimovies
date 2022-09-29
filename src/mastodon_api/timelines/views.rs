@@ -27,7 +27,7 @@ async fn home_timeline(
         db_client,
         &current_user.id,
         query_params.max_id,
-        query_params.limit,
+        query_params.limit.inner(),
     ).await?;
     let statuses = build_status_list(
         db_client,
@@ -52,7 +52,7 @@ async fn public_timeline(
         db_client,
         &current_user.id,
         query_params.max_id,
-        query_params.limit,
+        query_params.limit.inner(),
     ).await?;
     let statuses = build_status_list(
         db_client,
@@ -81,7 +81,7 @@ async fn hashtag_timeline(
         &hashtag,
         maybe_current_user.as_ref().map(|user| &user.id),
         query_params.max_id,
-        query_params.limit,
+        query_params.limit.inner(),
     ).await?;
     let statuses = build_status_list(
         db_client,

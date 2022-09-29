@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
+use crate::mastodon_api::pagination::PageSize;
 use crate::mastodon_api::uploads::{UploadError, save_validated_b64_file};
 use crate::models::profiles::types::{
     DbActorProfile,
@@ -308,14 +309,14 @@ impl Default for RelationshipMap {
     }
 }
 
-fn default_search_page_size() -> u16 { 40 }
+fn default_search_page_size() -> PageSize { PageSize::new(40) }
 
 #[derive(Deserialize)]
 pub struct SearchAcctQueryParams {
     pub q: String,
 
     #[serde(default = "default_search_page_size")]
-    pub limit: u16,
+    pub limit: PageSize,
 }
 
 #[derive(Deserialize)]
@@ -331,7 +332,7 @@ pub struct FollowData {
     pub replies: bool,
 }
 
-fn default_status_page_size() -> u16 { 20 }
+fn default_status_page_size() -> PageSize { PageSize::new(20) }
 
 fn default_exclude_replies() -> bool { true }
 
@@ -346,17 +347,17 @@ pub struct StatusListQueryParams {
     pub max_id: Option<Uuid>,
 
     #[serde(default = "default_status_page_size")]
-    pub limit: u16,
+    pub limit: PageSize,
 }
 
-fn default_follow_list_page_size() -> u16 { 40 }
+fn default_follow_list_page_size() -> PageSize { PageSize::new(40) }
 
 #[derive(Deserialize)]
 pub struct FollowListQueryParams {
     pub max_id: Option<i32>,
 
     #[serde(default = "default_follow_list_page_size")]
-    pub limit: u16,
+    pub limit: PageSize,
 }
 
 #[derive(Serialize)]

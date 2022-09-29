@@ -309,7 +309,7 @@ async fn search_by_acct(
         &config,
         db_client,
         &query_params.q,
-        query_params.limit,
+        query_params.limit.inner(),
     ).await?;
     Ok(HttpResponse::Ok().json(accounts))
 }
@@ -454,7 +454,7 @@ async fn get_account_statuses(
         !query_params.exclude_replies,
         true,
         query_params.max_id,
-        query_params.limit,
+        query_params.limit.inner(),
     ).await?;
     let statuses = build_status_list(
         db_client,
@@ -486,9 +486,9 @@ async fn get_account_followers(
         db_client,
         &profile.id,
         query_params.max_id,
-        query_params.limit,
+        query_params.limit.inner(),
     ).await?;
-    let max_index = usize::from(query_params.limit.saturating_sub(1));
+    let max_index = usize::from(query_params.limit.inner().saturating_sub(1));
     let maybe_last_id = followers.get(max_index).map(|item| item.relationship_id);
     let accounts: Vec<Account> = followers.into_iter()
         .map(|item| Account::from_profile(item.profile, &config.instance_url()))
@@ -523,9 +523,9 @@ async fn get_account_following(
         db_client,
         &profile.id,
         query_params.max_id,
-        query_params.limit,
+        query_params.limit.inner(),
     ).await?;
-    let max_index = usize::from(query_params.limit.saturating_sub(1));
+    let max_index = usize::from(query_params.limit.inner().saturating_sub(1));
     let maybe_last_id = following.get(max_index).map(|item| item.relationship_id);
     let accounts: Vec<Account> = following.into_iter()
         .map(|item| Account::from_profile(item.profile, &config.instance_url()))
@@ -560,7 +560,7 @@ async fn get_account_subscribers(
         db_client,
         &profile.id,
         query_params.max_id,
-        query_params.limit,
+        query_params.limit.inner(),
     )
         .await?
         .into_iter()

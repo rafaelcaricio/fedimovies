@@ -28,12 +28,12 @@ async fn get_notifications_view(
         db_client,
         &current_user.id,
         query_params.max_id,
-        query_params.limit,
+        query_params.limit.inner(),
     ).await?
         .into_iter()
         .map(|item| ApiNotification::from_db(item, &config.instance_url()))
         .collect();
-    let max_index = usize::from(query_params.limit.saturating_sub(1));
+    let max_index = usize::from(query_params.limit.inner().saturating_sub(1));
     let maybe_last_id = notifications.get(max_index)
         .map(|item| item.id.clone());
     let response = get_paginated_response(
