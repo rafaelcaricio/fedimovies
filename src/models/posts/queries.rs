@@ -38,7 +38,6 @@ pub async fn create_post(
 ) -> Result<Post, DatabaseError> {
     let transaction = db_client.transaction().await?;
     let post_id = new_uuid();
-    let created_at = data.created_at.unwrap_or(Utc::now());
     // Replying to reposts is not allowed
     // Reposting of other reposts or non-public posts is not allowed
     let insert_statement = format!(
@@ -78,7 +77,7 @@ pub async fn create_post(
             &data.repost_of_id,
             &data.visibility,
             &data.object_id,
-            &created_at,
+            &data.created_at,
         ],
     ).await.map_err(catch_unique_violation("post"))?;
     let post_row = maybe_post_row.ok_or(DatabaseError::NotFound("post"))?;

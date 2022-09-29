@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use chrono::Utc;
 use serde_json::{Value as JsonValue};
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
@@ -64,10 +65,10 @@ fn parse_object_url(value: &JsonValue) -> Result<String, ConversionError> {
 }
 
 pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
-    let mut content = object.content.as_ref()
+    let mut content = object.content.as_deref()
         // Lemmy pages and PeerTube videos have "name" property
-        .or(object.name.as_ref())
-        .ok_or(ValidationError("no content"))?
+        .or(object.name.as_deref())
+        .unwrap_or("")
         .to_owned();
     if object.object_type != NOTE {
         if let Some(ref value) = object.url {
@@ -159,6 +160,7 @@ pub async fn handle_note(
         err
     })?;
     let content = get_note_content(&object)?;
+    let created_at = object.published.unwrap_or(Utc::now());
 
     let mut attachments: Vec<Uuid> = Vec::new();
     if let Some(value) = object.attachment {
@@ -203,6 +205,10 @@ pub async fn handle_note(
             attachments.push(db_attachment.id);
         };
     };
+    if content.is_empty() && attachments.is_empty() {
+        return Err(ValidationError("post is empty").into());
+    };
+
     let mut mentions: Vec<Uuid> = Vec::new();
     let mut tags = vec![];
     let mut links = vec![];
@@ -361,7 +367,7 @@ pub async fn handle_note(
         tags: tags,
         links: links,
         object_id: Some(object.id),
-        created_at: object.published,
+        created_at,
     };
     let post = create_post(db_client, &author.id, post_data).await?;
     Ok(post)

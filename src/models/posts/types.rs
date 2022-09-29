@@ -244,12 +244,13 @@ pub struct PostCreateData {
     pub tags: Vec<String>,
     pub links: Vec<Uuid>,
     pub object_id: Option<String>,
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
 }
 
 impl PostCreateData {
-    /// Validate and clean post data.
+    /// Validate and clean post data (only for local posts).
     pub fn clean(&mut self, character_limit: usize) -> Result<(), ValidationError> {
+        assert!(self.object_id.is_none());
         if self.content.chars().count() > character_limit {
             return Err(ValidationError("post is too long"));
         };
@@ -275,35 +276,19 @@ mod tests {
     const POST_CHARACTER_LIMIT: usize = 1000;
 
     #[test]
-    fn test_validate_post_data() {
+    fn test_post_data_empty() {
         let mut post_data_1 = PostCreateData {
             content: "  ".to_string(),
-            in_reply_to_id: None,
-            repost_of_id: None,
-            visibility: Visibility::Public,
-            attachments: vec![],
-            mentions: vec![],
-            tags: vec![],
-            links: vec![],
-            object_id: None,
-            created_at: None,
+            ..Default::default()
         };
         assert_eq!(post_data_1.clean(POST_CHARACTER_LIMIT).is_ok(), false);
     }
 
     #[test]
-    fn test_trimming() {
+    fn test_post_data_trimming() {
         let mut post_data_2 = PostCreateData {
             content: "test ".to_string(),
-            in_reply_to_id: None,
-            repost_of_id: None,
-            visibility: Visibility::Public,
-            attachments: vec![],
-            mentions: vec![],
-            tags: vec![],
-            links: vec![],
-            object_id: None,
-            created_at: None,
+            ..Default::default()
         };
         assert_eq!(post_data_2.clean(POST_CHARACTER_LIMIT).is_ok(), true);
         assert_eq!(post_data_2.content.as_str(), "test");

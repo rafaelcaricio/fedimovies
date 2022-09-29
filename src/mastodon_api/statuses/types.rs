@@ -171,7 +171,7 @@ impl TryFrom<StatusData> for PostCreateData {
             tags: vec![],
             links: vec![],
             object_id: None,
-            created_at: None,
+            created_at: Utc::now(),
         };
         Ok(post_data)
     }
