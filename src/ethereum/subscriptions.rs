@@ -25,7 +25,7 @@ use crate::models::notifications::queries::{
 };
 use crate::models::profiles::queries::{
     get_profile_by_id,
-    search_profile_by_wallet_address,
+    search_profiles_by_wallet_address,
 };
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::relationships::queries::unsubscribe;
@@ -136,7 +136,7 @@ pub async fn check_ethereum_subscriptions(
         let block_date = u256_to_date(block_timestamp)
             .map_err(|_| EthereumError::ConversionError)?;
 
-        let profiles = search_profile_by_wallet_address(
+        let profiles = search_profiles_by_wallet_address(
             db_client,
             &ETHEREUM,
             &sender_address,

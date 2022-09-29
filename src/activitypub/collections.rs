@@ -38,7 +38,7 @@ impl OrderedCollection {
     }
 }
 
-pub const COLLECTION_PAGE_SIZE: i64 = 10;
+pub const COLLECTION_PAGE_SIZE: u16 = 10;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

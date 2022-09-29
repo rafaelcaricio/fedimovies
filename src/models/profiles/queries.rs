@@ -159,8 +159,8 @@ pub async fn get_profile_by_acct(
 
 pub async fn get_profiles(
     db_client: &impl GenericClient,
-    offset: i64,
-    limit: i64,
+    offset: u16,
+    limit: u16,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -169,7 +169,7 @@ pub async fn get_profiles(
         ORDER BY username
         LIMIT $1 OFFSET $2
         ",
-        &[&limit, &offset],
+        &[&i64::from(limit), &i64::from(offset)],
     ).await?;
     let profiles = rows.iter()
         .map(|row| row.try_get("actor_profile"))
@@ -358,11 +358,11 @@ pub async fn delete_profile(
     })
 }
 
-pub async fn search_profile(
+pub async fn search_profiles(
     db_client: &impl GenericClient,
     username: &str,
     instance: Option<&String>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let db_search_query = match instance {
         Some(instance) => {
@@ -381,7 +381,7 @@ pub async fn search_profile(
         WHERE acct ILIKE $1
         LIMIT $2
         ",
-        &[&db_search_query, &limit],
+        &[&db_search_query, &i64::from(limit)],
     ).await?;
     let profiles: Vec<DbActorProfile> = rows.iter()
         .map(|row| row.try_get("actor_profile"))
@@ -389,7 +389,7 @@ pub async fn search_profile(
     Ok(profiles)
 }
 
-pub async fn search_profile_by_did(
+pub async fn search_profiles_by_did(
     db_client: &impl GenericClient,
     did: &DidPkh,
     prefer_verified: bool,
@@ -464,14 +464,14 @@ pub async fn search_profile_by_did(
     Ok(results)
 }
 
-pub async fn search_profile_by_wallet_address(
+pub async fn search_profiles_by_wallet_address(
     db_client: &impl GenericClient,
     currency: &Currency,
     wallet_address: &str,
     prefer_verified: bool,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let did = DidPkh::from_address(currency, wallet_address);
-    search_profile_by_did(db_client, &did, prefer_verified).await
+    search_profiles_by_did(db_client, &did, prefer_verified).await
 }
 
 pub async fn update_follower_count(
@@ -641,7 +641,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn test_search_profile_by_wallet_address_local() {
+    async fn test_search_profiles_by_wallet_address_local() {
         let db_client = &mut create_test_database().await;
         let wallet_address = "0x1234abcd";
         let user_data = UserCreateData {
@@ -649,7 +649,7 @@ mod tests {
             ..Default::default()
         };
         let _user = create_user(db_client, user_data).await.unwrap();
-        let profiles = search_profile_by_wallet_address(
+        let profiles = search_profiles_by_wallet_address(
             db_client, &ETHEREUM, wallet_address, false).await.unwrap();
 
         // Login address must not be exposed
@@ -658,7 +658,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn test_search_profile_by_wallet_address_remote() {
+    async fn test_search_profiles_by_wallet_address_remote() {
         let db_client = &mut create_test_database().await;
         let extra_field = ExtraField {
             name: "$eth".to_string(),
@@ -670,7 +670,7 @@ mod tests {
             ..Default::default()
         };
         let profile = create_profile(db_client, profile_data).await.unwrap();
-        let profiles = search_profile_by_wallet_address(
+        let profiles = search_profiles_by_wallet_address(
             db_client, &ETHEREUM, "0x1234abcd", false).await.unwrap();
 
         assert_eq!(profiles.len(), 1);
@@ -679,7 +679,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn test_search_profile_by_wallet_address_identity_proof() {
+    async fn test_search_profiles_by_wallet_address_identity_proof() {
         let db_client = &mut create_test_database().await;
         let identity_proof = IdentityProof {
             issuer: DidPkh::from_address(&ETHEREUM, "0x1234abcd"),
@@ -691,7 +691,7 @@ mod tests {
             ..Default::default()
         };
         let profile = create_profile(db_client, profile_data).await.unwrap();
-        let profiles = search_profile_by_wallet_address(
+        let profiles = search_profiles_by_wallet_address(
             db_client, &ETHEREUM, "0x1234abcd", false).await.unwrap();
 
         assert_eq!(profiles.len(), 1);

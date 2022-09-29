@@ -5,7 +5,7 @@ use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::types::Status;
 use crate::models::notifications::types::{EventType, Notification};
 
-fn default_page_size() -> u8 { 20 }
+fn default_page_size() -> u16 { 20 }
 
 /// https://docs.joinmastodon.org/methods/notifications/
 #[derive(Deserialize)]
@@ -13,7 +13,7 @@ pub struct NotificationQueryParams {
     pub max_id: Option<i32>,
 
     #[serde(default = "default_page_size")]
-    pub limit: u8,
+    pub limit: u16,
 }
 
 /// https://docs.joinmastodon.org/entities/notification/

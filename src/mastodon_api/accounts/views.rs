@@ -30,7 +30,7 @@ use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_id,
-    search_profile_by_did,
+    search_profiles_by_did,
     update_profile,
 };
 use crate::models::profiles::types::{
@@ -323,7 +323,7 @@ async fn search_by_did(
     let db_client = &**get_database_client(&db_pool).await?;
     let did: DidPkh = query_params.did.parse()
         .map_err(|_| ValidationError("invalid DID"))?;
-    let profiles = search_profile_by_did(db_client, &did, false).await?;
+    let profiles = search_profiles_by_did(db_client, &did, false).await?;
     let accounts: Vec<Account> = profiles.into_iter()
         .map(|profile| Account::from_profile(profile, &config.instance_url()))
         .collect();
@@ -486,7 +486,7 @@ async fn get_account_followers(
         db_client,
         &profile.id,
         query_params.max_id,
-        query_params.limit.into(),
+        query_params.limit,
     ).await?;
     let max_index = usize::from(query_params.limit.saturating_sub(1));
     let maybe_last_id = followers.get(max_index).map(|item| item.relationship_id);
@@ -523,7 +523,7 @@ async fn get_account_following(
         db_client,
         &profile.id,
         query_params.max_id,
-        query_params.limit.into(),
+        query_params.limit,
     ).await?;
     let max_index = usize::from(query_params.limit.saturating_sub(1));
     let maybe_last_id = following.get(max_index).map(|item| item.relationship_id);
@@ -560,7 +560,7 @@ async fn get_account_subscribers(
         db_client,
         &profile.id,
         query_params.max_id,
-        query_params.limit.into(),
+        query_params.limit,
     )
         .await?
         .into_iter()

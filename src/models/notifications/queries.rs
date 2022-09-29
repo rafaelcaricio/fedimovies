@@ -120,7 +120,7 @@ pub async fn get_notifications(
     db_client: &impl GenericClient,
     recipient_id: &Uuid,
     max_id: Option<i32>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<Notification>, DatabaseError> {
     let statement = format!(
         "
@@ -150,7 +150,7 @@ pub async fn get_notifications(
     );
     let rows = db_client.query(
         statement.as_str(),
-        &[&recipient_id, &max_id, &limit],
+        &[&recipient_id, &max_id, &i64::from(limit)],
     ).await?;
     let mut notifications: Vec<Notification> = rows.iter()
         .map(Notification::try_from)

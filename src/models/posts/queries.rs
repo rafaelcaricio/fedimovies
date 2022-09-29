@@ -274,7 +274,7 @@ pub async fn get_home_timeline(
     db_client: &impl GenericClient,
     current_user_id: &Uuid,
     max_post_id: Option<Uuid>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<Post>, DatabaseError> {
     // Select posts from follows, subscriptions,
     // posts where current user is mentioned
@@ -358,6 +358,7 @@ pub async fn get_home_timeline(
         relationship_hide_replies=i16::from(&RelationshipType::HideReplies),
         visibility_filter=build_visibility_filter(),
     );
+    let limit: i64 = limit.into();
     let query = query!(
         &statement,
         current_user_id=current_user_id,
@@ -375,7 +376,7 @@ pub async fn get_local_timeline(
     db_client: &impl GenericClient,
     current_user_id: &Uuid,
     max_post_id: Option<Uuid>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<Post>, DatabaseError> {
     let statement = format!(
         "
@@ -400,6 +401,7 @@ pub async fn get_local_timeline(
         related_links=RELATED_LINKS,
         visibility_public=i16::from(&Visibility::Public),
     );
+    let limit: i64 = limit.into();
     let query = query!(
         &statement,
         current_user_id=current_user_id,
@@ -492,7 +494,7 @@ pub async fn get_posts_by_author(
     include_replies: bool,
     include_reposts: bool,
     max_post_id: Option<Uuid>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<Post>, DatabaseError> {
     let mut condition = format!(
         "post.author_id = $profile_id
@@ -526,6 +528,7 @@ pub async fn get_posts_by_author(
         related_links=RELATED_LINKS,
         condition=condition,
     );
+    let limit: i64 = limit.into();
     let query = query!(
         &statement,
         profile_id=profile_id,
@@ -545,7 +548,7 @@ pub async fn get_posts_by_tag(
     tag_name: &str,
     current_user_id: Option<&Uuid>,
     max_post_id: Option<Uuid>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<Post>, DatabaseError> {
     let tag_name = tag_name.to_lowercase();
     let statement = format!(
@@ -574,6 +577,7 @@ pub async fn get_posts_by_tag(
         related_links=RELATED_LINKS,
         visibility_filter=build_visibility_filter(),
     );
+    let limit: i64 = limit.into();
     let query = query!(
         &statement,
         tag_name=tag_name,

@@ -129,7 +129,7 @@ pub async fn get_incoming_subscriptions(
     db_client: &impl GenericClient,
     recipient_id: &Uuid,
     max_subscription_id: Option<i32>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<Subscription>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -143,7 +143,7 @@ pub async fn get_incoming_subscriptions(
         ORDER BY subscription.id DESC
         LIMIT $3
         ",
-        &[&recipient_id, &max_subscription_id, &limit],
+        &[&recipient_id, &max_subscription_id, &i64::from(limit)],
     ).await?;
     let subscriptions = rows.iter()
         .map(Subscription::try_from)

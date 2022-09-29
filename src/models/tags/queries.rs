@@ -5,7 +5,7 @@ use crate::errors::DatabaseError;
 pub async fn search_tags(
     db_client: &impl GenericClient,
     search_query: &str,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<String>, DatabaseError> {
     let db_search_query = format!("%{}%", search_query);
     let rows = db_client.query(
@@ -15,7 +15,7 @@ pub async fn search_tags(
         WHERE tag_name ILIKE $1
         LIMIT $2
         ",
-        &[&db_search_query, &limit],
+        &[&db_search_query, &i64::from(limit)],
     ).await?;
     let tags: Vec<String> = rows.iter()
         .map(|row| row.try_get("tag_name"))

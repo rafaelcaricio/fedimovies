@@ -7,7 +7,7 @@ use crate::models::posts::queries::get_posts_by_author;
 use crate::models::users::queries::get_user_by_name;
 use super::feeds::make_feed;
 
-const FEED_SIZE: i64 = 10;
+const FEED_SIZE: u16 = 10;
 
 #[get("/feeds/{username}")]
 pub async fn get_atom_feed(

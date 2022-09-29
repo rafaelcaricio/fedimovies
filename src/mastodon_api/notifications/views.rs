@@ -28,7 +28,7 @@ async fn get_notifications_view(
         db_client,
         &current_user.id,
         query_params.max_id,
-        query_params.limit.into(),
+        query_params.limit,
     ).await?
         .into_iter()
         .map(|item| ApiNotification::from_db(item, &config.instance_url()))

@@ -282,7 +282,7 @@ pub async fn get_followers_paginated(
     db_client: &impl GenericClient,
     profile_id: &Uuid,
     max_relationship_id: Option<i32>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<RelatedActorProfile>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -297,7 +297,12 @@ pub async fn get_followers_paginated(
         ORDER BY relationship.id DESC
         LIMIT $4
         ",
-        &[&profile_id, &RelationshipType::Follow, &max_relationship_id, &limit],
+        &[
+            &profile_id,
+            &RelationshipType::Follow,
+            &max_relationship_id,
+            &i64::from(limit),
+        ],
     ).await?;
     let related_profiles = rows.iter()
         .map(RelatedActorProfile::try_from)
@@ -331,7 +336,7 @@ pub async fn get_following_paginated(
     db_client: &impl GenericClient,
     profile_id: &Uuid,
     max_relationship_id: Option<i32>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<RelatedActorProfile>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -346,7 +351,12 @@ pub async fn get_following_paginated(
         ORDER BY relationship.id DESC
         LIMIT $4
         ",
-        &[&profile_id, &RelationshipType::Follow, &max_relationship_id, &limit],
+        &[
+            &profile_id,
+            &RelationshipType::Follow,
+            &max_relationship_id,
+            &i64::from(limit),
+        ],
     ).await?;
     let related_profiles = rows.iter()
         .map(RelatedActorProfile::try_from)

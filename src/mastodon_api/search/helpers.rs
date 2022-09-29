@@ -18,9 +18,9 @@ use crate::mastodon_api::statuses::types::Tag;
 use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
-    search_profile,
-    search_profile_by_did,
-    search_profile_by_wallet_address,
+    search_profiles,
+    search_profiles_by_did,
+    search_profiles_by_wallet_address,
 };
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::tags::queries::search_tags;
@@ -93,7 +93,7 @@ async fn search_profiles_or_import(
     db_client: &impl GenericClient,
     username: String,
     mut instance: Option<String>,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<DbActorProfile>, HttpError> {
     if let Some(ref actor_host) = instance {
         if actor_host == &config.instance().host() {
@@ -101,7 +101,7 @@ async fn search_profiles_or_import(
             instance = None;
         };
     };
-    let mut profiles = search_profile(
+    let mut profiles = search_profiles(
         db_client,
         &username,
         instance.as_ref(),
@@ -155,7 +155,7 @@ pub async fn search(
     current_user: &User,
     db_client: &mut impl GenericClient,
     search_query: &str,
-    limit: i64,
+    limit: u16,
 ) -> Result<SearchResults, HttpError> {
     let mut profiles = vec![];
     let mut posts = vec![];
@@ -188,7 +188,7 @@ pub async fn search(
         SearchQuery::WalletAddress(address) => {
             // Search by wallet address, assuming it's ethereum address
             // TODO: support other currencies
-            profiles = search_profile_by_wallet_address(
+            profiles = search_profiles_by_wallet_address(
                 db_client,
                 &Currency::Ethereum,
                 &address,
@@ -196,7 +196,7 @@ pub async fn search(
             ).await?;
         },
         SearchQuery::Did(did) => {
-            profiles = search_profile_by_did(
+            profiles = search_profiles_by_did(
                 db_client,
                 &did,
                 false,
@@ -223,13 +223,13 @@ pub async fn search_profiles_only(
     config: &Config,
     db_client: &impl GenericClient,
     search_query: &str,
-    limit: i64,
+    limit: u16,
 ) -> Result<Vec<Account>, HttpError> {
     let (username, maybe_instance) = match parse_profile_query(search_query) {
         Ok(result) => result,
         Err(_) => return Ok(vec![]),
     };
-    let profiles = search_profile(
+    let profiles = search_profiles(
         db_client,
         &username,
         maybe_instance.as_ref(),

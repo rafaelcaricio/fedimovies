@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::types::{Status, Tag};
 
-fn default_limit() -> i64 { 20 }
+fn default_page_size() -> u16 { 20 }
 
 #[derive(Deserialize)]
 pub struct SearchQueryParams {
     pub q: String,
 
-    #[serde(default = "default_limit")]
-    pub limit: i64,
+    #[serde(default = "default_page_size")]
+    pub limit: u16,
 }
 
 #[derive(Serialize)]
