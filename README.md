@@ -1,21 +1,22 @@
 # Mitra
 
-Federated social network with blockchain integration.
+Federated micro-blogging platform and content subscription service.
 
 Built on [ActivityPub](https://www.w3.org/TR/activitypub/) protocol, self-hosted, lightweight. Part of the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
-Unique features:
+Subscriptions provide a way to receive monthly payments from subscribers and to publish private content made exclusively for them.
+
+Supported payment methods:
+
+- [Monero](https://www.getmonero.org/get-started/what-is-monero/).
+- [ERC-20](https://ethereum.org/en/developers/docs/standards/tokens/erc-20/) tokens (on Ethereum and other EVM-compatible blockchains).
+
+Other features:
 
 - [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
-- Subscriptions (recurring payments). Subscribers-only posts.
-- Donations.
+- Donation buttons.
 - Token-gated registration (can be used to verify membership in some group or to stop bots).
 - Converting posts into NFTs.
-
-Supported blockchains:
-
-- Monero.
-- Ethereum and other EVM-compatible blockchains.
 
 Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about))
 
