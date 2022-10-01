@@ -52,6 +52,9 @@ pub struct Note {
 
     pub to: Vec<String>,
     pub cc: Vec<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    quote_url: Option<String>,
 }
 
 pub fn build_note(
@@ -129,6 +132,8 @@ pub fn build_note(
         };
         tags.push(tag);
     };
+    let maybe_quote_url = post.linked.get(0)
+        .map(|linked| linked.get_object_id(instance_url));
     let in_reply_to_object_id = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
             let in_reply_to = post.in_reply_to.as_ref().unwrap();
@@ -153,6 +158,7 @@ pub fn build_note(
         tag: tags,
         to: primary_audience,
         cc: secondary_audience,
+        quote_url: maybe_quote_url,
     }
 }
 
