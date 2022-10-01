@@ -28,6 +28,10 @@ And these additional standards:
 
 Activities are implemented in way that is compatible with Pleroma, Mastodon and other popular ActivityPub servers.
 
+## Supported FEPs
+
+- [FEP-e232](https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-e232.md)
+
 ## Profile extensions
 
 ### Cryptocurrency addresses

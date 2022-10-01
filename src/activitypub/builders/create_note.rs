@@ -5,7 +5,7 @@ use tokio_postgres::GenericClient;
 use crate::activitypub::{
     activity::{create_activity, Activity, Attachment, Tag},
     actors::types::Actor,
-    constants::{AP_CONTEXT, AP_PUBLIC},
+    constants::{AP_MEDIA_TYPE, AP_CONTEXT, AP_PUBLIC},
     deliverer::OutgoingActivity,
     identifiers::{
         local_actor_id,
@@ -13,7 +13,7 @@ use crate::activitypub::{
         local_actor_subscribers,
         local_object_id,
     },
-    vocabulary::{CREATE, DOCUMENT, HASHTAG, MENTION, NOTE},
+    vocabulary::{CREATE, DOCUMENT, HASHTAG, LINK, MENTION, NOTE},
 };
 use crate::config::Instance;
 use crate::errors::DatabaseError;
@@ -103,6 +103,7 @@ pub fn build_note(
             name: Some(tag_name),
             tag_type: MENTION.to_string(),
             href: Some(actor_id),
+            media_type: None,
         };
         tags.push(tag);
     };
@@ -112,6 +113,19 @@ pub fn build_note(
             name: Some(format!("#{}", tag_name)),
             tag_type: HASHTAG.to_string(),
             href: Some(tag_page_url),
+            media_type: None,
+        };
+        tags.push(tag);
+    };
+    assert_eq!(post.links.len(), post.linked.len());
+    for linked in &post.linked {
+        // Build FEP-e232 object link
+        let link_href = linked.get_object_id(instance_url);
+        let tag = Tag {
+            name: Some(format!("RE: {}", link_href)),
+            tag_type: LINK.to_string(),
+            href: Some(link_href),
+            media_type: Some(AP_MEDIA_TYPE.to_string()),
         };
         tags.push(tag);
     };

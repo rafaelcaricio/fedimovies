@@ -35,6 +35,9 @@ pub struct Tag {
     pub tag_type: String,
 
     pub href: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_type: Option<String>,
 }
 
 #[derive(Default, Deserialize, Serialize)]

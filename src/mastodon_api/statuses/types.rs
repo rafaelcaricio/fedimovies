@@ -146,6 +146,7 @@ pub struct StatusData {
 
     // Not supported by Mastodon
     pub mentions: Option<Vec<Uuid>>,
+    pub links: Option<Vec<Uuid>>,
 }
 
 impl TryFrom<StatusData> for PostCreateData {
@@ -169,7 +170,7 @@ impl TryFrom<StatusData> for PostCreateData {
             attachments: value.media_ids.unwrap_or(vec![]),
             mentions: value.mentions.unwrap_or(vec![]),
             tags: vec![],
-            links: vec![],
+            links: value.links.unwrap_or(vec![]),
             object_id: None,
             created_at: Utc::now(),
         };

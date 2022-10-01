@@ -81,8 +81,6 @@ async fn create_status(
             .into_iter().map(|profile| profile.id);
         post_data.mentions.extend(subscribers);
     };
-    post_data.mentions.sort();
-    post_data.mentions.dedup();
     // Hashtags
     post_data.tags = find_hashtags(&post_data.content);
     post_data.content = replace_hashtags(
@@ -90,6 +88,39 @@ async fn create_status(
         &post_data.content,
         &post_data.tags,
     );
+    // Links
+    let linked = match &post_data.links[..] {
+        [] => vec![],
+        [linked_id] => {
+            if post_data.in_reply_to_id.is_some() {
+                return Err(ValidationError("can't add links to reply").into());
+            };
+            if post_data.visibility != Visibility::Public {
+                return Err(ValidationError("can't add links to non-public posts").into());
+            };
+            let linked = match get_post_by_id(db_client, linked_id).await {
+                Ok(post) => post,
+                Err(DatabaseError::NotFound(_)) => {
+                    return Err(ValidationError("referenced post does't exist").into());
+                },
+                Err(other_error) => return Err(other_error.into()),
+            };
+            if linked.repost_of_id.is_some() {
+                return Err(ValidationError("can't reference repost").into());
+            };
+            if linked.visibility != Visibility::Public {
+                return Err(ValidationError("can't reference non-public post").into());
+            };
+            // Append inline quote and add author to mentions
+            post_data.content += &format!(
+                r#"<p class="inline-quote">RE: <a href="{0}">{0}</a></p>"#,
+                linked.get_object_id(&instance.url()),
+            );
+            post_data.mentions.push(linked.author.id);
+            vec![linked]
+        },
+        _ => return Err(ValidationError("too many links").into()),
+    };
     // Reply validation
     let maybe_in_reply_to = if let Some(in_reply_to_id) = post_data.in_reply_to_id.as_ref() {
         let in_reply_to = match get_post_by_id(db_client, in_reply_to_id).await {
@@ -118,14 +149,18 @@ async fn create_status(
     } else {
         None
     };
+    // Remove duplicate mentions
+    post_data.mentions.sort();
+    post_data.mentions.dedup();
     // Create post
     let mut post = create_post(db_client, &current_user.id, post_data).await?;
     post.in_reply_to = maybe_in_reply_to.map(|mut in_reply_to| {
         in_reply_to.reply_count += 1;
         Box::new(in_reply_to)
     });
+    post.linked = linked;
     // Federate
-    prepare_create_note(db_client, config.instance(), &current_user, &post).await?
+    prepare_create_note(db_client, instance.clone(), &current_user, &post).await?
         .spawn_deliver();
 
     let status = Status::from_post(post, &instance.url());

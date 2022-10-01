@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     activity::{Attachment, Link, Object, Tag},
-    constants::AP_PUBLIC,
+    constants::{AP_MEDIA_TYPE, AP_PUBLIC, AS_MEDIA_TYPE},
     fetcher::fetchers::fetch_file,
     fetcher::helpers::{
         get_or_import_profile_by_actor_id,
@@ -17,7 +17,7 @@ use crate::activitypub::{
     },
     identifiers::{parse_local_actor_id, parse_local_object_id},
     receiver::{parse_array, parse_property_value},
-    vocabulary::{DOCUMENT, HASHTAG, IMAGE, MENTION, NOTE},
+    vocabulary::{DOCUMENT, HASHTAG, IMAGE, LINK, MENTION, NOTE},
 };
 use crate::config::Instance;
 use crate::errors::{ConversionError, DatabaseError, ValidationError};
@@ -305,18 +305,33 @@ pub async fn handle_note(
                 } else {
                     log::warn!("failed to parse mention {}", tag_name);
                 };
+            } else if tag.tag_type == LINK {
+                if tag.media_type != Some(AP_MEDIA_TYPE.to_string()) &&
+                    tag.media_type != Some(AS_MEDIA_TYPE.to_string())
+                {
+                    // Unknown media type
+                    continue;
+                };
+                if let Some(href) = tag.href {
+                    let linked_id = get_internal_post_id(
+                        db_client,
+                        &instance.url(),
+                        &href,
+                        redirects,
+                    ).await?;
+                    links.push(linked_id);
+                };
             };
         };
     };
     if let Some(ref object_id) = object.quote_url {
-        log::warn!("link to object found: {}", object_id);
-        let quoted_id = get_internal_post_id(
+        let linked_id = get_internal_post_id(
             db_client,
             &instance.url(),
             object_id,
             redirects,
         ).await?;
-        links.push(quoted_id);
+        links.push(linked_id);
     };
 
     let in_reply_to_id = match object.in_reply_to {
