@@ -22,7 +22,7 @@ use super::collections::{
     OrderedCollection,
     OrderedCollectionPage,
 };
-use super::constants::ACTIVITY_CONTENT_TYPE;
+use super::constants::{AP_MEDIA_TYPE, AS_MEDIA_TYPE};
 use super::identifiers::{
     local_actor_followers,
     local_actor_following,
@@ -33,8 +33,8 @@ use super::receiver::receive_activity;
 
 fn is_activitypub_request(headers: &HeaderMap) -> bool {
     const CONTENT_TYPES: [&str; 4] = [
-        ACTIVITY_CONTENT_TYPE,
-        "application/activity+json",
+        AP_MEDIA_TYPE,
+        AS_MEDIA_TYPE,
         "application/ld+json",
         "application/json",
     ];
@@ -67,7 +67,7 @@ async fn actor_view(
     let actor = get_local_actor(&user, &config.instance_url())
         .map_err(|_| HttpError::InternalError)?;
     let response = HttpResponse::Ok()
-        .content_type(ACTIVITY_CONTENT_TYPE)
+        .content_type(AP_MEDIA_TYPE)
         .json(actor);
     Ok(response)
 }
@@ -122,7 +122,7 @@ async fn outbox(
             None,
         );
         let response = HttpResponse::Ok()
-            .content_type(ACTIVITY_CONTENT_TYPE)
+            .content_type(AP_MEDIA_TYPE)
             .json(collection);
         return Ok(response);
     };
@@ -156,7 +156,7 @@ async fn outbox(
         activities,
     );
     let response = HttpResponse::Ok()
-        .content_type(ACTIVITY_CONTENT_TYPE)
+        .content_type(AP_MEDIA_TYPE)
         .json(collection_page);
     Ok(response)
 }
@@ -184,7 +184,7 @@ async fn followers_collection(
         Some(user.profile.follower_count),
     );
     let response = HttpResponse::Ok()
-        .content_type(ACTIVITY_CONTENT_TYPE)
+        .content_type(AP_MEDIA_TYPE)
         .json(collection);
     Ok(response)
 }
@@ -212,7 +212,7 @@ async fn following_collection(
         Some(user.profile.following_count),
     );
     let response = HttpResponse::Ok()
-        .content_type(ACTIVITY_CONTENT_TYPE)
+        .content_type(AP_MEDIA_TYPE)
         .json(collection);
     Ok(response)
 }
@@ -240,7 +240,7 @@ async fn subscribers_collection(
         Some(user.profile.subscriber_count),
     );
     let response = HttpResponse::Ok()
-        .content_type(ACTIVITY_CONTENT_TYPE)
+        .content_type(AP_MEDIA_TYPE)
         .json(collection);
     Ok(response)
 }
@@ -262,7 +262,7 @@ async fn instance_actor_view(
     let actor = get_instance_actor(&config.instance())
         .map_err(|_| HttpError::InternalError)?;
     let response = HttpResponse::Ok()
-        .content_type(ACTIVITY_CONTENT_TYPE)
+        .content_type(AP_MEDIA_TYPE)
         .json(actor);
     Ok(response)
 }
@@ -324,7 +324,7 @@ pub async fn object_view(
         &post,
     );
     let response = HttpResponse::Ok()
-        .content_type(ACTIVITY_CONTENT_TYPE)
+        .content_type(AP_MEDIA_TYPE)
         .json(object);
     Ok(response)
 }

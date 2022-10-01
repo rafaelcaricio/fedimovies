@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpResponse};
 use regex::Regex;
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::constants::ACTIVITY_CONTENT_TYPE;
+use crate::activitypub::constants::AP_MEDIA_TYPE;
 use crate::activitypub::identifiers::{
     local_actor_id,
     local_instance_actor_id,
@@ -50,7 +50,7 @@ async fn get_user_info(
     };
     let link = Link {
         rel: "self".to_string(),
-        link_type: Some(ACTIVITY_CONTENT_TYPE.to_string()),
+        link_type: Some(AP_MEDIA_TYPE.to_string()),
         href: Some(actor_url),
     };
     let jrd = JsonResourceDescriptor {

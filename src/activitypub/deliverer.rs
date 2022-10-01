@@ -10,7 +10,7 @@ use crate::http_signatures::create::{create_http_signature, SignatureError};
 use crate::models::users::types::User;
 use crate::utils::crypto::deserialize_private_key;
 use super::actors::types::Actor;
-use super::constants::{ACTIVITY_CONTENT_TYPE, ACTOR_KEY_SUFFIX};
+use super::constants::{AP_MEDIA_TYPE, ACTOR_KEY_SUFFIX};
 use super::identifiers::local_actor_id;
 
 #[derive(thiserror::Error, Debug)]
@@ -52,7 +52,7 @@ async fn send_activity(
         .header("Date", headers.date)
         .header("Digest", headers.digest.unwrap())
         .header("Signature", headers.signature)
-        .header(reqwest::header::CONTENT_TYPE, ACTIVITY_CONTENT_TYPE)
+        .header(reqwest::header::CONTENT_TYPE, AP_MEDIA_TYPE)
         .header(reqwest::header::USER_AGENT, instance.agent())
         .body(activity_json.to_owned());
 
