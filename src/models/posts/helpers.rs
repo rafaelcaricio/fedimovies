@@ -25,15 +25,15 @@ pub async fn add_related_posts(
     for post in posts {
         if let Some(ref repost_of_id) = post.repost_of_id {
             let mut repost_of = get_post(repost_of_id)?;
-            if let Some(quote_id) = repost_of.links.get(0) {
-                let quote = get_post(quote_id)?;
-                repost_of.quote = Some(Box::new(quote));
+            for linked_id in repost_of.links.iter() {
+                let linked = get_post(linked_id)?;
+                repost_of.linked.push(linked);
             };
             post.repost_of = Some(Box::new(repost_of));
         };
-        if let Some(quote_id) = post.links.get(0) {
-            let quote = get_post(quote_id)?;
-            post.quote = Some(Box::new(quote));
+        for linked_id in post.links.iter() {
+            let linked = get_post(linked_id)?;
+            post.linked.push(linked);
         };
     };
     Ok(())

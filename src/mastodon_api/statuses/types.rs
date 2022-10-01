@@ -97,8 +97,8 @@ impl Status {
         } else {
             None
         };
-        let quote = post.quote.map(|quote| {
-            let status = Status::from_post(*quote, instance_url);
+        let quote = post.linked.get(0).map(|quote| {
+            let status = Status::from_post(quote.clone(), instance_url);
             Box::new(status)
         });
         let visibility = match post.visibility {
