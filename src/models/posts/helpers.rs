@@ -23,6 +23,10 @@ pub async fn add_related_posts(
         Ok(post)
     };
     for post in posts {
+        if let Some(ref in_reply_to_id) = post.in_reply_to_id {
+            let in_reply_to = get_post(in_reply_to_id)?;
+            post.in_reply_to = Some(Box::new(in_reply_to));
+        };
         if let Some(ref repost_of_id) = post.repost_of_id {
             let mut repost_of = get_post(repost_of_id)?;
             for linked_id in repost_of.links.iter() {
@@ -119,10 +123,38 @@ mod tests {
     use serial_test::serial;
     use tokio_postgres::Client;
     use crate::database::test_utils::create_test_database;
+    use crate::models::posts::queries::create_post;
+    use crate::models::posts::types::PostCreateData;
     use crate::models::relationships::queries::{follow, subscribe};
     use crate::models::users::queries::create_user;
     use crate::models::users::types::UserCreateData;
     use super::*;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_add_related_posts() {
+        let db_client = &mut create_test_database().await;
+        let author_data = UserCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let author = create_user(db_client, author_data).await.unwrap();
+        let post_data = PostCreateData {
+            content: "post".to_string(),
+            ..Default::default()
+        };
+        let post = create_post(db_client, &author.id, post_data).await.unwrap();
+        let reply_data = PostCreateData {
+            content: "reply".to_string(),
+            in_reply_to_id: Some(post.id.clone()),
+            ..Default::default()
+        };
+        let mut reply = create_post(db_client, &author.id, reply_data).await.unwrap();
+        add_related_posts(db_client, vec![&mut reply]).await.unwrap();
+        assert_eq!(reply.in_reply_to.unwrap().id, post.id);
+        assert_eq!(reply.repost_of.is_none(), true);
+        assert_eq!(reply.linked.is_empty(), true);
+    }
 
     #[tokio::test]
     #[serial]

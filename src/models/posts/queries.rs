@@ -461,6 +461,9 @@ pub async fn get_related_posts(
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id IN (
+            SELECT post.in_reply_to_id
+            FROM post WHERE post.id = ANY($1)
+            UNION ALL
             SELECT post.repost_of_id
             FROM post WHERE post.id = ANY($1)
             UNION ALL
