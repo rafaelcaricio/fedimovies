@@ -13,6 +13,7 @@ use mitra::config::{parse_config, Environment};
 use mitra::database::{get_database_client, create_pool};
 use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::contracts::get_contracts;
+use mitra::http::json_error_handler;
 use mitra::logger::configure_logger;
 use mitra::mastodon_api::accounts::views::account_api_scope;
 use mitra::mastodon_api::directory::views::directory_api_scope;
@@ -123,7 +124,10 @@ async fn main() -> std::io::Result<()> {
             })
             .wrap(create_auth_error_handler())
             .app_data(web::PayloadConfig::default().limit(UPLOAD_MAX_SIZE * 2))
-            .app_data(web::JsonConfig::default().limit(UPLOAD_MAX_SIZE * 2))
+            .app_data(web::JsonConfig::default()
+                .limit(UPLOAD_MAX_SIZE * 2)
+                .error_handler(json_error_handler)
+            )
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(db_pool.clone()))
             .app_data(web::Data::new(maybe_contract_set.clone()))

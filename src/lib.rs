@@ -6,6 +6,7 @@ pub mod database;
 mod errors;
 pub mod ethereum;
 mod frontend;
+pub mod http;
 mod http_signatures;
 mod ipfs;
 pub mod logger;
