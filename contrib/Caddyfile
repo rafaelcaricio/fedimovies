@@ -1,0 +1,38 @@
+# Caddyfile for Mitra
+# copy this file to /etc/caddy/Caddyfile
+
+# Refer to the Caddy docs for more information:
+# https://caddyserver.com/docs/caddyfile
+
+# Global options block containing directive to reverse proxy first
+{
+	order reverse_proxy first
+}
+
+# Replace `example.com` with your own domain
+example.com {
+	encode gzip zstd
+
+	# Set this path to your mitra-web /dist directory
+	root * /usr/share/mitra/www
+
+	# Static file server. mitra-web /dist directory
+	file_server {
+		root /usr/share/mitra/www
+	}
+
+	# Reverse proxy directives for API endpoints
+	reverse_proxy /actor/* http://127.0.0.1:8383	
+	reverse_proxy /api/* http://127.0.0.1:8383	
+	reverse_proxy /contracts/* http://127.0.0.1:8383	
+	reverse_proxy /feeds/* http://127.0.0.1:8383	
+	reverse_proxy /media/* http://127.0.0.1:8383	
+	reverse_proxy /nodeinfo/* http://127.0.0.1:8383	
+	reverse_proxy /oauth/* http://127.0.0.1:8383	
+	reverse_proxy /objects/* http://127.0.0.1:8383	
+	reverse_proxy /users/* http://127.0.0.1:8383	
+	reverse_proxy /.well-known/* http://127.0.0.1:8383	
+
+	# Serve index.html for mitra-web frontend
+	try_files {path} /index.html
+}
