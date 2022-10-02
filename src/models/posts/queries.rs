@@ -415,37 +415,6 @@ pub async fn get_local_timeline(
     Ok(posts)
 }
 
-pub async fn get_posts(
-    db_client: &impl GenericClient,
-    posts_ids: Vec<Uuid>,
-) -> Result<Vec<Post>, DatabaseError> {
-    let statement = format!(
-        "
-        SELECT
-            post, actor_profile,
-            {related_attachments},
-            {related_mentions},
-            {related_tags},
-            {related_links}
-        FROM post
-        JOIN actor_profile ON post.author_id = actor_profile.id
-        WHERE post.id = ANY($1)
-        ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-    );
-    let rows = db_client.query(
-        statement.as_str(),
-        &[&posts_ids],
-    ).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
-    Ok(posts)
-}
-
 pub async fn get_related_posts(
     db_client: &impl GenericClient,
     posts_ids: Vec<Uuid>,

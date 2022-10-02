@@ -238,24 +238,6 @@ pub async fn get_follow_request_by_id(
     Ok(request)
 }
 
-pub async fn get_follow_request_by_path(
-    db_client: &impl GenericClient,
-    source_id: &Uuid,
-    target_id: &Uuid,
-) -> Result<DbFollowRequest, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
-        SELECT follow_request
-        FROM follow_request
-        WHERE source_id = $1 AND target_id = $2
-        ",
-        &[&source_id, &target_id],
-    ).await?;
-    let row = maybe_row.ok_or(DatabaseError::NotFound("follow request"))?;
-    let request: DbFollowRequest = row.try_get("follow_request")?;
-    Ok(request)
-}
-
 pub async fn get_followers(
     db_client: &impl GenericClient,
     profile_id: &Uuid,
@@ -557,11 +539,8 @@ mod tests {
         assert!(following.is_empty());
         // Accept follow request
         follow_request_accepted(db_client, &follow_request.id).await.unwrap();
-        let follow_request = get_follow_request_by_path(
-            db_client,
-            &source.id,
-            &target.id,
-        ).await.unwrap();
+        let follow_request = get_follow_request_by_id(db_client, &follow_request.id)
+            .await.unwrap();
         assert!(matches!(
             follow_request.request_status,
             FollowRequestStatus::Accepted,
