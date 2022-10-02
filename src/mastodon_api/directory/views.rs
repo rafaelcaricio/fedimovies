@@ -21,6 +21,7 @@ async fn profile_directory(
     get_current_user(db_client, auth.token()).await?;
     let profiles = get_profiles(
         db_client,
+        query_params.local,
         query_params.offset,
         query_params.limit.inner(),
     ).await?;

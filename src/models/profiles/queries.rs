@@ -159,21 +159,28 @@ pub async fn get_profile_by_acct(
 
 pub async fn get_profiles(
     db_client: &impl GenericClient,
+    only_local: bool,
     offset: u16,
     limit: u16,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let rows = db_client.query(
+    let condition = if only_local { "WHERE actor_id IS NULL" } else { "" };
+    let statement = format!(
         "
         SELECT actor_profile
         FROM actor_profile
+        {condition}
         ORDER BY username
         LIMIT $1 OFFSET $2
         ",
+        condition=condition,
+    );
+    let rows = db_client.query(
+        &statement,
         &[&i64::from(limit), &i64::from(offset)],
     ).await?;
     let profiles = rows.iter()
         .map(|row| row.try_get("actor_profile"))
-        .collect::<Result<Vec<DbActorProfile>, _>>()?;
+        .collect::<Result<_, _>>()?;
     Ok(profiles)
 }
 

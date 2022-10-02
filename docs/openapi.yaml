@@ -419,22 +419,29 @@ paths:
           description: Profile not found
   /api/v1/directory:
     get:
-      summary: List accounts visible in the directory.
+      summary: List profiles visible in the directory.
       parameters:
         - name: offset
           in: query
-          description: How many accounts to skip before returning results.
+          description: How many profiles to skip before returning results.
           required: false
           schema:
             type: integer
             default: 0
         - name: limit
           in: query
-          description: How many accounts to load.
+          description: How many profiles to load.
           required: false
           schema:
             type: integer
             default: 40
+        - name: local
+          in: query
+          description: Only return local profiles.
+          required: false
+          schema:
+            type: boolean
+            default: true
       responses:
         200:
           description: Successful operation
