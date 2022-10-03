@@ -1,6 +1,7 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
+use crate::activitypub::actors::types::ActorAddress;
 use crate::database::catch_unique_violation;
 use crate::database::query_macro::query;
 use crate::errors::DatabaseError;
@@ -28,10 +29,25 @@ pub async fn create_profile(
     profile_data: ProfileCreateData,
 ) -> Result<DbActorProfile, DatabaseError> {
     let profile_id = new_uuid();
+    // TODO: replace ProfileCreateData.acct with hostname field
+    let hostname = if profile_data.actor_json.is_some() {
+        let actor_address = profile_data.acct.parse::<ActorAddress>().unwrap();
+        let hostname = actor_address.instance;
+        db_client.execute(
+            "
+            INSERT INTO instance VALUES ($1)
+            ON CONFLICT DO NOTHING
+            ",
+            &[&hostname],
+        ).await?;
+        Some(hostname)
+    } else {
+        None
+    };
     let row = db_client.query_one(
         "
         INSERT INTO actor_profile (
-            id, username, display_name, acct, bio, bio_source,
+            id, username, hostname, display_name, bio, bio_source,
             avatar_file_name, banner_file_name,
             identity_proofs, payment_options, extra_fields,
             actor_json
@@ -42,8 +58,8 @@ pub async fn create_profile(
         &[
             &profile_id,
             &profile_data.username,
+            &hostname,
             &profile_data.display_name,
-            &profile_data.acct,
             &profile_data.bio,
             &profile_data.bio,
             &profile_data.avatar,
@@ -572,18 +588,46 @@ mod tests {
     use crate::models::users::types::UserCreateData;
     use super::*;
 
+    fn create_test_actor(actor_id: &str) -> Actor {
+        Actor { id: actor_id.to_string(), ..Default::default() }
+    }
+
     #[tokio::test]
     #[serial]
-    async fn test_create_profile() {
+    async fn test_create_profile_local() {
         let profile_data = ProfileCreateData {
             username: "test".to_string(),
+            acct: "test".to_string(),
             ..Default::default()
         };
         let db_client = create_test_database().await;
         let profile = create_profile(&db_client, profile_data).await.unwrap();
         assert_eq!(profile.username, "test");
+        assert_eq!(profile.hostname, None);
+        assert_eq!(profile.acct, "test");
         assert_eq!(profile.identity_proofs.into_inner().len(), 0);
         assert_eq!(profile.extra_fields.into_inner().len(), 0);
+        assert_eq!(profile.actor_id, None);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_create_profile_remote() {
+        let profile_data = ProfileCreateData {
+            username: "test".to_string(),
+            acct: "test@example.com".to_string(),
+            actor_json: Some(create_test_actor("https://example.com/users/test")),
+            ..Default::default()
+        };
+        let db_client = create_test_database().await;
+        let profile = create_profile(&db_client, profile_data).await.unwrap();
+        assert_eq!(profile.username, "test");
+        assert_eq!(profile.hostname.unwrap(), "example.com");
+        assert_eq!(profile.acct, "test@example.com");
+        assert_eq!(
+            profile.actor_id.unwrap(),
+            "https://example.com/users/test",
+        );
     }
 
     #[tokio::test]
@@ -591,20 +635,17 @@ mod tests {
     async fn test_actor_id_unique() {
         let db_client = create_test_database().await;
         let actor_id = "https://example.com/users/test";
-        let create_actor = |actor_id: &str| {
-            Actor { id: actor_id.to_string(), ..Default::default() }
-        };
         let profile_data_1 = ProfileCreateData {
             username: "test-1".to_string(),
             acct: "test-1@example.com".to_string(),
-            actor_json: Some(create_actor(actor_id)),
+            actor_json: Some(create_test_actor(actor_id)),
             ..Default::default()
         };
         create_profile(&db_client, profile_data_1).await.unwrap();
         let profile_data_2 = ProfileCreateData {
             username: "test-2".to_string(),
             acct: "test-2@example.com".to_string(),
-            actor_json: Some(create_actor(actor_id)),
+            actor_json: Some(create_test_actor(actor_id)),
             ..Default::default()
         };
         let error = create_profile(&db_client, profile_data_2).await.err().unwrap();

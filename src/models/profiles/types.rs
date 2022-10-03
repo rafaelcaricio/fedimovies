@@ -221,6 +221,7 @@ json_to_sql!(Actor);
 pub struct DbActorProfile {
     pub id: Uuid,
     pub username: String,
+    pub hostname: Option<String>,
     pub acct: String,
     pub display_name: Option<String>,
     pub bio: Option<String>, // html
@@ -296,6 +297,7 @@ impl Default for DbActorProfile {
         Self {
             id: Uuid::new_v4(),
             username: "".to_string(),
+            hostname: None,
             acct: "".to_string(),
             display_name: None,
             bio: None,

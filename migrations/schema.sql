@@ -1,8 +1,13 @@
+CREATE TABLE instance (
+    hostname VARCHAR(100) PRIMARY KEY
+);
+
 CREATE TABLE actor_profile (
     id UUID PRIMARY KEY,
     username VARCHAR(100) NOT NULL,
+    hostname VARCHAR(100) REFERENCES instance (hostname) ON DELETE RESTRICT,
+    acct VARCHAR(200) UNIQUE GENERATED ALWAYS AS (CASE WHEN hostname IS NULL THEN username ELSE username || '@' || hostname END) STORED,
     display_name VARCHAR(200),
-    acct VARCHAR(200) UNIQUE NOT NULL,
     bio TEXT,
     bio_source TEXT,
     avatar_file_name VARCHAR(100),
@@ -17,7 +22,8 @@ CREATE TABLE actor_profile (
     actor_json JSONB,
     actor_id VARCHAR(200) UNIQUE GENERATED ALWAYS AS (actor_json ->> 'id') STORED,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK ((hostname IS NULL) = (actor_json IS NULL))
 );
 
 CREATE TABLE user_invite_code (

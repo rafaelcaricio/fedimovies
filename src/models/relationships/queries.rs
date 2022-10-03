@@ -522,6 +522,7 @@ mod tests {
         let source = create_user(db_client, source_data).await.unwrap();
         let target_data = ProfileCreateData {
             username: "followed".to_string(),
+            acct: "followed@example.org".to_string(),
             actor_json: Some(Actor::default()),
             ..Default::default()
         };
