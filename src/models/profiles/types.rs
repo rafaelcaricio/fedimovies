@@ -10,7 +10,7 @@ use serde::{
 };
 use uuid::Uuid;
 
-use crate::activitypub::actors::types::Actor;
+use crate::activitypub::actors::types::{Actor, ActorAddress};
 use crate::activitypub::identifiers::local_actor_id;
 use crate::database::json_macro::{json_from_sql, json_to_sql};
 use crate::errors::{ConversionError, ValidationError};
@@ -337,6 +337,17 @@ impl ProfileCreateData {
         if let Some(display_name) = &self.display_name {
             validate_display_name(display_name)?;
         };
+        let acct_username = if self.actor_json.is_none() {
+            // Local profile
+            self.acct.clone()
+        } else {
+            // Remote profile
+            let ActorAddress { username, .. } = self.acct.parse::<ActorAddress>()?;
+            username
+        };
+        if self.username != acct_username {
+            return Err(ValidationError("username doesn't match acct"));
+        };
         if let Some(bio) = &self.bio {
             let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
             self.bio = Some(cleaned_bio);
@@ -476,5 +487,21 @@ mod tests {
             remote_profile.actor_address(INSTANCE_HOST),
             remote_profile.acct,
         );
+    }
+
+    #[test]
+    fn test_clean_profile_create_data() {
+        let mut profile_data = ProfileCreateData {
+            username: "test".to_string(),
+            display_name: Some("Test Test".to_string()),
+            acct: "test@example.org".to_string(),
+            actor_json: Some(Actor {
+                id: "https://example.org/test".to_string(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let result = profile_data.clean();
+        assert_eq!(result.is_ok(), true);
     }
 }

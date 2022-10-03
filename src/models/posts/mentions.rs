@@ -8,7 +8,7 @@ use crate::errors::{DatabaseError, ValidationError};
 use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
 
-// See also: USERNAME_RE in models::profiles::validators
+// See also: ACTOR_ADDRESS_RE in activitypub::actors::types
 const MENTION_RE: &str = r"@?(?P<user>[\w\.-]+)@(?P<instance>.+)";
 const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s|[\(])@(?P<user>[\w\.-]+)@(?P<instance>\S+)";
 const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<instance>[\w\.-]+\w)(?P<after>[\.,:?\)]?(<br>)?)$";

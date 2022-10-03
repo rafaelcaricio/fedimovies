@@ -25,7 +25,7 @@ async fn get_user_info(
 ) -> Result<JsonResourceDescriptor, HttpError> {
     // Parse 'acct' URI
     // https://datatracker.ietf.org/doc/html/rfc7565#section-7
-    // See also: USERNAME_RE in models::profiles::validators
+    // See also: ACTOR_ADDRESS_RE in activitypub::actors::types
     let uri_regexp = Regex::new(r"acct:(?P<user>[\w\.-]+)@(?P<instance>.+)").unwrap();
     let uri_caps = uri_regexp.captures(&query_params.resource)
         .ok_or(ValidationError("invalid query target"))?;

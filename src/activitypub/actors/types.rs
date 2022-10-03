@@ -1,3 +1,6 @@
+use std::str::FromStr;
+
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -178,12 +181,6 @@ pub struct ActorAddress {
     pub instance: String,
 }
 
-impl ToString for ActorAddress {
-    fn to_string(&self) -> String {
-        format!("{}@{}", self.username, self.instance)
-    }
-}
-
 impl ActorAddress {
     pub fn is_local(&self, instance_host: &str) -> bool {
         self.instance == instance_host
@@ -196,6 +193,30 @@ impl ActorAddress {
         } else {
            self.to_string()
         }
+    }
+}
+
+// See also: USERNAME_RE in models::profiles::validators
+const ACTOR_ADDRESS_RE: &str = r"(?P<username>[\w\.-]+)@(?P<instance>[\w\.-]+)";
+
+impl FromStr for ActorAddress {
+    type Err = ValidationError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let actor_address_re = Regex::new(ACTOR_ADDRESS_RE).unwrap();
+        let caps = actor_address_re.captures(value)
+            .ok_or(ValidationError("invalid actor address"))?;
+        let actor_address = Self {
+            username: caps["username"].to_string(),
+            instance: caps["instance"].to_string(),
+        };
+        Ok(actor_address)
+    }
+}
+
+impl ToString for ActorAddress {
+    fn to_string(&self) -> String {
+        format!("{}@{}", self.username, self.instance)
     }
 }
 
@@ -329,6 +350,15 @@ mod tests {
 
     const INSTANCE_HOST: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_actor_address_parsing() {
+        let value = "user_1@example.com";
+        let actor_address = value.parse::<ActorAddress>().unwrap();
+        assert_eq!(actor_address.username, "user_1");
+        assert_eq!(actor_address.instance, "example.com");
+        assert_eq!(actor_address.to_string(), value);
+    }
 
     #[test]
     fn test_get_actor_address() {

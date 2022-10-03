@@ -40,7 +40,7 @@ enum SearchQuery {
 fn parse_profile_query(query: &str) ->
     Result<(String, Option<String>), ValidationError>
 {
-    // See also: USERNAME_RE in models::profiles::validators
+    // See also: ACTOR_ADDRESS_RE in activitypub::actors::types
     let acct_query_re =
         Regex::new(r"^(@|!)?(?P<user>[\w\.-]+)(@(?P<instance>[\w\.-]+))?$").unwrap();
     let acct_query_caps = acct_query_re.captures(query)
