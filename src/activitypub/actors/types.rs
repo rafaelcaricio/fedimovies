@@ -197,7 +197,7 @@ impl ActorAddress {
 }
 
 // See also: USERNAME_RE in models::profiles::validators
-const ACTOR_ADDRESS_RE: &str = r"(?P<username>[\w\.-]+)@(?P<instance>[\w\.-]+)";
+pub const ACTOR_ADDRESS_RE: &str = r"(?P<username>[\w\.-]+)@(?P<instance>[\w\.-]+)";
 
 impl FromStr for ActorAddress {
     type Err = ValidationError;

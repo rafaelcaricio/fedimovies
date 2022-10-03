@@ -2,6 +2,7 @@ use actix_web::{get, web, HttpResponse};
 use regex::Regex;
 use tokio_postgres::GenericClient;
 
+use crate::activitypub::actors::types::{ActorAddress, ACTOR_ADDRESS_RE};
 use crate::activitypub::constants::AP_MEDIA_TYPE;
 use crate::activitypub::identifiers::{
     local_actor_id,
@@ -18,35 +19,35 @@ use super::types::{
     JsonResourceDescriptor,
 };
 
+// https://datatracker.ietf.org/doc/html/rfc7565#section-7
+fn parse_acct_uri(uri: &str) -> Result<ActorAddress, ValidationError> {
+    let uri_regexp = Regex::new(&format!("acct:{}", ACTOR_ADDRESS_RE)).unwrap();
+    let uri_caps = uri_regexp.captures(uri)
+        .ok_or(ValidationError("invalid query target"))?;
+    let actor_address = ActorAddress {
+        username: uri_caps["username"].to_string(),
+        instance: uri_caps["instance"].to_string(),
+    };
+    Ok(actor_address)
+}
+
 async fn get_user_info(
     db_client: &impl GenericClient,
     instance: Instance,
     query_params: WebfingerQueryParams,
 ) -> Result<JsonResourceDescriptor, HttpError> {
-    // Parse 'acct' URI
-    // https://datatracker.ietf.org/doc/html/rfc7565#section-7
-    // See also: ACTOR_ADDRESS_RE in activitypub::actors::types
-    let uri_regexp = Regex::new(r"acct:(?P<user>[\w\.-]+)@(?P<instance>.+)").unwrap();
-    let uri_caps = uri_regexp.captures(&query_params.resource)
-        .ok_or(ValidationError("invalid query target"))?;
-    let username = uri_caps.name("user")
-        .ok_or(ValidationError("invalid query target"))?
-        .as_str();
-    let instance_host = uri_caps.name("instance")
-        .ok_or(ValidationError("invalid query target"))?
-        .as_str();
-
-    if instance_host != instance.host() {
+    let actor_address = parse_acct_uri(&query_params.resource)?;
+    if !actor_address.is_local(&instance.host()) {
         // Wrong instance
         return Err(HttpError::NotFoundError("user"));
-    }
-    let actor_url = if username == instance.host() {
+    };
+    let actor_url = if actor_address.username == instance.host() {
         local_instance_actor_id(&instance.url())
     } else {
-        if !is_registered_user(db_client, username).await? {
+        if !is_registered_user(db_client, &actor_address.username).await? {
             return Err(HttpError::NotFoundError("user"));
         };
-        local_actor_id(&instance.url(), username)
+        local_actor_id(&instance.url(), &actor_address.username)
     };
     let link = Link {
         rel: "self".to_string(),
@@ -76,4 +77,17 @@ pub async fn get_descriptor(
         .content_type(JRD_CONTENT_TYPE)
         .json(jrd);
     Ok(response)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_acct_uri() {
+        let uri = "acct:user_1@example.com";
+        let actor_address = parse_acct_uri(uri).unwrap();
+        assert_eq!(actor_address.username, "user_1");
+        assert_eq!(actor_address.instance, "example.com");
+    }
 }
