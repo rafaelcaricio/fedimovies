@@ -26,9 +26,8 @@ fn find_mentions(
             let actor_address = ActorAddress {
                 username: caps["user"].to_string(),
                 instance: secondary_caps["instance"].to_string(),
-                is_local: &secondary_caps["instance"] == instance_host,
             };
-            let acct = actor_address.acct();
+            let acct = actor_address.acct(instance_host);
             if !mentions.contains(&acct) {
                 mentions.push(acct);
             };
@@ -64,9 +63,8 @@ pub fn replace_mentions(
             let actor_address = ActorAddress {
                 username: caps["user"].to_string(),
                 instance: secondary_caps["instance"].to_string(),
-                is_local: &secondary_caps["instance"] == instance_host,
             };
-            let acct = actor_address.acct();
+            let acct = actor_address.acct(instance_host);
             if let Some(profile) = mention_map.get(&acct) {
                 // Replace with a link to profile.
                 // Actor URL may differ from actor ID.
@@ -89,7 +87,6 @@ pub fn replace_mentions(
 }
 
 pub fn mention_to_address(
-    instance_host: &str,
     mention: &str,
 ) -> Result<ActorAddress, ValidationError> {
     let mention_re = Regex::new(MENTION_RE).unwrap();
@@ -98,7 +95,6 @@ pub fn mention_to_address(
     let actor_address = ActorAddress {
         username: mention_caps["user"].to_string(),
         instance: mention_caps["instance"].to_string(),
-        is_local: &mention_caps["instance"] == instance_host,
     };
     Ok(actor_address)
 }
@@ -182,14 +178,14 @@ mod tests {
     #[test]
     fn test_mention_to_address() {
         let mention = "@user@example.com";
-        let address_1 = mention_to_address("example.com", mention).unwrap();
-        assert_eq!(address_1.acct(), "user");
+        let address_1 = mention_to_address(mention).unwrap();
+        assert_eq!(address_1.acct("example.com"), "user");
 
-        let address_2 = mention_to_address("server.info", mention).unwrap();
-        assert_eq!(address_2.acct(), "user@example.com");
+        let address_2 = mention_to_address(mention).unwrap();
+        assert_eq!(address_2.acct("server.info"), "user@example.com");
 
         let short_mention = "@user";
-        let result = mention_to_address("example.com", short_mention);
+        let result = mention_to_address(short_mention);
         assert_eq!(result.is_err(), true);
     }
 }

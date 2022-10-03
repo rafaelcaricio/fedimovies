@@ -63,8 +63,8 @@ async fn create_remote_profile(
     media_dir: &Path,
     actor: Actor,
 ) -> Result<DbActorProfile, ImportError> {
-    let actor_address = actor.address(&instance.host())?;
-    if actor_address.is_local {
+    let actor_address = actor.address()?;
+    if actor_address.is_local(&instance.host()) {
         return Err(ImportError::LocalObject);
     };
     let avatar = fetch_actor_avatar(&actor, media_dir, None).await;
@@ -74,7 +74,7 @@ async fn create_remote_profile(
     let mut profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
         display_name: actor.name.clone(),
-        acct: actor_address.acct(),
+        acct: actor_address.acct(&instance.host()),
         bio: actor.summary.clone(),
         avatar,
         banner,
@@ -126,8 +126,9 @@ pub async fn get_or_import_profile_by_actor_id(
         },
         Err(DatabaseError::NotFound(_)) => {
             let actor = fetch_actor(instance, actor_id).await?;
-            let actor_address = actor.address(&instance.host())?;
-            match get_profile_by_acct(db_client, &actor_address.acct()).await {
+            let actor_address = actor.address()?;
+            let acct = actor_address.acct(&instance.host());
+            match get_profile_by_acct(db_client, &acct).await {
                 Ok(profile) => {
                     // WARNING: Possible actor ID change
                     log::info!("re-fetched profile {}", profile.acct);
@@ -140,7 +141,7 @@ pub async fn get_or_import_profile_by_actor_id(
                     profile_updated
                 },
                 Err(DatabaseError::NotFound(_)) => {
-                    log::info!("fetched profile {}", actor_address.acct());
+                    log::info!("fetched profile {}", acct);
                     let profile = create_remote_profile(
                         db_client,
                         instance,
@@ -169,8 +170,8 @@ pub async fn import_profile_by_actor_address(
     };
     let actor_id = perform_webfinger_query(instance, actor_address).await?;
     let actor = fetch_actor(instance, &actor_id).await?;
-    let profile_acct = actor.address(&instance.host())?.acct();
-    if profile_acct != actor_address.acct() {
+    let profile_acct = actor.address()?.acct(&instance.host());
+    if profile_acct != actor_address.acct(&instance.host()) {
         // Redirected to different server
         match get_profile_by_acct(db_client, &profile_acct).await {
             Ok(profile) => return Ok(profile),

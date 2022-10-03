@@ -111,7 +111,6 @@ async fn search_profiles_or_import(
         let actor_address = ActorAddress {
             username: username,
             instance: instance.unwrap(),
-            is_local: false,
         };
         match import_profile_by_actor_address(
             db_client,

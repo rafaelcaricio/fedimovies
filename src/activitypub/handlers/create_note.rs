@@ -266,13 +266,11 @@ pub async fn handle_note(
                         continue;
                     },
                 };
-                if let Ok(actor_address) = mention_to_address(
-                    &instance.host(),
-                    &tag_name,
-                ) {
+                if let Ok(actor_address) = mention_to_address(&tag_name) {
+                    let acct = actor_address.acct(&instance.host());
                     let profile = match get_profile_by_acct(
                         db_client,
-                        &actor_address.acct(),
+                        &acct,
                     ).await {
                         Ok(profile) => profile,
                         Err(DatabaseError::NotFound(_)) => {
@@ -287,7 +285,7 @@ pub async fn handle_note(
                                     // Ignore mention if fetcher fails
                                     log::warn!(
                                         "failed to find mentioned profile {}: {}",
-                                        actor_address.acct(),
+                                        acct,
                                         error,
                                     );
                                     continue;

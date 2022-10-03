@@ -114,18 +114,15 @@ pub struct Actor {
 impl Actor {
     pub fn address(
         &self,
-        this_instance_host: &str,
     ) -> Result<ActorAddress, ValidationError> {
         let actor_host = url::Url::parse(&self.id)
             .map_err(|_| ValidationError("invalid actor ID"))?
             .host_str()
             .ok_or(ValidationError("invalid actor ID"))?
             .to_owned();
-        let is_local = actor_host == this_instance_host;
         let actor_address = ActorAddress {
             username: self.preferred_username.clone(),
             instance: actor_host,
-            is_local,
         };
         Ok(actor_address)
     }
@@ -179,7 +176,6 @@ impl Actor {
 pub struct ActorAddress {
     pub username: String,
     pub instance: String,
-    pub is_local: bool,
 }
 
 impl ToString for ActorAddress {
@@ -189,9 +185,13 @@ impl ToString for ActorAddress {
 }
 
 impl ActorAddress {
+    pub fn is_local(&self, instance_host: &str) -> bool {
+        self.instance == instance_host
+    }
+
     /// Returns acct string, as used in Mastodon
-    pub fn acct(&self) -> String {
-        if self.is_local {
+    pub fn acct(&self, instance_host: &str) -> String {
+        if self.is_local(instance_host) {
             self.username.clone()
         } else {
            self.to_string()
@@ -337,9 +337,9 @@ mod tests {
             preferred_username: "test".to_string(),
             ..Default::default()
         };
-        let actor_address = actor.address(INSTANCE_HOST).unwrap();
-        assert_eq!(actor_address.is_local, false);
-        assert_eq!(actor_address.acct(), "test@test.org");
+        let actor_address = actor.address().unwrap();
+        assert_eq!(actor_address.is_local(INSTANCE_HOST), false);
+        assert_eq!(actor_address.acct(INSTANCE_HOST), "test@test.org");
     }
 
     #[test]
