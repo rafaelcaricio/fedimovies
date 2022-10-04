@@ -323,8 +323,8 @@ impl Default for DbActorProfile {
 #[cfg_attr(test, derive(Default))]
 pub struct ProfileCreateData {
     pub username: String,
+    pub hostname: Option<String>,
     pub display_name: Option<String>,
-    pub acct: String,
     pub bio: Option<String>,
     pub avatar: Option<String>,
     pub banner: Option<String>,
@@ -337,19 +337,11 @@ pub struct ProfileCreateData {
 impl ProfileCreateData {
     pub fn clean(&mut self) -> Result<(), ValidationError> {
         validate_username(&self.username)?;
+        if self.hostname.is_some() != self.actor_json.is_some() {
+            return Err(ValidationError("hostname and actor_json field mismatch"));
+        };
         if let Some(display_name) = &self.display_name {
             validate_display_name(display_name)?;
-        };
-        let acct_username = if self.actor_json.is_none() {
-            // Local profile
-            self.acct.clone()
-        } else {
-            // Remote profile
-            let ActorAddress { username, .. } = self.acct.parse::<ActorAddress>()?;
-            username
-        };
-        if self.username != acct_username {
-            return Err(ValidationError("username doesn't match acct"));
         };
         if let Some(bio) = &self.bio {
             let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
@@ -500,8 +492,8 @@ mod tests {
     fn test_clean_profile_create_data() {
         let mut profile_data = ProfileCreateData {
             username: "test".to_string(),
+            hostname: Some("example.org".to_string()),
             display_name: Some("Test Test".to_string()),
-            acct: "test@example.org".to_string(),
             actor_json: Some(Actor {
                 id: "https://example.org/test".to_string(),
                 ..Default::default()

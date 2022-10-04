@@ -1,7 +1,6 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::activitypub::actors::types::ActorAddress;
 use crate::database::catch_unique_violation;
 use crate::database::query_macro::query;
 use crate::errors::DatabaseError;
@@ -29,10 +28,7 @@ pub async fn create_profile(
     profile_data: ProfileCreateData,
 ) -> Result<DbActorProfile, DatabaseError> {
     let profile_id = new_uuid();
-    // TODO: replace ProfileCreateData.acct with hostname field
-    let hostname = if profile_data.actor_json.is_some() {
-        let actor_address = profile_data.acct.parse::<ActorAddress>().unwrap();
-        let hostname = actor_address.instance;
+    if let Some(ref hostname) = profile_data.hostname {
         db_client.execute(
             "
             INSERT INTO instance VALUES ($1)
@@ -40,9 +36,6 @@ pub async fn create_profile(
             ",
             &[&hostname],
         ).await?;
-        Some(hostname)
-    } else {
-        None
     };
     let row = db_client.query_one(
         "
@@ -58,7 +51,7 @@ pub async fn create_profile(
         &[
             &profile_id,
             &profile_data.username,
-            &hostname,
+            &profile_data.hostname,
             &profile_data.display_name,
             &profile_data.bio,
             &profile_data.bio,
@@ -597,7 +590,6 @@ mod tests {
     async fn test_create_profile_local() {
         let profile_data = ProfileCreateData {
             username: "test".to_string(),
-            acct: "test".to_string(),
             ..Default::default()
         };
         let db_client = create_test_database().await;
@@ -615,7 +607,7 @@ mod tests {
     async fn test_create_profile_remote() {
         let profile_data = ProfileCreateData {
             username: "test".to_string(),
-            acct: "test@example.com".to_string(),
+            hostname: Some("example.com".to_string()),
             actor_json: Some(create_test_actor("https://example.com/users/test")),
             ..Default::default()
         };
@@ -637,14 +629,14 @@ mod tests {
         let actor_id = "https://example.com/users/test";
         let profile_data_1 = ProfileCreateData {
             username: "test-1".to_string(),
-            acct: "test-1@example.com".to_string(),
+            hostname: Some("example.com".to_string()),
             actor_json: Some(create_test_actor(actor_id)),
             ..Default::default()
         };
         create_profile(&db_client, profile_data_1).await.unwrap();
         let profile_data_2 = ProfileCreateData {
             username: "test-2".to_string(),
-            acct: "test-2@example.com".to_string(),
+            hostname: Some("example.com".to_string()),
             actor_json: Some(create_test_actor(actor_id)),
             ..Default::default()
         };

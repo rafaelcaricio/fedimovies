@@ -73,8 +73,8 @@ async fn create_remote_profile(
         actor.parse_attachments();
     let mut profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
+        hostname: Some(actor_address.instance),
         display_name: actor.name.clone(),
-        acct: actor_address.acct(&instance.host()),
         bio: actor.summary.clone(),
         avatar,
         banner,

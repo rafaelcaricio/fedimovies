@@ -77,8 +77,8 @@ pub async fn create_user(
     // Create profile
     let profile_data = ProfileCreateData {
         username: user_data.username.clone(),
+        hostname: None,
         display_name: None,
-        acct: user_data.username.clone(),
         bio: None,
         avatar: None,
         banner: None,
