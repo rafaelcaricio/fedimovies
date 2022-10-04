@@ -341,10 +341,7 @@ async fn reblog(
     if !post.is_public() || post.repost_of_id.is_some() {
         return Err(HttpError::NotFoundError("post"));
     };
-    let repost_data = PostCreateData {
-        repost_of_id: Some(status_id.into_inner()),
-        ..Default::default()
-    };
+    let repost_data = PostCreateData::repost(status_id.into_inner(), None);
     let mut repost = create_post(db_client, &current_user.id, repost_data).await?;
     post.repost_count += 1;
     repost.repost_of = Some(Box::new(post));

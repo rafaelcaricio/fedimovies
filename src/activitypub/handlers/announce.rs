@@ -43,11 +43,7 @@ pub async fn handle_announce(
             post.id
         },
     };
-    let repost_data = PostCreateData {
-        repost_of_id: Some(post_id),
-        object_id: Some(repost_object_id),
-        ..Default::default()
-    };
+    let repost_data = PostCreateData::repost(post_id, Some(repost_object_id));
     create_post(db_client, &author.id, repost_data).await?;
     Ok(Some(NOTE))
 }
