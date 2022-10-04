@@ -104,7 +104,7 @@ pub async fn perform_webfinger_query(
     instance: &Instance,
     actor_address: &ActorAddress,
 ) -> Result<String, FetchError> {
-    let webfinger_account_uri = format!("acct:{}", actor_address.to_string());
+    let webfinger_account_uri = format!("acct:{}", actor_address);
     // TOOD: support http
     let webfinger_url = format!(
         "https://{}/.well-known/webfinger",

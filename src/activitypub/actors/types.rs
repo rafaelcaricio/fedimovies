@@ -1,3 +1,4 @@
+use std::fmt;
 use std::str::FromStr;
 
 use regex::Regex;
@@ -214,9 +215,9 @@ impl FromStr for ActorAddress {
     }
 }
 
-impl ToString for ActorAddress {
-    fn to_string(&self) -> String {
-        format!("{}@{}", self.username, self.instance)
+impl fmt::Display for ActorAddress {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}@{}", self.username, self.instance)
     }
 }
 

@@ -222,7 +222,6 @@ pub struct DbActorProfile {
     pub id: Uuid,
     pub username: String,
     pub hostname: Option<String>,
-    pub acct: String,
     pub display_name: Option<String>,
     pub bio: Option<String>, // html
     pub bio_source: Option<String>, // plaintext or markdown
@@ -235,11 +234,12 @@ pub struct DbActorProfile {
     pub following_count: i32,
     pub subscriber_count: i32,
     pub post_count: i32,
+    pub actor_json: Option<Actor>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub actor_json: Option<Actor>,
 
     // auto-generated database fields
+    pub acct: String,
     pub actor_id: Option<String>,
 }
 
@@ -256,7 +256,6 @@ impl DbActorProfile {
     }
 
     pub fn actor_id(&self, instance_url: &str) -> String {
-        // TODO: use actor_id field
         match self.actor_json {
             Some(ref actor) => actor.id.clone(),
             None => local_actor_id(instance_url, &self.username),
@@ -273,11 +272,13 @@ impl DbActorProfile {
         self.actor_id(instance_url)
     }
 
-    pub fn actor_address(&self, instance_host: &str) -> String {
-        if self.is_local() {
-            format!("{}@{}", self.acct, instance_host)
-        } else {
-            self.acct.clone()
+    pub fn actor_address(&self, instance_host: &str) -> ActorAddress {
+        assert_eq!(self.hostname.is_none(), self.is_local());
+        ActorAddress {
+            username: self.username.clone(),
+            instance: self.hostname.as_deref()
+                .unwrap_or(instance_host)
+                .to_string(),
         }
     }
 
@@ -311,10 +312,10 @@ impl Default for DbActorProfile {
             following_count: 0,
             subscriber_count: 0,
             post_count: 0,
-            created_at: now,
-            updated_at: now,
             actor_json: None,
             actor_id: None,
+            created_at: now,
+            updated_at: now,
         }
     }
 }
@@ -465,12 +466,14 @@ mod tests {
     #[test]
     fn test_local_actor_address() {
         let local_profile = DbActorProfile {
+            username: "user".to_string(),
+            hostname: None,
             acct: "user".to_string(),
             actor_json: None,
             ..Default::default()
         };
         assert_eq!(
-            local_profile.actor_address(INSTANCE_HOST),
+            local_profile.actor_address(INSTANCE_HOST).to_string(),
             "user@example.com",
         );
     }
@@ -478,6 +481,8 @@ mod tests {
     #[test]
     fn test_remote_actor_address() {
         let remote_profile = DbActorProfile {
+            username: "test".to_string(),
+            hostname: Some("remote.com".to_string()),
             acct: "test@remote.com".to_string(),
             actor_json: Some(Actor {
                 id: "https://test".to_string(),
@@ -486,7 +491,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            remote_profile.actor_address(INSTANCE_HOST),
+            remote_profile.actor_address(INSTANCE_HOST).to_string(),
             remote_profile.acct,
         );
     }

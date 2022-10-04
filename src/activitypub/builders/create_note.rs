@@ -291,6 +291,7 @@ mod tests {
         let subscriber_id = "https://test.com/users/3";
         let subscriber = DbActorProfile {
             username: "subscriber".to_string(),
+            hostname: Some("test.com".to_string()),
             actor_json: Some(Actor {
                 id: subscriber_id.to_string(),
                 ..Default::default()
@@ -317,6 +318,7 @@ mod tests {
         let mentioned_id = "https://test.com/users/3";
         let mentioned = DbActorProfile {
             username: "mention".to_string(),
+            hostname: Some("test.com".to_string()),
             actor_json: Some(Actor {
                 id: mentioned_id.to_string(),
                 ..Default::default()
@@ -361,6 +363,8 @@ mod tests {
         let parent_author_actor_id = "https://test.net/user/test";
         let parent_author_actor_url = "https://test.net/@test";
         let parent_author = DbActorProfile {
+            username: "test".to_string(),
+            hostname: Some("test.net".to_string()),
             acct: parent_author_acct.to_string(),
             actor_json: Some(Actor {
                 id: parent_author_actor_id.to_string(),
