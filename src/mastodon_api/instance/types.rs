@@ -6,6 +6,13 @@ use crate::ethereum::contracts::ContractSet;
 use crate::mastodon_api::MASTODON_API_VERSION;
 
 #[derive(Serialize)]
+struct InstanceStats {
+    user_count: i64,
+    status_count: i64,
+    domain_count: i64,
+}
+
+#[derive(Serialize)]
 struct BlockchainFeatures {
     minter: bool,
     subscriptions: bool,
@@ -27,6 +34,7 @@ pub struct InstanceInfo {
     description: String,
     version: String,
     registrations: bool,
+    stats: InstanceStats,
 
     login_message: String,
     post_character_limit: usize,
@@ -43,7 +51,13 @@ fn get_full_api_version(version: &str) -> String {
 }
 
 impl InstanceInfo {
-    pub fn create(config: &Config, maybe_blockchain: Option<&ContractSet>) -> Self {
+    pub fn create(
+        config: &Config,
+        maybe_blockchain: Option<&ContractSet>,
+        user_count: i64,
+        post_count: i64,
+        peer_count: i64,
+    ) -> Self {
         let mut blockchains = vec![];
         match config.blockchain() {
             Some(BlockchainConfig::Ethereum(ethereum_config)) => {
@@ -90,6 +104,11 @@ impl InstanceInfo {
             description: config.instance_description.clone(),
             version: get_full_api_version(&config.version),
             registrations: config.registrations_open,
+            stats: InstanceStats {
+                user_count,
+                status_count: post_count,
+                domain_count: peer_count,
+            },
             login_message: config.login_message.clone(),
             post_character_limit: config.post_character_limit,
             blockchains: blockchains,

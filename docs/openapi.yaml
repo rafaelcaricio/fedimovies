@@ -1038,6 +1038,19 @@ components:
         registrations:
           description: Whether registrations are enabled.
           type: boolean
+        stats:
+          description: Statistics about how much information the instance contains.
+          type: object
+          properties:
+            user_count:
+              description: Users registered on this instance
+              type: integer
+            status_count:
+              description: Statuses authored by users on instance.
+              type: integer
+            domain_count:
+              description: Domains federated with this instance.
+              type: integer
         login_message:
           description: Login message for signer.
           type: string

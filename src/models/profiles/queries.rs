@@ -10,6 +10,7 @@ use crate::models::cleanup::{
     find_orphaned_ipfs_objects,
     DeletionQueue,
 };
+use crate::models::instances::queries::create_instance;
 use crate::models::relationships::types::RelationshipType;
 use crate::utils::currencies::Currency;
 use crate::utils::id::new_uuid;
@@ -29,13 +30,7 @@ pub async fn create_profile(
 ) -> Result<DbActorProfile, DatabaseError> {
     let profile_id = new_uuid();
     if let Some(ref hostname) = profile_data.hostname {
-        db_client.execute(
-            "
-            INSERT INTO instance VALUES ($1)
-            ON CONFLICT DO NOTHING
-            ",
-            &[&hostname],
-        ).await?;
+        create_instance(db_client, hostname).await?;
     };
     let row = db_client.query_one(
         "
