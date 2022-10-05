@@ -124,13 +124,14 @@ pub fn build_note(
     for linked in &post.linked {
         // Build FEP-e232 object link
         let link_href = linked.get_object_id(instance_url);
-        let tag = Tag {
+        let _tag = Tag {
             name: Some(format!("RE: {}", link_href)),
             tag_type: LINK.to_string(),
             href: Some(link_href),
             media_type: Some(AP_MEDIA_TYPE.to_string()),
         };
-        tags.push(tag);
+        // TODO: fix tag processing bug in Pleroma
+        // tags.push(tag);
     };
     let maybe_quote_url = post.linked.get(0)
         .map(|linked| linked.get_object_id(instance_url));
