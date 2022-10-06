@@ -4,7 +4,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::errors::DatabaseError;
-use crate::models::posts::helpers::add_user_actions;
+use crate::models::posts::helpers::{add_related_posts, add_user_actions};
 use crate::models::posts::queries::{
     RELATED_ATTACHMENTS,
     RELATED_LINKS,
@@ -155,9 +155,18 @@ pub async fn get_notifications(
     let mut notifications: Vec<Notification> = rows.iter()
         .map(Notification::try_from)
         .collect::<Result<_, _>>()?;
-    let posts = notifications.iter_mut()
-        .filter_map(|item| item.post.as_mut())
-        .collect();
-    add_user_actions(db_client, recipient_id, posts).await?;
+    add_related_posts(
+        db_client,
+        notifications.iter_mut()
+            .filter_map(|item| item.post.as_mut())
+            .collect(),
+    ).await?;
+    add_user_actions(
+        db_client,
+        recipient_id,
+        notifications.iter_mut()
+            .filter_map(|item| item.post.as_mut())
+            .collect(),
+    ).await?;
     Ok(notifications)
 }
