@@ -9,6 +9,7 @@ use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::media::types::Attachment;
 use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::profiles::types::DbActorProfile;
+use crate::utils::markdown::markdown_to_html;
 
 /// https://docs.joinmastodon.org/entities/mention/
 #[derive(Serialize)]
@@ -169,6 +170,10 @@ impl TryFrom<StatusData> for PostCreateData {
         };
         let content = match status_data.content_type.as_str() {
             "text/html" => status_data.status,
+            "text/markdown" => {
+                markdown_to_html(&status_data.status)
+                    .map_err(|_| ValidationError("invalid markdown"))?
+            },
             _ => return Err(ValidationError("unsupported content type")),
         };
         let post_data = Self {

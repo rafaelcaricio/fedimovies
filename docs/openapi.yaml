@@ -510,6 +510,9 @@ paths:
                   description: Media type of the post content.
                   type: string
                   default: text/html
+                  enum:
+                    - text/html
+                    - text/markdown
                 'media_ids[]':
                   description: Array of Attachment ids to be attached as media.
                   type: array

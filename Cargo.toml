@@ -25,6 +25,8 @@ base64 = "0.13.0"
 chrono = { version = "0.4.22", features = ["serde"] }
 # Used to build admin CLI tool
 clap = { version = "3.1.8", default-features = false, features = ["std", "derive"] }
+# Used for parsing markdown
+comrak = { git = "https://github.com/kivikakk/comrak", rev = "03238b81d0917acbea73a2d255603f8051e4dc04", default-features = false }
 # Used for pooling database connections
 deadpool = "0.9.2"
 deadpool-postgres = { version = "0.10.2", default-features = false }
@@ -67,7 +69,7 @@ sha2 = "0.9.5"
 # Used to verify EIP-4361 signatures
 siwe = "0.3.0"
 # Used for creating error types
-thiserror = "1.0.24"
+thiserror = "1.0.37"
 # Async runtime
 tokio = { version = "1.17.0", features = ["macros"] }
 # Used for working with Postgresql database

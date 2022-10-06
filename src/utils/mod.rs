@@ -4,3 +4,4 @@ pub mod currencies;
 pub mod files;
 pub mod html;
 pub mod id;
+pub mod markdown;
