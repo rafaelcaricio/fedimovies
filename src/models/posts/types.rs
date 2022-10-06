@@ -10,7 +10,7 @@ use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
 use crate::errors::{ConversionError, DatabaseError, ValidationError};
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::types::DbActorProfile;
-use crate::utils::html::clean_html_strict;
+use super::validators::clean_content;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Visibility {
@@ -263,15 +263,7 @@ impl PostCreateData {
     /// Validate and clean post data (only for local posts).
     pub fn clean(&mut self, character_limit: usize) -> Result<(), ValidationError> {
         assert!(self.object_id.is_none());
-        if self.content.chars().count() > character_limit {
-            return Err(ValidationError("post is too long"));
-        };
-        let content_safe = clean_html_strict(&self.content);
-        let content_trimmed = content_safe.trim();
-        if content_trimmed.is_empty() {
-            return Err(ValidationError("post can not be empty"));
-        };
-        self.content = content_trimmed.to_string();
+        self.content = clean_content(&self.content, character_limit)?;
         Ok(())
     }
 }
@@ -288,16 +280,7 @@ mod tests {
     const POST_CHARACTER_LIMIT: usize = 1000;
 
     #[test]
-    fn test_post_data_empty() {
-        let mut post_data_1 = PostCreateData {
-            content: "  ".to_string(),
-            ..Default::default()
-        };
-        assert_eq!(post_data_1.clean(POST_CHARACTER_LIMIT).is_ok(), false);
-    }
-
-    #[test]
-    fn test_post_data_trimming() {
+    fn test_post_data_clean() {
         let mut post_data_2 = PostCreateData {
             content: "test ".to_string(),
             ..Default::default()

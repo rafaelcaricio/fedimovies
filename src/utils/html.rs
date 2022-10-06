@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::iter::FromIterator;
 
 use ammonia::Builder;
 
@@ -12,13 +13,12 @@ pub fn clean_html(unsafe_html: &str) -> String {
     safe_html
 }
 
-pub fn clean_html_strict(unsafe_html: &str) -> String {
-    let mut allowed_tags = HashSet::new();
-    allowed_tags.insert("a");
-    allowed_tags.insert("br");
-    allowed_tags.insert("pre");
-    allowed_tags.insert("code");
-
+pub fn clean_html_strict(
+    unsafe_html: &str,
+    allowed_tags: &[&str],
+) -> String {
+    let allowed_tags =
+        HashSet::from_iter(allowed_tags.iter().copied());
     let safe_html = Builder::default()
         .tags(allowed_tags)
         .clean(unsafe_html)
@@ -47,7 +47,7 @@ mod tests {
     #[test]
     fn test_clean_html_strict() {
         let unsafe_html = r#"<p>test <b>bold</b><script>dangerous</script> with <a href="https://example.com">link</a> and <code>code</code></p>"#;
-        let safe_html = clean_html_strict(unsafe_html);
+        let safe_html = clean_html_strict(unsafe_html, &["a", "br", "code"]);
         assert_eq!(safe_html, r#"test bold with <a href="https://example.com" rel="noopener noreferrer">link</a> and <code>code</code>"#);
     }
 
