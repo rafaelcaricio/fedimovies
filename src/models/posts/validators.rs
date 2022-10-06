@@ -1,7 +1,14 @@
 use crate::errors::ValidationError;
 use crate::utils::html::clean_html_strict;
 
-const CONTENT_ALLOWED_TAGS: [&str; 4] = ["a", "br", "pre", "code"];
+const CONTENT_ALLOWED_TAGS: [&str; 6] = [
+    "a",
+    "br",
+    "pre",
+    "code",
+    "strong",
+    "em",
+];
 
 pub fn clean_content(
     content: &str,
