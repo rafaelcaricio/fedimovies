@@ -3,8 +3,8 @@ use regex::{Captures, Regex};
 use crate::errors::ValidationError;
 use crate::frontend::get_tag_page_url;
 
-const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s|[\(])#(?P<tag>\S+)";
-const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?\)]?(<br>)?)$";
+const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])#(?P<tag>[^\s<]+)";
+const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?\)]?)$";
 const HASHTAG_NAME_RE: &str = r"^\w+$";
 
 /// Finds anything that looks like a hashtag
@@ -66,7 +66,7 @@ mod tests {
     const TEXT_WITH_TAGS: &str = concat!(
         "@user1@server1 some text #TestTag.\n",
         "#TAG1 #tag1 #test_underscore #test*special ",
-        "more text (#tag2) text #tag3, #tag4:<br>\n",
+        "more text (#tag2) text #tag3, #tag4:<br>",
         "end with #tag5",
     );
 
@@ -95,7 +95,7 @@ mod tests {
             r#"#test_underscore #test*special "#,
             r#"more text (<a class="hashtag" href="https://example.com/tag/tag2">#tag2</a>) text "#,
             r#"<a class="hashtag" href="https://example.com/tag/tag3">#tag3</a>, "#,
-            r#"<a class="hashtag" href="https://example.com/tag/tag4">#tag4</a>:<br>"#, "\n",
+            r#"<a class="hashtag" href="https://example.com/tag/tag4">#tag4</a>:<br>"#,
             r#"end with <a class="hashtag" href="https://example.com/tag/tag5">#tag5</a>"#,
         );
         assert_eq!(output, expected_output);
