@@ -1,13 +1,14 @@
 use crate::errors::ValidationError;
 use crate::utils::html::clean_html_strict;
 
-const CONTENT_ALLOWED_TAGS: [&str; 6] = [
+const CONTENT_ALLOWED_TAGS: [&str; 7] = [
     "a",
     "br",
     "pre",
     "code",
     "strong",
     "em",
+    "p",
 ];
 
 pub fn clean_content(
