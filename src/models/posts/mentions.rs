@@ -10,8 +10,8 @@ use crate::models::profiles::types::DbActorProfile;
 
 // See also: ACTOR_ADDRESS_RE in activitypub::actors::types
 const MENTION_RE: &str = r"@?(?P<user>[\w\.-]+)@(?P<instance>.+)";
-const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])@(?P<user>[\w\.-]+)@(?P<instance>[^\s<]+)";
-const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<instance>[\w\.-]+\w)(?P<after>[\.,:?\)]?)$";
+const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])@(?P<mention>[^\s<]+)";
+const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<user>[\w\.-]+)(@(?P<instance>[\w\.-]+\w))?(?P<after>[\.,:?\)]?)$";
 
 /// Finds everything that looks like a mention
 fn find_mentions(
@@ -22,11 +22,13 @@ fn find_mentions(
     let mention_secondary_re = Regex::new(MENTION_SEARCH_SECONDARY_RE).unwrap();
     let mut mentions = vec![];
     for caps in mention_re.captures_iter(text) {
-        if let Some(secondary_caps) = mention_secondary_re.captures(&caps["instance"]) {
-            let actor_address = ActorAddress {
-                username: caps["user"].to_string(),
-                instance: secondary_caps["instance"].to_string(),
-            };
+        if let Some(secondary_caps) = mention_secondary_re.captures(&caps["mention"]) {
+            let username = secondary_caps["user"].to_string();
+            let instance = secondary_caps.name("instance")
+                .map(|match_| match_.as_str())
+                .unwrap_or(instance_host)
+                .to_string();
+            let actor_address = ActorAddress { username, instance };
             let acct = actor_address.acct(instance_host);
             if !mentions.contains(&acct) {
                 mentions.push(acct);
@@ -59,11 +61,13 @@ pub fn replace_mentions(
     let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
     let mention_secondary_re = Regex::new(MENTION_SEARCH_SECONDARY_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
-        if let Some(secondary_caps) = mention_secondary_re.captures(&caps["instance"]) {
-            let actor_address = ActorAddress {
-                username: caps["user"].to_string(),
-                instance: secondary_caps["instance"].to_string(),
-            };
+        if let Some(secondary_caps) = mention_secondary_re.captures(&caps["mention"]) {
+            let username = secondary_caps["user"].to_string();
+            let instance = secondary_caps.name("instance")
+                .map(|match_| match_.as_str())
+                .unwrap_or(instance_host)
+                .to_string();
+            let actor_address = ActorAddress { username, instance };
             let acct = actor_address.acct(instance_host);
             if let Some(profile) = mention_map.get(&acct) {
                 // Replace with a link to profile.
@@ -107,13 +111,13 @@ mod tests {
     const INSTANCE_HOST: &str = "server1.com";
     const INSTANCE_URL: &str = "https://server1.com";
     const TEXT_WITH_MENTIONS: &str = concat!(
-        "@user1@server1.com ",
+        "@user1 ",
         "@user_x@server1.com,<br>",
         "(@user2@server2.com boosted) ",
         "@user3@server2.com.\n",
         "@@invalid@server2.com ",
         "@test@server3.com@nospace@server4.com ",
-        "@notmention email@unknown.org ",
+        "@ email@unknown.org ",
         "@user2@server2.com copy ",
         "some text",
     );
@@ -178,7 +182,7 @@ mod tests {
             r#"(<span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> boosted) "#,
             r#"<span class="h-card"><a class="u-url mention" href="https://server2.com/@user3">@user3</a></span>."#, "\n",
             r#"@@invalid@server2.com @test@server3.com@nospace@server4.com "#,
-            r#"@notmention email@unknown.org <span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> copy some text"#,
+            r#"@ email@unknown.org <span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> copy some text"#,
         );
         assert_eq!(result, expected_result);
     }
