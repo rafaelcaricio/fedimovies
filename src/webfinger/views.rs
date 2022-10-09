@@ -26,7 +26,7 @@ fn parse_acct_uri(uri: &str) -> Result<ActorAddress, ValidationError> {
         .ok_or(ValidationError("invalid query target"))?;
     let actor_address = ActorAddress {
         username: uri_caps["username"].to_string(),
-        instance: uri_caps["instance"].to_string(),
+        hostname: uri_caps["hostname"].to_string(),
     };
     Ok(actor_address)
 }
@@ -88,6 +88,6 @@ mod tests {
         let uri = "acct:user_1@example.com";
         let actor_address = parse_acct_uri(uri).unwrap();
         assert_eq!(actor_address.username, "user_1");
-        assert_eq!(actor_address.instance, "example.com");
+        assert_eq!(actor_address.hostname, "example.com");
     }
 }

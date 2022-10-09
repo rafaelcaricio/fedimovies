@@ -108,7 +108,7 @@ pub async fn perform_webfinger_query(
     // TOOD: support http
     let webfinger_url = format!(
         "https://{}/.well-known/webfinger",
-        actor_address.instance,
+        actor_address.hostname,
     );
     let client = build_client()?;
     let mut request_builder = client.get(&webfinger_url);

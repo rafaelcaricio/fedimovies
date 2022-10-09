@@ -42,15 +42,15 @@ fn parse_profile_query(query: &str) ->
 {
     // See also: ACTOR_ADDRESS_RE in activitypub::actors::types
     let acct_query_re =
-        Regex::new(r"^(@|!)?(?P<user>[\w\.-]+)(@(?P<instance>[\w\.-]+))?$").unwrap();
+        Regex::new(r"^(@|!)?(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+))?$").unwrap();
     let acct_query_caps = acct_query_re.captures(query)
         .ok_or(ValidationError("invalid profile query"))?;
-    let username = acct_query_caps.name("user")
+    let username = acct_query_caps.name("username")
         .ok_or(ValidationError("invalid profile query"))?
         .as_str().to_string();
-    let maybe_instance = acct_query_caps.name("instance")
+    let maybe_hostname = acct_query_caps.name("hostname")
         .map(|val| val.as_str().to_string());
-    Ok((username, maybe_instance))
+    Ok((username, maybe_hostname))
 }
 
 fn parse_tag_query(query: &str) -> Result<String, ValidationError> {
@@ -82,8 +82,8 @@ fn parse_search_query(search_query: &str) -> SearchQuery {
     if let Ok(tag) = parse_tag_query(search_query) {
         return SearchQuery::TagQuery(tag);
     };
-    if let Ok((username, maybe_instance)) = parse_profile_query(search_query) {
-        return SearchQuery::ProfileQuery(username, maybe_instance);
+    if let Ok((username, maybe_hostname)) = parse_profile_query(search_query) {
+        return SearchQuery::ProfileQuery(username, maybe_hostname);
     };
     SearchQuery::Unknown
 }
@@ -92,25 +92,25 @@ async fn search_profiles_or_import(
     config: &Config,
     db_client: &impl GenericClient,
     username: String,
-    mut instance: Option<String>,
+    mut maybe_hostname: Option<String>,
     limit: u16,
 ) -> Result<Vec<DbActorProfile>, HttpError> {
-    if let Some(ref actor_host) = instance {
-        if actor_host == &config.instance().host() {
+    if let Some(ref hostname) = maybe_hostname {
+        if hostname == &config.instance().host() {
             // This is a local profile
-            instance = None;
+            maybe_hostname = None;
         };
     };
     let mut profiles = search_profiles(
         db_client,
         &username,
-        instance.as_ref(),
+        maybe_hostname.as_ref(),
         limit,
     ).await?;
-    if profiles.is_empty() && instance.is_some() {
+    if profiles.is_empty() && maybe_hostname.is_some() {
         let actor_address = ActorAddress {
             username: username,
-            instance: instance.unwrap(),
+            hostname: maybe_hostname.unwrap(),
         };
         match import_profile_by_actor_address(
             db_client,
@@ -160,12 +160,12 @@ pub async fn search(
     let mut posts = vec![];
     let mut tags = vec![];
     match parse_search_query(search_query) {
-        SearchQuery::ProfileQuery(username, maybe_instance) => {
+        SearchQuery::ProfileQuery(username, maybe_hostname) => {
             profiles = search_profiles_or_import(
                 config,
                 db_client,
                 username,
-                maybe_instance,
+                maybe_hostname,
                 limit,
             ).await?;
         },
@@ -224,14 +224,14 @@ pub async fn search_profiles_only(
     search_query: &str,
     limit: u16,
 ) -> Result<Vec<Account>, HttpError> {
-    let (username, maybe_instance) = match parse_profile_query(search_query) {
+    let (username, maybe_hostname) = match parse_profile_query(search_query) {
         Ok(result) => result,
         Err(_) => return Ok(vec![]),
     };
     let profiles = search_profiles(
         db_client,
         &username,
-        maybe_instance.as_ref(),
+        maybe_hostname.as_ref(),
         limit,
     ).await?;
     let accounts: Vec<Account> = profiles.into_iter()
@@ -247,17 +247,17 @@ mod tests {
     #[test]
     fn test_parse_profile_query() {
         let query = "@user";
-        let (username, maybe_instance) = parse_profile_query(query).unwrap();
+        let (username, maybe_hostname) = parse_profile_query(query).unwrap();
         assert_eq!(username, "user");
-        assert_eq!(maybe_instance, None);
+        assert_eq!(maybe_hostname, None);
     }
 
     #[test]
     fn test_parse_profile_query_group() {
         let query = "!group@example.com";
-        let (username, maybe_instance) = parse_profile_query(query).unwrap();
+        let (username, maybe_hostname) = parse_profile_query(query).unwrap();
         assert_eq!(username, "group");
-        assert_eq!(maybe_instance.as_deref(), Some("example.com"));
+        assert_eq!(maybe_hostname.as_deref(), Some("example.com"));
     }
 
     #[test]

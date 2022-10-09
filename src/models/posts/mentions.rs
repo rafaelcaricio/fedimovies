@@ -9,9 +9,9 @@ use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
 
 // See also: ACTOR_ADDRESS_RE in activitypub::actors::types
-const MENTION_RE: &str = r"@?(?P<user>[\w\.-]+)@(?P<instance>.+)";
+const MENTION_RE: &str = r"@?(?P<username>[\w\.-]+)@(?P<hostname>.+)";
 const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])@(?P<mention>[^\s<]+)";
-const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<user>[\w\.-]+)(@(?P<instance>[\w\.-]+\w))?(?P<after>[\.,:?\)]?)$";
+const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+\w))?(?P<after>[\.,:?\)]?)$";
 
 /// Finds everything that looks like a mention
 fn find_mentions(
@@ -23,12 +23,12 @@ fn find_mentions(
     let mut mentions = vec![];
     for caps in mention_re.captures_iter(text) {
         if let Some(secondary_caps) = mention_secondary_re.captures(&caps["mention"]) {
-            let username = secondary_caps["user"].to_string();
-            let instance = secondary_caps.name("instance")
+            let username = secondary_caps["username"].to_string();
+            let hostname = secondary_caps.name("hostname")
                 .map(|match_| match_.as_str())
                 .unwrap_or(instance_host)
                 .to_string();
-            let actor_address = ActorAddress { username, instance };
+            let actor_address = ActorAddress { username, hostname };
             let acct = actor_address.acct(instance_host);
             if !mentions.contains(&acct) {
                 mentions.push(acct);
@@ -62,12 +62,12 @@ pub fn replace_mentions(
     let mention_secondary_re = Regex::new(MENTION_SEARCH_SECONDARY_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
         if let Some(secondary_caps) = mention_secondary_re.captures(&caps["mention"]) {
-            let username = secondary_caps["user"].to_string();
-            let instance = secondary_caps.name("instance")
+            let username = secondary_caps["username"].to_string();
+            let hostname = secondary_caps.name("hostname")
                 .map(|match_| match_.as_str())
                 .unwrap_or(instance_host)
                 .to_string();
-            let actor_address = ActorAddress { username, instance };
+            let actor_address = ActorAddress { username, hostname };
             let acct = actor_address.acct(instance_host);
             if let Some(profile) = mention_map.get(&acct) {
                 // Replace with a link to profile.
@@ -97,8 +97,8 @@ pub fn mention_to_address(
     let mention_caps = mention_re.captures(mention)
         .ok_or(ValidationError("invalid mention tag"))?;
     let actor_address = ActorAddress {
-        username: mention_caps["user"].to_string(),
-        instance: mention_caps["instance"].to_string(),
+        username: mention_caps["username"].to_string(),
+        hostname: mention_caps["hostname"].to_string(),
     };
     Ok(actor_address)
 }

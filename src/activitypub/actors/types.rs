@@ -119,14 +119,14 @@ impl Actor {
     pub fn address(
         &self,
     ) -> Result<ActorAddress, ValidationError> {
-        let actor_host = url::Url::parse(&self.id)
+        let hostname = url::Url::parse(&self.id)
             .map_err(|_| ValidationError("invalid actor ID"))?
             .host_str()
             .ok_or(ValidationError("invalid actor ID"))?
             .to_owned();
         let actor_address = ActorAddress {
             username: self.preferred_username.clone(),
-            instance: actor_host,
+            hostname: hostname,
         };
         Ok(actor_address)
     }
@@ -179,12 +179,12 @@ impl Actor {
 
 pub struct ActorAddress {
     pub username: String,
-    pub instance: String,
+    pub hostname: String,
 }
 
 impl ActorAddress {
     pub fn is_local(&self, instance_host: &str) -> bool {
-        self.instance == instance_host
+        self.hostname == instance_host
     }
 
     /// Returns acct string, as used in Mastodon
@@ -198,7 +198,7 @@ impl ActorAddress {
 }
 
 // See also: USERNAME_RE in models::profiles::validators
-pub const ACTOR_ADDRESS_RE: &str = r"(?P<username>[\w\.-]+)@(?P<instance>[\w\.-]+)";
+pub const ACTOR_ADDRESS_RE: &str = r"(?P<username>[\w\.-]+)@(?P<hostname>[\w\.-]+)";
 
 impl FromStr for ActorAddress {
     type Err = ValidationError;
@@ -209,7 +209,7 @@ impl FromStr for ActorAddress {
             .ok_or(ValidationError("invalid actor address"))?;
         let actor_address = Self {
             username: caps["username"].to_string(),
-            instance: caps["instance"].to_string(),
+            hostname: caps["hostname"].to_string(),
         };
         Ok(actor_address)
     }
@@ -217,7 +217,7 @@ impl FromStr for ActorAddress {
 
 impl fmt::Display for ActorAddress {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "{}@{}", self.username, self.instance)
+        write!(formatter, "{}@{}", self.username, self.hostname)
     }
 }
 
@@ -357,7 +357,7 @@ mod tests {
         let value = "user_1@example.com";
         let actor_address = value.parse::<ActorAddress>().unwrap();
         assert_eq!(actor_address.username, "user_1");
-        assert_eq!(actor_address.instance, "example.com");
+        assert_eq!(actor_address.hostname, "example.com");
         assert_eq!(actor_address.to_string(), value);
     }
 

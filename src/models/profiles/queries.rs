@@ -372,13 +372,13 @@ pub async fn delete_profile(
 pub async fn search_profiles(
     db_client: &impl GenericClient,
     username: &str,
-    instance: Option<&String>,
+    maybe_hostname: Option<&String>,
     limit: u16,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let db_search_query = match instance {
-        Some(instance) => {
+    let db_search_query = match maybe_hostname {
+        Some(hostname) => {
             // Search for exact actor address
-            format!("{}@{}", username, instance)
+            format!("{}@{}", username, hostname)
         },
         None => {
             // Fuzzy search for username

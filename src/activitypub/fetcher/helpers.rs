@@ -73,7 +73,7 @@ async fn create_remote_profile(
         actor.parse_attachments();
     let mut profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
-        hostname: Some(actor_address.instance),
+        hostname: Some(actor_address.hostname),
         display_name: actor.name.clone(),
         bio: actor.summary.clone(),
         avatar,
@@ -165,7 +165,7 @@ pub async fn import_profile_by_actor_address(
     media_dir: &Path,
     actor_address: &ActorAddress,
 ) -> Result<DbActorProfile, ImportError> {
-    if actor_address.instance == instance.host() {
+    if actor_address.hostname == instance.host() {
         return Err(ImportError::LocalObject);
     };
     let actor_id = perform_webfinger_query(instance, actor_address).await?;

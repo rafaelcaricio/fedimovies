@@ -276,7 +276,7 @@ impl DbActorProfile {
         assert_eq!(self.hostname.is_none(), self.is_local());
         ActorAddress {
             username: self.username.clone(),
-            instance: self.hostname.as_deref()
+            hostname: self.hostname.as_deref()
                 .unwrap_or(instance_host)
                 .to_string(),
         }
