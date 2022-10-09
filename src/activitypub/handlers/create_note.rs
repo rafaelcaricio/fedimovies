@@ -76,7 +76,7 @@ pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
             let object_url = parse_object_url(value)
                 .map_err(|_| ValidationError("invalid object URL"))?;
             content += &format!(
-                r#"<br><p><a href="{0}" target="_blank" rel="noopener">{0}</a></p>"#,
+                r#"<br><p><a href="{0}">{0}</a></p>"#,
                 object_url,
             );
         };
@@ -423,7 +423,7 @@ mod tests {
         let content = get_note_content(&object).unwrap();
         assert_eq!(
             content,
-            r#"test-content<br><p><a href="https://example.org/xyz" target="_blank" rel="noopener">https://example.org/xyz</a></p>"#,
+            r#"test-content<br><p><a href="https://example.org/xyz" rel="noopener">https://example.org/xyz</a></p>"#,
         );
     }
 
