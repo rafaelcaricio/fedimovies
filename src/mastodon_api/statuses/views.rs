@@ -113,10 +113,12 @@ async fn create_status(
             };
             // Append inline quote and add author to mentions
             post_data.content += &format!(
-                r#"<br><br><p class="inline-quote">RE: <a href="{0}">{0}</a></p>"#,
+                r#"<p class="inline-quote">RE: <a href="{0}">{0}</a></p>"#,
                 linked.get_object_id(&instance.url()),
             );
-            post_data.mentions.push(linked.author.id);
+            if linked.author.id != current_user.id {
+                post_data.mentions.push(linked.author.id);
+            };
             vec![linked]
         },
         _ => return Err(ValidationError("too many links").into()),
