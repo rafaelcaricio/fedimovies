@@ -30,6 +30,7 @@ Activities are implemented in way that is compatible with Pleroma, Mastodon and 
 
 ## Supported FEPs
 
+- [FEP-f1d5](https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-f1d5.md)
 - [FEP-e232](https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-e232.md)
 
 ## Profile extensions
