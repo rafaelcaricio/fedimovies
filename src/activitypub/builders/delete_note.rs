@@ -7,6 +7,7 @@ use crate::activitypub::deliverer::OutgoingActivity;
 use crate::activitypub::vocabulary::{DELETE, NOTE, TOMBSTONE};
 use crate::config::Instance;
 use crate::errors::DatabaseError;
+use crate::models::posts::helpers::add_related_posts;
 use crate::models::posts::types::Post;
 use crate::models::users::types::User;
 use super::create_note::{
@@ -53,12 +54,14 @@ pub async fn prepare_delete_note(
     post: &Post,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     assert_eq!(author.id, post.author.id);
+    let mut post = post.clone();
+    add_related_posts(db_client, vec![&mut post]).await?;
     let activity = build_delete_note(
         &instance.host(),
         &instance.url(),
-        post,
+        &post,
     );
-    let recipients = get_note_recipients(db_client, author, post).await?;
+    let recipients = get_note_recipients(db_client, author, &post).await?;
     Ok(OutgoingActivity {
         instance,
         sender: author.clone(),
