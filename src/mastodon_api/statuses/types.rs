@@ -133,6 +133,8 @@ impl Status {
     }
 }
 
+fn default_post_content_type() -> String { "text/html".to_string() }
+
 /// https://docs.joinmastodon.org/methods/statuses/
 #[derive(Deserialize)]
 pub struct StatusData {
@@ -147,14 +149,17 @@ pub struct StatusData {
     // Not supported by Mastodon
     pub mentions: Option<Vec<Uuid>>,
     pub links: Option<Vec<Uuid>>,
+
+    #[serde(default = "default_post_content_type")]
+    pub content_type: String,
 }
 
 impl TryFrom<StatusData> for PostCreateData {
 
     type Error = ValidationError;
 
-    fn try_from(value: StatusData) -> Result<Self, Self::Error> {
-        let visibility = match value.visibility.as_deref() {
+    fn try_from(status_data: StatusData) -> Result<Self, Self::Error> {
+        let visibility = match status_data.visibility.as_deref() {
             Some("public") => Visibility::Public,
             Some("direct") => Visibility::Direct,
             Some("private") => Visibility::Followers,
@@ -162,15 +167,19 @@ impl TryFrom<StatusData> for PostCreateData {
             Some(_) => return Err(ValidationError("invalid visibility parameter")),
             None => Visibility::Public,
         };
+        let content = match status_data.content_type.as_str() {
+            "text/html" => status_data.status,
+            _ => return Err(ValidationError("unsupported content type")),
+        };
         let post_data = Self {
-            content: value.status,
-            in_reply_to_id: value.in_reply_to_id,
+            content: content,
+            in_reply_to_id: status_data.in_reply_to_id,
             repost_of_id: None,
             visibility: visibility,
-            attachments: value.media_ids.unwrap_or(vec![]),
-            mentions: value.mentions.unwrap_or(vec![]),
+            attachments: status_data.media_ids.unwrap_or(vec![]),
+            mentions: status_data.mentions.unwrap_or(vec![]),
             tags: vec![],
-            links: value.links.unwrap_or(vec![]),
+            links: status_data.links.unwrap_or(vec![]),
             object_id: None,
             created_at: Utc::now(),
         };
@@ -181,4 +190,29 @@ impl TryFrom<StatusData> for PostCreateData {
 #[derive(Deserialize)]
 pub struct TransactionData {
     pub transaction_id: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_status_data_into_post_data() {
+        let status_content = "<p>test</p>";
+        let status_data = StatusData {
+            status: status_content.to_string(),
+            media_ids: None,
+            in_reply_to_id: None,
+            visibility: Some("public".to_string()),
+            mentions: None,
+            links: None,
+            content_type: "text/html".to_string(),
+        };
+        let post_data = PostCreateData::try_from(status_data).unwrap();
+        assert_eq!(post_data.content, status_content);
+        assert_eq!(post_data.visibility, Visibility::Public);
+        assert_eq!(post_data.attachments, vec![]);
+        assert_eq!(post_data.mentions, vec![]);
+        assert_eq!(post_data.links, vec![]);
+    }
 }

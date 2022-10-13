@@ -504,8 +504,12 @@ paths:
                 status:
                   description: |
                     Text content of the post.
-                    Allowed HTML tags: a, br, pre, code.
+                    Allowed HTML tags: a, br, pre, code, strong, em, p.
                   type: string
+                content_type:
+                  description: Media type of the post content.
+                  type: string
+                  default: text/html
                 'media_ids[]':
                   description: Array of Attachment ids to be attached as media.
                   type: array
