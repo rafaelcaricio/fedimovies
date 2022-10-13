@@ -67,6 +67,9 @@ pub struct Object {
     pub former_type: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_type: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub object: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]

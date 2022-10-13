@@ -65,18 +65,24 @@ fn parse_object_url(value: &JsonValue) -> Result<String, ConversionError> {
 }
 
 pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
-    let mut content = object.content.as_deref()
+    let mut content = if let Some(ref content) = object.content {
+        if object.media_type == Some("text/markdown".to_string()) {
+            format!("<p>{}</p>", content)
+        } else {
+            // HTML
+            content.to_string()
+        }
+    } else {
         // Lemmy pages and PeerTube videos have "name" property
-        .or(object.name.as_deref())
-        .unwrap_or("")
-        .to_owned();
+        object.name.as_deref().unwrap_or("").to_string()
+    };
     if object.object_type != NOTE {
         if let Some(ref value) = object.url {
             // Append link to object
             let object_url = parse_object_url(value)
                 .map_err(|_| ValidationError("invalid object URL"))?;
             content += &format!(
-                r#"<br><p><a href="{0}">{0}</a></p>"#,
+                r#"<p><a href="{0}">{0}</a></p>"#,
                 object_url,
             );
         };
@@ -423,7 +429,7 @@ mod tests {
         let content = get_note_content(&object).unwrap();
         assert_eq!(
             content,
-            r#"test-content<br><p><a href="https://example.org/xyz" rel="noopener">https://example.org/xyz</a></p>"#,
+            r#"test-content<p><a href="https://example.org/xyz" rel="noopener">https://example.org/xyz</a></p>"#,
         );
     }
 
