@@ -17,6 +17,7 @@ Other features:
 - Donation buttons.
 - Token-gated registration (can be used to verify membership in some group or to stop bots).
 - Converting posts into NFTs.
+- Saving posts to IPFS.
 
 Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about))
 
