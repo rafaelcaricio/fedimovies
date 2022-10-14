@@ -134,6 +134,22 @@ pub fn markdown_to_html(text: &str) -> Result<String, MarkdownError> {
                 let mut borrowed_node = node.data.borrow_mut();
                 *borrowed_node = Ast::new(NodeValue::Paragraph);
             },
+            NodeValue::Link(link) => {
+                if let Some(prev) = node.previous_sibling() {
+                    if let NodeValue::Text(ref prev_text) = prev.data.borrow().value {
+                        let prev_text = String::from_utf8(prev_text.to_vec())?;
+                        // Remove autolink if object link syntax is found
+                        if prev_text.ends_with("[[") {
+                            for child in node.children() {
+                                child.detach();
+                            };
+                            let text = NodeValue::Text(link.url);
+                            let mut borrowed_node = node.data.borrow_mut();
+                            *borrowed_node = Ast::new(text);
+                        };
+                    };
+                };
+            },
             _ => (),
         };
         Ok(())

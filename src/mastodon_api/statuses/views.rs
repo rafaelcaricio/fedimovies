@@ -23,6 +23,7 @@ use crate::ipfs::utils::get_ipfs_url;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::posts::hashtags::{find_hashtags, replace_hashtags};
 use crate::models::posts::helpers::can_view_post;
+use crate::models::posts::links::{replace_object_links, find_linked_posts};
 use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
 use crate::models::posts::queries::{
     create_post,
@@ -115,6 +116,36 @@ async fn create_status(
             post.object_id(&instance.url()),
         );
         linked.push(post);
+    };
+    let link_map = match find_linked_posts(
+        db_client,
+        &instance.url(),
+        &post_data.content,
+    ).await {
+        Ok(link_map) => link_map,
+        Err(DatabaseError::NotFound(_)) => {
+            return Err(ValidationError("referenced post does't exist").into());
+        },
+        Err(other_error) => return Err(other_error.into()),
+    };
+    post_data.content = replace_object_links(
+        &link_map,
+        &post_data.content,
+    );
+    for post in link_map.into_values() {
+        if !post_data.links.contains(&post.id) {
+            if post.repost_of_id.is_some() {
+                return Err(ValidationError("can't reference repost").into());
+            };
+            if post.visibility != Visibility::Public {
+                return Err(ValidationError("can't reference non-public post").into());
+            };
+            if post.author.id != current_user.id {
+                post_data.mentions.push(post.author.id);
+            };
+            post_data.links.push(post.id);
+            linked.push(post);
+        };
     };
     if post_data.links.len() > 0 {
         if post_data.in_reply_to_id.is_some() {
