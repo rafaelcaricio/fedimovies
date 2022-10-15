@@ -9,12 +9,24 @@ use super::types::Post;
 
 const OBJECT_LINK_SEARCH_RE: &str = r"(?m)\[\[(?P<url>\S+)\]\]";
 
+fn is_inside_code_block(caps: &Captures, text: &str) -> bool {
+    // TODO: remove workaround.
+    // Perform replacement only inside text nodes during markdown parsing
+    let text_before = &text[0..caps.name("url").unwrap().start()];
+    let code_open = text_before.matches("<code>").count();
+    let code_closed = text_before.matches("</code>").count();
+    code_open > code_closed
+}
+
 /// Finds everything that looks like an object link
 fn find_object_links(text: &str) -> Vec<String> {
     let link_re = Regex::new(OBJECT_LINK_SEARCH_RE).unwrap();
     let mut links = vec![];
     for caps in link_re.captures_iter(text) {
         let url = caps["url"].to_string();
+        if is_inside_code_block(&caps, text) {
+            continue;
+        };
         if !links.contains(&url) {
             links.push(url);
         };
@@ -48,7 +60,7 @@ pub fn replace_object_links(
     let mention_re = Regex::new(OBJECT_LINK_SEARCH_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
         let url = caps["url"].to_string();
-        if link_map.contains_key(&url) {
+        if link_map.contains_key(&url) && !is_inside_code_block(caps, text) {
             return format!(r#"<a href="{0}">{0}</a>"#, url);
         };
         // Leave unchanged if post does not exist
