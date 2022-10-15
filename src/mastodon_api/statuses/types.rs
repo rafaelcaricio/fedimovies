@@ -76,7 +76,7 @@ pub struct Status {
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
     pub token_tx_id: Option<String>,
-    quote: Option<Box<Status>>,
+    links: Vec<Status>,
 }
 
 impl Status {
@@ -98,10 +98,9 @@ impl Status {
         } else {
             None
         };
-        let quote = post.linked.get(0).map(|quote| {
-            let status = Status::from_post(quote.clone(), instance_url);
-            Box::new(status)
-        });
+        let links = post.linked.into_iter().map(|post| {
+            Status::from_post(post, instance_url)
+        }).collect();
         let visibility = match post.visibility {
             Visibility::Public => "public",
             Visibility::Direct => "direct",
@@ -129,7 +128,7 @@ impl Status {
             ipfs_cid: post.ipfs_cid,
             token_id: post.token_id,
             token_tx_id: post.token_tx_id,
-            quote: quote,
+            links: links,
         }
     }
 }

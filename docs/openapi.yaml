@@ -1257,10 +1257,13 @@ components:
           items:
             $ref: '#/components/schemas/Mention'
         tags:
-          description: Hashtags used within the status content.
+          description: Hashtags used within the post content.
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+        reblog:
+          description: The post being reposted.
+          type: object
         ipfs_cid:
           type: string
           nullable: true
@@ -1269,12 +1272,11 @@ components:
           type: string
           nullable: true
           example: '0x5fe80cdea7f...'
-        reblog:
-          description: The post being reposted.
-          type: object
-        quote:
-          description: The post being quoted.
-          type: object
+        links:
+          description: Posts linked to this post.
+          type: array
+          items:
+            type: object
     Subscription:
       type: object
       properties:
