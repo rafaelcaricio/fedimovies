@@ -1,12 +1,18 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
+use crate::activitypub::identifiers::parse_local_object_id;
 use crate::errors::DatabaseError;
 use crate::models::reactions::queries::find_favourited_by_user;
 use crate::models::relationships::queries::has_relationship;
 use crate::models::relationships::types::RelationshipType;
 use crate::models::users::types::User;
-use super::queries::{get_related_posts, find_reposted_by_user};
+use super::queries::{
+    get_post_by_id,
+    get_post_by_remote_object_id,
+    get_related_posts,
+    find_reposted_by_user,
+};
 use super::types::{Post, PostActions, Visibility};
 
 pub async fn add_related_posts(
@@ -116,6 +122,25 @@ pub async fn can_view_post(
         },
     };
     Ok(result)
+}
+
+pub async fn get_post_by_object_id(
+    db_client: &impl GenericClient,
+    instance_url: &str,
+    object_id: &str,
+) -> Result<Post, DatabaseError> {
+    match parse_local_object_id(instance_url, object_id) {
+        Ok(post_id) => {
+            // Local post
+            let post = get_post_by_id(db_client, &post_id).await?;
+            Ok(post)
+        },
+        Err(_) => {
+            // Remote post
+            let post = get_post_by_remote_object_id(db_client, object_id).await?;
+            Ok(post)
+        },
+    }
 }
 
 #[cfg(test)]

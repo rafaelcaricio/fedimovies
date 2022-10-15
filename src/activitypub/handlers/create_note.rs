@@ -15,7 +15,7 @@ use crate::activitypub::{
         import_profile_by_actor_address,
         ImportError,
     },
-    identifiers::{parse_local_actor_id, parse_local_object_id},
+    identifiers::parse_local_actor_id,
     receiver::{parse_array, parse_property_value},
     vocabulary::{DOCUMENT, HASHTAG, IMAGE, LINK, MENTION, NOTE},
 };
@@ -23,12 +23,9 @@ use crate::config::Instance;
 use crate::errors::{ConversionError, DatabaseError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
 use crate::models::posts::hashtags::normalize_hashtag;
+use crate::models::posts::helpers::get_post_by_object_id;
 use crate::models::posts::mentions::mention_to_address;
-use crate::models::posts::queries::{
-    create_post,
-    get_post_by_id,
-    get_post_by_remote_object_id,
-};
+use crate::models::posts::queries::create_post;
 use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::profiles::queries::get_profile_by_acct;
 use crate::models::profiles::types::DbActorProfile;
@@ -120,27 +117,6 @@ fn get_note_visibility(
         };
     };
     Visibility::Direct
-}
-
-async fn get_internal_post_id(
-    db_client: &impl GenericClient,
-    instance_url: &str,
-    object_id: &String,
-    redirects: &HashMap<String, String>,
-) -> Result<Uuid, ImportError> {
-    match parse_local_object_id(instance_url, object_id) {
-        Ok(post_id) => {
-            // Local post
-            let post = get_post_by_id(db_client, &post_id).await?;
-            Ok(post.id)
-        },
-        Err(_) => {
-            let real_object_id = redirects.get(object_id)
-                .unwrap_or(object_id);
-            let post = get_post_by_remote_object_id(db_client, real_object_id).await?;
-            Ok(post.id)
-        },
-    }
 }
 
 pub async fn handle_note(
@@ -316,37 +292,41 @@ pub async fn handle_note(
                     // Unknown media type
                     continue;
                 };
-                if let Some(href) = tag.href {
-                    let linked_id = get_internal_post_id(
+                if let Some(ref href) = tag.href {
+                    let href = redirects.get(href).unwrap_or(href);
+                    let linked = get_post_by_object_id(
                         db_client,
                         &instance.url(),
-                        &href,
-                        redirects,
+                        href,
                     ).await?;
-                    links.push(linked_id);
+                    if !links.contains(&linked.id) {
+                        links.push(linked.id);
+                    };
                 };
             };
         };
     };
     if let Some(ref object_id) = object.quote_url {
-        let linked_id = get_internal_post_id(
+        let object_id = redirects.get(object_id).unwrap_or(object_id);
+        let linked = get_post_by_object_id(
             db_client,
             &instance.url(),
             object_id,
-            redirects,
         ).await?;
-        links.push(linked_id);
+        if !links.contains(&linked.id) {
+            links.push(linked.id);
+        };
     };
 
     let in_reply_to_id = match object.in_reply_to {
         Some(ref object_id) => {
-            let in_reply_to_id = get_internal_post_id(
+            let object_id = redirects.get(object_id).unwrap_or(object_id);
+            let in_reply_to = get_post_by_object_id(
                 db_client,
                 &instance.url(),
                 object_id,
-                redirects,
             ).await?;
-            Some(in_reply_to_id)
+            Some(in_reply_to.id)
         },
         None => None,
     };
