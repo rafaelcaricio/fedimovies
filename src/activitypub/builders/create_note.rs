@@ -123,7 +123,7 @@ pub fn build_note(
     assert_eq!(post.links.len(), post.linked.len());
     for linked in &post.linked {
         // Build FEP-e232 object link
-        let link_href = linked.get_object_id(instance_url);
+        let link_href = linked.object_id(instance_url);
         let _tag = Tag {
             name: Some(format!("RE: {}", link_href)),
             tag_type: LINK.to_string(),
@@ -134,7 +134,7 @@ pub fn build_note(
         // tags.push(tag);
     };
     let maybe_quote_url = post.linked.get(0)
-        .map(|linked| linked.get_object_id(instance_url));
+        .map(|linked| linked.object_id(instance_url));
     let in_reply_to_object_id = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
             let in_reply_to = post.in_reply_to.as_ref().unwrap();
@@ -143,7 +143,7 @@ pub fn build_note(
             if !primary_audience.contains(&in_reply_to_actor_id) {
                 primary_audience.push(in_reply_to_actor_id);
             };
-            Some(in_reply_to.get_object_id(instance_url))
+            Some(in_reply_to.object_id(instance_url))
         },
         None => None,
     };

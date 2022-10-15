@@ -21,7 +21,7 @@ fn build_delete_note(
     instance_url: &str,
     post: &Post,
 ) -> Activity {
-    let object_id = post.get_object_id(instance_url);
+    let object_id = post.object_id(instance_url);
     let object = Object {
         context: Some(json!(AP_CONTEXT)),
         id: object_id,

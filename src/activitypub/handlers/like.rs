@@ -10,7 +10,7 @@ use crate::activitypub::{
 use crate::config::Config;
 use crate::errors::DatabaseError;
 use crate::models::reactions::queries::create_reaction;
-use crate::models::posts::queries::get_post_by_object_id;
+use crate::models::posts::queries::get_post_by_remote_object_id;
 use super::HandlerResult;
 
 pub async fn handle_like(
@@ -25,10 +25,16 @@ pub async fn handle_like(
         &activity.actor,
     ).await?;
     let object_id = find_object_id(&activity.object)?;
-    let post_id = match parse_local_object_id(&config.instance_url(), &object_id) {
+    let post_id = match parse_local_object_id(
+        &config.instance_url(),
+        &object_id,
+    ) {
         Ok(post_id) => post_id,
         Err(_) => {
-            let post = match get_post_by_object_id(db_client, &object_id).await {
+            let post = match get_post_by_remote_object_id(
+                db_client,
+                &object_id,
+            ).await {
                 Ok(post) => post,
                 // Ignore like if post is not found locally
                 Err(DatabaseError::NotFound(_)) => return Ok(None),

@@ -27,7 +27,7 @@ use crate::models::posts::mentions::mention_to_address;
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
-    get_post_by_object_id,
+    get_post_by_remote_object_id,
 };
 use crate::models::posts::types::{Post, PostCreateData, Visibility};
 use crate::models::profiles::queries::get_profile_by_acct;
@@ -137,7 +137,7 @@ async fn get_internal_post_id(
         Err(_) => {
             let real_object_id = redirects.get(object_id)
                 .unwrap_or(object_id);
-            let post = get_post_by_object_id(db_client, real_object_id).await?;
+            let post = get_post_by_remote_object_id(db_client, real_object_id).await?;
             Ok(post.id)
         },
     }

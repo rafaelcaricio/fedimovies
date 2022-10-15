@@ -17,8 +17,8 @@ use crate::models::cleanup::find_orphaned_files;
 use crate::models::posts::queries::{delete_post, find_extraneous_posts, get_post_by_id};
 use crate::models::profiles::queries::{
     delete_profile,
-    get_profile_by_actor_id,
     get_profile_by_id,
+    get_profile_by_remote_actor_id,
 };
 use crate::models::subscriptions::queries::reset_subscriptions;
 use crate::models::users::queries::{
@@ -130,7 +130,10 @@ impl RefetchActor {
         config: &Config,
         db_client: &impl GenericClient,
     ) -> Result<(), Error> {
-        let profile = get_profile_by_actor_id(db_client, &self.id).await?;
+        let profile = get_profile_by_remote_actor_id(
+            db_client,
+            &self.id,
+        ).await?;
         let actor = fetch_actor(&config.instance(), &self.id).await?;
         update_remote_profile(db_client, &config.media_dir(), profile, actor).await?;
         println!("profile updated");

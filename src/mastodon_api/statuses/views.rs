@@ -114,7 +114,7 @@ async fn create_status(
             // Append inline quote and add author to mentions
             post_data.content += &format!(
                 r#"<p class="inline-quote">RE: <a href="{0}">{0}</a></p>"#,
-                linked.get_object_id(&instance.url()),
+                linked.object_id(&instance.url()),
             );
             if linked.author.id != current_user.id {
                 post_data.mentions.push(linked.author.id);
@@ -433,7 +433,7 @@ async fn make_permanent(
         attachment.ipfs_cid = Some(image_cid.clone());
         attachments.push((attachment.id, image_cid));
     };
-    let post_url = post.get_object_id(&config.instance_url());
+    let post_url = post.object_id(&config.instance_url());
     let maybe_post_image_cid = post.attachments.first()
         .and_then(|attachment| attachment.ipfs_cid.as_deref());
     let post_metadata = PostMetadata::new(

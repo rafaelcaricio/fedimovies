@@ -11,7 +11,7 @@ use crate::activitypub::{
 };
 use crate::errors::ValidationError;
 use crate::models::profiles::queries::{
-    get_profile_by_actor_id,
+    get_profile_by_remote_actor_id,
     update_profile,
 };
 use crate::models::profiles::types::{DbActorProfile, ProfileUpdateData};
@@ -27,7 +27,10 @@ pub async fn handle_update_person(
     if actor.id != activity.actor {
         return Err(ValidationError("actor ID mismatch").into());
     };
-    let profile = get_profile_by_actor_id(db_client, &actor.id).await?;
+    let profile = get_profile_by_remote_actor_id(
+        db_client,
+        &actor.id,
+    ).await?;
     update_remote_profile(db_client, media_dir, profile, actor).await?;
     Ok(Some(PERSON))
 }

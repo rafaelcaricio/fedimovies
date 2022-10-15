@@ -6,7 +6,7 @@ use crate::activitypub::identifiers::parse_local_object_id;
 use crate::activitypub::vocabulary::NOTE;
 use crate::errors::DatabaseError;
 use crate::models::posts::queries::{
-    get_post_by_object_id,
+    get_post_by_remote_object_id,
     update_post,
 };
 use crate::models::posts::types::PostUpdateData;
@@ -21,7 +21,10 @@ pub async fn handle_update_note(
     let post_id = match parse_local_object_id(instance_url, &object.id) {
         Ok(post_id) => post_id,
         Err(_) => {
-            let post = match get_post_by_object_id(db_client, &object.id).await {
+            let post = match get_post_by_remote_object_id(
+                db_client,
+                &object.id,
+            ).await {
                 Ok(post) => post,
                 // Ignore Update if post is not found locally
                 Err(DatabaseError::NotFound(_)) => return Ok(None),

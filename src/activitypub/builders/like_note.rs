@@ -74,7 +74,7 @@ pub async fn prepare_like_note(
         &instance.url(),
         post,
     ).await?;
-    let note_id = post.get_object_id(&instance.url());
+    let note_id = post.object_id(&instance.url());
     let note_author_id = post.author.actor_id(&instance.url());
     let activity = build_like_note(
         &instance.url(),

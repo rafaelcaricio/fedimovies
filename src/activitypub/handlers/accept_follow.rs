@@ -8,7 +8,7 @@ use crate::activitypub::{
 };
 use crate::config::Config;
 use crate::errors::ValidationError;
-use crate::models::profiles::queries::get_profile_by_actor_id;
+use crate::models::profiles::queries::get_profile_by_remote_actor_id;
 use crate::models::relationships::queries::{
     follow_request_accepted,
     get_follow_request_by_id,
@@ -21,7 +21,10 @@ pub async fn handle_accept_follow(
     db_client: &mut impl GenericClient,
     activity: Activity,
 ) -> HandlerResult {
-    let actor_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
+    let actor_profile = get_profile_by_remote_actor_id(
+        db_client,
+        &activity.actor,
+    ).await?;
     let object_id = find_object_id(&activity.object)?;
     let follow_request_id = parse_local_object_id(
         &config.instance_url(),

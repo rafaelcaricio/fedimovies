@@ -123,7 +123,7 @@ pub async fn get_profile_by_id(
     Ok(profile)
 }
 
-pub async fn get_profile_by_actor_id(
+pub async fn get_profile_by_remote_actor_id(
     db_client: &impl GenericClient,
     actor_id: &str,
 ) -> Result<DbActorProfile, DatabaseError> {

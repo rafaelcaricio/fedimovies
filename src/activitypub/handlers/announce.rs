@@ -9,7 +9,10 @@ use crate::activitypub::{
 };
 use crate::config::Config;
 use crate::errors::DatabaseError;
-use crate::models::posts::queries::{create_post, get_post_by_object_id};
+use crate::models::posts::queries::{
+    create_post,
+    get_post_by_remote_object_id,
+};
 use crate::models::posts::types::PostCreateData;
 use super::HandlerResult;
 
@@ -19,7 +22,10 @@ pub async fn handle_announce(
     activity: Activity,
 ) -> HandlerResult {
     let repost_object_id = activity.id;
-    match get_post_by_object_id(db_client, &repost_object_id).await {
+    match get_post_by_remote_object_id(
+        db_client,
+        &repost_object_id,
+    ).await {
         Ok(_) => return Ok(None), // Ignore if repost already exists
         Err(DatabaseError::NotFound(_)) => (),
         Err(other_error) => return Err(other_error.into()),

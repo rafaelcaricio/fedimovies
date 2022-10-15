@@ -14,7 +14,7 @@ use crate::activitypub::fetcher::helpers::{
 };
 use crate::config::Config;
 use crate::errors::DatabaseError;
-use crate::models::profiles::queries::get_profile_by_actor_id;
+use crate::models::profiles::queries::get_profile_by_remote_actor_id;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::crypto::{deserialize_public_key, verify_signature};
 
@@ -155,7 +155,7 @@ pub async fn verify_http_signature(
 
     let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
     let actor_profile = if no_fetch {
-        get_profile_by_actor_id(db_client, &actor_id).await?
+        get_profile_by_remote_actor_id(db_client, &actor_id).await?
     } else {
         match get_or_import_profile_by_actor_id(
             db_client,

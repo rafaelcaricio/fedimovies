@@ -81,7 +81,7 @@ pub struct Status {
 
 impl Status {
     pub fn from_post(post: Post, instance_url: &str) -> Self {
-        let object_id = post.get_object_id(instance_url);
+        let object_id = post.object_id(instance_url);
         let attachments: Vec<Attachment> = post.attachments.into_iter()
             .map(|item| Attachment::from_db(item, instance_url))
             .collect();

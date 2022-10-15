@@ -12,7 +12,7 @@ use crate::errors::{DatabaseError, ValidationError};
 use crate::models::notifications::queries::{
     create_subscription_expiration_notification,
 };
-use crate::models::profiles::queries::get_profile_by_actor_id;
+use crate::models::profiles::queries::get_profile_by_remote_actor_id;
 use crate::models::relationships::queries::unsubscribe;
 use crate::models::users::queries::get_user_by_name;
 use super::HandlerResult;
@@ -22,7 +22,7 @@ pub async fn handle_remove(
     db_client: &mut impl GenericClient,
     activity: Activity,
 ) -> HandlerResult {
-    let actor_profile = get_profile_by_actor_id(
+    let actor_profile = get_profile_by_remote_actor_id(
         db_client,
         &activity.actor,
     ).await?;

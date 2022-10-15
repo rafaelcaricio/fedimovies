@@ -12,11 +12,11 @@ use crate::activitypub::handlers::{
 use crate::activitypub::identifiers::parse_local_object_id;
 use crate::config::{Config, Instance};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
-use crate::models::posts::queries::get_post_by_object_id;
+use crate::models::posts::queries::get_post_by_remote_object_id;
 use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
-    get_profile_by_actor_id,
     get_profile_by_acct,
+    get_profile_by_remote_actor_id,
     create_profile,
 };
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
@@ -97,7 +97,10 @@ pub async fn get_or_import_profile_by_actor_id(
     if actor_id.starts_with(&instance.url()) {
         return Err(ImportError::LocalObject);
     };
-    let profile = match get_profile_by_actor_id(db_client, actor_id).await {
+    let profile = match get_profile_by_remote_actor_id(
+        db_client,
+        actor_id,
+    ).await {
         Ok(profile) => {
             if profile.possibly_outdated() {
                 // Try to re-fetch actor profile
@@ -215,7 +218,10 @@ pub async fn import_post(
                     assert!(objects.len() > 0);
                     break;
                 };
-                match get_post_by_object_id(db_client, &object_id).await {
+                match get_post_by_remote_object_id(
+                    db_client,
+                    &object_id,
+                ).await {
                     Ok(post) => {
                         // Object already fetched
                         if objects.len() == 0 {

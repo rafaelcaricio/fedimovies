@@ -9,7 +9,7 @@ use crate::config::Config;
 use crate::errors::{DatabaseError, ValidationError};
 use crate::models::profiles::queries::{
     get_profile_by_acct,
-    get_profile_by_actor_id,
+    get_profile_by_remote_actor_id,
 };
 use crate::models::relationships::queries::unfollow;
 use super::HandlerResult;
@@ -21,7 +21,10 @@ pub async fn handle_undo_follow(
 ) -> HandlerResult {
     let object: Object = serde_json::from_value(activity.object)
         .map_err(|_| ValidationError("invalid object"))?;
-    let source_profile = get_profile_by_actor_id(db_client, &activity.actor).await?;
+    let source_profile = get_profile_by_remote_actor_id(
+        db_client,
+        &activity.actor,
+    ).await?;
     let target_actor_id = object.object
         .ok_or(ValidationError("invalid object"))?;
     let target_username = parse_local_actor_id(

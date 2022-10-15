@@ -39,7 +39,7 @@ fn build_announce_note(
 ) -> Announce {
     let actor_id = local_actor_id(instance_url, sender_username);
     let post = repost.repost_of.as_ref().unwrap();
-    let object_id = post.get_object_id(instance_url);
+    let object_id = post.object_id(instance_url);
     let activity_id = local_object_id(instance_url, &repost.id);
     let recipient_id = post.author.actor_id(instance_url);
     let followers = local_actor_followers(instance_url, sender_username);

@@ -171,7 +171,7 @@ impl Post {
         matches!(self.visibility, Visibility::Public)
     }
 
-    pub fn get_object_id(&self, instance_url: &str) -> String {
+    pub fn object_id(&self, instance_url: &str) -> String {
         match &self.object_id {
             Some(object_id) => object_id.to_string(),
             None => local_object_id(instance_url, &self.id),

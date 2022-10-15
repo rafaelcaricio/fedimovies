@@ -656,7 +656,7 @@ pub async fn get_thread(
     Ok(posts)
 }
 
-pub async fn get_post_by_object_id(
+pub async fn get_post_by_remote_object_id(
     db_client: &impl GenericClient,
     object_id: &str,
 ) -> Result<Post, DatabaseError> {
