@@ -89,39 +89,43 @@ async fn create_status(
         &post_data.tags,
     );
     // Links
-    let linked = match &post_data.links[..] {
-        [] => vec![],
-        [linked_id] => {
-            if post_data.in_reply_to_id.is_some() {
-                return Err(ValidationError("can't add links to reply").into());
-            };
-            if post_data.visibility != Visibility::Public {
-                return Err(ValidationError("can't add links to non-public posts").into());
-            };
-            let linked = match get_post_by_id(db_client, linked_id).await {
-                Ok(post) => post,
-                Err(DatabaseError::NotFound(_)) => {
-                    return Err(ValidationError("referenced post does't exist").into());
-                },
-                Err(other_error) => return Err(other_error.into()),
-            };
-            if linked.repost_of_id.is_some() {
-                return Err(ValidationError("can't reference repost").into());
-            };
-            if linked.visibility != Visibility::Public {
-                return Err(ValidationError("can't reference non-public post").into());
-            };
-            // Append inline quote and add author to mentions
-            post_data.content += &format!(
-                r#"<p class="inline-quote">RE: <a href="{0}">{0}</a></p>"#,
-                linked.object_id(&instance.url()),
-            );
-            if linked.author.id != current_user.id {
-                post_data.mentions.push(linked.author.id);
-            };
-            vec![linked]
-        },
-        _ => return Err(ValidationError("too many links").into()),
+    post_data.links.sort();
+    post_data.links.dedup();
+    let mut linked = vec![];
+    for linked_id in &post_data.links {
+        let post = match get_post_by_id(db_client, linked_id).await {
+            Ok(post) => post,
+            Err(DatabaseError::NotFound(_)) => {
+                return Err(ValidationError("referenced post does't exist").into());
+            },
+            Err(other_error) => return Err(other_error.into()),
+        };
+        if post.repost_of_id.is_some() {
+            return Err(ValidationError("can't reference repost").into());
+        };
+        if post.visibility != Visibility::Public {
+            return Err(ValidationError("can't reference non-public post").into());
+        };
+        if post.author.id != current_user.id {
+            post_data.mentions.push(post.author.id);
+        };
+        // Append inline quote
+        post_data.content += &format!(
+            r#"<p class="inline-quote">RE: <a href="{0}">{0}</a></p>"#,
+            post.object_id(&instance.url()),
+        );
+        linked.push(post);
+    };
+    if post_data.links.len() > 0 {
+        if post_data.in_reply_to_id.is_some() {
+            return Err(ValidationError("can't add links to reply").into());
+        };
+        if post_data.visibility != Visibility::Public {
+            return Err(ValidationError("can't add links to non-public posts").into());
+        };
+    };
+    if post_data.links.len() > 3 {
+        return Err(ValidationError("too many links").into());
     };
     // Reply validation
     let maybe_in_reply_to = if let Some(in_reply_to_id) = post_data.in_reply_to_id.as_ref() {
