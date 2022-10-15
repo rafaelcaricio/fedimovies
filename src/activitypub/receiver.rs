@@ -191,7 +191,7 @@ pub async fn receive_activity(
             require_actor_signature(&activity.actor, &signer_id)?;
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
-            handle_update_note(db_client, &config.instance_url(), object).await?
+            handle_update_note(db_client, object).await?
         },
         (UPDATE, PERSON) => {
             require_actor_signature(&activity.actor, &signer_id)?;
