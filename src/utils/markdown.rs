@@ -134,16 +134,21 @@ pub fn markdown_to_html(text: &str) -> Result<String, MarkdownError> {
                 let mut borrowed_node = node.data.borrow_mut();
                 *borrowed_node = Ast::new(NodeValue::Paragraph);
             },
-            NodeValue::Link(link) => {
+            NodeValue::Link(_) => {
                 if let Some(prev) = node.previous_sibling() {
                     if let NodeValue::Text(ref prev_text) = prev.data.borrow().value {
                         let prev_text = String::from_utf8(prev_text.to_vec())?;
-                        // Remove autolink if object link syntax is found
-                        if prev_text.ends_with("[[") {
+                        // Remove autolink if mention or object link syntax is found
+                        if prev_text.ends_with('@') || prev_text.ends_with("[[") {
+                            let mut link_text = vec![];
                             for child in node.children() {
                                 child.detach();
+                                let child_value = &child.data.borrow().value;
+                                if let NodeValue::Text(child_text) = child_value {
+                                    link_text.extend(child_text);
+                                };
                             };
-                            let text = NodeValue::Text(link.url);
+                            let text = NodeValue::Text(link_text);
                             let mut borrowed_node = node.data.borrow_mut();
                             *borrowed_node = Ast::new(text);
                         };
@@ -180,5 +185,26 @@ mod tests {
             "<pre><code>let test\ntest = 1\n</code></pre>",
         );
         assert_eq!(html, expected_html);
+    }
+
+    #[test]
+    fn test_markdown_to_html_mention() {
+        let text = "@user@example.org test";
+        let html = markdown_to_html(text).unwrap();
+        assert_eq!(html, format!("<p>{}</p>", text));
+    }
+
+    #[test]
+    fn test_markdown_to_html_hashtag() {
+        let text = "#hashtag test";
+        let html = markdown_to_html(text).unwrap();
+        assert_eq!(html, format!("<p>{}</p>", text));
+    }
+
+    #[test]
+    fn test_markdown_to_html_object_link() {
+        let text = "[[https://example.org/objects/1]] test";
+        let html = markdown_to_html(text).unwrap();
+        assert_eq!(html, format!("<p>{}</p>", text));
     }
 }
