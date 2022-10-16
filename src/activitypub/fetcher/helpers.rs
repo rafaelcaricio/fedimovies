@@ -12,7 +12,10 @@ use crate::activitypub::handlers::{
 use crate::activitypub::identifiers::parse_local_object_id;
 use crate::config::{Config, Instance};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
-use crate::models::posts::queries::get_post_by_remote_object_id;
+use crate::models::posts::queries::{
+    get_post_by_id,
+    get_post_by_remote_object_id,
+};
 use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
     get_profile_by_acct,
@@ -200,6 +203,10 @@ pub async fn import_post(
 ) -> Result<Post, ImportError> {
     let instance = config.instance();
     let media_dir = config.media_dir();
+    if parse_local_object_id(&instance.url(), &object_id).is_ok() {
+        return Err(ImportError::LocalObject);
+    };
+
     let mut maybe_object_id_to_fetch = Some(object_id);
     let mut maybe_object = object_received;
     let mut objects = vec![];
@@ -213,9 +220,10 @@ pub async fn import_post(
     loop {
         let object_id = match maybe_object_id_to_fetch {
             Some(object_id) => {
-                if parse_local_object_id(&instance.url(), &object_id).is_ok() {
+                if let Ok(post_id) = parse_local_object_id(&instance.url(), &object_id) {
                     // Object is a local post
-                    assert!(objects.len() > 0);
+                    // Verify post exists, return error if it doesn't
+                    get_post_by_id(db_client, &post_id).await?;
                     break;
                 };
                 match get_post_by_remote_object_id(
