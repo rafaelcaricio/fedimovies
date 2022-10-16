@@ -242,14 +242,17 @@ async fn delete_status(
     if post.author.id != current_user.id {
         return Err(HttpError::PermissionError);
     };
+    let delete_note = prepare_delete_note(
+        db_client,
+        config.instance(),
+        &current_user,
+        &post,
+    ).await?;
     let deletion_queue = delete_post(db_client, &status_id).await?;
-    let config_clone = config.clone();
     tokio::spawn(async move {
-        deletion_queue.process(&config_clone).await;
+        deletion_queue.process(&config).await;
     });
-
-    prepare_delete_note(db_client, config.instance(), &current_user, &post).await?
-        .spawn_deliver();
+    delete_note.spawn_deliver();
 
     Ok(HttpResponse::NoContent().finish())
 }

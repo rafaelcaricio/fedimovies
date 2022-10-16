@@ -185,14 +185,22 @@ impl DeletePost {
         db_client: &mut impl GenericClient,
     ) -> Result<(), Error> {
         let post = get_post_by_id(db_client, &self.id).await?;
+        let mut maybe_delete_note = None;
+        if post.author.is_local() {
+            let author = get_user_by_id(db_client, &post.author.id).await?;
+            let activity = prepare_delete_note(
+                db_client,
+                config.instance(),
+                &author,
+                &post,
+            ).await?;
+            maybe_delete_note = Some(activity);
+        };
         let deletion_queue = delete_post(db_client, &post.id).await?;
         deletion_queue.process(config).await;
-        if post.author.is_local() {
-            // Send Delete(Note) activity
-            let author = get_user_by_id(db_client, &post.author.id).await?;
-            prepare_delete_note(db_client, config.instance(), &author, &post)
-                .await?
-                .deliver().await?;
+        // Send Delete(Note) activity
+        if let Some(activity) = maybe_delete_note {
+            activity.deliver().await?;
         };
         println!("post deleted");
         Ok(())
