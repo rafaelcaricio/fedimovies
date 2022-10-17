@@ -276,9 +276,9 @@ pub async fn import_post(
         if let Some(ref object_id) = object.in_reply_to {
             // Fetch parent object on next iteration
             queue.push(object_id.to_owned());
-        } else if let Some(ref object_id) = object.quote_url {
-            // Fetch quoted object on next iteration
-            // (only if object doesn't have a parent).
+        };
+        if let Some(ref object_id) = object.quote_url {
+            // Fetch quoted object after fetching current thread
             queue.insert(0, object_id.to_owned());
         };
         maybe_object = None;
