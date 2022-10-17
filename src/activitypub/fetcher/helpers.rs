@@ -207,9 +207,9 @@ pub async fn import_post(
         return Err(ImportError::LocalObject);
     };
 
-    let mut maybe_object_id_to_fetch = Some(object_id);
+    let mut queue = vec![object_id]; // LIFO queue
     let mut maybe_object = object_received;
-    let mut objects = vec![];
+    let mut objects: Vec<Object> = vec![];
     let mut redirects: HashMap<String, String> = HashMap::new();
     let mut posts = vec![];
 
@@ -218,13 +218,17 @@ pub async fn import_post(
     #[allow(clippy::while_let_loop)]
     #[allow(clippy::manual_map)]
     loop {
-        let object_id = match maybe_object_id_to_fetch {
+        let object_id = match queue.pop() {
             Some(object_id) => {
+                if objects.iter().any(|object| object.id == object_id) {
+                    log::warn!("loop detected");
+                    continue;
+                };
                 if let Ok(post_id) = parse_local_object_id(&instance.url(), &object_id) {
                     // Object is a local post
                     // Verify post exists, return error if it doesn't
                     get_post_by_id(db_client, &post_id).await?;
-                    break;
+                    continue;
                 };
                 match get_post_by_remote_object_id(
                     db_client,
@@ -236,7 +240,7 @@ pub async fn import_post(
                             // Return post corresponding to initial object ID
                             return Ok(post);
                         };
-                        break;
+                        continue;
                     },
                     Err(DatabaseError::NotFound(_)) => (),
                     Err(other_error) => return Err(other_error.into()),
@@ -264,24 +268,21 @@ pub async fn import_post(
             // ID of fetched object doesn't match requested ID
             // Add IDs to the map of redirects
             redirects.insert(object_id, object.id.clone());
-            maybe_object_id_to_fetch = Some(object.id.clone());
+            queue.push(object.id.clone());
             // Don't re-fetch object on the next iteration
             maybe_object = Some(object);
-        } else {
-            maybe_object_id_to_fetch = if let Some(ref object_id) = object.in_reply_to {
-                // Fetch parent object on next iteration
-                Some(object_id.to_owned())
-            } else if let Some(ref object_id) = object.quote_url {
-                // Fetch quoted object on next iteration
-                // (only if object doesn't have a parent).
-                Some(object_id.to_owned())
-            } else {
-                // Stop
-                None
-            };
-            maybe_object = None;
-            objects.push(object);
+            continue;
         };
+        if let Some(ref object_id) = object.in_reply_to {
+            // Fetch parent object on next iteration
+            queue.push(object_id.to_owned());
+        } else if let Some(ref object_id) = object.quote_url {
+            // Fetch quoted object on next iteration
+            // (only if object doesn't have a parent).
+            queue.insert(0, object_id.to_owned());
+        };
+        maybe_object = None;
+        objects.push(object);
     };
     let initial_object_id = objects[0].id.clone();
 
