@@ -20,6 +20,7 @@ use crate::models::profiles::types::{
 use crate::models::users::types::User;
 use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
+use crate::utils::urls::get_hostname;
 use super::attachments::{
     attach_extra_field,
     attach_identity_proof,
@@ -119,11 +120,8 @@ impl Actor {
     pub fn address(
         &self,
     ) -> Result<ActorAddress, ValidationError> {
-        let hostname = url::Url::parse(&self.id)
-            .map_err(|_| ValidationError("invalid actor ID"))?
-            .host_str()
-            .ok_or(ValidationError("invalid actor ID"))?
-            .to_owned();
+        let hostname = get_hostname(&self.id)
+            .map_err(|_| ValidationError("invalid actor ID"))?;
         let actor_address = ActorAddress {
             username: self.preferred_username.clone(),
             hostname: hostname,
