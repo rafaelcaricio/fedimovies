@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
 
 use actix_web::http::Method;
@@ -106,7 +106,7 @@ async fn deliver_activity_worker(
     if recipients.is_empty() {
         return Ok(());
     };
-    let mut inboxes: HashMap<String, bool> = HashMap::new();
+    let mut inboxes: BTreeMap<String, bool> = BTreeMap::new();
     for recipient in recipients {
         inboxes.insert(recipient.inbox, false);
     };
