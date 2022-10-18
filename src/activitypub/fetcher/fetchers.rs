@@ -10,6 +10,7 @@ use crate::activitypub::constants::AP_MEDIA_TYPE;
 use crate::config::Instance;
 use crate::http_signatures::create::{create_http_signature, SignatureError};
 use crate::utils::files::save_file;
+use crate::utils::urls::guess_protocol;
 use crate::webfinger::types::JsonResourceDescriptor;
 
 const FETCHER_CONNECTION_TIMEOUT: u64 = 30;
@@ -105,9 +106,9 @@ pub async fn perform_webfinger_query(
     actor_address: &ActorAddress,
 ) -> Result<String, FetchError> {
     let webfinger_account_uri = format!("acct:{}", actor_address);
-    // TOOD: support http
     let webfinger_url = format!(
-        "https://{}/.well-known/webfinger",
+        "{}://{}/.well-known/webfinger",
+        guess_protocol(&actor_address.hostname),
         actor_address.hostname,
     );
     let client = build_client()?;

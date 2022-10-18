@@ -16,6 +16,7 @@ use crate::utils::crypto::{
     serialize_private_key,
 };
 use crate::utils::files::{set_file_permissions, write_file};
+use crate::utils::urls::guess_protocol;
 
 use super::blockchain::BlockchainConfig;
 use super::environment::Environment;
@@ -113,10 +114,9 @@ pub struct Config {
 
 impl Config {
     fn try_instance_url(&self) -> Result<Url, ConversionError> {
-        // TODO: allow http in production
         let scheme = match self.environment {
             Environment::Development => "http",
-            Environment::Production => "https",
+            Environment::Production => guess_protocol(&self.instance_uri),
         };
         let url_str = format!("{}://{}", scheme, self.instance_uri);
         let url = Url::parse(&url_str).map_err(|_| ConversionError)?;
