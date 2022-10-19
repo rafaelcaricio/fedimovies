@@ -5,7 +5,7 @@ use tokio_postgres::GenericClient;
 use crate::activitypub::{
     activity::Activity,
     actors::types::Actor,
-    fetcher::fetchers::{fetch_actor_avatar, fetch_actor_banner},
+    fetcher::fetchers::fetch_actor_images,
     fetcher::helpers::ImportError,
     vocabulary::PERSON,
 };
@@ -57,16 +57,20 @@ pub async fn update_remote_profile(
             actor.public_key.public_key_pem,
         );
     };
-    let avatar = fetch_actor_avatar(&actor, media_dir, profile.avatar_file_name).await;
-    let banner = fetch_actor_banner(&actor, media_dir, profile.banner_file_name).await;
+    let (maybe_avatar, maybe_banner) = fetch_actor_images(
+        &actor,
+        media_dir,
+        profile.avatar_file_name,
+        profile.banner_file_name,
+    ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
     let mut profile_data = ProfileUpdateData {
         display_name: actor.name.clone(),
         bio: actor.summary.clone(),
         bio_source: actor.summary.clone(),
-        avatar,
-        banner,
+        avatar: maybe_avatar,
+        banner: maybe_banner,
         identity_proofs,
         payment_options,
         extra_fields,

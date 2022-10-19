@@ -144,50 +144,35 @@ pub async fn fetch_actor(
     Ok(actor)
 }
 
-pub async fn fetch_actor_avatar(
+pub async fn fetch_actor_images(
     actor: &Actor,
     media_dir: &Path,
-    default: Option<String>,
-) -> Option<String> {
-    match &actor.icon {
-        Some(icon) => {
-            match fetch_file(&icon.url, media_dir).await {
-                Ok((file_name, _)) => Some(file_name),
-                Err(error) => {
-                    log::warn!(
-                        "failed to fetch avatar for {} ({})",
-                        actor.id,
-                        error,
-                    );
-                    default
-                },
-            }
-        },
-        None => None,
-    }
-}
-
-pub async fn fetch_actor_banner(
-    actor: &Actor,
-    media_dir: &Path,
-    default: Option<String>,
-) -> Option<String> {
-    match &actor.image {
-        Some(image) => {
-            match fetch_file(&image.url, media_dir).await {
-                Ok((file_name, _)) => Some(file_name),
-                Err(error) => {
-                    log::warn!(
-                        "failed to fetch banner for {} ({})",
-                        actor.id,
-                        error,
-                    );
-                    default
-                },
-            }
-        },
-        None => None,
-    }
+    default_avatar: Option<String>,
+    default_banner: Option<String>,
+) -> (Option<String>, Option<String>) {
+    let maybe_avatar = if let Some(icon) = &actor.icon {
+        match fetch_file(&icon.url, media_dir).await {
+            Ok((file_name, _)) => Some(file_name),
+            Err(error) => {
+                log::warn!("failed to fetch avatar ({})", error);
+                default_avatar
+            },
+        }
+    } else {
+        None
+    };
+    let maybe_banner = if let Some(image) = &actor.image {
+        match fetch_file(&image.url, media_dir).await {
+            Ok((file_name, _)) => Some(file_name),
+            Err(error) => {
+                log::warn!("failed to fetch banner ({})", error);
+                default_banner
+            },
+        }
+    } else {
+        None
+    };
+    (maybe_avatar, maybe_banner)
 }
 
 pub async fn fetch_object(
