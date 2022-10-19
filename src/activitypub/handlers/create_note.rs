@@ -161,7 +161,11 @@ pub async fn handle_note(
             };
             let attachment_url = attachment.url
                 .ok_or(ValidationError("attachment URL is missing"))?;
-            let (file_name, media_type) = fetch_file(&attachment_url, media_dir).await
+            let (file_name, media_type) = fetch_file(
+                instance,
+                &attachment_url,
+                media_dir,
+            ).await
                 .map_err(|err| {
                     log::warn!("{}", err);
                     ValidationError("failed to fetch attachment")

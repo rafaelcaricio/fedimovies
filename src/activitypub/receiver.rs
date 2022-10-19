@@ -195,7 +195,7 @@ pub async fn receive_activity(
         },
         (UPDATE, PERSON) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            handle_update_person(db_client, &config.media_dir(), activity).await?
+            handle_update_person(config, db_client, activity).await?
         },
         (ADD, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;

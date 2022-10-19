@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::time::Duration;
 
-use reqwest::{Client, Method};
+use reqwest::{Client, Method, Proxy};
 use serde_json::Value;
 
 use crate::activitypub::activity::Object;
@@ -33,9 +33,14 @@ pub enum FetchError {
     OtherError(&'static str),
 }
 
-fn build_client() -> reqwest::Result<Client> {
+fn build_client(instance: &Instance) -> reqwest::Result<Client> {
+    let mut client_builder = Client::builder();
     let connect_timeout = Duration::from_secs(FETCHER_CONNECTION_TIMEOUT);
-    Client::builder()
+    if let Some(ref proxy_url) = instance.proxy_url {
+        let proxy = Proxy::all(proxy_url)?;
+        client_builder = client_builder.proxy(proxy);
+    };
+    client_builder
         .connect_timeout(connect_timeout)
         .build()
 }
@@ -46,7 +51,7 @@ async fn send_request(
     url: &str,
     query_params: &[(&str, &str)],
 ) -> Result<String, FetchError> {
-    let client = build_client()?;
+    let client = build_client(instance)?;
     let mut request_builder = client.get(url);
     if !query_params.is_empty() {
         request_builder = request_builder.query(query_params);
@@ -83,10 +88,11 @@ async fn send_request(
 const FILE_MAX_SIZE: u64 = 1024 * 1024 * 20;
 
 pub async fn fetch_file(
+    instance: &Instance,
     url: &str,
     output_dir: &Path,
 ) -> Result<(String, Option<String>), FetchError> {
-    let client = build_client()?;
+    let client = build_client(instance)?;
     let response = client.get(url).send().await?;
     if let Some(file_size) = response.content_length() {
         if file_size > FILE_MAX_SIZE {
@@ -111,7 +117,7 @@ pub async fn perform_webfinger_query(
         guess_protocol(&actor_address.hostname),
         actor_address.hostname,
     );
-    let client = build_client()?;
+    let client = build_client(instance)?;
     let mut request_builder = client.get(&webfinger_url);
     if !instance.is_private {
         // Public instance should set User-Agent header
@@ -145,13 +151,14 @@ pub async fn fetch_actor(
 }
 
 pub async fn fetch_actor_images(
+    instance: &Instance,
     actor: &Actor,
     media_dir: &Path,
     default_avatar: Option<String>,
     default_banner: Option<String>,
 ) -> (Option<String>, Option<String>) {
     let maybe_avatar = if let Some(icon) = &actor.icon {
-        match fetch_file(&icon.url, media_dir).await {
+        match fetch_file(instance, &icon.url, media_dir).await {
             Ok((file_name, _)) => Some(file_name),
             Err(error) => {
                 log::warn!("failed to fetch avatar ({})", error);
@@ -162,7 +169,7 @@ pub async fn fetch_actor_images(
         None
     };
     let maybe_banner = if let Some(image) = &actor.image {
-        match fetch_file(&image.url, media_dir).await {
+        match fetch_file(instance, &image.url, media_dir).await {
             Ok((file_name, _)) => Some(file_name),
             Err(error) => {
                 log::warn!("failed to fetch banner ({})", error);

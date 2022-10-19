@@ -135,7 +135,13 @@ impl RefetchActor {
             &self.id,
         ).await?;
         let actor = fetch_actor(&config.instance(), &self.id).await?;
-        update_remote_profile(db_client, &config.media_dir(), profile, actor).await?;
+        update_remote_profile(
+            db_client,
+            &config.instance(),
+            &config.media_dir(),
+            profile,
+            actor,
+        ).await?;
         println!("profile updated");
         Ok(())
     }

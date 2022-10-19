@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
 
 use actix_web::http::Method;
+use reqwest::{Client, Proxy};
 use rsa::RsaPrivateKey;
 use serde::Serialize;
 use tokio::time::sleep;
@@ -33,6 +34,15 @@ pub enum DelivererError {
     HttpError(reqwest::StatusCode),
 }
 
+fn build_client(instance: &Instance) -> reqwest::Result<Client> {
+    let mut client_builder = Client::builder();
+    if let Some(ref proxy_url) = instance.proxy_url {
+        let proxy = Proxy::all(proxy_url)?;
+        client_builder = client_builder.proxy(proxy);
+    };
+    client_builder.build()
+}
+
 async fn send_activity(
     instance: &Instance,
     actor_key: &RsaPrivateKey,
@@ -48,7 +58,7 @@ async fn send_activity(
         actor_key_id,
     )?;
 
-    let client = reqwest::Client::new();
+    let client = build_client(instance)?;
     let request = client.post(inbox_url)
         .header("Host", headers.host)
         .header("Date", headers.date)

@@ -98,6 +98,8 @@ pub struct Config {
     #[serde(default = "default_post_character_limit")]
     pub post_character_limit: usize,
 
+    proxy_url: Option<String>,
+
     #[serde(default)]
     pub blocked_instances: Vec<String>,
 
@@ -129,6 +131,7 @@ impl Config {
             _url: self.try_instance_url().unwrap(),
             _version: self.version.clone(),
             actor_key: self.instance_rsa_key.clone().unwrap(),
+            proxy_url: self.proxy_url.clone(),
             is_private: matches!(self.environment, Environment::Development),
         }
     }
@@ -160,6 +163,8 @@ pub struct Instance {
     _version: String,
     // Instance actor
     pub actor_key: RsaPrivateKey,
+    // Proxy for outgoing requests
+    pub proxy_url: Option<String>,
     // Private instance won't send signed HTTP requests
     pub is_private: bool,
 }
@@ -171,6 +176,7 @@ impl Instance {
             _url: url,
             _version: "0.0.0".to_string(),
             actor_key,
+            proxy_url: None,
             is_private: true,
         }
     }
@@ -289,6 +295,7 @@ mod tests {
             _url: instance_url,
             _version: "1.0.0".to_string(),
             actor_key: instance_rsa_key,
+            proxy_url: None,
             is_private: true,
         };
 
@@ -305,6 +312,7 @@ mod tests {
             _url: instance_url,
             _version: "1.0.0".to_string(),
             actor_key: instance_rsa_key,
+            proxy_url: None,
             is_private: true,
         };
 

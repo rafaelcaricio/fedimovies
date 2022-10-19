@@ -9,6 +9,7 @@ use crate::activitypub::{
     fetcher::helpers::ImportError,
     vocabulary::PERSON,
 };
+use crate::config::{Config, Instance};
 use crate::errors::ValidationError;
 use crate::models::profiles::queries::{
     get_profile_by_remote_actor_id,
@@ -18,8 +19,8 @@ use crate::models::profiles::types::{DbActorProfile, ProfileUpdateData};
 use super::HandlerResult;
 
 pub async fn handle_update_person(
+    config: &Config,
     db_client: &impl GenericClient,
-    media_dir: &Path,
     activity: Activity,
 ) -> HandlerResult {
     let actor: Actor = serde_json::from_value(activity.object)
@@ -31,13 +32,20 @@ pub async fn handle_update_person(
         db_client,
         &actor.id,
     ).await?;
-    update_remote_profile(db_client, media_dir, profile, actor).await?;
+    update_remote_profile(
+        db_client,
+        &config.instance(),
+        &config.media_dir(),
+        profile,
+        actor,
+    ).await?;
     Ok(Some(PERSON))
 }
 
 /// Updates remote actor's profile
 pub async fn update_remote_profile(
     db_client: &impl GenericClient,
+    instance: &Instance,
     media_dir: &Path,
     profile: DbActorProfile,
     actor: Actor,
@@ -58,6 +66,7 @@ pub async fn update_remote_profile(
         );
     };
     let (maybe_avatar, maybe_banner) = fetch_actor_images(
+        instance,
         &actor,
         media_dir,
         profile.avatar_file_name,

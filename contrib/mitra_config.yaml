@@ -23,6 +23,9 @@ registrations_open: false
 
 #post_character_limit: 2000
 
+# Proxy for outgoing requests
+#proxy_url: 'socks5h://127.0.0.1:9050'
+
 # List of blocked domains
 #blocked_instances: []
 

@@ -70,6 +70,7 @@ async fn create_remote_profile(
         return Err(ImportError::LocalObject);
     };
     let (maybe_avatar, maybe_banner) = fetch_actor_images(
+        instance,
         &actor,
         media_dir,
         None,
@@ -115,6 +116,7 @@ pub async fn get_or_import_profile_by_actor_id(
                         log::info!("re-fetched profile {}", profile.acct);
                         let profile_updated = update_remote_profile(
                             db_client,
+                            instance,
                             media_dir,
                             profile,
                             actor,
@@ -143,6 +145,7 @@ pub async fn get_or_import_profile_by_actor_id(
                     log::info!("re-fetched profile {}", profile.acct);
                     let profile_updated = update_remote_profile(
                         db_client,
+                        instance,
                         media_dir,
                         profile,
                         actor,

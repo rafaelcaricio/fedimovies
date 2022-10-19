@@ -17,7 +17,7 @@ pub fn guess_protocol(hostname: &str) -> &'static str {
     let maybe_ipv6_address = hostname.parse::<Ipv6Addr>();
     if let Ok(ipv6_address) = maybe_ipv6_address {
         let prefix = ipv6_address.segments()[0];
-        if prefix >= 0x0200 && prefix <= 0x03ff {
+        if (0x0200..=0x03ff).contains(&prefix) {
             // Yggdrasil
             return "http";
         };
