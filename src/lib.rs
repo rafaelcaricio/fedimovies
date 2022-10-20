@@ -9,6 +9,7 @@ mod frontend;
 pub mod http;
 mod http_signatures;
 mod ipfs;
+mod json_signatures;
 pub mod logger;
 pub mod mastodon_api;
 mod models;

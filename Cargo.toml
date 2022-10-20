@@ -62,6 +62,8 @@ secp256k1 = { version = "0.21.3", features = ["rand", "rand-std"] }
 # Used for serialization/deserialization
 serde = { version = "1.0.136", features = ["derive"] }
 serde_json = "1.0"
+# Used to create JCS representations
+serde_jcs = "0.1.0"
 # Used to parse config file
 serde_yaml = "0.8.17"
 # Used to calculate SHA2 hashes

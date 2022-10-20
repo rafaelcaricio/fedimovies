@@ -12,6 +12,10 @@ use crate::http_signatures::create::{
     create_http_signature,
     HttpSignatureError,
 };
+use crate::json_signatures::create::{
+    sign_object,
+    JsonSignatureError,
+};
 use crate::models::users::types::User;
 use crate::utils::crypto::deserialize_private_key;
 use crate::utils::urls::get_hostname;
@@ -26,6 +30,9 @@ pub enum DelivererError {
 
     #[error(transparent)]
     HttpSignatureError(#[from] HttpSignatureError),
+
+    #[error(transparent)]
+    JsonSignatureError(#[from] JsonSignatureError),
 
     #[error("activity serialization error")]
     SerializationError(#[from] serde_json::Error),
@@ -115,7 +122,8 @@ async fn deliver_activity_worker(
         ),
         ACTOR_KEY_SUFFIX,
     );
-    let activity_json = serde_json::to_string(&activity)?;
+    let activity_signed = sign_object(&activity, &actor_key, &actor_key_id)?;
+    let activity_json = serde_json::to_string(&activity_signed)?;
     if recipients.is_empty() {
         return Ok(());
     };
