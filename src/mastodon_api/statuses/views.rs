@@ -148,9 +148,6 @@ async fn create_status(
         };
     };
     if post_data.links.len() > 0 {
-        if post_data.in_reply_to_id.is_some() {
-            return Err(ValidationError("can't add links to reply").into());
-        };
         if post_data.visibility != Visibility::Public {
             return Err(ValidationError("can't add links to non-public posts").into());
         };
