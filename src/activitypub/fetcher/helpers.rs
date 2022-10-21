@@ -69,6 +69,11 @@ async fn create_remote_profile(
     if actor_address.is_local(&instance.host()) {
         return Err(ImportError::LocalObject);
     };
+    let maybe_also_known_as = actor.also_known_as.as_ref()
+        .and_then(|aliases| aliases.first());
+    if let Some(ref also_known_as) = maybe_also_known_as {
+        log::warn!("actor also known as {}", also_known_as);
+    };
     let (maybe_avatar, maybe_banner) = fetch_actor_images(
         instance,
         &actor,

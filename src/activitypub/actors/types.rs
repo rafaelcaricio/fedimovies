@@ -110,6 +110,9 @@ pub struct Actor {
     pub summary: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub also_known_as: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub attachment: Option<Vec<ActorAttachment>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -295,6 +298,7 @@ pub fn get_local_actor(
         icon: avatar,
         image: banner,
         summary: user.profile.bio.clone(),
+        also_known_as: None,
         attachment: Some(attachments),
         url: Some(actor_id),
     };
@@ -331,6 +335,7 @@ pub fn get_instance_actor(
         icon: None,
         image: None,
         summary: None,
+        also_known_as: None,
         attachment: None,
         url: None,
     };
