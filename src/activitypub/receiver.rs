@@ -15,6 +15,7 @@ use super::handlers::{
     delete::handle_delete,
     follow::handle_follow,
     like::handle_like,
+    move_person::handle_move_person,
     reject_follow::handle_reject_follow,
     remove::handle_remove,
     undo::handle_undo,
@@ -196,6 +197,10 @@ pub async fn receive_activity(
         (UPDATE, PERSON) => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_update_person(config, db_client, activity).await?
+        },
+        (MOVE, _) => {
+            require_actor_signature(&activity.actor, &signer_id)?;
+            handle_move_person(config, db_client, activity).await?
         },
         (ADD, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;

@@ -16,6 +16,7 @@ The following activities are supported:
 - Update(Note)
 - Follow(Person)
 - Update(Person)
+- Move(Person)
 - Delete(Person)
 - Add(Person)
 - Remove(Person)

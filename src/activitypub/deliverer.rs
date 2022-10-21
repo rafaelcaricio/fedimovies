@@ -187,11 +187,15 @@ impl<A: Serialize + Send + 'static> OutgoingActivity<A> {
         ).await
     }
 
+    pub async fn deliver_or_log(self) -> () {
+        self.deliver().await.unwrap_or_else(|err| {
+            log::error!("{}", err);
+        });
+    }
+
     pub fn spawn_deliver(self) -> () {
         tokio::spawn(async move {
-            self.deliver().await.unwrap_or_else(|err| {
-                log::error!("{}", err);
-            });
+            self.deliver_or_log().await;
         });
     }
 }

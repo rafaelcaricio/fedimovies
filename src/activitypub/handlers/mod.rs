@@ -10,6 +10,7 @@ pub mod create_note;
 pub mod delete;
 pub mod follow;
 pub mod like;
+pub mod move_person;
 pub mod reject_follow;
 pub mod remove;
 pub mod undo;
