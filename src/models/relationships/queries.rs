@@ -125,10 +125,13 @@ pub async fn unfollow(
         return Err(DatabaseError::NotFound("relationship"));
     };
     if relationship_deleted {
-        // Update counters only if relationship exists
+        // Also reset repost and reply visibility settings
+        show_reposts(&transaction, source_id, target_id).await?;
+        show_replies(&transaction, source_id, target_id).await?;
+        // Update counters only if relationship existed
         update_follower_count(&transaction, target_id, -1).await?;
         update_following_count(&transaction, source_id, -1).await?;
-    }
+    };
     transaction.commit().await?;
     Ok(follow_request_deleted)
 }
