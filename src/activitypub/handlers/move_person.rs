@@ -13,6 +13,7 @@ use crate::activitypub::{
 use crate::config::Config;
 use crate::errors::{DatabaseError, ValidationError};
 use crate::models::{
+    notifications::queries::create_move_notification,
     relationships::queries::{
         create_follow_request,
         get_followers,
@@ -92,6 +93,11 @@ pub async fn handle_move_person(
             Err(DatabaseError::AlreadyExists(_)) => (), // already following
             Err(other_error) => return Err(other_error.into()),
         };
+        create_move_notification(
+            db_client,
+            &new_profile.id,
+            &follower.id,
+        ).await?;
     };
     tokio::spawn(async move {
         for activity in activities {

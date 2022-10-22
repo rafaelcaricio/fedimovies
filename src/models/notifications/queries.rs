@@ -116,6 +116,17 @@ pub async fn create_subscription_expiration_notification(
     ).await
 }
 
+pub async fn create_move_notification(
+    db_client: &impl GenericClient,
+    sender_id: &Uuid,
+    recipient_id: &Uuid,
+) -> Result<(), DatabaseError> {
+    create_notification(
+        db_client, sender_id, recipient_id, None,
+        EventType::Move,
+    ).await
+}
+
 pub async fn get_notifications(
     db_client: &impl GenericClient,
     recipient_id: &Uuid,

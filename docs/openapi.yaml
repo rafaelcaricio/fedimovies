@@ -1162,6 +1162,7 @@ components:
             - reblog
             - subscription
             - subscription_expiration
+            - move
           example: reply
         created_at:
           description: The timestamp of the notification.
