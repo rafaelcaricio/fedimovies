@@ -219,7 +219,7 @@ pub async fn get_note_recipients(
 
 pub async fn prepare_create_note(
     db_client: &impl GenericClient,
-    instance: Instance,
+    instance: &Instance,
     author: &User,
     post: &Post,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
@@ -231,7 +231,7 @@ pub async fn prepare_create_note(
     );
     let recipients = get_note_recipients(db_client, author, post).await?;
     Ok(OutgoingActivity {
-        instance,
+        instance: instance.clone(),
         sender: author.clone(),
         activity,
         recipients,

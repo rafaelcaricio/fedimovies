@@ -43,8 +43,8 @@ fn build_undo_announce(
 
 pub async fn prepare_undo_announce_note(
     db_client: &impl GenericClient,
-    instance: Instance,
-    user: &User,
+    instance: &Instance,
+    sender: &User,
     post: &Post,
     repost_id: &Uuid,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
@@ -52,18 +52,18 @@ pub async fn prepare_undo_announce_note(
     let (recipients, primary_recipient) = get_announce_note_recipients(
         db_client,
         &instance.url(),
-        user,
+        sender,
         post,
     ).await?;
     let activity = build_undo_announce(
         &instance.url(),
-        &user.profile,
+        &sender.profile,
         repost_id,
         &primary_recipient,
     );
     Ok(OutgoingActivity {
-        instance,
-        sender: user.clone(),
+        instance: instance.clone(),
+        sender: sender.clone(),
         activity,
         recipients,
     })

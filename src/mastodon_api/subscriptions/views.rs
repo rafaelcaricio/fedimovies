@@ -142,7 +142,7 @@ pub async fn register_subscription_option(
         ).await?;
 
         // Federate
-        prepare_update_person(db_client, config.instance(), &current_user)
+        prepare_update_person(db_client, &config.instance(), &current_user)
             .await?.spawn_deliver();
     };
 

@@ -64,8 +64,8 @@ pub async fn get_like_note_recipients(
 
 pub async fn prepare_like_note(
     db_client: &impl GenericClient,
-    instance: Instance,
-    user: &User,
+    instance: &Instance,
+    sender: &User,
     post: &Post,
     reaction_id: &Uuid,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
@@ -78,15 +78,15 @@ pub async fn prepare_like_note(
     let note_author_id = post.author.actor_id(&instance.url());
     let activity = build_like_note(
         &instance.url(),
-        &user.profile,
+        &sender.profile,
         &note_id,
         reaction_id,
         &note_author_id,
         &post.visibility,
     );
     Ok(OutgoingActivity {
-        instance,
-        sender: user.clone(),
+        instance: instance.clone(),
+        sender: sender.clone(),
         activity,
         recipients,
     })

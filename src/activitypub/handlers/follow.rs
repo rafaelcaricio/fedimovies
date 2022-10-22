@@ -42,7 +42,7 @@ pub async fn handle_follow(
 
     // Send activity
     prepare_accept_follow(
-        config.instance(),
+        &config.instance(),
         &target_user,
         &source_actor,
         &activity.id,

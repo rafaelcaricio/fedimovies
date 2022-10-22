@@ -77,25 +77,25 @@ pub async fn get_announce_note_recipients(
 
 pub async fn prepare_announce_note(
     db_client: &impl GenericClient,
-    instance: Instance,
-    user: &User,
+    instance: &Instance,
+    sender: &User,
     repost: &Post,
 ) -> Result<OutgoingActivity<Announce>, DatabaseError> {
     let post = repost.repost_of.as_ref().unwrap();
     let (recipients, _) = get_announce_note_recipients(
         db_client,
         &instance.url(),
-        user,
+        sender,
         post,
     ).await?;
     let activity = build_announce_note(
         &instance.url(),
-        &user.profile.username,
+        &sender.profile.username,
         repost,
     );
     Ok(OutgoingActivity {
-        instance,
-        sender: user.clone(),
+        instance: instance.clone(),
+        sender: sender.clone(),
         activity,
         recipients,
     })

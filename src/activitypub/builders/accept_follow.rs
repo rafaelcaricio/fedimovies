@@ -40,21 +40,21 @@ fn build_accept_follow(
 }
 
 pub fn prepare_accept_follow(
-    instance: Instance,
-    user: &User,
+    instance: &Instance,
+    sender: &User,
     source_actor: &Actor,
     follow_activity_id: &str,
 ) -> OutgoingActivity<Activity> {
     let activity = build_accept_follow(
         &instance.url(),
-        &user.profile,
+        &sender.profile,
         &source_actor.id,
         follow_activity_id,
     );
     let recipients = vec![source_actor.clone()];
     OutgoingActivity {
-        instance,
-        sender: user.clone(),
+        instance: instance.clone(),
+        sender: sender.clone(),
         activity,
         recipients,
     }

@@ -164,7 +164,7 @@ impl DeleteProfile {
         if profile.is_local() {
             let user = get_user_by_id(db_client, &profile.id).await?;
             let activity =
-                prepare_delete_person(db_client, config.instance(), &user).await?;
+                prepare_delete_person(db_client, &config.instance(), &user).await?;
             maybe_delete_person = Some(activity);
         };
         let deletion_queue = delete_profile(db_client, &profile.id).await?;
@@ -196,7 +196,7 @@ impl DeletePost {
             let author = get_user_by_id(db_client, &post.author.id).await?;
             let activity = prepare_delete_note(
                 db_client,
-                config.instance(),
+                &config.instance(),
                 &author,
                 &post,
             ).await?;

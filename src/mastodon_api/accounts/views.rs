@@ -198,7 +198,7 @@ async fn update_credentials(
     ).await?;
 
     // Federate
-    prepare_update_person(db_client, config.instance(), &current_user).await?
+    prepare_update_person(db_client, &config.instance(), &current_user).await?
         .spawn_deliver();
 
     let account = Account::from_user(current_user, &config.instance_url());
@@ -275,7 +275,7 @@ async fn create_identity_proof(
     ).await?;
 
     // Federate
-    prepare_update_person(db_client, config.instance(), &current_user).await?
+    prepare_update_person(db_client, &config.instance(), &current_user).await?
         .spawn_deliver();
 
     let account = Account::from_user(current_user, &config.instance_url());
@@ -358,7 +358,7 @@ async fn follow_account(
         match create_follow_request(db_client, &current_user.id, &target.id).await {
             Ok(follow_request) => {
                 prepare_follow(
-                    config.instance(),
+                    &config.instance(),
                     &current_user,
                     &remote_actor,
                     &follow_request.id,
@@ -408,7 +408,7 @@ async fn unfollow_account(
             let remote_actor = target.actor_json
                 .ok_or(HttpError::InternalError)?;
             prepare_undo_follow(
-                config.instance(),
+                &config.instance(),
                 &current_user,
                 &remote_actor,
                 &follow_request_id,

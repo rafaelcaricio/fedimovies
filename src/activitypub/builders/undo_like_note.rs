@@ -41,8 +41,8 @@ fn build_undo_like(
 
 pub async fn prepare_undo_like_note(
     db_client: &impl GenericClient,
-    instance: Instance,
-    user: &User,
+    instance: &Instance,
+    sender: &User,
     post: &Post,
     reaction_id: &Uuid,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
@@ -54,14 +54,14 @@ pub async fn prepare_undo_like_note(
     let note_author_id = post.author.actor_id(&instance.url());
     let activity = build_undo_like(
         &instance.url(),
-        &user.profile,
+        &sender.profile,
         reaction_id,
         &note_author_id,
         &post.visibility,
     );
     Ok(OutgoingActivity {
-        instance,
-        sender: user.clone(),
+        instance: instance.clone(),
+        sender: sender.clone(),
         activity,
         recipients,
     })

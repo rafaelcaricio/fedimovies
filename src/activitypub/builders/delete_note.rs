@@ -49,7 +49,7 @@ fn build_delete_note(
 
 pub async fn prepare_delete_note(
     db_client: &impl GenericClient,
-    instance: Instance,
+    instance: &Instance,
     author: &User,
     post: &Post,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
@@ -63,7 +63,7 @@ pub async fn prepare_delete_note(
     );
     let recipients = get_note_recipients(db_client, author, &post).await?;
     Ok(OutgoingActivity {
-        instance,
+        instance: instance.clone(),
         sender: author.clone(),
         activity,
         recipients,

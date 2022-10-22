@@ -194,7 +194,7 @@ async fn create_status(
     });
     post.linked = linked;
     // Federate
-    prepare_create_note(db_client, instance.clone(), &current_user, &post).await?
+    prepare_create_note(db_client, &instance, &current_user, &post).await?
         .spawn_deliver();
 
     let status = Status::from_post(post, &instance.url());
@@ -241,7 +241,7 @@ async fn delete_status(
     };
     let delete_note = prepare_delete_note(
         db_client,
-        config.instance(),
+        &config.instance(),
         &current_user,
         &post,
     ).await?;
@@ -308,7 +308,7 @@ async fn favourite(
         // Federate
         prepare_like_note(
             db_client,
-            config.instance(),
+            &config.instance(),
             &current_user,
             &post,
             &reaction.id,
@@ -349,7 +349,7 @@ async fn unfavourite(
         // Federate
         prepare_undo_like_note(
             db_client,
-            config.instance(),
+            &config.instance(),
             &current_user,
             &post,
             &reaction_id,
@@ -386,7 +386,7 @@ async fn reblog(
     // Federate
     prepare_announce_note(
         db_client,
-        config.instance(),
+        &config.instance(),
         &current_user,
         &repost,
     ).await?.spawn_deliver();
@@ -422,7 +422,7 @@ async fn unreblog(
     // Federate
     prepare_undo_announce_note(
         db_client,
-        config.instance(),
+        &config.instance(),
         &current_user,
         &post,
         repost_id,
