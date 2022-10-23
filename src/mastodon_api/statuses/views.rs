@@ -147,10 +147,8 @@ async fn create_status(
             linked.push(post);
         };
     };
-    if post_data.links.len() > 0 {
-        if post_data.visibility != Visibility::Public {
-            return Err(ValidationError("can't add links to non-public posts").into());
-        };
+    if post_data.links.len() > 0 && post_data.visibility != Visibility::Public {
+        return Err(ValidationError("can't add links to non-public posts").into());
     };
     if post_data.links.len() > 3 {
         return Err(ValidationError("too many links").into());

@@ -6,6 +6,7 @@ use actix_web::{
 };
 use chrono::{DateTime, TimeZone, Utc};
 use regex::Regex;
+use rsa::RsaPublicKey;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::fetcher::helpers::{
@@ -45,7 +46,7 @@ pub enum VerificationError {
     InvalidSignature,
 }
 
-struct SignatureData {
+struct HttpSignatureData {
     pub key_id: String,
     pub message: String, // reconstructed message
     pub signature: String, // base64-encoded signature
@@ -58,7 +59,7 @@ fn parse_http_signature(
     request_method: &Method,
     request_uri: &Uri,
     request_headers: &HeaderMap,
-) -> Result<SignatureData, VerificationError> {
+) -> Result<HttpSignatureData, VerificationError> {
     let signature_header = request_headers.get("signature")
         .ok_or(VerificationError::HeaderError("missing signature header"))?
         .to_str()
@@ -119,13 +120,31 @@ fn parse_http_signature(
     };
     let message = message_parts.join("\n");
 
-    let signature_data = SignatureData {
+    let signature_data = HttpSignatureData {
         key_id,
         message,
         signature,
         created_at: maybe_created_at,
     };
     Ok(signature_data)
+}
+
+fn verify_http_signature(
+    signature_data: &HttpSignatureData,
+    signer_key: &RsaPublicKey,
+) -> Result<(), VerificationError> {
+    if signature_data.created_at.is_none() {
+        log::warn!("signature creation time is missing");
+    };
+    let is_valid_signature = verify_signature(
+        signer_key,
+        &signature_data.message,
+        &signature_data.signature,
+    )?;
+    if !is_valid_signature {
+        return Err(VerificationError::InvalidSignature);
+    };
+    Ok(())
 }
 
 fn key_id_to_actor_id(key_id: &str) -> Result<String, url::ParseError> {
@@ -138,7 +157,7 @@ fn key_id_to_actor_id(key_id: &str) -> Result<String, url::ParseError> {
 }
 
 /// Verifies HTTP signature and returns signer
-pub async fn verify_http_signature(
+pub async fn verify_signed_request(
     config: &Config,
     db_client: &impl GenericClient,
     request: &HttpRequest,
@@ -149,9 +168,6 @@ pub async fn verify_http_signature(
         request.uri(),
         request.headers(),
     )?;
-    if signature_data.created_at.is_none() {
-        log::warn!("signature creation time is missing");
-    };
 
     let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
     let actor_profile = if no_fetch {
@@ -172,16 +188,10 @@ pub async fn verify_http_signature(
     };
     let actor = actor_profile.actor_json.as_ref()
         .ok_or(VerificationError::ActorError("invalid profile".to_string()))?;
-
     let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
-    let is_valid_signature = verify_signature(
-        &public_key,
-        &signature_data.message,
-        &signature_data.signature,
-    )?;
-    if !is_valid_signature {
-        return Err(VerificationError::InvalidSignature);
-    };
+
+    verify_http_signature(&signature_data, &public_key)?;
+
     Ok(actor_profile)
 }
 

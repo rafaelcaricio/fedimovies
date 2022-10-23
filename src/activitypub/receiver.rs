@@ -5,7 +5,7 @@ use tokio_postgres::GenericClient;
 
 use crate::config::Config;
 use crate::errors::{ConversionError, HttpError, ValidationError};
-use crate::http_signatures::verify::verify_http_signature;
+use crate::http_signatures::verify::verify_signed_request;
 use super::activity::{Activity, Object};
 use super::fetcher::helpers::import_post;
 use super::handlers::{
@@ -119,7 +119,7 @@ pub async fn receive_activity(
         activity.actor == object_id
     } else { false };
     // Don't fetch signer if this is Delete(Person) activity
-    let signer = match verify_http_signature(config, db_client, request, is_self_delete).await {
+    let signer = match verify_signed_request(config, db_client, request, is_self_delete).await {
         Ok(signer) => signer,
         Err(error) => {
             if is_self_delete {

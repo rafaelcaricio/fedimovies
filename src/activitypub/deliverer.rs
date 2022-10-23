@@ -8,7 +8,10 @@ use serde::Serialize;
 use tokio::time::sleep;
 
 use crate::config::Instance;
-use crate::http_signatures::create::{create_http_signature, SignatureError};
+use crate::http_signatures::create::{
+    create_http_signature,
+    HttpSignatureError,
+};
 use crate::models::users::types::User;
 use crate::utils::crypto::deserialize_private_key;
 use crate::utils::urls::get_hostname;
@@ -22,7 +25,7 @@ pub enum DelivererError {
     KeyDeserializationError(#[from] rsa::pkcs8::Error),
 
     #[error(transparent)]
-    SignatureError(#[from] SignatureError),
+    HttpSignatureError(#[from] HttpSignatureError),
 
     #[error("activity serialization error")]
     SerializationError(#[from] serde_json::Error),

@@ -8,7 +8,10 @@ use crate::activitypub::activity::Object;
 use crate::activitypub::actors::types::{Actor, ActorAddress};
 use crate::activitypub::constants::AP_MEDIA_TYPE;
 use crate::config::Instance;
-use crate::http_signatures::create::{create_http_signature, SignatureError};
+use crate::http_signatures::create::{
+    create_http_signature,
+    HttpSignatureError,
+};
 use crate::utils::files::save_file;
 use crate::utils::urls::guess_protocol;
 use crate::webfinger::types::JsonResourceDescriptor;
@@ -18,7 +21,7 @@ const FETCHER_CONNECTION_TIMEOUT: u64 = 30;
 #[derive(thiserror::Error, Debug)]
 pub enum FetchError {
     #[error(transparent)]
-    SignatureError(#[from] SignatureError),
+    SignatureError(#[from] HttpSignatureError),
 
     #[error(transparent)]
     RequestError(#[from] reqwest::Error),

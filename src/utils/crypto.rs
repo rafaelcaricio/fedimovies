@@ -78,7 +78,7 @@ pub fn sign_message(
 pub fn get_message_digest(message: &str) -> String {
     let digest = Sha256::digest(message.as_bytes());
     let digest_b64 = base64::encode(digest);
-    format!("SHA-256={}", digest_b64)
+    digest_b64
 }
 
 pub fn verify_signature(
