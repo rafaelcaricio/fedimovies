@@ -6,7 +6,6 @@ use crate::activitypub::{
     activity::Activity,
     actors::types::Actor,
     fetcher::fetchers::fetch_actor_images,
-    fetcher::helpers::ImportError,
     vocabulary::PERSON,
 };
 use crate::config::{Config, Instance};
@@ -16,7 +15,7 @@ use crate::models::profiles::queries::{
     update_profile,
 };
 use crate::models::profiles::types::{DbActorProfile, ProfileUpdateData};
-use super::HandlerResult;
+use super::{HandlerError, HandlerResult};
 
 pub async fn handle_update_person(
     config: &Config,
@@ -49,8 +48,8 @@ pub async fn update_remote_profile(
     media_dir: &Path,
     profile: DbActorProfile,
     actor: Actor,
-) -> Result<DbActorProfile, ImportError> {
-    let actor_old = profile.actor_json.ok_or(ImportError::LocalObject)?;
+) -> Result<DbActorProfile, HandlerError> {
+    let actor_old = profile.actor_json.ok_or(HandlerError::LocalObject)?;
     if actor_old.id != actor.id {
         log::warn!(
             "actor ID changed from {} to {}",

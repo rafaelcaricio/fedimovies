@@ -2,7 +2,6 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::Activity,
-    fetcher::helpers::ImportError,
     identifiers::parse_local_actor_id,
     receiver::find_object_id,
     vocabulary::PERSON,
@@ -15,7 +14,7 @@ use crate::models::notifications::queries::{
 use crate::models::profiles::queries::get_profile_by_remote_actor_id;
 use crate::models::relationships::queries::unsubscribe;
 use crate::models::users::queries::get_user_by_name;
-use super::HandlerResult;
+use super::{HandlerError, HandlerResult};
 
 pub async fn handle_remove(
     config: &Config,
@@ -26,7 +25,7 @@ pub async fn handle_remove(
         db_client,
         &activity.actor,
     ).await?;
-    let actor = actor_profile.actor_json.ok_or(ImportError::LocalObject)?;
+    let actor = actor_profile.actor_json.ok_or(HandlerError::LocalObject)?;
     let target_value = activity.target.ok_or(ValidationError("target is missing"))?;
     let target_id = find_object_id(&target_value)?;
     if Some(target_id) == actor.subscribers {

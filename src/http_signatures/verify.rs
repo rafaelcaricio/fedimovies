@@ -9,9 +9,9 @@ use regex::Regex;
 use rsa::RsaPublicKey;
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::fetcher::helpers::{
-    get_or_import_profile_by_actor_id,
-    ImportError,
+use crate::activitypub::{
+    fetcher::helpers::get_or_import_profile_by_actor_id,
+    handlers::HandlerError,
 };
 use crate::config::Config;
 use crate::errors::DatabaseError;
@@ -183,7 +183,7 @@ pub async fn verify_signed_request(
             &actor_id,
         ).await {
             Ok(profile) => profile,
-            Err(ImportError::DatabaseError(error)) => return Err(error.into()),
+            Err(HandlerError::DatabaseError(error)) => return Err(error.into()),
             Err(other_error) => {
                 return Err(VerificationError::ActorError(other_error.to_string()));
             },

@@ -3,16 +3,18 @@ use std::path::Path;
 
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::activity::Object;
-use crate::activitypub::actors::types::{Actor, ActorAddress};
-use crate::activitypub::handlers::{
-    create_note::handle_note,
-    update_person::update_remote_profile,
+use crate::activitypub::{
+    activity::Object,
+    actors::types::{Actor, ActorAddress},
+    handlers::{
+        create_note::handle_note,
+        update_person::update_remote_profile,
+    },
+    identifiers::parse_local_object_id,
+    receiver::HandlerError,
 };
-use crate::activitypub::identifiers::parse_local_object_id;
 use crate::config::{Config, Instance};
-use crate::errors::{DatabaseError, HttpError, ValidationError};
-use crate::http_signatures::verify::VerificationError;
+use crate::errors::{DatabaseError, ValidationError};
 use crate::models::posts::queries::{
     get_post_by_id,
     get_post_by_remote_object_id,
@@ -29,52 +31,17 @@ use super::fetchers::{
     fetch_actor_images,
     fetch_object,
     perform_webfinger_query,
-    FetchError,
 };
-
-#[derive(thiserror::Error, Debug)]
-pub enum ImportError {
-    #[error("local object")]
-    LocalObject,
-
-    #[error(transparent)]
-    FetchError(#[from] FetchError),
-
-    #[error(transparent)]
-    ValidationError(#[from] ValidationError),
-
-    #[error(transparent)]
-    DatabaseError(#[from] DatabaseError),
-
-    #[error(transparent)]
-    AuthError(#[from] VerificationError),
-}
-
-impl From<ImportError> for HttpError {
-    fn from(error: ImportError) -> Self {
-        match error {
-            ImportError::LocalObject => HttpError::InternalError,
-            ImportError::FetchError(error) => {
-                HttpError::ValidationError(error.to_string())
-            },
-            ImportError::ValidationError(error) => error.into(),
-            ImportError::DatabaseError(error) => error.into(),
-            ImportError::AuthError(_) => {
-                HttpError::AuthError("invalid signature")
-            },
-        }
-    }
-}
 
 async fn create_remote_profile(
     db_client: &impl GenericClient,
     instance: &Instance,
     media_dir: &Path,
     actor: Actor,
-) -> Result<DbActorProfile, ImportError> {
+) -> Result<DbActorProfile, HandlerError> {
     let actor_address = actor.address()?;
     if actor_address.is_local(&instance.host()) {
-        return Err(ImportError::LocalObject);
+        return Err(HandlerError::LocalObject);
     };
     let maybe_also_known_as = actor.also_known_as.as_ref()
         .and_then(|aliases| aliases.first());
@@ -112,9 +79,9 @@ pub async fn get_or_import_profile_by_actor_id(
     instance: &Instance,
     media_dir: &Path,
     actor_id: &str,
-) -> Result<DbActorProfile, ImportError> {
+) -> Result<DbActorProfile, HandlerError> {
     if actor_id.starts_with(&instance.url()) {
-        return Err(ImportError::LocalObject);
+        return Err(HandlerError::LocalObject);
     };
     let profile = match get_profile_by_remote_actor_id(
         db_client,
@@ -188,9 +155,9 @@ pub async fn import_profile_by_actor_address(
     instance: &Instance,
     media_dir: &Path,
     actor_address: &ActorAddress,
-) -> Result<DbActorProfile, ImportError> {
+) -> Result<DbActorProfile, HandlerError> {
     if actor_address.hostname == instance.host() {
-        return Err(ImportError::LocalObject);
+        return Err(HandlerError::LocalObject);
     };
     let actor_id = perform_webfinger_query(instance, actor_address).await?;
     let actor = fetch_actor(instance, &actor_id).await?;
@@ -218,11 +185,11 @@ pub async fn import_post(
     db_client: &mut impl GenericClient,
     object_id: String,
     object_received: Option<Object>,
-) -> Result<Post, ImportError> {
+) -> Result<Post, HandlerError> {
     let instance = config.instance();
     let media_dir = config.media_dir();
     if parse_local_object_id(&instance.url(), &object_id).is_ok() {
-        return Err(ImportError::LocalObject);
+        return Err(HandlerError::LocalObject);
     };
 
     let mut queue = vec![object_id]; // LIFO queue

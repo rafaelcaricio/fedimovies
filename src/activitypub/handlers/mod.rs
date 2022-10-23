@@ -1,7 +1,7 @@
-use super::fetcher::helpers::ImportError;
+pub use super::receiver::HandlerError;
 // Handlers should return object type if activity has been accepted
 // or None if it has been ignored
-pub type HandlerResult = Result<Option<&'static str>, ImportError>;
+pub type HandlerResult = Result<Option<&'static str>, HandlerError>;
 
 pub mod accept_follow;
 pub mod add;

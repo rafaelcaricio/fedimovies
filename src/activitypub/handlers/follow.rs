@@ -3,7 +3,7 @@ use tokio_postgres::GenericClient;
 use crate::activitypub::{
     activity::Activity,
     builders::accept_follow::prepare_accept_follow,
-    fetcher::helpers::{get_or_import_profile_by_actor_id, ImportError},
+    fetcher::helpers::get_or_import_profile_by_actor_id,
     identifiers::parse_local_actor_id,
     receiver::find_object_id,
     vocabulary::PERSON,
@@ -12,7 +12,7 @@ use crate::config::Config;
 use crate::errors::DatabaseError;
 use crate::models::relationships::queries::follow;
 use crate::models::users::queries::get_user_by_name;
-use super::HandlerResult;
+use super::{HandlerError, HandlerResult};
 
 pub async fn handle_follow(
     config: &Config,
@@ -26,7 +26,7 @@ pub async fn handle_follow(
         &activity.actor,
     ).await?;
     let source_actor = source_profile.actor_json
-        .ok_or(ImportError::LocalObject)?;
+        .ok_or(HandlerError::LocalObject)?;
     let target_actor_id = find_object_id(&activity.object)?;
     let target_username = parse_local_actor_id(
         &config.instance_url(),

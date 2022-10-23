@@ -4,13 +4,21 @@ use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::config::Config;
-use crate::errors::{ConversionError, ValidationError};
+use crate::errors::{
+    ConversionError,
+    DatabaseError,
+    HttpError,
+    ValidationError,
+};
 use crate::http_signatures::verify::{
     verify_signed_request,
     VerificationError,
 };
 use super::activity::{Activity, Object};
-use super::fetcher::helpers::{import_post, ImportError};
+use super::fetcher::{
+    fetchers::FetchError,
+    helpers::import_post,
+};
 use super::handlers::{
     accept_follow::handle_accept_follow,
     add::handle_add,
@@ -27,6 +35,40 @@ use super::handlers::{
     update_person::handle_update_person,
 };
 use super::vocabulary::*;
+
+#[derive(thiserror::Error, Debug)]
+pub enum HandlerError {
+    #[error("local object")]
+    LocalObject,
+
+    #[error(transparent)]
+    FetchError(#[from] FetchError),
+
+    #[error(transparent)]
+    ValidationError(#[from] ValidationError),
+
+    #[error(transparent)]
+    DatabaseError(#[from] DatabaseError),
+
+    #[error(transparent)]
+    AuthError(#[from] VerificationError),
+}
+
+impl From<HandlerError> for HttpError {
+    fn from(error: HandlerError) -> Self {
+        match error {
+            HandlerError::LocalObject => HttpError::InternalError,
+            HandlerError::FetchError(error) => {
+                HttpError::ValidationError(error.to_string())
+            },
+            HandlerError::ValidationError(error) => error.into(),
+            HandlerError::DatabaseError(error) => error.into(),
+            HandlerError::AuthError(_) => {
+                HttpError::AuthError("invalid signature")
+            },
+        }
+    }
+}
 
 /// Transforms arbitrary property value into array of strings
 pub fn parse_array(value: &Value) -> Result<Vec<String>, ConversionError> {
@@ -108,7 +150,7 @@ pub async fn receive_activity(
     db_client: &mut impl GenericClient,
     request: &HttpRequest,
     activity_raw: &Value,
-) -> Result<(), ImportError> {
+) -> Result<(), HandlerError> {
     let activity: Activity = serde_json::from_value(activity_raw.clone())
         .map_err(|_| ValidationError("invalid activity"))?;
     let activity_type = activity.activity_type.clone();

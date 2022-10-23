@@ -13,10 +13,9 @@ use crate::activitypub::{
     fetcher::helpers::{
         get_or_import_profile_by_actor_id,
         import_profile_by_actor_address,
-        ImportError,
     },
     identifiers::parse_local_actor_id,
-    receiver::{parse_array, parse_property_value},
+    receiver::{parse_array, parse_property_value, HandlerError},
     vocabulary::{DOCUMENT, HASHTAG, IMAGE, LINK, MENTION, NOTE},
 };
 use crate::config::Instance;
@@ -125,7 +124,7 @@ pub async fn handle_note(
     media_dir: &Path,
     object: Object,
     redirects: &HashMap<String, String>,
-) -> Result<Post, ImportError> {
+) -> Result<Post, HandlerError> {
     if object.object_type != NOTE {
         // Could be Page (in Lemmy) or some other type
         log::warn!("processing object of type {}", object.object_type);
@@ -267,7 +266,7 @@ pub async fn handle_note(
                                 &actor_address,
                             ).await {
                                 Ok(profile) => profile,
-                                Err(ImportError::FetchError(error)) => {
+                                Err(HandlerError::FetchError(error)) => {
                                     // Ignore mention if fetcher fails
                                     log::warn!(
                                         "failed to find mentioned profile {}: {}",
