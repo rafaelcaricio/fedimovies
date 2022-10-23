@@ -12,6 +12,7 @@ use crate::activitypub::handlers::{
 use crate::activitypub::identifiers::parse_local_object_id;
 use crate::config::{Config, Instance};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
+use crate::http_signatures::verify::VerificationError;
 use crate::models::posts::queries::{
     get_post_by_id,
     get_post_by_remote_object_id,
@@ -44,6 +45,9 @@ pub enum ImportError {
 
     #[error(transparent)]
     DatabaseError(#[from] DatabaseError),
+
+    #[error(transparent)]
+    AuthError(#[from] VerificationError),
 }
 
 impl From<ImportError> for HttpError {
@@ -55,6 +59,9 @@ impl From<ImportError> for HttpError {
             },
             ImportError::ValidationError(error) => error.into(),
             ImportError::DatabaseError(error) => error.into(),
+            ImportError::AuthError(_) => {
+                HttpError::AuthError("invalid signature")
+            },
         }
     }
 }

@@ -44,6 +44,9 @@ pub enum VerificationError {
 
     #[error("invalid signature")]
     InvalidSignature,
+
+    #[error("actor and request signer do not match")]
+    InvalidSigner,
 }
 
 struct HttpSignatureData {

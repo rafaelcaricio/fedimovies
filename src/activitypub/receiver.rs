@@ -4,10 +4,13 @@ use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::config::Config;
-use crate::errors::{ConversionError, HttpError, ValidationError};
-use crate::http_signatures::verify::verify_signed_request;
+use crate::errors::{ConversionError, ValidationError};
+use crate::http_signatures::verify::{
+    verify_signed_request,
+    VerificationError,
+};
 use super::activity::{Activity, Object};
-use super::fetcher::helpers::import_post;
+use super::fetcher::helpers::{import_post, ImportError};
 use super::handlers::{
     accept_follow::handle_accept_follow,
     add::handle_add,
@@ -86,7 +89,7 @@ pub fn find_object_id(object: &Value) -> Result<String, ValidationError> {
 }
 
 fn require_actor_signature(actor_id: &str, signer_id: &str)
-    -> Result<(), HttpError>
+    -> Result<(), VerificationError>
 {
     if actor_id != signer_id {
         // Forwarded activity
@@ -95,7 +98,7 @@ fn require_actor_signature(actor_id: &str, signer_id: &str)
             signer_id,
             actor_id,
         );
-        return Err(HttpError::AuthError("actor and request signer do not match"));
+        return Err(VerificationError::InvalidSigner);
     };
     Ok(())
 }
@@ -105,7 +108,7 @@ pub async fn receive_activity(
     db_client: &mut impl GenericClient,
     request: &HttpRequest,
     activity_raw: &Value,
-) -> Result<(), HttpError> {
+) -> Result<(), ImportError> {
     let activity: Activity = serde_json::from_value(activity_raw.clone())
         .map_err(|_| ValidationError("invalid activity"))?;
     let activity_type = activity.activity_type.clone();
@@ -127,7 +130,7 @@ pub async fn receive_activity(
                 return Ok(());
             };
             log::warn!("invalid signature: {}", error);
-            return Err(HttpError::AuthError("invalid signature"));
+            return Err(error.into());
         },
     };
     let signer_id = signer.actor_id(&config.instance_url());
