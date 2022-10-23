@@ -28,7 +28,7 @@ pub fn generate_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
 
 #[cfg(test)]
 pub fn generate_weak_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand::rngs::SmallRng::seed_from_u64(0);
     let bits = 512;
     RsaPrivateKey::new(&mut rng, bits)
 }
@@ -63,6 +63,7 @@ pub fn deserialize_public_key(
     RsaPublicKey::from_public_key_pem(&normalized_pem)
 }
 
+/// RSASSA-PKCS1-v1_5 signature
 pub fn sign_message(
     private_key: &RsaPrivateKey,
     message: &str,
