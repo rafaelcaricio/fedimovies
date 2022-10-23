@@ -1,28 +1,28 @@
 use rsa::RsaPrivateKey;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::utils::crypto::sign_message;
 
 /// Data Integrity Proof
 /// https://w3c.github.io/vc-data-integrity/
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct Proof {
+pub struct Proof {
     #[serde(rename = "type")]
-    proof_type: String,
-    proof_purpose: String,
-    verification_method: String,
-    proof_value: String,
+    pub proof_type: String,
+    pub proof_purpose: String,
+    pub verification_method: String,
+    pub proof_value: String,
 }
 
 // Similar to https://identity.foundation/JcsEd25519Signature2020/
 // - Canonicalization algorithm: JCS
 // - Digest algorithm: SHA-256
 // - Signature algorithm: RSASSA-PKCS1-v1_5
-const PROOF_TYPE: &str = "JcsRsaSignature2022";
+pub const PROOF_TYPE: &str = "JcsRsaSignature2022";
 
-const PROOF_PURPOSE: &str = "assertionMethod";
+pub const PROOF_PURPOSE: &str = "assertionMethod";
 
 #[derive(thiserror::Error, Debug)]
 pub enum JsonSignatureError {
@@ -32,8 +32,8 @@ pub enum JsonSignatureError {
     #[error("signing error")]
     SigningError(#[from] rsa::errors::Error),
 
-    #[error("invalid value")]
-    InvalidValue,
+    #[error("invalid object")]
+    InvalidObject,
 }
 
 pub fn sign_object(
@@ -56,7 +56,7 @@ pub fn sign_object(
     let proof_value = serde_json::to_value(proof)?;
     let mut object_value = serde_json::to_value(object)?;
     let object_map = object_value.as_object_mut()
-        .ok_or(JsonSignatureError::InvalidValue)?;
+        .ok_or(JsonSignatureError::InvalidObject)?;
     object_map.insert("proof".to_string(), proof_value);
     Ok(object_value)
 }

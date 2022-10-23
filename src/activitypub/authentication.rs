@@ -1,4 +1,5 @@
 use actix_web::HttpRequest;
+use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::config::Config;
@@ -7,6 +8,11 @@ use crate::http_signatures::verify::{
     parse_http_signature,
     verify_http_signature,
     HttpSignatureVerificationError as HttpSignatureError,
+};
+use crate::json_signatures::verify::{
+    get_json_signature,
+    verify_json_signature,
+    JsonSignatureVerificationError as JsonSignatureError,
 };
 use crate::models::profiles::queries::get_profile_by_remote_actor_id;
 use crate::models::profiles::types::DbActorProfile;
@@ -18,6 +24,12 @@ use super::receiver::HandlerError;
 pub enum AuthenticationError {
     #[error(transparent)]
     HttpSignatureError(#[from] HttpSignatureError),
+
+    #[error(transparent)]
+    JsonSignatureError(#[from] JsonSignatureError),
+
+    #[error("no JSON signature")]
+    NoJsonSignature,
 
     #[error("invalid key ID")]
     InvalidKeyId(#[from] url::ParseError),
@@ -79,6 +91,39 @@ pub async fn verify_signed_request(
     let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
 
     verify_http_signature(&signature_data, &public_key)?;
+
+    Ok(actor_profile)
+}
+
+pub async fn verify_signed_activity(
+    config: &Config,
+    db_client: &impl GenericClient,
+    activity: &Value,
+) -> Result<DbActorProfile, AuthenticationError> {
+    let signature_data = get_json_signature(activity).map_err(|error| {
+        match error {
+            JsonSignatureError::NoProof => AuthenticationError::NoJsonSignature,
+            other_error => other_error.into(),
+        }
+    })?;
+    let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
+    let actor_profile = match get_or_import_profile_by_actor_id(
+        db_client,
+        &config.instance(),
+        &config.media_dir(),
+        &actor_id,
+    ).await {
+        Ok(profile) => profile,
+        Err(HandlerError::DatabaseError(error)) => return Err(error.into()),
+        Err(other_error) => {
+            return Err(AuthenticationError::ActorError(other_error.to_string()));
+        },
+    };
+    let actor = actor_profile.actor_json.as_ref()
+        .ok_or(AuthenticationError::ActorError("invalid profile".to_string()))?;
+    let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
+
+    verify_json_signature(&signature_data, &public_key)?;
 
     Ok(actor_profile)
 }

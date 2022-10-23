@@ -12,6 +12,7 @@ use crate::errors::{
 };
 use super::activity::{Activity, Object};
 use super::authentication::{
+    verify_signed_activity,
     verify_signed_request,
     AuthenticationError,
 };
@@ -171,12 +172,25 @@ pub async fn receive_activity(
                 // Ignore Delete(Person) activities without HTTP signatures
                 return Ok(());
             };
-            log::warn!("invalid signature: {}", error);
+            log::warn!("invalid HTTP signature: {}", error);
             return Err(error.into());
         },
     };
     let signer_id = signer.actor_id(&config.instance_url());
-    log::debug!("activity signed by {}", signer_id);
+    log::debug!("request signed by {}", signer_id);
+
+    // Verify embedded signature
+    match verify_signed_activity(config, db_client, activity_raw).await {
+        Ok(signer) => {
+            let signer_id = signer.actor_id(&config.instance_url());
+            log::info!("activity signed by {}", signer_id);
+        },
+        Err(AuthenticationError::NoJsonSignature) => (), // ignore
+        Err(other_error) => {
+            log::error!("invalid JSON signature: {}", other_error);
+        },
+    };
+
     if config.blocked_instances.iter()
         .any(|instance| signer.hostname.as_ref() == Some(instance))
     {
