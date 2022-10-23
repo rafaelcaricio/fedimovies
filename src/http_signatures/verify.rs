@@ -1,23 +1,12 @@
 use std::collections::HashMap;
 
-use actix_web::{
-    HttpRequest,
-    http::{Method, Uri, header::HeaderMap},
-};
+use actix_web::http::{Method, Uri, header::HeaderMap};
 use chrono::{DateTime, TimeZone, Utc};
 use regex::Regex;
 use rsa::RsaPublicKey;
-use tokio_postgres::GenericClient;
 
-use crate::activitypub::{
-    fetcher::helpers::get_or_import_profile_by_actor_id,
-    handlers::HandlerError,
-};
-use crate::config::Config;
 use crate::errors::DatabaseError;
-use crate::models::profiles::queries::get_profile_by_remote_actor_id;
-use crate::models::profiles::types::DbActorProfile;
-use crate::utils::crypto::{deserialize_public_key, verify_signature};
+use crate::utils::crypto::verify_signature;
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
@@ -49,7 +38,7 @@ pub enum VerificationError {
     InvalidSigner,
 }
 
-struct HttpSignatureData {
+pub struct HttpSignatureData {
     pub key_id: String,
     pub message: String, // reconstructed message
     pub signature: String, // base64-encoded signature
@@ -58,7 +47,7 @@ struct HttpSignatureData {
 
 const SIGNATURE_PARAMETER_RE: &str = r#"^(?P<key>[a-zA-Z]+)="(?P<value>.+)"$"#;
 
-fn parse_http_signature(
+pub fn parse_http_signature(
     request_method: &Method,
     request_uri: &Uri,
     request_headers: &HeaderMap,
@@ -132,7 +121,7 @@ fn parse_http_signature(
     Ok(signature_data)
 }
 
-fn verify_http_signature(
+pub fn verify_http_signature(
     signature_data: &HttpSignatureData,
     signer_key: &RsaPublicKey,
 ) -> Result<(), VerificationError> {
@@ -148,54 +137,6 @@ fn verify_http_signature(
         return Err(VerificationError::InvalidSignature);
     };
     Ok(())
-}
-
-fn key_id_to_actor_id(key_id: &str) -> Result<String, url::ParseError> {
-    let key_url = url::Url::parse(key_id)?;
-    // Strip #main-key (works with most AP servers)
-    let actor_id = &key_url[..url::Position::BeforeQuery];
-    // GoToSocial compat
-    let actor_id = actor_id.trim_end_matches("/main-key");
-    Ok(actor_id.to_string())
-}
-
-/// Verifies HTTP signature and returns signer
-pub async fn verify_signed_request(
-    config: &Config,
-    db_client: &impl GenericClient,
-    request: &HttpRequest,
-    no_fetch: bool,
-) -> Result<DbActorProfile, VerificationError> {
-    let signature_data = parse_http_signature(
-        request.method(),
-        request.uri(),
-        request.headers(),
-    )?;
-
-    let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
-    let actor_profile = if no_fetch {
-        get_profile_by_remote_actor_id(db_client, &actor_id).await?
-    } else {
-        match get_or_import_profile_by_actor_id(
-            db_client,
-            &config.instance(),
-            &config.media_dir(),
-            &actor_id,
-        ).await {
-            Ok(profile) => profile,
-            Err(HandlerError::DatabaseError(error)) => return Err(error.into()),
-            Err(other_error) => {
-                return Err(VerificationError::ActorError(other_error.to_string()));
-            },
-        }
-    };
-    let actor = actor_profile.actor_json.as_ref()
-        .ok_or(VerificationError::ActorError("invalid profile".to_string()))?;
-    let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
-
-    verify_http_signature(&signature_data, &public_key)?;
-
-    Ok(actor_profile)
 }
 
 #[cfg(test)]
@@ -238,16 +179,5 @@ mod tests {
         );
         assert_eq!(signature_data.signature, "test");
         assert_eq!(signature_data.created_at.is_some(), false);
-    }
-
-    #[test]
-    fn test_key_id_to_actor_id() {
-        let key_id = "https://myserver.org/actor#main-key";
-        let actor_id = key_id_to_actor_id(key_id).unwrap();
-        assert_eq!(actor_id, "https://myserver.org/actor");
-
-        let key_id = "https://myserver.org/actor/main-key";
-        let actor_id = key_id_to_actor_id(key_id).unwrap();
-        assert_eq!(actor_id, "https://myserver.org/actor");
     }
 }

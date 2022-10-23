@@ -1,5 +1,6 @@
 mod activity;
 pub mod actors;
+mod authentication;
 pub mod builders;
 mod collections;
 pub mod constants;

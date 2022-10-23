@@ -10,11 +10,9 @@ use crate::errors::{
     HttpError,
     ValidationError,
 };
-use crate::http_signatures::verify::{
-    verify_signed_request,
-    VerificationError,
-};
+use crate::http_signatures::verify::VerificationError;
 use super::activity::{Activity, Object};
+use super::authentication::verify_signed_request;
 use super::fetcher::{
     fetchers::FetchError,
     helpers::import_post,
