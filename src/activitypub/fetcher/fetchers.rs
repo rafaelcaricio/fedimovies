@@ -26,7 +26,7 @@ pub enum FetchError {
     #[error(transparent)]
     RequestError(#[from] reqwest::Error),
 
-    #[error("json parse error")]
+    #[error("json parse error: {0}")]
     JsonParseError(#[from] serde_json::Error),
 
     #[error(transparent)]
