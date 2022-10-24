@@ -62,10 +62,12 @@ pub fn create_http_signature(
 
     let message = headers.iter()
         .map(|(name, value)| format!("{}: {}", name, value))
-        .collect::<Vec<String>>().join("\n");
+        .collect::<Vec<String>>()
+        .join("\n");
     let headers_parameter = headers.iter()
         .map(|(name, _)| name.to_string())
-        .collect::<Vec<String>>().join(" ");
+        .collect::<Vec<String>>()
+        .join(" ");
     let signature_parameter = sign_message(signer_key, &message)?;
     let signature_header = format!(
         r#"keyId="{}",algorithm="{}",headers="{}",signature="{}""#,

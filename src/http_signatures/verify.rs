@@ -91,7 +91,7 @@ pub fn parse_http_signature(
             format!(
                 "(request-target): {} {}",
                 request_method.as_str().to_lowercase(),
-                request_uri,
+                request_uri.path(),
             )
         } else if header == "(created)" {
             let created = signature_parameters.get("created")
@@ -146,6 +146,8 @@ mod tests {
         header::{HeaderMap, HeaderName, HeaderValue},
         Uri,
     };
+    use crate::http_signatures::create::create_http_signature;
+    use crate::utils::crypto::generate_weak_private_key;
     use super::*;
 
     #[test]
@@ -179,5 +181,52 @@ mod tests {
         );
         assert_eq!(signature_data.signature, "test");
         assert_eq!(signature_data.created_at.is_some(), false);
+    }
+
+    #[test]
+    fn test_create_and_verify_signature() {
+        let request_method = Method::POST;
+        let request_url = "https://example.org/inbox";
+        let request_body = "{}";
+        let signer_key = generate_weak_private_key().unwrap();
+        let signer_key_id = "https://myserver.org/actor#main-key";
+        let signed_headers = create_http_signature(
+            request_method.clone(),
+            request_url,
+            request_body,
+            &signer_key,
+            signer_key_id,
+        ).unwrap();
+
+        let request_url = request_url.parse::<Uri>().unwrap();
+        let mut request_headers = HeaderMap::new();
+        request_headers.append(
+            HeaderName::from_static("host"),
+            HeaderValue::from_str(&signed_headers.host).unwrap(),
+        );
+        request_headers.append(
+            HeaderName::from_static("signature"),
+            HeaderValue::from_str(&signed_headers.signature).unwrap(),
+        );
+        request_headers.append(
+            HeaderName::from_static("date"),
+            HeaderValue::from_str(&signed_headers.date).unwrap(),
+        );
+        request_headers.append(
+            HeaderName::from_static("digest"),
+            HeaderValue::from_str(&signed_headers.digest.unwrap()).unwrap(),
+        );
+        let signature_data = parse_http_signature(
+            &request_method,
+            &request_url,
+            &request_headers,
+        ).unwrap();
+
+        let signer_public_key = RsaPublicKey::from(signer_key);
+        let result = verify_http_signature(
+            &signature_data,
+            &signer_public_key,
+        );
+        assert_eq!(result.is_ok(), true);
     }
 }
