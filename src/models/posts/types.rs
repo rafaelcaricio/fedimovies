@@ -261,9 +261,9 @@ impl PostCreateData {
     }
 
     /// Validate and clean post data (only for local posts).
-    pub fn clean(&mut self, character_limit: usize) -> Result<(), ValidationError> {
+    pub fn clean(&mut self) -> Result<(), ValidationError> {
         assert!(self.object_id.is_none());
-        self.content = clean_content(&self.content, character_limit)?;
+        self.content = clean_content(&self.content)?;
         Ok(())
     }
 }
@@ -277,15 +277,13 @@ pub struct PostUpdateData {
 mod tests {
     use super::*;
 
-    const POST_CHARACTER_LIMIT: usize = 1000;
-
     #[test]
     fn test_post_data_clean() {
         let mut post_data_2 = PostCreateData {
             content: "test ".to_string(),
             ..Default::default()
         };
-        assert_eq!(post_data_2.clean(POST_CHARACTER_LIMIT).is_ok(), true);
+        assert_eq!(post_data_2.clean().is_ok(), true);
         assert_eq!(post_data_2.content.as_str(), "test");
     }
 }

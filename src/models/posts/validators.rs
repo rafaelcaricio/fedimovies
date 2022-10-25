@@ -1,6 +1,7 @@
 use crate::errors::ValidationError;
 use crate::utils::html::clean_html_strict;
 
+pub const CONTENT_MAX_SIZE: usize = 100000;
 const CONTENT_ALLOWED_TAGS: [&str; 7] = [
     "a",
     "br",
@@ -13,9 +14,10 @@ const CONTENT_ALLOWED_TAGS: [&str; 7] = [
 
 pub fn clean_content(
     content: &str,
-    character_limit: usize,
 ) -> Result<String, ValidationError> {
-    if content.chars().count() > character_limit {
+    // Check content size to not exceed the hard limit
+    // Character limit from config is not enforced at the backend
+    if content.len() > CONTENT_MAX_SIZE {
         return Err(ValidationError("post is too long"));
     };
     let content_safe = clean_html_strict(content, &CONTENT_ALLOWED_TAGS);
@@ -30,19 +32,17 @@ pub fn clean_content(
 mod tests {
     use super::*;
 
-    const POST_CHARACTER_LIMIT: usize = 1000;
-
     #[test]
     fn test_clean_content_empty() {
         let content = "  ";
-        let result = clean_content(content, POST_CHARACTER_LIMIT);
+        let result = clean_content(content);
         assert_eq!(result.is_ok(), false);
     }
 
     #[test]
     fn test_clean_content_trimming() {
         let content = "test ";
-        let cleaned = clean_content(content, POST_CHARACTER_LIMIT).unwrap();
+        let cleaned = clean_content(content).unwrap();
         assert_eq!(cleaned, "test");
     }
 }

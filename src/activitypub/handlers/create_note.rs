@@ -21,11 +21,14 @@ use crate::activitypub::{
 use crate::config::Instance;
 use crate::errors::{ConversionError, DatabaseError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
-use crate::models::posts::hashtags::normalize_hashtag;
-use crate::models::posts::helpers::get_post_by_object_id;
-use crate::models::posts::mentions::mention_to_address;
-use crate::models::posts::queries::create_post;
-use crate::models::posts::types::{Post, PostCreateData, Visibility};
+use crate::models::posts::{
+    hashtags::normalize_hashtag,
+    helpers::get_post_by_object_id,
+    mentions::mention_to_address,
+    queries::create_post,
+    types::{Post, PostCreateData, Visibility},
+    validators::CONTENT_MAX_SIZE,
+};
 use crate::models::profiles::queries::get_profile_by_acct;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::queries::get_user_by_name;
@@ -42,7 +45,6 @@ fn get_note_author_id(object: &Object) -> Result<String, ValidationError> {
     Ok(author_id)
 }
 
-const CONTENT_MAX_SIZE: usize = 100000;
 const ATTACHMENTS_MAX_NUM: usize = 15;
 
 fn parse_object_url(value: &JsonValue) -> Result<String, ConversionError> {
