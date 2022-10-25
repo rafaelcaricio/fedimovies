@@ -43,7 +43,7 @@ pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> 
         if bio.chars().count() > BIO_MAX_LENGTH {
             return Err(ValidationError("bio is too long"));
         };
-        clean_html_strict(bio, &BIO_ALLOWED_TAGS)
+        clean_html_strict(bio, &BIO_ALLOWED_TAGS, vec![])
     };
     Ok(cleaned_bio)
 }
@@ -55,7 +55,7 @@ pub fn clean_extra_fields(extra_fields: &[ExtraField])
     let mut cleaned_extra_fields = vec![];
     for mut field in extra_fields.iter().cloned() {
         field.name = field.name.trim().to_string();
-        field.value = clean_html_strict(&field.value, &BIO_ALLOWED_TAGS);
+        field.value = clean_html_strict(&field.value, &BIO_ALLOWED_TAGS, vec![]);
         if field.name.is_empty() {
             continue;
         };

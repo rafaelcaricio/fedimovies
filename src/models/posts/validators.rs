@@ -2,7 +2,7 @@ use crate::errors::ValidationError;
 use crate::utils::html::clean_html_strict;
 
 pub const CONTENT_MAX_SIZE: usize = 100000;
-const CONTENT_ALLOWED_TAGS: [&str; 7] = [
+const CONTENT_ALLOWED_TAGS: [&str; 8] = [
     "a",
     "br",
     "pre",
@@ -10,7 +10,16 @@ const CONTENT_ALLOWED_TAGS: [&str; 7] = [
     "strong",
     "em",
     "p",
+    "span",
 ];
+
+fn content_allowed_classes() -> Vec<(&'static str, Vec<&'static str>)> {
+    vec![
+        ("a", vec!["hashtag", "mention", "u-url"]),
+        ("span", vec!["h-card"]),
+        ("p", vec!["inline-quote"]),
+    ]
+}
 
 pub fn clean_content(
     content: &str,
@@ -20,7 +29,11 @@ pub fn clean_content(
     if content.len() > CONTENT_MAX_SIZE {
         return Err(ValidationError("post is too long"));
     };
-    let content_safe = clean_html_strict(content, &CONTENT_ALLOWED_TAGS);
+    let content_safe = clean_html_strict(
+        content,
+        &CONTENT_ALLOWED_TAGS,
+        content_allowed_classes(),
+    );
     let content_trimmed = content_safe.trim();
     if content_trimmed.is_empty() {
         return Err(ValidationError("post can not be empty"));

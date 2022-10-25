@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
 
 use ammonia::Builder;
@@ -18,11 +18,20 @@ pub fn clean_html(unsafe_html: &str) -> String {
 pub fn clean_html_strict(
     unsafe_html: &str,
     allowed_tags: &[&str],
+    allowed_classes: Vec<(&'static str, Vec<&'static str>)>,
 ) -> String {
     let allowed_tags =
         HashSet::from_iter(allowed_tags.iter().copied());
+    let mut allowed_classes_map = HashMap::new();
+    for (tag, classes) in allowed_classes {
+        allowed_classes_map.insert(
+            tag,
+            HashSet::from_iter(classes.into_iter()),
+        );
+    };
     let safe_html = Builder::default()
         .tags(allowed_tags)
+        .allowed_classes(allowed_classes_map)
         .link_rel(Some("noopener"))
         .clean(unsafe_html)
         .to_string();
@@ -56,9 +65,16 @@ mod tests {
 
     #[test]
     fn test_clean_html_strict() {
-        let unsafe_html = r#"<p>test <b>bold</b><script>dangerous</script> with <a href="https://example.com" target="_blank" rel="noopener">link</a> and <code>code</code></p>"#;
-        let safe_html = clean_html_strict(unsafe_html, &["a", "br", "code"]);
-        assert_eq!(safe_html, r#"test bold with <a href="https://example.com" rel="noopener">link</a> and <code>code</code>"#);
+        let unsafe_html = r#"<p><span class="h-card"><a href="https://example.com/user" class="u-url mention" rel="ugc">@<span>user</span></a></span> test <b>bold</b><script>dangerous</script> with <a href="https://example.com" target="_blank" rel="noopener">link</a> and <code>code</code></p>"#;
+        let safe_html = clean_html_strict(
+            unsafe_html,
+            &["a", "br", "code", "p", "span"],
+            vec![
+                ("a", vec!["mention", "u-url"]),
+                ("span", vec!["h-card"]),
+            ],
+        );
+        assert_eq!(safe_html, r#"<p><span class="h-card"><a href="https://example.com/user" class="u-url mention" rel="noopener">@<span>user</span></a></span> test bold with <a href="https://example.com" rel="noopener">link</a> and <code>code</code></p>"#);
     }
 
     #[test]

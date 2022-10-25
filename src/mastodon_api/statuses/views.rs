@@ -58,7 +58,6 @@ async fn create_status(
     let current_user = get_current_user(db_client, auth.token()).await?;
     let instance = config.instance();
     let mut post_data = PostCreateData::try_from(status_data.into_inner())?;
-    post_data.clean()?;
     // Mentions
     let mention_map = find_mentioned_profiles(
         db_client,
@@ -184,6 +183,8 @@ async fn create_status(
     // Remove duplicate mentions
     post_data.mentions.sort();
     post_data.mentions.dedup();
+    // Clean content
+    post_data.clean()?;
     // Create post
     let mut post = create_post(db_client, &current_user.id, post_data).await?;
     post.in_reply_to = maybe_in_reply_to.map(|mut in_reply_to| {
