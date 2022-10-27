@@ -5,38 +5,24 @@ use chrono::{DateTime, TimeZone, Utc};
 use regex::Regex;
 use rsa::RsaPublicKey;
 
-use crate::errors::DatabaseError;
 use crate::utils::crypto::verify_signature;
 
 #[derive(thiserror::Error, Debug)]
-pub enum VerificationError {
+pub enum HttpSignatureVerificationError {
     #[error("{0}")]
     HeaderError(&'static str),
 
     #[error("{0}")]
     ParseError(&'static str),
 
-    #[error("invalid key ID")]
-    UrlError(#[from] url::ParseError),
-
-    #[error("database error")]
-    DatabaseError(#[from] DatabaseError),
-
-    #[error("{0}")]
-    ActorError(String),
-
-    #[error("invalid public key")]
-    InvalidPublicKey(#[from] rsa::pkcs8::Error),
-
     #[error("invalid encoding")]
     InvalidEncoding(#[from] base64::DecodeError),
 
     #[error("invalid signature")]
     InvalidSignature,
-
-    #[error("actor and request signer do not match")]
-    InvalidSigner,
 }
+
+type VerificationError = HttpSignatureVerificationError;
 
 pub struct HttpSignatureData {
     pub key_id: String,

@@ -10,9 +10,11 @@ use crate::errors::{
     HttpError,
     ValidationError,
 };
-use crate::http_signatures::verify::VerificationError;
 use super::activity::{Activity, Object};
-use super::authentication::verify_signed_request;
+use super::authentication::{
+    verify_signed_request,
+    AuthenticationError,
+};
 use super::fetcher::{
     fetchers::FetchError,
     helpers::import_post,
@@ -49,7 +51,7 @@ pub enum HandlerError {
     DatabaseError(#[from] DatabaseError),
 
     #[error(transparent)]
-    AuthError(#[from] VerificationError),
+    AuthError(#[from] AuthenticationError),
 }
 
 impl From<HandlerError> for HttpError {
@@ -129,7 +131,7 @@ pub fn find_object_id(object: &Value) -> Result<String, ValidationError> {
 }
 
 fn require_actor_signature(actor_id: &str, signer_id: &str)
-    -> Result<(), VerificationError>
+    -> Result<(), AuthenticationError>
 {
     if actor_id != signer_id {
         // Forwarded activity
@@ -138,7 +140,7 @@ fn require_actor_signature(actor_id: &str, signer_id: &str)
             signer_id,
             actor_id,
         );
-        return Err(VerificationError::InvalidSigner);
+        return Err(AuthenticationError::InvalidSigner);
     };
     Ok(())
 }
