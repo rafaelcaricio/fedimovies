@@ -1,6 +1,7 @@
 use actix_cors::Cors;
 use actix_web::{
     dev::Service,
+    http::Method,
     middleware::Logger as ActixLogger,
     web,
     App, HttpServer,
@@ -93,7 +94,8 @@ async fn main() -> std::io::Result<()> {
                 };
                 cors_config
                     .allowed_origin(&config.instance_url())
-                    .allowed_origin_fn(|origin, _req_head| {
+                    .allowed_origin_fn(|origin, req_head| {
+                        req_head.method == Method::GET ||
                         origin.as_bytes().starts_with(b"http://localhost:")
                     })
                     .allow_any_method()
