@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -13,6 +14,7 @@ pub struct Proof {
     pub proof_type: String,
     pub proof_purpose: String,
     pub verification_method: String,
+    pub created: DateTime<Utc>,
     pub proof_value: String,
 }
 
@@ -51,6 +53,7 @@ pub fn sign_object(
         proof_type: PROOF_TYPE.to_string(),
         proof_purpose: PROOF_PURPOSE.to_string(),
         verification_method: signer_key_id.to_string(),
+        created: Utc::now(),
         proof_value: signature_b64,
     };
     let proof_value = serde_json::to_value(proof)?;
@@ -85,10 +88,15 @@ mod tests {
             },
         });
         let result = sign_object(&object, &signer_key, signer_key_id).unwrap();
-        let result_str = serde_json::to_string(&result).unwrap();
+
+        assert_eq!(result["actor"], object["actor"]);
+        assert_eq!(result["object"], object["object"]);
+        let signature_date = result["proof"]["created"].as_str().unwrap();
+        // Put * in place of date to avoid escaping all curly brackets
+        let expected_result = r#"{"actor":"https://example.org/users/test","id":"https://example.org/objects/1","object":{"content":"test","type":"Note"},"proof":{"created":"*","proofPurpose":"assertionMethod","proofValue":"P4ye1hDvrGQCCClzHfCU9xobMAeqlUfgEWGlZfOTE3WmjH8JC/OJwlsjUMOUwTVlyKStp+AY+zzU4z6mjZN0Ug==","type":"JcsRsaSignature2022","verificationMethod":"https://example.org/users/test#main-key"},"to":["https://example.org/users/yyy","https://example.org/users/xxx"],"type":"Create"}"#;
         assert_eq!(
-            result_str,
-            r#"{"actor":"https://example.org/users/test","id":"https://example.org/objects/1","object":{"content":"test","type":"Note"},"proof":{"proofPurpose":"assertionMethod","proofValue":"P4ye1hDvrGQCCClzHfCU9xobMAeqlUfgEWGlZfOTE3WmjH8JC/OJwlsjUMOUwTVlyKStp+AY+zzU4z6mjZN0Ug==","type":"JcsRsaSignature2022","verificationMethod":"https://example.org/users/test#main-key"},"to":["https://example.org/users/yyy","https://example.org/users/xxx"],"type":"Create"}"#,
+            serde_json::to_string(&result).unwrap(),
+            expected_result.replace('*', signature_date),
         );
     }
 }
