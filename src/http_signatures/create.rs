@@ -4,7 +4,8 @@ use rsa::RsaPrivateKey;
 
 use crate::utils::crypto::{sign_message, get_message_digest};
 
-pub const SIGNATURE_ALGORITHM: &str = "rsa-sha256";
+const HTTP_SIGNATURE_ALGORITHM: &str = "rsa-sha256";
+const HTTP_SIGNATURE_DATE_FORMAT: &str = "%a, %d %b %Y %T GMT";
 
 pub struct HttpSignatureHeaders {
     pub host: String,
@@ -40,7 +41,7 @@ pub fn create_http_signature(
     let host = request_url_object.host_str()
         .ok_or(url::ParseError::EmptyHost)?
         .to_string();
-    let date = Utc::now().format("%a, %d %b %Y %T GMT").to_string();
+    let date = Utc::now().format(HTTP_SIGNATURE_DATE_FORMAT).to_string();
     let maybe_digest = if request_body.is_empty() {
         None
     } else {
@@ -72,7 +73,7 @@ pub fn create_http_signature(
     let signature_header = format!(
         r#"keyId="{}",algorithm="{}",headers="{}",signature="{}""#,
         signer_key_id,
-        SIGNATURE_ALGORITHM,
+        HTTP_SIGNATURE_ALGORITHM,
         headers_parameter,
         signature_parameter,
     );

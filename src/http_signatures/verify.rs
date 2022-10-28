@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use actix_web::http::{Method, Uri, header::HeaderMap};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use regex::Regex;
 use rsa::RsaPublicKey;
 
@@ -28,7 +28,7 @@ pub struct HttpSignatureData {
     pub key_id: String,
     pub message: String, // reconstructed message
     pub signature: String, // base64-encoded signature
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
 }
 
 const SIGNATURE_PARAMETER_RE: &str = r#"^(?P<key>[a-zA-Z]+)="(?P<value>.+)"$"#;
@@ -62,13 +62,18 @@ pub fn parse_http_signature(
     let signature = signature_parameters.get("signature")
         .ok_or(VerificationError::ParseError("signature is missing"))?
         .to_owned();
-    let maybe_created_at = if let Some(created_at) = signature_parameters.get("created") {
-        created_at.parse().ok().map(|ts| Utc.timestamp(ts, 0))
+    let created_at = if let Some(created_at) = signature_parameters.get("created") {
+        let create_at_timestamp = created_at.parse()
+            .map_err(|_| VerificationError::ParseError("invalid timestamp"))?;
+        Utc.timestamp(create_at_timestamp, 0)
     } else {
-        request_headers.get("date")
-            .and_then(|header| header.to_str().ok())
-            .and_then(|date| DateTime::parse_from_rfc2822(date).ok())
-            .map(|datetime| datetime.with_timezone(&Utc))
+        let date_str = request_headers.get("date")
+            .ok_or(VerificationError::ParseError("missing date"))?
+            .to_str()
+            .map_err(|_| VerificationError::ParseError("invalid date header"))?;
+        let date = DateTime::parse_from_rfc2822(date_str)
+            .map_err(|_| VerificationError::ParseError("invalid date"))?;
+        date.with_timezone(&Utc)
     };
 
     let mut message_parts = vec![];
@@ -102,7 +107,7 @@ pub fn parse_http_signature(
         key_id,
         message,
         signature,
-        created_at: maybe_created_at,
+        created_at,
     };
     Ok(signature_data)
 }
@@ -111,8 +116,9 @@ pub fn verify_http_signature(
     signature_data: &HttpSignatureData,
     signer_key: &RsaPublicKey,
 ) -> Result<(), VerificationError> {
-    if signature_data.created_at.is_none() {
-        log::warn!("signature creation time is missing");
+    let expires_at = signature_data.created_at + Duration::hours(12);
+    if expires_at < Utc::now() {
+        log::warn!("signature has expired");
     };
     let is_valid_signature = verify_signature(
         signer_key,
@@ -140,14 +146,19 @@ mod tests {
     fn test_parse_signature() {
         let request_method = Method::POST;
         let request_uri = "/user/123/inbox".parse::<Uri>().unwrap();
+        let date = "20 Oct 2022 20:00:00 GMT";
         let mut request_headers = HeaderMap::new();
         request_headers.insert(
             header::HOST,
             HeaderValue::from_static("example.com"),
         );
+        request_headers.insert(
+            HeaderName::from_static("date"),
+            HeaderValue::from_str(&date).unwrap(),
+        );
         let signature_header = concat!(
             r#"keyId="https://myserver.org/actor#main-key","#,
-            r#"headers="(request-target) host","#,
+            r#"headers="(request-target) host date","#,
             r#"signature="test""#,
         );
         request_headers.insert(
@@ -163,10 +174,10 @@ mod tests {
         assert_eq!(signature_data.key_id, "https://myserver.org/actor#main-key");
         assert_eq!(
             signature_data.message,
-            "(request-target): post /user/123/inbox\nhost: example.com",
+            "(request-target): post /user/123/inbox\nhost: example.com\ndate: 20 Oct 2022 20:00:00 GMT",
         );
         assert_eq!(signature_data.signature, "test");
-        assert_eq!(signature_data.created_at.is_some(), false);
+        assert!(signature_data.created_at < Utc::now());
     }
 
     #[test]
