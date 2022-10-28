@@ -335,7 +335,7 @@ pub async fn frontend_profile_redirect(
     let response = HttpResponse::Found()
         .append_header(("Location", actor_id))
         .finish();
-    return Ok(response);
+    Ok(response)
 }
 
 #[get("/post/{object_id}")]
@@ -350,7 +350,7 @@ pub async fn frontend_post_redirect(
     let response = HttpResponse::Found()
         .append_header(("Location", object_id))
         .finish();
-    return Ok(response);
+    Ok(response)
 }
 
 #[cfg(test)]

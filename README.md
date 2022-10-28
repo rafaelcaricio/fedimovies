@@ -181,7 +181,7 @@ See [FEDERATION.md](./FEDERATION.md)
 
 Most methods are similar to Mastodon API, but Mitra is not fully compatible.
 
-[OpenAPI spec](./docs/openapi.yaml) (incomplete)
+[OpenAPI spec](./docs/openapi.yaml)
 
 ## CLI
 

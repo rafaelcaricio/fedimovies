@@ -7,6 +7,7 @@ use crate::errors::DatabaseError;
 use super::helpers::get_post_by_object_id;
 use super::types::Post;
 
+// MediaWiki-like syntax: [[url|text]]
 const OBJECT_LINK_SEARCH_RE: &str = r"(?m)\[\[(?P<url>[^\s\|]+)(\|(?P<text>.+?))?\]\]";
 
 fn is_inside_code_block(caps: &Captures, text: &str) -> bool {

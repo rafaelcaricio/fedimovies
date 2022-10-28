@@ -125,7 +125,7 @@ pub fn build_note(
         // Build FEP-e232 object link
         let link_href = linked.object_id(instance_url);
         let _tag = Tag {
-            name: Some(format!("RE: {}", link_href)),
+            name: None,  // no microsyntax
             tag_type: LINK.to_string(),
             href: Some(link_href),
             media_type: Some(AP_MEDIA_TYPE.to_string()),
