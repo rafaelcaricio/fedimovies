@@ -3,6 +3,7 @@ use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::ethereum::identity::DidPkh;
 use crate::utils::crypto::sign_message;
 use super::canonicalization::{canonicalize_object, CanonicalizationError};
 
@@ -13,6 +14,9 @@ pub const PROOF_KEY: &str = "proof";
 // - Digest algorithm: SHA-256
 // - Signature algorithm: RSASSA-PKCS1-v1_5
 pub const PROOF_TYPE_JCS_RSA: &str = "JcsRsaSignature2022";
+
+// Similar to EthereumPersonalSignature2021 but with JCS
+pub const PROOF_TYPE_JCS_EIP191: &str ="JcsEip191Signature2022";
 
 pub const PROOF_PURPOSE: &str = "assertionMethod";
 
@@ -38,6 +42,19 @@ impl IntegrityProof {
             proof_type: PROOF_TYPE_JCS_RSA.to_string(),
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer_key_id.to_string(),
+            created: Utc::now(),
+            proof_value: signature.to_string(),
+        }
+    }
+
+    pub fn jcs_eip191(
+        signer: &DidPkh,
+        signature: &str,
+    ) -> Self {
+        Self {
+            proof_type: PROOF_TYPE_JCS_EIP191.to_string(),
+            proof_purpose: PROOF_PURPOSE.to_string(),
+            verification_method: signer.to_string(),
             created: Utc::now(),
             proof_value: signature.to_string(),
         }

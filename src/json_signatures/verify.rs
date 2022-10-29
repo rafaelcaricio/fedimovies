@@ -1,6 +1,11 @@
 use rsa::RsaPublicKey;
 use serde_json::Value;
 
+use crate::ethereum::{
+    identity::DidPkh,
+    signatures::recover_address,
+    utils::address_to_string,
+};
 use crate::utils::crypto::verify_signature;
 use super::canonicalization::{canonicalize_object, CanonicalizationError};
 use super::create::{
@@ -73,6 +78,21 @@ pub fn verify_json_signature(
         &signature_data.signature,
     )?;
     if !is_valid_signature {
+        return Err(VerificationError::InvalidSignature);
+    };
+    Ok(())
+}
+
+pub fn verify_jcs_eip191_signature(
+    signer: &DidPkh,
+    message: &str,
+    signature: &str,
+) -> Result<(), VerificationError> {
+    let signature_data = signature.parse()
+        .map_err(|_| VerificationError::InvalidProof("invalid proof"))?;
+    let signer_address = recover_address(message.as_bytes(), &signature_data)
+        .map_err(|_| VerificationError::InvalidSignature)?;
+    if address_to_string(signer_address) != signer.address.to_lowercase() {
         return Err(VerificationError::InvalidSignature);
     };
     Ok(())

@@ -11,6 +11,7 @@ use crate::activitypub::builders::{
     update_person::{
         build_update_person,
         prepare_update_person,
+        prepare_signed_update_person,
     },
 };
 use crate::config::Config;
@@ -25,7 +26,11 @@ use crate::ethereum::identity::{
     create_identity_claim,
     verify_identity_proof,
 };
-use crate::json_signatures::canonicalization::canonicalize_object;
+use crate::json_signatures::{
+    canonicalization::canonicalize_object,
+    create::{add_integrity_proof, IntegrityProof},
+    verify::verify_jcs_eip191_signature,
+};
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::pagination::get_paginated_response;
 use crate::mastodon_api::search::helpers::search_profiles_only;
@@ -249,11 +254,28 @@ async fn send_signed_update(
     if !current_user.profile.identity_proofs.any(&signer) {
         return Err(ValidationError("unknown signer").into());
     };
-    let _activity = build_update_person(
+    let activity = build_update_person(
         &config.instance_url(),
         &current_user,
         Some(data.internal_activity_id),
     ).map_err(|_| HttpError::InternalError)?;
+    let canonical_json = canonicalize_object(&activity)
+        .map_err(|_| HttpError::InternalError)?;
+    verify_jcs_eip191_signature(&signer, &canonical_json, &data.signature)
+        .map_err(|_| ValidationError("invalid signature"))?;
+    let proof = IntegrityProof::jcs_eip191(&signer, &data.signature);
+    let mut activity_value = serde_json::to_value(activity)
+        .map_err(|_| HttpError::InternalError)?;
+    add_integrity_proof(&mut activity_value, proof)
+        .map_err(|_| HttpError::InternalError)?;
+
+    prepare_signed_update_person(
+        db_client,
+        &config.instance(),
+        &current_user,
+        activity_value,
+    ).await?.spawn_deliver();
+
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }

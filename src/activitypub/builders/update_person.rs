@@ -1,3 +1,4 @@
+use serde_json::Value;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
@@ -61,6 +62,21 @@ pub async fn prepare_update_person(
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     let activity = build_update_person(&instance.url(), user, None)
         .map_err(|_| ConversionError)?;
+    let recipients = get_update_person_recipients(db_client, &user.id).await?;
+    Ok(OutgoingActivity {
+        instance: instance.clone(),
+        sender: user.clone(),
+        activity,
+        recipients,
+    })
+}
+
+pub async fn prepare_signed_update_person(
+    db_client: &impl GenericClient,
+    instance: &Instance,
+    user: &User,
+    activity: Value,
+) -> Result<OutgoingActivity<Value>, DatabaseError> {
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
     Ok(OutgoingActivity {
         instance: instance.clone(),
