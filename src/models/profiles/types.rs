@@ -38,6 +38,13 @@ impl IdentityProofs {
         let Self(identity_proofs) = self;
         identity_proofs
     }
+
+    /// Returns true if identity proof list contains at least one proof
+    /// created by a given DID.
+    pub fn any(&self, issuer: &DidPkh) -> bool {
+        let Self(identity_proofs) = self;
+        identity_proofs.iter().any(|proof| proof.issuer == *issuer)
+    }
 }
 
 json_from_sql!(IdentityProofs);

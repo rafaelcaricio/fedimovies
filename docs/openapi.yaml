@@ -98,13 +98,61 @@ paths:
                 $ref: '#/components/schemas/Account'
         400:
           description: Invalid user data
+  /api/v1/accounts/signed_update:
+    get:
+      summary: Build Update(Person) activity for signing (experimental).
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  internal_activity_id:
+                    description: Internal activity ID.
+                    type: string
+                    format: uuid
+                  activity:
+                    description: Canonical representation of activity.
+                    type: string
+                    example: '{"type":"Update"}'
+    post:
+      summary: Send signed activity (experimental).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                internal_activity_id:
+                  description: Internal activity ID.
+                  type: string
+                  format: uuid
+                signer:
+                  description: Signer's identifier (DID)
+                  type: string
+                  example: 'did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a'
+                signature:
+                  description: Signature value.
+                  type: string
+                  example: '3312dacd...'
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        400:
+          description: Invalid signature data.
   /api/v1/accounts/identity_proof:
     get:
       summary: Get unsigned data for identity proof.
       parameters:
         - name: did
           in: query
-          description: Identifier (DID)
+          description: Identifier (DID).
           required: true
           schema:
             type: string
@@ -132,7 +180,7 @@ paths:
               type: object
               properties:
                 did:
-                  description: Identifier (DID)
+                  description: Signer (DID).
                   type: string
                   example: 'did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a'
                 signature:

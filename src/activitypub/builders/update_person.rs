@@ -15,13 +15,16 @@ use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;
 use crate::utils::id::new_uuid;
 
-fn build_update_person(
+pub fn build_update_person(
     instance_url: &str,
     user: &User,
+    maybe_internal_activity_id: Option<Uuid>,
 ) -> Result<Activity, ActorKeyError> {
     let actor = get_local_actor(user, instance_url)?;
     // Update(Person) is idempotent so its ID can be random
-    let activity_id = local_object_id(instance_url, &new_uuid());
+    let internal_activity_id =
+        maybe_internal_activity_id.unwrap_or(new_uuid());
+    let activity_id = local_object_id(instance_url, &internal_activity_id);
     let activity = create_activity(
         instance_url,
         &user.profile.username,
@@ -56,7 +59,7 @@ pub async fn prepare_update_person(
     instance: &Instance,
     user: &User,
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
-    let activity = build_update_person(&instance.url(), user)
+    let activity = build_update_person(&instance.url(), user, None)
         .map_err(|_| ConversionError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
     Ok(OutgoingActivity {

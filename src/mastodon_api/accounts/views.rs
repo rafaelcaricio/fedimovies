@@ -8,7 +8,10 @@ use uuid::Uuid;
 use crate::activitypub::builders::{
     follow::prepare_follow,
     undo_follow::prepare_undo_follow,
-    update_person::prepare_update_person,
+    update_person::{
+        build_update_person,
+        prepare_update_person,
+    },
 };
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
@@ -22,6 +25,7 @@ use crate::ethereum::identity::{
     create_identity_claim,
     verify_identity_proof,
 };
+use crate::json_signatures::canonicalization::canonicalize_object;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::pagination::get_paginated_response;
 use crate::mastodon_api::search::helpers::search_profiles_only;
@@ -62,11 +66,13 @@ use crate::utils::crypto::{
     serialize_private_key,
 };
 use crate::utils::currencies::Currency;
+use crate::utils::id::new_uuid;
 use super::helpers::get_relationship;
 use super::types::{
     Account,
     AccountCreateData,
     AccountUpdateData,
+    ApiSubscription,
     FollowData,
     FollowListQueryParams,
     IdentityClaim,
@@ -75,8 +81,9 @@ use super::types::{
     RelationshipQueryParams,
     SearchAcctQueryParams,
     SearchDidQueryParams,
+    SignedUpdate,
     StatusListQueryParams,
-    ApiSubscription,
+    UnsignedUpdate,
 };
 
 #[post("")]
@@ -205,6 +212,52 @@ async fn update_credentials(
     Ok(HttpResponse::Ok().json(account))
 }
 
+#[get("/signed_update")]
+async fn get_unsigned_update(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let internal_activity_id = new_uuid();
+    let activity = build_update_person(
+        &config.instance_url(),
+        &current_user,
+        Some(internal_activity_id),
+    ).map_err(|_| HttpError::InternalError)?;
+    let canonical_json = canonicalize_object(&activity)
+        .map_err(|_| HttpError::InternalError)?;
+    let data = UnsignedUpdate {
+        internal_activity_id,
+        activity: canonical_json,
+    };
+    Ok(HttpResponse::Ok().json(data))
+}
+
+#[post("/signed_update")]
+async fn send_signed_update(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    data: web::Json<SignedUpdate>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let signer = data.signer.parse::<DidPkh>()
+        .map_err(|_| ValidationError("invalid DID"))?;
+    if !current_user.profile.identity_proofs.any(&signer) {
+        return Err(ValidationError("unknown signer").into());
+    };
+    let _activity = build_update_person(
+        &config.instance_url(),
+        &current_user,
+        Some(data.internal_activity_id),
+    ).map_err(|_| HttpError::InternalError)?;
+    let account = Account::from_user(current_user, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
+}
+
 #[get("/identity_proof")]
 async fn get_identity_claim(
     auth: BearerAuth,
@@ -243,10 +296,13 @@ async fn create_identity_proof(
     let maybe_public_address =
         current_user.public_wallet_address(&Currency::Ethereum);
     if let Some(address) = maybe_public_address {
+        // Do not allow to add more than one address proof
         if did.address != address {
             return Err(ValidationError("DID doesn't match current identity").into());
         };
     };
+    // Reject proof if there's another local user with the same DID.
+    // This is needed for matching ethereum subscriptions
     match get_user_by_did(db_client, &did).await {
         Ok(user) => {
             if user.id != current_user.id {
@@ -575,6 +631,8 @@ pub fn account_api_scope() -> Scope {
         .service(create_account)
         .service(verify_credentials)
         .service(update_credentials)
+        .service(get_unsigned_update)
+        .service(send_signed_update)
         .service(get_identity_claim)
         .service(create_identity_proof)
         .service(get_relationships_view)

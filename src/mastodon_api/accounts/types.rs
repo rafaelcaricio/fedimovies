@@ -254,6 +254,19 @@ impl AccountUpdateData {
     }
 }
 
+#[derive(Serialize)]
+pub struct UnsignedUpdate {
+    pub internal_activity_id: Uuid,
+    pub activity: String, // canonical representation
+}
+
+#[derive(Deserialize)]
+pub struct SignedUpdate {
+    pub internal_activity_id: Uuid,
+    pub signer: String,
+    pub signature: String,
+}
+
 #[derive(Deserialize)]
 pub struct IdentityClaimQueryParams {
     pub did: String,
