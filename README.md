@@ -119,6 +119,8 @@ Add blockchain configuration to `blockchains` array in your configuration file.
 
 ## Development
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md)
+
 ### Start database server
 
 ```
