@@ -163,6 +163,11 @@ async fn outbox(
     Ok(response)
 }
 
+#[post("/outbox")]
+async fn outbox_client_to_server() -> HttpResponse {
+    HttpResponse::MethodNotAllowed().finish()
+}
+
 #[get("/followers")]
 async fn followers_collection(
     config: web::Data<Config>,
@@ -252,6 +257,7 @@ pub fn actor_scope() -> Scope {
         .service(actor_view)
         .service(inbox)
         .service(outbox)
+        .service(outbox_client_to_server)
         .service(followers_collection)
         .service(following_collection)
         .service(subscribers_collection)
