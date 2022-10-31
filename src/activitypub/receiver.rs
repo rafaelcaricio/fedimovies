@@ -182,8 +182,16 @@ pub async fn receive_activity(
     // Verify embedded signature
     match verify_signed_activity(config, db_client, activity_raw).await {
         Ok(signer) => {
-            let signer_id = signer.actor_id(&config.instance_url());
-            log::info!("activity signed by {}", signer_id);
+            let activity_signer_id = signer.actor_id(&config.instance_url());
+            if activity_signer_id != signer_id {
+                log::warn!(
+                    "request signer {} is different from activity signer {}",
+                    signer_id,
+                    activity_signer_id,
+                );
+            } else {
+                log::debug!("activity signed by {}", activity_signer_id);
+            };
         },
         Err(AuthenticationError::NoJsonSignature) => (), // ignore
         Err(other_error) => {
