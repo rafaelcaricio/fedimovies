@@ -2,6 +2,7 @@ use rsa::RsaPublicKey;
 use serde_json::Value;
 
 use crate::utils::crypto::verify_signature;
+use super::canonicalization::{canonicalize_object, CanonicalizationError};
 use super::create::{Proof, PROOF_TYPE, PROOF_PURPOSE};
 
 pub struct SignatureData {
@@ -21,8 +22,8 @@ pub enum JsonSignatureVerificationError {
     #[error("{0}")]
     InvalidProof(&'static str),
 
-    #[error("canonicalization error")]
-    CanonicalizationError,
+    #[error(transparent)]
+    CanonicalizationError(#[from] CanonicalizationError),
 
     #[error("invalid encoding")]
     InvalidEncoding(#[from] base64::DecodeError),
@@ -48,11 +49,10 @@ pub fn get_json_signature(
     {
         return Err(VerificationError::InvalidProof("invalid proof"));
     };
-    let canon = serde_jcs::to_string(&object)
-        .map_err(|_| VerificationError::CanonicalizationError)?;
+    let message = canonicalize_object(&object)?;
     let signature_data = SignatureData {
         key_id: proof.verification_method,
-        message: canon,
+        message: message,
         signature: proof.proof_value,
     };
     Ok(signature_data)

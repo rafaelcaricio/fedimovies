@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::utils::crypto::sign_message;
+use super::canonicalization::{canonicalize_object, CanonicalizationError};
 
 /// Data Integrity Proof
 /// https://w3c.github.io/vc-data-integrity/
@@ -31,6 +32,9 @@ pub enum JsonSignatureError {
     #[error(transparent)]
     JsonError(#[from] serde_json::Error),
 
+    #[error(transparent)]
+    CanonicalizationError(#[from] CanonicalizationError),
+
     #[error("signing error")]
     SigningError(#[from] rsa::errors::Error),
 
@@ -44,10 +48,9 @@ pub fn sign_object(
     signer_key_id: &str,
 ) -> Result<Value, JsonSignatureError> {
     // Canonicalize
-    // JCS: https://www.rfc-editor.org/rfc/rfc8785
-    let object_str = serde_jcs::to_string(object)?;
+    let message = canonicalize_object(object)?;
     // Sign
-    let signature_b64 = sign_message(signer_key, &object_str)?;
+    let signature_b64 = sign_message(signer_key, &message)?;
     // Insert proof
     let proof = Proof {
         proof_type: PROOF_TYPE.to_string(),
