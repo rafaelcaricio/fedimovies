@@ -3,7 +3,12 @@ use serde_json::Value;
 
 use crate::utils::crypto::verify_signature;
 use super::canonicalization::{canonicalize_object, CanonicalizationError};
-use super::create::{Proof, PROOF_KEY, PROOF_TYPE, PROOF_PURPOSE};
+use super::create::{
+    IntegrityProof,
+    PROOF_TYPE_JCS_RSA,
+    PROOF_KEY,
+    PROOF_PURPOSE,
+};
 
 pub struct SignatureData {
     pub key_id: String,
@@ -42,12 +47,12 @@ pub fn get_json_signature(
         .ok_or(VerificationError::InvalidObject)?;
     let proof_value = object_map.remove(PROOF_KEY)
         .ok_or(VerificationError::NoProof)?;
-    let proof: Proof = serde_json::from_value(proof_value)
+    let proof: IntegrityProof = serde_json::from_value(proof_value)
         .map_err(|_| VerificationError::InvalidProof("invalid proof"))?;
-    if proof.proof_type != PROOF_TYPE ||
+    if proof.proof_type != PROOF_TYPE_JCS_RSA ||
         proof.proof_purpose != PROOF_PURPOSE
     {
-        return Err(VerificationError::InvalidProof("invalid proof"));
+        return Err(VerificationError::InvalidProof("unsupported proof type"));
     };
     let message = canonicalize_object(&object)?;
     let signature_data = SignatureData {

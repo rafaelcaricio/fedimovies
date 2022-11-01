@@ -6,11 +6,21 @@ use serde_json::Value;
 use crate::utils::crypto::sign_message;
 use super::canonicalization::{canonicalize_object, CanonicalizationError};
 
+pub const PROOF_KEY: &str = "proof";
+
+// Similar to https://identity.foundation/JcsEd25519Signature2020/
+// - Canonicalization algorithm: JCS
+// - Digest algorithm: SHA-256
+// - Signature algorithm: RSASSA-PKCS1-v1_5
+pub const PROOF_TYPE_JCS_RSA: &str = "JcsRsaSignature2022";
+
+pub const PROOF_PURPOSE: &str = "assertionMethod";
+
 /// Data Integrity Proof
 /// https://w3c.github.io/vc-data-integrity/
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Proof {
+pub struct IntegrityProof {
     #[serde(rename = "type")]
     pub proof_type: String,
     pub proof_purpose: String,
@@ -19,15 +29,20 @@ pub struct Proof {
     pub proof_value: String,
 }
 
-pub const PROOF_KEY: &str = "proof";
-
-// Similar to https://identity.foundation/JcsEd25519Signature2020/
-// - Canonicalization algorithm: JCS
-// - Digest algorithm: SHA-256
-// - Signature algorithm: RSASSA-PKCS1-v1_5
-pub const PROOF_TYPE: &str = "JcsRsaSignature2022";
-
-pub const PROOF_PURPOSE: &str = "assertionMethod";
+impl IntegrityProof {
+    fn jcs_rsa(
+        signer_key_id: &str,
+        signature: &str,
+    ) -> Self {
+        Self {
+            proof_type: PROOF_TYPE_JCS_RSA.to_string(),
+            proof_purpose: PROOF_PURPOSE.to_string(),
+            verification_method: signer_key_id.to_string(),
+            created: Utc::now(),
+            proof_value: signature.to_string(),
+        }
+    }
+}
 
 #[derive(thiserror::Error, Debug)]
 pub enum JsonSignatureError {
@@ -47,6 +62,20 @@ pub enum JsonSignatureError {
     AlreadySigned,
 }
 
+pub fn add_integrity_proof(
+    object_value: &mut Value,
+    proof: IntegrityProof,
+) -> Result<(), JsonSignatureError> {
+    let object_map = object_value.as_object_mut()
+        .ok_or(JsonSignatureError::InvalidObject)?;
+    if object_map.contains_key(PROOF_KEY) {
+        return Err(JsonSignatureError::AlreadySigned);
+    };
+    let proof_value = serde_json::to_value(proof)?;
+    object_map.insert(PROOF_KEY.to_string(), proof_value);
+    Ok(())
+}
+
 pub fn sign_object(
     object: &Value,
     signer_key: &RsaPrivateKey,
@@ -57,21 +86,9 @@ pub fn sign_object(
     // Sign
     let signature_b64 = sign_message(signer_key, &message)?;
     // Insert proof
-    let proof = Proof {
-        proof_type: PROOF_TYPE.to_string(),
-        proof_purpose: PROOF_PURPOSE.to_string(),
-        verification_method: signer_key_id.to_string(),
-        created: Utc::now(),
-        proof_value: signature_b64,
-    };
-    let proof_value = serde_json::to_value(proof)?;
+    let proof = IntegrityProof::jcs_rsa(signer_key_id, &signature_b64);
     let mut object_value = serde_json::to_value(object)?;
-    let object_map = object_value.as_object_mut()
-        .ok_or(JsonSignatureError::InvalidObject)?;
-    if object_map.contains_key(PROOF_KEY) {
-        return Err(JsonSignatureError::AlreadySigned);
-    };
-    object_map.insert(PROOF_KEY.to_string(), proof_value);
+    add_integrity_proof(&mut object_value, proof)?;
     Ok(object_value)
 }
 
