@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::utils::crypto::verify_signature;
 use super::canonicalization::{canonicalize_object, CanonicalizationError};
-use super::create::{Proof, PROOF_TYPE, PROOF_PURPOSE};
+use super::create::{Proof, PROOF_KEY, PROOF_TYPE, PROOF_PURPOSE};
 
 pub struct SignatureData {
     pub key_id: String,
@@ -40,7 +40,7 @@ pub fn get_json_signature(
     let mut object = object.clone();
     let object_map = object.as_object_mut()
         .ok_or(VerificationError::InvalidObject)?;
-    let proof_value = object_map.remove("proof")
+    let proof_value = object_map.remove(PROOF_KEY)
         .ok_or(VerificationError::NoProof)?;
     let proof: Proof = serde_json::from_value(proof_value)
         .map_err(|_| VerificationError::InvalidProof("invalid proof"))?;

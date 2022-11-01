@@ -19,6 +19,8 @@ pub struct Proof {
     pub proof_value: String,
 }
 
+pub const PROOF_KEY: &str = "proof";
+
 // Similar to https://identity.foundation/JcsEd25519Signature2020/
 // - Canonicalization algorithm: JCS
 // - Digest algorithm: SHA-256
@@ -40,10 +42,13 @@ pub enum JsonSignatureError {
 
     #[error("invalid object")]
     InvalidObject,
+
+    #[error("already signed")]
+    AlreadySigned,
 }
 
 pub fn sign_object(
-    object: &impl Serialize,
+    object: &Value,
     signer_key: &RsaPrivateKey,
     signer_key_id: &str,
 ) -> Result<Value, JsonSignatureError> {
@@ -63,8 +68,15 @@ pub fn sign_object(
     let mut object_value = serde_json::to_value(object)?;
     let object_map = object_value.as_object_mut()
         .ok_or(JsonSignatureError::InvalidObject)?;
-    object_map.insert("proof".to_string(), proof_value);
+    if object_map.contains_key(PROOF_KEY) {
+        return Err(JsonSignatureError::AlreadySigned);
+    };
+    object_map.insert(PROOF_KEY.to_string(), proof_value);
     Ok(object_value)
+}
+
+pub fn is_object_signed(object: &Value) -> bool {
+    object.get(PROOF_KEY).is_some()
 }
 
 #[cfg(test)]
@@ -92,6 +104,7 @@ mod tests {
         });
         let result = sign_object(&object, &signer_key, signer_key_id).unwrap();
 
+        assert!(is_object_signed(&result));
         assert_eq!(result["actor"], object["actor"]);
         assert_eq!(result["object"], object["object"]);
         let signature_date = result["proof"]["created"].as_str().unwrap();

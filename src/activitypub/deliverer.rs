@@ -13,6 +13,7 @@ use crate::http_signatures::create::{
     HttpSignatureError,
 };
 use crate::json_signatures::create::{
+    is_object_signed,
     sign_object,
     JsonSignatureError,
 };
@@ -122,7 +123,14 @@ async fn deliver_activity_worker(
         ),
         ACTOR_KEY_SUFFIX,
     );
-    let activity_signed = sign_object(&activity, &actor_key, &actor_key_id)?;
+    let activity_value = serde_json::to_value(&activity)?;
+    let activity_signed = if is_object_signed(&activity_value) {
+        log::warn!("activity is already signed");
+        activity_value
+    } else {
+        sign_object(&activity_value, &actor_key, &actor_key_id)?
+    };
+
     let activity_json = serde_json::to_string(&activity_signed)?;
     if recipients.is_empty() {
         return Ok(());
