@@ -15,8 +15,13 @@ use super::create::{
     PROOF_PURPOSE,
 };
 
+#[derive(Debug, PartialEq)]
+pub enum JsonSigner {
+    ActorKeyId(String),
+}
+
 pub struct SignatureData {
-    pub key_id: String,
+    pub signer: JsonSigner,
     pub message: String,
     pub signature: String,
 }
@@ -54,21 +59,23 @@ pub fn get_json_signature(
         .ok_or(VerificationError::NoProof)?;
     let proof: IntegrityProof = serde_json::from_value(proof_value)
         .map_err(|_| VerificationError::InvalidProof("invalid proof"))?;
-    if proof.proof_type != PROOF_TYPE_JCS_RSA ||
-        proof.proof_purpose != PROOF_PURPOSE
-    {
+    if proof.proof_purpose != PROOF_PURPOSE {
+        return Err(VerificationError::InvalidProof("invalid proof purpose"));
+    };
+    if proof.proof_type != PROOF_TYPE_JCS_RSA {
         return Err(VerificationError::InvalidProof("unsupported proof type"));
     };
+    let signer = JsonSigner::ActorKeyId(proof.verification_method);
     let message = canonicalize_object(&object)?;
     let signature_data = SignatureData {
-        key_id: proof.verification_method,
+        signer: signer,
         message: message,
         signature: proof.proof_value,
     };
     Ok(signature_data)
 }
 
-pub fn verify_json_signature(
+pub fn verify_jcs_rsa_signature(
     signature_data: &SignatureData,
     signer_key: &RsaPublicKey,
 ) -> Result<(), VerificationError> {
@@ -129,10 +136,14 @@ mod tests {
         ).unwrap();
 
         let signature_data = get_json_signature(&signed_object).unwrap();
-        assert_eq!(signature_data.key_id, signer_key_id);
+        let expected_signer = JsonSigner::ActorKeyId(signer_key_id.to_string());
+        assert_eq!(signature_data.signer, expected_signer);
 
         let signer_public_key = RsaPublicKey::from(signer_key);
-        let result = verify_json_signature(&signature_data, &signer_public_key);
+        let result = verify_jcs_rsa_signature(
+            &signature_data,
+            &signer_public_key,
+        );
         assert_eq!(result.is_ok(), true);
     }
 }

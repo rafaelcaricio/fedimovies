@@ -11,8 +11,9 @@ use crate::http_signatures::verify::{
 };
 use crate::json_signatures::verify::{
     get_json_signature,
-    verify_json_signature,
+    verify_jcs_rsa_signature,
     JsonSignatureVerificationError as JsonSignatureError,
+    JsonSigner,
 };
 use crate::models::profiles::queries::get_profile_by_remote_actor_id;
 use crate::models::profiles::types::DbActorProfile;
@@ -106,7 +107,9 @@ pub async fn verify_signed_activity(
             other_error => other_error.into(),
         }
     })?;
-    let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
+
+    let JsonSigner::ActorKeyId(ref key_id) = signature_data.signer;
+    let actor_id = key_id_to_actor_id(key_id)?;
     let actor_profile = match get_or_import_profile_by_actor_id(
         db_client,
         &config.instance(),
@@ -123,7 +126,7 @@ pub async fn verify_signed_activity(
         .ok_or(AuthenticationError::ActorError("invalid profile".to_string()))?;
     let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
 
-    verify_json_signature(&signature_data, &public_key)?;
+    verify_jcs_rsa_signature(&signature_data, &public_key)?;
 
     Ok(actor_profile)
 }
