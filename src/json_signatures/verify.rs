@@ -10,6 +10,7 @@ use crate::utils::crypto::verify_signature;
 use super::canonicalization::{canonicalize_object, CanonicalizationError};
 use super::create::{
     IntegrityProof,
+    PROOF_TYPE_JCS_EIP191,
     PROOF_TYPE_JCS_RSA,
     PROOF_KEY,
     PROOF_PURPOSE,
@@ -18,6 +19,7 @@ use super::create::{
 #[derive(Debug, PartialEq)]
 pub enum JsonSigner {
     ActorKeyId(String),
+    DidPkh(DidPkh),
 }
 
 pub struct SignatureData {
@@ -62,10 +64,19 @@ pub fn get_json_signature(
     if proof.proof_purpose != PROOF_PURPOSE {
         return Err(VerificationError::InvalidProof("invalid proof purpose"));
     };
-    if proof.proof_type != PROOF_TYPE_JCS_RSA {
-        return Err(VerificationError::InvalidProof("unsupported proof type"));
+    let signer = match proof.proof_type.as_str() {
+        PROOF_TYPE_JCS_EIP191 => {
+            let did = proof.verification_method.parse()
+                .map_err(|_| VerificationError::InvalidProof("invalid DID"))?;
+            JsonSigner::DidPkh(did)
+        },
+        PROOF_TYPE_JCS_RSA => {
+            JsonSigner::ActorKeyId(proof.verification_method)
+        },
+        _ => {
+            return Err(VerificationError::InvalidProof("unsupported proof type"));
+        },
     };
-    let signer = JsonSigner::ActorKeyId(proof.verification_method);
     let message = canonicalize_object(&object)?;
     let signature_data = SignatureData {
         signer: signer,
@@ -110,7 +121,30 @@ mod tests {
     use serde_json::json;
     use crate::json_signatures::create::sign_object;
     use crate::utils::crypto::generate_weak_private_key;
+    use crate::utils::currencies::Currency;
     use super::*;
+
+    #[test]
+    fn test_get_json_signature_eip155() {
+        let signed_object = json!({
+            "type": "Test",
+            "id": "https://example.org/objects/1",
+            "proof": {
+                "type": "JcsEip191Signature2022",
+                "proofPurpose": "assertionMethod",
+                "verificationMethod": "did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a",
+                "created": "2020-11-05T19:23:24Z",
+                "proofValue": "xxx",
+            },
+        });
+        let signature_data = get_json_signature(&signed_object).unwrap();
+        let expected_signer = JsonSigner::DidPkh(DidPkh::from_address(
+            &Currency::Ethereum,
+            "0xb9c5714089478a327f09197987f16f9e5d936e8a",
+        ));
+        assert_eq!(signature_data.signer, expected_signer);
+        assert_eq!(signature_data.signature, "xxx");
+    }
 
     #[test]
     fn test_create_and_verify_signature() {

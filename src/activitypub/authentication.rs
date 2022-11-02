@@ -12,10 +12,14 @@ use crate::http_signatures::verify::{
 use crate::json_signatures::verify::{
     get_json_signature,
     verify_jcs_rsa_signature,
+    verify_jcs_eip191_signature,
     JsonSignatureVerificationError as JsonSignatureError,
     JsonSigner,
 };
-use crate::models::profiles::queries::get_profile_by_remote_actor_id;
+use crate::models::profiles::queries::{
+    get_profile_by_remote_actor_id,
+    search_profiles_by_did_only,
+};
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::crypto::deserialize_public_key;
 use super::fetcher::helpers::get_or_import_profile_by_actor_id;
@@ -108,25 +112,50 @@ pub async fn verify_signed_activity(
         }
     })?;
 
-    let JsonSigner::ActorKeyId(ref key_id) = signature_data.signer;
-    let actor_id = key_id_to_actor_id(key_id)?;
-    let actor_profile = match get_or_import_profile_by_actor_id(
-        db_client,
-        &config.instance(),
-        &config.media_dir(),
-        &actor_id,
-    ).await {
-        Ok(profile) => profile,
-        Err(HandlerError::DatabaseError(error)) => return Err(error.into()),
-        Err(other_error) => {
-            return Err(AuthenticationError::ActorError(other_error.to_string()));
+    let actor_profile = match signature_data.signer {
+        JsonSigner::ActorKeyId(ref key_id) => {
+            let actor_id = key_id_to_actor_id(key_id)?;
+            let actor_profile = match get_or_import_profile_by_actor_id(
+                db_client,
+                &config.instance(),
+                &config.media_dir(),
+                &actor_id,
+            ).await {
+                Ok(profile) => profile,
+                Err(HandlerError::DatabaseError(error)) => {
+                    return Err(error.into());
+                },
+                Err(other_error) => {
+                    return Err(AuthenticationError::ActorError(other_error.to_string()));
+                },
+            };
+            let actor = actor_profile.actor_json.as_ref()
+                .ok_or(AuthenticationError::ActorError("invalid profile".to_string()))?;
+            let public_key =
+                deserialize_public_key(&actor.public_key.public_key_pem)?;
+            verify_jcs_rsa_signature(&signature_data, &public_key)?;
+            actor_profile
+        },
+        JsonSigner::DidPkh(ref signer) => {
+            let mut profiles = search_profiles_by_did_only(db_client, signer).await?;
+            if profiles.len() > 1 {
+                log::info!(
+                    "signer with multiple profiles ({})",
+                    profiles.len(),
+                );
+            };
+            if let Some(profile) = profiles.pop() {
+                verify_jcs_eip191_signature(
+                    signer,
+                    &signature_data.message,
+                    &signature_data.signature,
+                )?;
+                profile
+            } else {
+                return Err(AuthenticationError::ActorError("unknown signer".to_string()));
+            }
         },
     };
-    let actor = actor_profile.actor_json.as_ref()
-        .ok_or(AuthenticationError::ActorError("invalid profile".to_string()))?;
-    let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
-
-    verify_jcs_rsa_signature(&signature_data, &public_key)?;
 
     Ok(actor_profile)
 }
