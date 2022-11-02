@@ -19,7 +19,7 @@ use crate::models::posts::helpers::can_view_post;
 use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
     search_profiles,
-    search_profiles_by_did,
+    search_profiles_by_did_only,
     search_profiles_by_wallet_address,
 };
 use crate::models::profiles::types::DbActorProfile;
@@ -195,10 +195,9 @@ pub async fn search(
             ).await?;
         },
         SearchQuery::Did(did) => {
-            profiles = search_profiles_by_did(
+            profiles = search_profiles_by_did_only(
                 db_client,
                 &did,
-                false,
             ).await?;
         },
         SearchQuery::Unknown => (), // ignore

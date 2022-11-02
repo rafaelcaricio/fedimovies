@@ -37,7 +37,7 @@ use crate::models::subscriptions::queries::{
 };
 use crate::models::users::queries::{
     get_user_by_id,
-    get_user_by_wallet_address,
+    get_user_by_public_wallet_address,
 };
 use crate::models::users::types::User;
 use crate::utils::caip2::ChainId;
@@ -158,7 +158,7 @@ pub async fn check_ethereum_subscriptions(
                 continue;
             },
         };
-        let recipient = get_user_by_wallet_address(
+        let recipient = get_user_by_public_wallet_address(
             db_client,
             &ETHEREUM,
             &recipient_address,

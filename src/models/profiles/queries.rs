@@ -400,24 +400,37 @@ pub async fn search_profiles(
     Ok(profiles)
 }
 
+pub async fn search_profiles_by_did_only(
+    db_client: &impl GenericClient,
+    did: &DidPkh,
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
+     let rows = db_client.query(
+        "
+        SELECT actor_profile
+        FROM actor_profile
+        WHERE
+            EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(actor_profile.identity_proofs) AS proof
+                WHERE proof ->> 'issuer' = $1
+            )
+        ",
+        &[&did.to_string()],
+    ).await?;
+    let profiles: Vec<DbActorProfile> = rows.iter()
+        .map(|row| row.try_get("actor_profile"))
+        .collect::<Result<_, _>>()?;
+    Ok(profiles)
+}
+
 pub async fn search_profiles_by_did(
     db_client: &impl GenericClient,
     did: &DidPkh,
     prefer_verified: bool,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let did_str = did.to_string();
-    let identity_proof_query =
-        "
-        SELECT actor_profile, TRUE AS is_verified
-        FROM actor_profile
-        WHERE
-            EXISTS (
-                SELECT 1
-                FROM jsonb_array_elements(actor_profile.identity_proofs) AS proof
-                WHERE proof ->> 'issuer' = $did
-            )
-        ";
-    let rows = if let Some(currency) = did.currency() {
+    let verified = search_profiles_by_did_only(db_client, did).await?;
+    let unverified = if let Some(currency) = did.currency() {
         // If currency is Ethereum,
         // search over extra fields must be case insensitive.
         let value_op = match currency {
@@ -428,9 +441,7 @@ pub async fn search_profiles_by_did(
         // login addresses are private.
         let statement = format!(
             "
-            {identity_proof_query}
-            UNION ALL
-            SELECT actor_profile, FALSE
+            SELECT actor_profile
             FROM actor_profile
             WHERE
                 EXISTS (
@@ -441,7 +452,6 @@ pub async fn search_profiles_by_did(
                         AND field ->> 'value' {value_op} $field_value
                 )
             ",
-            identity_proof_query=identity_proof_query,
             value_op=value_op,
         );
         let field_name = currency.field_name();
@@ -451,21 +461,17 @@ pub async fn search_profiles_by_did(
             field_name=field_name,
             field_value=did.address,
         )?;
-        db_client.query(query.sql(), query.parameters()).await?
+        let rows = db_client.query(query.sql(), query.parameters()).await?;
+        let unverified = rows.iter()
+            .map(|row| row.try_get("actor_profile"))
+            .collect::<Result<Vec<DbActorProfile>, _>>()?
+            .into_iter()
+            // Exclude verified
+            .filter(|profile| !verified.iter().any(|item| item.id == profile.id))
+            .collect();
+        unverified
     } else {
-        let query = query!(identity_proof_query, did=did_str)?;
-        db_client.query(query.sql(), query.parameters()).await?
-    };
-    let mut verified = vec![];
-    let mut unverified = vec![];
-    for row in rows {
-        let profile: DbActorProfile = row.try_get("actor_profile")?;
-        let is_verified: bool = row.try_get("is_verified")?;
-        if is_verified {
-            verified.push(profile);
-        } else if !verified.iter().any(|item| item.id == profile.id) {
-            unverified.push(profile);
-        };
+        vec![]
     };
     let results = if prefer_verified && verified.len() > 0 {
         verified

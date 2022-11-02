@@ -207,7 +207,7 @@ pub async fn get_user_by_did(
     Ok(user)
 }
 
-pub async fn get_user_by_wallet_address(
+pub async fn get_user_by_public_wallet_address(
     db_client: &impl GenericClient,
     currency: &Currency,
     wallet_address: &str,
