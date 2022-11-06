@@ -41,7 +41,7 @@ async fn main() -> std::io::Result<()> {
 
     let db_pool = create_pool(&config.database_url);
     let mut db_client = get_database_client(&db_pool).await.unwrap();
-    apply_migrations(&mut **db_client).await;
+    apply_migrations(&mut db_client).await;
     std::mem::drop(db_client);
     if !config.media_dir().exists() {
         std::fs::create_dir(config.media_dir())
