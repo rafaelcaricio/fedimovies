@@ -137,7 +137,11 @@ pub async fn verify_signed_activity(
             actor_profile
         },
         JsonSigner::DidPkh(ref signer) => {
-            let mut profiles = search_profiles_by_did_only(db_client, signer).await?;
+            let mut profiles: Vec<_> = search_profiles_by_did_only(db_client, signer)
+                .await?.into_iter()
+                // Exclude local profiles
+                .filter(|profile| !profile.is_local())
+                .collect();
             if profiles.len() > 1 {
                 log::info!(
                     "signer with multiple profiles ({})",
