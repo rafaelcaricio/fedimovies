@@ -164,9 +164,17 @@ pub async fn receive_activity(
         let object_id = find_object_id(&activity.object)?;
         activity.actor == object_id
     } else { false };
-    // Don't fetch signer if this is Delete(Person) activity
-    let signer = match verify_signed_request(config, db_client, request, is_self_delete).await {
-        Ok(signer) => signer,
+    let mut signer = match verify_signed_request(
+        config,
+        db_client,
+        request,
+        // Don't fetch signer if this is Delete(Person) activity
+        is_self_delete,
+    ).await {
+        Ok(request_signer) => {
+            log::debug!("request signed by {}", request_signer.acct);
+            request_signer
+        },
         Err(error) => {
             if is_self_delete {
                 // Ignore Delete(Person) activities without HTTP signatures
@@ -176,22 +184,21 @@ pub async fn receive_activity(
             return Err(error.into());
         },
     };
-    let signer_id = signer.actor_id(&config.instance_url());
-    log::debug!("request signed by {}", signer_id);
 
     // Verify embedded signature
     match verify_signed_activity(config, db_client, activity_raw).await {
-        Ok(signer) => {
-            let activity_signer_id = signer.actor_id(&config.instance_url());
-            if activity_signer_id != signer_id {
+        Ok(activity_signer) => {
+            if activity_signer.acct != signer.acct {
                 log::warn!(
                     "request signer {} is different from activity signer {}",
-                    signer_id,
-                    activity_signer_id,
+                    signer.acct,
+                    activity_signer.acct,
                 );
             } else {
-                log::debug!("activity signed by {}", activity_signer_id);
+                log::debug!("activity signed by {}", activity_signer.acct);
             };
+            // Activity signature has higher priority
+            signer = activity_signer;
         },
         Err(AuthenticationError::NoJsonSignature) => (), // ignore
         Err(other_error) => {
@@ -205,6 +212,8 @@ pub async fn receive_activity(
         log::warn!("ignoring activity from blocked instance: {}", activity_raw);
         return Ok(());
     };
+
+    let signer_id = signer.actor_id(&config.instance_url());
 
     let maybe_object_type = match (activity_type.as_str(), maybe_object_type) {
         (ACCEPT, FOLLOW) => {
