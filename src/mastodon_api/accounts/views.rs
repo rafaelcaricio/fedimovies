@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use actix_web::{
     get, patch, post, web,
     HttpRequest, HttpResponse, Scope,
@@ -5,8 +7,13 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
+use crate::activitypub::actors::types::ActorAddress;
 use crate::activitypub::builders::{
     follow::prepare_follow,
+    move_person::{
+        build_move_person,
+        prepare_signed_move_person,
+    },
     undo_follow::prepare_undo_follow,
     update_person::{
         build_update_person,
@@ -45,7 +52,9 @@ use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
+    get_profile_by_acct,
     get_profile_by_id,
+    get_profile_by_remote_actor_id,
     search_profiles_by_did,
     update_profile,
 };
@@ -95,6 +104,7 @@ use super::types::{
     IdentityClaim,
     IdentityClaimQueryParams,
     IdentityProofData,
+    MoveFollowersRequest,
     RelationshipQueryParams,
     SearchAcctQueryParams,
     SearchDidQueryParams,
@@ -254,6 +264,71 @@ async fn get_unsigned_update(
     Ok(HttpResponse::Ok().json(data))
 }
 
+#[post("/move_followers")]
+async fn move_followers(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    request_data: web::Json<MoveFollowersRequest>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    // Old profile could be deleted
+    let maybe_from_profile = match get_profile_by_remote_actor_id(
+        db_client,
+        &request_data.from_actor_id,
+    ).await {
+        Ok(profile) => Some(profile),
+        Err(DatabaseError::NotFound(_)) => None,
+        Err(other_error) => return Err(other_error.into()),
+    };
+    let mut followers = vec![];
+    for follower_address in request_data.followers_csv.lines() {
+        let follower_acct = ActorAddress::from_str(follower_address)?
+            .acct(&config.instance().hostname());
+        // TODO: fetch unknown profiles
+        let follower = get_profile_by_acct(db_client, &follower_acct).await?;
+        if let Some(remote_actor) = follower.actor_json {
+            // Add remote actor to activity recipients list
+            followers.push(remote_actor.id);
+        } else {
+            // Immediately move local followers
+            if let Some(ref from_profile) = maybe_from_profile {
+                match unfollow(db_client, &follower.id, &from_profile.id).await {
+                    Ok(_) => (),
+                    Err(DatabaseError::NotFound(_)) => (),
+                    Err(other_error) => return Err(other_error.into()),
+                };
+            };
+            match follow(db_client, &follower.id, &current_user.id).await {
+                Ok(_) => (),
+                // Ignore if already following
+                Err(DatabaseError::AlreadyExists(_)) => (),
+                Err(other_error) => return Err(other_error.into()),
+            };
+        };
+    };
+    let internal_activity_id = new_uuid();
+    let activity = build_move_person(
+        &config.instance_url(),
+        &current_user,
+        &request_data.from_actor_id,
+        &followers,
+        &internal_activity_id,
+    );
+    let canonical_json = canonicalize_object(&activity)
+        .map_err(|_| HttpError::InternalError)?;
+    let data = UnsignedActivity {
+        params: ActivityParams::Move {
+            internal_activity_id,
+            from_actor_id: request_data.from_actor_id.clone(),
+            followers,
+        },
+        message: canonical_json,
+    };
+    Ok(HttpResponse::Ok().json(data))
+}
+
 #[post("/send_activity")]
 async fn send_signed_activity(
     auth: BearerAuth,
@@ -268,13 +343,36 @@ async fn send_signed_activity(
     if !current_user.profile.identity_proofs.any(&signer) {
         return Err(ValidationError("unknown signer").into());
     };
-    let ActivityParams::Update { internal_activity_id } = data.params;
-    let mut outgoing_activity = prepare_signed_update_person(
-        db_client,
-        &config.instance(),
-        &current_user,
-        internal_activity_id,
-    ).await.map_err(|_| HttpError::InternalError)?;
+    let mut outgoing_activity = match &data.params {
+        ActivityParams::Move {
+            internal_activity_id,
+            from_actor_id,
+            followers: followers_ids,
+        } => {
+            let mut followers = vec![];
+            for actor_id in followers_ids {
+                let remote_actor = get_profile_by_remote_actor_id(db_client, actor_id)
+                    .await?
+                    .actor_json.ok_or(HttpError::InternalError)?;
+                followers.push(remote_actor);
+            };
+            prepare_signed_move_person(
+                &config.instance(),
+                &current_user,
+                from_actor_id,
+                followers,
+                internal_activity_id,
+            ).map_err(|_| HttpError::InternalError)?
+        },
+        ActivityParams::Update { internal_activity_id } => {
+            prepare_signed_update_person(
+                db_client,
+                &config.instance(),
+                &current_user,
+                *internal_activity_id,
+            ).await.map_err(|_| HttpError::InternalError)?
+        },
+    };
     let canonical_json = canonicalize_object(&outgoing_activity.activity)
         .map_err(|_| HttpError::InternalError)?;
     let proof = match signer {
@@ -707,6 +805,7 @@ pub fn account_api_scope() -> Scope {
         .service(verify_credentials)
         .service(update_credentials)
         .service(get_unsigned_update)
+        .service(move_followers)
         .service(send_signed_activity)
         .service(get_identity_claim)
         .service(create_identity_proof)
