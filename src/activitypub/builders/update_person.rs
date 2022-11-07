@@ -1,11 +1,11 @@
+use serde::Serialize;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity},
     actors::types::{get_local_actor, Actor, ActorKeyError},
-    constants::AP_PUBLIC,
+    constants::{AP_CONTEXT, AP_PUBLIC},
     deliverer::OutgoingActivity,
     identifiers::{local_actor_followers, local_object_id},
     vocabulary::UPDATE,
@@ -16,28 +16,42 @@ use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;
 use crate::utils::id::new_uuid;
 
+#[derive(Serialize)]
+pub struct UpdatePerson {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: Actor,
+
+    to: Vec<String>,
+}
+
 pub fn build_update_person(
     instance_url: &str,
     user: &User,
     maybe_internal_activity_id: Option<Uuid>,
-) -> Result<Activity, ActorKeyError> {
+) -> Result<UpdatePerson, ActorKeyError> {
     let actor = get_local_actor(user, instance_url)?;
     // Update(Person) is idempotent so its ID can be random
     let internal_activity_id =
         maybe_internal_activity_id.unwrap_or(new_uuid());
     let activity_id = local_object_id(instance_url, &internal_activity_id);
-    let activity = create_activity(
-        instance_url,
-        &user.profile.username,
-        UPDATE,
-        activity_id,
-        actor,
-        vec![
+    let activity = UpdatePerson {
+        context: AP_CONTEXT.to_string(),
+        activity_type: UPDATE.to_string(),
+        id: activity_id,
+        actor: actor.id.clone(),
+        object: actor,
+        to: vec![
             AP_PUBLIC.to_string(),
             local_actor_followers(instance_url, &user.profile.username),
         ],
-        vec![],
-    );
+    };
     Ok(activity)
 }
 
@@ -59,7 +73,7 @@ pub async fn prepare_update_person(
     db_client: &impl GenericClient,
     instance: &Instance,
     user: &User,
-) -> Result<OutgoingActivity<Activity>, DatabaseError> {
+) -> Result<OutgoingActivity<UpdatePerson>, DatabaseError> {
     let activity = build_update_person(&instance.url(), user, None)
         .map_err(|_| ConversionError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
@@ -88,7 +102,6 @@ pub async fn prepare_signed_update_person(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use crate::models::profiles::types::DbActorProfile;
     use crate::utils::crypto::{
         generate_weak_private_key,
@@ -121,12 +134,12 @@ mod tests {
             format!("{}/objects/{}", INSTANCE_URL, internal_id),
         );
         assert_eq!(
-            activity.object["id"].as_str().unwrap(),
+            activity.object.id,
             format!("{}/users/testuser", INSTANCE_URL),
         );
-        assert_eq!(activity.to.unwrap(), json!([
-            AP_PUBLIC,
+        assert_eq!(activity.to, vec![
+            AP_PUBLIC.to_string(),
             format!("{}/users/testuser/followers", INSTANCE_URL),
-        ]));
+        ]);
     }
 }
