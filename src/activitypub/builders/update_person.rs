@@ -85,3 +85,48 @@ pub async fn prepare_signed_update_person(
         recipients,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use crate::models::profiles::types::DbActorProfile;
+    use crate::utils::crypto::{
+        generate_weak_private_key,
+        serialize_private_key,
+    };
+    use super::*;
+
+    const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_build_update_person() {
+        let private_key = generate_weak_private_key().unwrap();
+        let private_key_pem = serialize_private_key(&private_key).unwrap();
+        let user = User {
+            private_key: private_key_pem,
+            profile: DbActorProfile {
+                username: "testuser".to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let internal_id = new_uuid();
+        let activity = build_update_person(
+            INSTANCE_URL,
+            &user,
+            Some(internal_id),
+        ).unwrap();
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}", INSTANCE_URL, internal_id),
+        );
+        assert_eq!(
+            activity.object["id"].as_str().unwrap(),
+            format!("{}/users/testuser", INSTANCE_URL),
+        );
+        assert_eq!(activity.to.unwrap(), json!([
+            AP_PUBLIC,
+            format!("{}/users/testuser/followers", INSTANCE_URL),
+        ]));
+    }
+}
