@@ -168,11 +168,10 @@ paths:
               schema:
                 type: object
                 properties:
-                  internal_activity_id:
-                    description: Internal activity ID.
-                    type: string
-                    format: uuid
-                  activity:
+                  params:
+                    description: Activity parameters
+                    $ref: '#/components/schemas/ActivityParameters'
+                  message:
                     description: Canonical representation of activity.
                     type: string
                     example: '{"type":"Update"}'
@@ -184,10 +183,9 @@ paths:
             schema:
               type: object
               properties:
-                internal_activity_id:
-                  description: Internal activity ID.
-                  type: string
-                  format: uuid
+                params:
+                  description: Activity parameters
+                  $ref: '#/components/schemas/ActivityParameters'
                 signer:
                   description: Signer's identifier (DID)
                   type: string
@@ -1178,6 +1176,14 @@ components:
                 note:
                   description: Profile bio.
                   type: string
+    ActivityParameters:
+      type: object
+      properties:
+        type:
+          description: Activity type
+          type: string
+          enum:
+            - update
     Attachment:
       type: object
       properties:

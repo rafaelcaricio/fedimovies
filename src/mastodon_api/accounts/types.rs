@@ -262,15 +262,21 @@ impl AccountUpdateData {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "kebab-case")]
+pub enum ActivityParams {
+    Update { internal_activity_id: Uuid },
+}
+
 #[derive(Serialize)]
-pub struct UnsignedUpdate {
-    pub internal_activity_id: Uuid,
-    pub activity: String, // canonical representation
+pub struct UnsignedActivity {
+    pub params: ActivityParams,
+    pub message: String, // canonical representation
 }
 
 #[derive(Deserialize)]
-pub struct SignedUpdate {
-    pub internal_activity_id: Uuid,
+pub struct SignedActivity {
+    pub params: ActivityParams,
     pub signer: String,
     pub signature: String,
 }

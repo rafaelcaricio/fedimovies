@@ -88,6 +88,7 @@ use super::types::{
     Account,
     AccountCreateData,
     AccountUpdateData,
+    ActivityParams,
     ApiSubscription,
     FollowData,
     FollowListQueryParams,
@@ -97,9 +98,9 @@ use super::types::{
     RelationshipQueryParams,
     SearchAcctQueryParams,
     SearchDidQueryParams,
-    SignedUpdate,
+    SignedActivity,
     StatusListQueryParams,
-    UnsignedUpdate,
+    UnsignedActivity,
 };
 
 #[post("")]
@@ -246,9 +247,9 @@ async fn get_unsigned_update(
     ).map_err(|_| HttpError::InternalError)?;
     let canonical_json = canonicalize_object(&activity)
         .map_err(|_| HttpError::InternalError)?;
-    let data = UnsignedUpdate {
-        internal_activity_id,
-        activity: canonical_json,
+    let data = UnsignedActivity {
+        params: ActivityParams::Update { internal_activity_id },
+        message: canonical_json,
     };
     Ok(HttpResponse::Ok().json(data))
 }
@@ -258,7 +259,7 @@ async fn send_signed_update(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
-    data: web::Json<SignedUpdate>,
+    data: web::Json<SignedActivity>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -267,11 +268,12 @@ async fn send_signed_update(
     if !current_user.profile.identity_proofs.any(&signer) {
         return Err(ValidationError("unknown signer").into());
     };
+    let ActivityParams::Update { internal_activity_id } = data.params;
     let mut outgoing_activity = prepare_signed_update_person(
         db_client,
         &config.instance(),
         &current_user,
-        data.internal_activity_id,
+        internal_activity_id,
     ).await.map_err(|_| HttpError::InternalError)?;
     let canonical_json = canonicalize_object(&outgoing_activity.activity)
         .map_err(|_| HttpError::InternalError)?;
