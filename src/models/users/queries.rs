@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
-use crate::identity::did_pkh::DidPkh;
+use crate::identity::{did::Did, did_pkh::DidPkh};
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
 use crate::utils::currencies::Currency;
@@ -184,7 +184,7 @@ pub async fn get_user_by_login_address(
 
 pub async fn get_user_by_did(
     db_client: &impl GenericClient,
-    did: &DidPkh,
+    did: &Did,
 ) -> Result<User, DatabaseError> {
     // DIDs must be locally unique
     let maybe_row = db_client.query_opt(
@@ -212,7 +212,8 @@ pub async fn get_user_by_public_wallet_address(
     currency: &Currency,
     wallet_address: &str,
 ) -> Result<User, DatabaseError> {
-    let did = DidPkh::from_address(currency, wallet_address);
+    let did_pkh = DidPkh::from_address(currency, wallet_address);
+    let did = Did::Pkh(did_pkh);
     get_user_by_did(db_client, &did).await
 }
 

@@ -25,7 +25,7 @@ use crate::ethereum::identity::{
     create_identity_claim,
     verify_eip191_identity_proof,
 };
-use crate::identity::did_pkh::DidPkh;
+use crate::identity::did::Did;
 use crate::json_signatures::{
     canonicalization::canonicalize_object,
     create::{add_integrity_proof, IntegrityProof},
@@ -249,7 +249,7 @@ async fn send_signed_update(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let signer = data.signer.parse::<DidPkh>()
+    let signer = data.signer.parse::<Did>()
         .map_err(|_| ValidationError("invalid DID"))?;
     if !current_user.profile.identity_proofs.any(&signer) {
         return Err(ValidationError("unknown signer").into());
@@ -261,6 +261,7 @@ async fn send_signed_update(
     ).map_err(|_| HttpError::InternalError)?;
     let canonical_json = canonicalize_object(&activity)
         .map_err(|_| HttpError::InternalError)?;
+    let Did::Pkh(signer) = signer;
     verify_jcs_eip191_signature(&signer, &canonical_json, &data.signature)
         .map_err(|_| ValidationError("invalid signature"))?;
     let proof = IntegrityProof::jcs_eip191(&signer, &data.signature);
@@ -290,7 +291,7 @@ async fn get_identity_claim(
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let actor_id = current_user.profile.actor_id(&config.instance_url());
-    let did = query_params.did.parse::<DidPkh>()
+    let Did::Pkh(did) = query_params.did.parse::<Did>()
         .map_err(|_| ValidationError("invalid DID"))?;
     let claim = create_identity_claim(&actor_id, &did)
         .map_err(|_| HttpError::InternalError)?;
@@ -308,9 +309,10 @@ async fn create_identity_proof(
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     let actor_id = current_user.profile.actor_id(&config.instance_url());
-    let did = proof_data.did.parse::<DidPkh>()
+    let did = proof_data.did.parse::<Did>()
         .map_err(|_| ValidationError("invalid DID"))?;
-    if did.chain_id != ChainId::ethereum_mainnet() {
+    let Did::Pkh(ref did_pkh) = did;
+    if did_pkh.chain_id != ChainId::ethereum_mainnet() {
         // DID must point to Ethereum Mainnet because it is a valid
         // identifier on any Ethereum chain
         return Err(ValidationError("unsupported chain ID").into());
@@ -319,7 +321,7 @@ async fn create_identity_proof(
         current_user.public_wallet_address(&Currency::Ethereum);
     if let Some(address) = maybe_public_address {
         // Do not allow to add more than one address proof
-        if did.address != address {
+        if did_pkh.address != address {
             return Err(ValidationError("DID doesn't match current identity").into());
         };
     };
@@ -336,7 +338,7 @@ async fn create_identity_proof(
     };
     verify_eip191_identity_proof(
         &actor_id,
-        &did,
+        did_pkh,
         &proof_data.signature,
     )?;
     let proof = IdentityProof {
@@ -399,7 +401,7 @@ async fn search_by_did(
     query_params: web::Query<SearchDidQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let did: DidPkh = query_params.did.parse()
+    let did: Did = query_params.did.parse()
         .map_err(|_| ValidationError("invalid DID"))?;
     let profiles = search_profiles_by_did(db_client, &did, false).await?;
     let accounts: Vec<Account> = profiles.into_iter()

@@ -14,7 +14,7 @@ use crate::activitypub::actors::types::{Actor, ActorAddress};
 use crate::activitypub::identifiers::local_actor_id;
 use crate::database::json_macro::{json_from_sql, json_to_sql};
 use crate::errors::{ConversionError, ValidationError};
-use crate::identity::did_pkh::DidPkh;
+use crate::identity::did::Did;
 use crate::utils::caip2::ChainId;
 use super::validators::{
     validate_username,
@@ -25,7 +25,7 @@ use super::validators::{
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct IdentityProof {
-    pub issuer: DidPkh,
+    pub issuer: Did,
     pub proof_type: String,
     pub value: String,
 }
@@ -41,7 +41,7 @@ impl IdentityProofs {
 
     /// Returns true if identity proof list contains at least one proof
     /// created by a given DID.
-    pub fn any(&self, issuer: &DidPkh) -> bool {
+    pub fn any(&self, issuer: &Did) -> bool {
         let Self(identity_proofs) = self;
         identity_proofs.iter().any(|proof| proof.issuer == *issuer)
     }
@@ -430,7 +430,8 @@ mod tests {
     fn test_identity_proof_serialization() {
         let json_data = r#"{"issuer":"did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a","proof_type":"ethereum-eip191-00","value":"dbfe"}"#;
         let proof: IdentityProof = serde_json::from_str(json_data).unwrap();
-        assert_eq!(proof.issuer.address, "0xb9c5714089478a327f09197987f16f9e5d936e8a");
+        let Did::Pkh(ref did_pkh) = proof.issuer;
+        assert_eq!(did_pkh.address, "0xb9c5714089478a327f09197987f16f9e5d936e8a");
         let serialized = serde_json::to_string(&proof).unwrap();
         assert_eq!(serialized, json_data);
     }

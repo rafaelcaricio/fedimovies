@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::database::catch_unique_violation;
 use crate::database::query_macro::query;
 use crate::errors::DatabaseError;
-use crate::identity::did_pkh::DidPkh;
+use crate::identity::{did::Did, did_pkh::DidPkh};
 use crate::models::cleanup::{
     find_orphaned_files,
     find_orphaned_ipfs_objects,
@@ -402,7 +402,7 @@ pub async fn search_profiles(
 
 pub async fn search_profiles_by_did_only(
     db_client: &impl GenericClient,
-    did: &DidPkh,
+    did: &Did,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
      let rows = db_client.query(
         "
@@ -425,12 +425,17 @@ pub async fn search_profiles_by_did_only(
 
 pub async fn search_profiles_by_did(
     db_client: &impl GenericClient,
-    did: &DidPkh,
+    did: &Did,
     prefer_verified: bool,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let did_str = did.to_string();
     let verified = search_profiles_by_did_only(db_client, did).await?;
-    let unverified = if let Some(currency) = did.currency() {
+    let maybe_currency_address = match did {
+        Did::Pkh(did_pkh) => {
+            did_pkh.currency()
+                .map(|currency| (currency, did_pkh.address.clone()))
+        },
+    };
+    let unverified = if let Some((currency, address)) = maybe_currency_address {
         // If currency is Ethereum,
         // search over extra fields must be case insensitive.
         let value_op = match currency {
@@ -457,9 +462,8 @@ pub async fn search_profiles_by_did(
         let field_name = currency.field_name();
         let query = query!(
             &statement,
-            did=did_str,
             field_name=field_name,
-            field_value=did.address,
+            field_value=address,
         )?;
         let rows = db_client.query(query.sql(), query.parameters()).await?;
         let unverified = rows.iter()
@@ -487,7 +491,8 @@ pub async fn search_profiles_by_wallet_address(
     wallet_address: &str,
     prefer_verified: bool,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let did = DidPkh::from_address(currency, wallet_address);
+    let did_pkh = DidPkh::from_address(currency, wallet_address);
+    let did = Did::Pkh(did_pkh);
     search_profiles_by_did(db_client, &did, prefer_verified).await
 }
 
@@ -723,7 +728,7 @@ mod tests {
     async fn test_search_profiles_by_wallet_address_identity_proof() {
         let db_client = &mut create_test_database().await;
         let identity_proof = IdentityProof {
-            issuer: DidPkh::from_address(&ETHEREUM, "0x1234abcd"),
+            issuer: Did::Pkh(DidPkh::from_address(&ETHEREUM, "0x1234abcd")),
             proof_type: "ethereum".to_string(),
             value: "13590013185bdea963".to_string(),
         };

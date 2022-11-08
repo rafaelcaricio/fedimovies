@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
+use crate::identity::did::Did;
 use crate::mastodon_api::pagination::PageSize;
 use crate::mastodon_api::uploads::{UploadError, save_validated_b64_file};
 use crate::models::profiles::types::{
@@ -78,12 +79,13 @@ impl Account {
 
         let mut identity_proofs = vec![];
         for proof in profile.identity_proofs.clone().into_inner() {
+            let Did::Pkh(did_pkh) = proof.issuer;
             // Skip proof if it doesn't map to field name
-            if let Some(currency) = proof.issuer.currency() {
+            if let Some(currency) = did_pkh.currency() {
                 let field_name = currency.field_name();
                 let field = AccountField {
                     name: field_name,
-                    value: proof.issuer.address,
+                    value: did_pkh.address,
                     // Use current time because DID proofs are always valid
                     verified_at: Some(Utc::now()),
                 };

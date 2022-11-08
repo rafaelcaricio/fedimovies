@@ -4,6 +4,7 @@ use regex::Regex;
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
+use crate::identity::did::Did;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::currencies::Currency;
 
@@ -48,11 +49,12 @@ impl User {
     /// Returns wallet address if it is verified
     pub fn public_wallet_address(&self, currency: &Currency) -> Option<String> {
         for proof in self.profile.identity_proofs.clone().into_inner() {
+            let Did::Pkh(did_pkh) = proof.issuer;
             // Return the first matching address, because only
             // one proof per currency is allowed.
-            if let Some(ref address_currency) = proof.issuer.currency() {
+            if let Some(ref address_currency) = did_pkh.currency() {
                 if address_currency == currency {
-                    return Some(proof.issuer.address);
+                    return Some(did_pkh.address);
                 };
             };
         };

@@ -11,7 +11,7 @@ use crate::ethereum::identity::{
     verify_eip191_identity_proof,
 };
 use crate::frontend::get_subscription_page_url;
-use crate::identity::did_pkh::DidPkh;
+use crate::identity::did::Did;
 use crate::models::profiles::types::{
     ExtraField,
     IdentityProof,
@@ -45,13 +45,14 @@ pub fn parse_identity_proof(
     if proof_type != ETHEREUM_EIP191_PROOF {
         return Err(ValidationError("unknown proof type"));
     };
-    let did = attachment.name.parse::<DidPkh>()
+    let did = attachment.name.parse::<Did>()
         .map_err(|_| ValidationError("invalid did"))?;
+    let Did::Pkh(ref did_pkh) = did;
     let signature = attachment.signature_value.as_ref()
         .ok_or(ValidationError("missing signature"))?;
     verify_eip191_identity_proof(
         actor_id,
-        &did,
+        did_pkh,
         signature,
     ).map_err(|_| ValidationError("invalid identity proof"))?;
     let proof = IdentityProof {

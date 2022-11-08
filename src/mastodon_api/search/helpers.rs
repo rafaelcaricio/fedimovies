@@ -11,7 +11,7 @@ use crate::activitypub::fetcher::helpers::{
 };
 use crate::config::Config;
 use crate::errors::{ValidationError, HttpError};
-use crate::identity::did_pkh::DidPkh;
+use crate::identity::did::Did;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Tag;
@@ -33,7 +33,7 @@ enum SearchQuery {
     TagQuery(String),
     Url(String),
     WalletAddress(String),
-    Did(DidPkh),
+    Did(Did),
     Unknown,
 }
 
@@ -66,7 +66,7 @@ fn parse_tag_query(query: &str) -> Result<String, ValidationError> {
 fn parse_search_query(search_query: &str) -> SearchQuery {
     let search_query = search_query.trim();
     // DID is a valid URI so it should be tried before Url::parse
-    if let Ok(did) = DidPkh::from_str(search_query) {
+    if let Ok(did) = Did::from_str(search_query) {
         return SearchQuery::Did(did);
     };
     if Url::parse(search_query).is_ok() {

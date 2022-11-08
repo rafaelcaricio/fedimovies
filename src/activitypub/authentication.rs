@@ -9,6 +9,7 @@ use crate::http_signatures::verify::{
     verify_http_signature,
     HttpSignatureVerificationError as HttpSignatureError,
 };
+use crate::identity::did::Did;
 use crate::json_signatures::verify::{
     get_json_signature,
     verify_jcs_rsa_signature,
@@ -136,8 +137,9 @@ pub async fn verify_signed_activity(
             verify_jcs_rsa_signature(&signature_data, &public_key)?;
             actor_profile
         },
-        JsonSigner::DidPkh(ref signer) => {
-            let mut profiles: Vec<_> = search_profiles_by_did_only(db_client, signer)
+        JsonSigner::DidPkh(did_pkh) => {
+            let did = Did::Pkh(did_pkh.clone());
+            let mut profiles: Vec<_> = search_profiles_by_did_only(db_client, &did)
                 .await?.into_iter()
                 // Exclude local profiles
                 .filter(|profile| !profile.is_local())
@@ -150,7 +152,7 @@ pub async fn verify_signed_activity(
             };
             if let Some(profile) = profiles.pop() {
                 verify_jcs_eip191_signature(
-                    signer,
+                    &did_pkh,
                     &signature_data.message,
                     &signature_data.signature,
                 )?;
