@@ -14,7 +14,7 @@ use crate::activitypub::actors::types::{Actor, ActorAddress};
 use crate::activitypub::identifiers::local_actor_id;
 use crate::database::json_macro::{json_from_sql, json_to_sql};
 use crate::errors::{ConversionError, ValidationError};
-use crate::ethereum::identity::DidPkh;
+use crate::identity::did_pkh::DidPkh;
 use crate::utils::caip2::ChainId;
 use super::validators::{
     validate_username,

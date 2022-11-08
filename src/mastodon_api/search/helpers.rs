@@ -11,7 +11,7 @@ use crate::activitypub::fetcher::helpers::{
 };
 use crate::config::Config;
 use crate::errors::{ValidationError, HttpError};
-use crate::ethereum::identity::DidPkh;
+use crate::identity::did_pkh::DidPkh;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Tag;

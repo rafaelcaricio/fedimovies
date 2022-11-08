@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::database::catch_unique_violation;
 use crate::database::query_macro::query;
 use crate::errors::DatabaseError;
-use crate::ethereum::identity::DidPkh;
+use crate::identity::did_pkh::DidPkh;
 use crate::models::cleanup::{
     find_orphaned_files,
     find_orphaned_ipfs_objects,

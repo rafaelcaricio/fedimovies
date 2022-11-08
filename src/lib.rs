@@ -8,6 +8,7 @@ pub mod ethereum;
 mod frontend;
 pub mod http;
 mod http_signatures;
+mod identity;
 mod ipfs;
 mod json_signatures;
 pub mod logger;

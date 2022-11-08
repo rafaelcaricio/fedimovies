@@ -8,10 +8,10 @@ use crate::activitypub::vocabulary::{
 use crate::errors::ValidationError;
 use crate::ethereum::identity::{
     ETHEREUM_EIP191_PROOF,
-    DidPkh,
-    verify_identity_proof,
+    verify_eip191_identity_proof,
 };
 use crate::frontend::get_subscription_page_url;
+use crate::identity::did_pkh::DidPkh;
 use crate::models::profiles::types::{
     ExtraField,
     IdentityProof,
@@ -49,7 +49,7 @@ pub fn parse_identity_proof(
         .map_err(|_| ValidationError("invalid did"))?;
     let signature = attachment.signature_value.as_ref()
         .ok_or(ValidationError("missing signature"))?;
-    verify_identity_proof(
+    verify_eip191_identity_proof(
         actor_id,
         &did,
         signature,

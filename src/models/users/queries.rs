@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::database::catch_unique_violation;
 use crate::errors::DatabaseError;
-use crate::ethereum::identity::DidPkh;
+use crate::identity::did_pkh::DidPkh;
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
 use crate::utils::currencies::Currency;

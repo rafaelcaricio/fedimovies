@@ -3,7 +3,7 @@ use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::ethereum::identity::DidPkh;
+use crate::identity::did_pkh::DidPkh;
 use crate::utils::crypto::sign_message;
 use super::canonicalization::{canonicalize_object, CanonicalizationError};
 

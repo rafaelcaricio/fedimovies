@@ -22,10 +22,10 @@ use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::ethereum::gate::is_allowed_user;
 use crate::ethereum::identity::{
     ETHEREUM_EIP191_PROOF,
-    DidPkh,
     create_identity_claim,
-    verify_identity_proof,
+    verify_eip191_identity_proof,
 };
+use crate::identity::did_pkh::DidPkh;
 use crate::json_signatures::{
     canonicalization::canonicalize_object,
     create::{add_integrity_proof, IntegrityProof},
@@ -334,7 +334,7 @@ async fn create_identity_proof(
         Err(DatabaseError::NotFound(_)) => (),
         Err(other_error) => return Err(other_error.into()),
     };
-    verify_identity_proof(
+    verify_eip191_identity_proof(
         &actor_id,
         &did,
         &proof_data.signature,

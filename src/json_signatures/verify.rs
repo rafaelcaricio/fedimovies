@@ -2,10 +2,10 @@ use rsa::RsaPublicKey;
 use serde_json::Value;
 
 use crate::ethereum::{
-    identity::DidPkh,
     signatures::recover_address,
     utils::address_to_string,
 };
+use crate::identity::did_pkh::DidPkh;
 use crate::utils::crypto::verify_signature;
 use super::canonicalization::{canonicalize_object, CanonicalizationError};
 use super::create::{
