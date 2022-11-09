@@ -11,7 +11,10 @@ use crate::ethereum::identity::{
     verify_eip191_identity_proof,
 };
 use crate::frontend::get_subscription_page_url;
-use crate::identity::did::Did;
+use crate::identity::{
+    claims::create_identity_claim,
+    did::Did,
+};
 use crate::models::profiles::types::{
     ExtraField,
     IdentityProof,
@@ -47,6 +50,8 @@ pub fn parse_identity_proof(
     };
     let did = attachment.name.parse::<Did>()
         .map_err(|_| ValidationError("invalid did"))?;
+    let message = create_identity_claim(actor_id, &did)
+        .map_err(|_| ValidationError("invalid claim"))?;
     let did_pkh = match did {
         Did::Pkh(ref did_pkh) => did_pkh,
         _ => return Err(ValidationError("invalid proof issuer")),
@@ -54,8 +59,8 @@ pub fn parse_identity_proof(
     let signature = attachment.signature_value.as_ref()
         .ok_or(ValidationError("missing signature"))?;
     verify_eip191_identity_proof(
-        actor_id,
         did_pkh,
+        &message,
         signature,
     ).map_err(|_| ValidationError("invalid identity proof"))?;
     let proof = IdentityProof {

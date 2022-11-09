@@ -22,10 +22,9 @@ use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::ethereum::gate::is_allowed_user;
 use crate::ethereum::identity::{
     ETHEREUM_EIP191_PROOF,
-    create_identity_claim,
     verify_eip191_identity_proof,
 };
-use crate::identity::did::Did;
+use crate::identity::{claims::create_identity_claim, did::Did};
 use crate::json_signatures::{
     canonicalization::canonicalize_object,
     create::{add_integrity_proof, IntegrityProof},
@@ -297,10 +296,6 @@ async fn get_identity_claim(
     let actor_id = current_user.profile.actor_id(&config.instance_url());
     let did = query_params.did.parse::<Did>()
         .map_err(|_| ValidationError("invalid DID"))?;
-    let did = match did {
-        Did::Key(_) => return Err(ValidationError("unsupported DID type").into()),
-        Did::Pkh(did_pkh) => did_pkh,
-    };
     let claim = create_identity_claim(&actor_id, &did)
         .map_err(|_| HttpError::InternalError)?;
     let response = IdentityClaim { claim };
@@ -316,9 +311,24 @@ async fn create_identity_proof(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
-    let actor_id = current_user.profile.actor_id(&config.instance_url());
     let did = proof_data.did.parse::<Did>()
         .map_err(|_| ValidationError("invalid DID"))?;
+    // Reject proof if there's another local user with the same DID.
+    // This is needed for matching ethereum subscriptions
+    match get_user_by_did(db_client, &did).await {
+        Ok(user) => {
+            if user.id != current_user.id {
+                return Err(ValidationError("DID already associated with another user").into());
+            };
+        },
+        Err(DatabaseError::NotFound(_)) => (),
+        Err(other_error) => return Err(other_error.into()),
+    };
+    let actor_id = current_user.profile.actor_id(&config.instance_url());
+    let message = create_identity_claim(&actor_id, &did)
+        .map_err(|_| ValidationError("invalid claim"))?;
+
+    // Verify proof
     let did_pkh = match did {
         Did::Key(_) => return Err(ValidationError("unsupported DID type").into()),
         Did::Pkh(ref did_pkh) => did_pkh,
@@ -336,22 +346,12 @@ async fn create_identity_proof(
             return Err(ValidationError("DID doesn't match current identity").into());
         };
     };
-    // Reject proof if there's another local user with the same DID.
-    // This is needed for matching ethereum subscriptions
-    match get_user_by_did(db_client, &did).await {
-        Ok(user) => {
-            if user.id != current_user.id {
-                return Err(ValidationError("DID already associated with another user").into());
-            };
-        },
-        Err(DatabaseError::NotFound(_)) => (),
-        Err(other_error) => return Err(other_error.into()),
-    };
     verify_eip191_identity_proof(
-        &actor_id,
         did_pkh,
+        &message,
         &proof_data.signature,
     )?;
+
     let proof = IdentityProof {
         issuer: did,
         proof_type: ETHEREUM_EIP191_PROOF.to_string(),
