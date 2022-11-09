@@ -79,7 +79,10 @@ impl Account {
 
         let mut identity_proofs = vec![];
         for proof in profile.identity_proofs.clone().into_inner() {
-            let Did::Pkh(did_pkh) = proof.issuer;
+            let did_pkh = match proof.issuer {
+                Did::Pkh(did_pkh) => did_pkh,
+                _ => continue,
+            };
             // Skip proof if it doesn't map to field name
             if let Some(currency) = did_pkh.currency() {
                 let field_name = currency.field_name();

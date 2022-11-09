@@ -8,12 +8,14 @@ use serde::{
     de::Error as DeserializerError,
 };
 
+use super::did_key::DidKey;
 use super::did_pkh::DidPkh;
 
 const DID_RE: &str = r"did:(?P<method>\w+):.+";
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Did {
+    Key(DidKey),
     Pkh(DidPkh),
 }
 
@@ -28,6 +30,10 @@ impl FromStr for Did {
         let did_re = Regex::new(DID_RE).unwrap();
         let caps = did_re.captures(value).ok_or(DidParseError)?;
         let did = match &caps["method"] {
+            "key" => {
+                let did_key = DidKey::from_str(value)?;
+                Self::Key(did_key)
+            },
             "pkh" => {
                 let did_pkh = DidPkh::from_str(value)?;
                 Self::Pkh(did_pkh)
@@ -41,6 +47,7 @@ impl FromStr for Did {
 impl fmt::Display for Did {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         let did_str = match self {
+            Self::Key(did_key) => did_key.to_string(),
             Self::Pkh(did_pkh) => did_pkh.to_string(),
         };
         write!(formatter, "{}", did_str)

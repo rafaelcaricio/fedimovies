@@ -261,10 +261,14 @@ async fn send_signed_update(
     ).map_err(|_| HttpError::InternalError)?;
     let canonical_json = canonicalize_object(&activity)
         .map_err(|_| HttpError::InternalError)?;
-    let Did::Pkh(signer) = signer;
-    verify_jcs_eip191_signature(&signer, &canonical_json, &data.signature)
-        .map_err(|_| ValidationError("invalid signature"))?;
-    let proof = IntegrityProof::jcs_eip191(&signer, &data.signature);
+    let proof = match signer {
+        Did::Key(_) => return Err(ValidationError("unsupported DID type").into()),
+        Did::Pkh(signer) => {
+            verify_jcs_eip191_signature(&signer, &canonical_json, &data.signature)
+                .map_err(|_| ValidationError("invalid signature"))?;
+            IntegrityProof::jcs_eip191(&signer, &data.signature)
+        },
+    };
     let mut activity_value = serde_json::to_value(activity)
         .map_err(|_| HttpError::InternalError)?;
     add_integrity_proof(&mut activity_value, proof)
@@ -291,8 +295,12 @@ async fn get_identity_claim(
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let actor_id = current_user.profile.actor_id(&config.instance_url());
-    let Did::Pkh(did) = query_params.did.parse::<Did>()
+    let did = query_params.did.parse::<Did>()
         .map_err(|_| ValidationError("invalid DID"))?;
+    let did = match did {
+        Did::Key(_) => return Err(ValidationError("unsupported DID type").into()),
+        Did::Pkh(did_pkh) => did_pkh,
+    };
     let claim = create_identity_claim(&actor_id, &did)
         .map_err(|_| HttpError::InternalError)?;
     let response = IdentityClaim { claim };
@@ -311,7 +319,10 @@ async fn create_identity_proof(
     let actor_id = current_user.profile.actor_id(&config.instance_url());
     let did = proof_data.did.parse::<Did>()
         .map_err(|_| ValidationError("invalid DID"))?;
-    let Did::Pkh(ref did_pkh) = did;
+    let did_pkh = match did {
+        Did::Key(_) => return Err(ValidationError("unsupported DID type").into()),
+        Did::Pkh(ref did_pkh) => did_pkh,
+    };
     if did_pkh.chain_id != ChainId::ethereum_mainnet() {
         // DID must point to Ethereum Mainnet because it is a valid
         // identifier on any Ethereum chain

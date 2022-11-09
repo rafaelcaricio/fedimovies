@@ -430,7 +430,10 @@ mod tests {
     fn test_identity_proof_serialization() {
         let json_data = r#"{"issuer":"did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a","proof_type":"ethereum-eip191-00","value":"dbfe"}"#;
         let proof: IdentityProof = serde_json::from_str(json_data).unwrap();
-        let Did::Pkh(ref did_pkh) = proof.issuer;
+        let did_pkh = match proof.issuer {
+            Did::Pkh(ref did_pkh) => did_pkh,
+            _ => panic!("unexpected did method"),
+        };
         assert_eq!(did_pkh.address, "0xb9c5714089478a327f09197987f16f9e5d936e8a");
         let serialized = serde_json::to_string(&proof).unwrap();
         assert_eq!(serialized, json_data);

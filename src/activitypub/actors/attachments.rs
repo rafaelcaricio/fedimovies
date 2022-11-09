@@ -47,7 +47,10 @@ pub fn parse_identity_proof(
     };
     let did = attachment.name.parse::<Did>()
         .map_err(|_| ValidationError("invalid did"))?;
-    let Did::Pkh(ref did_pkh) = did;
+    let did_pkh = match did {
+        Did::Pkh(ref did_pkh) => did_pkh,
+        _ => return Err(ValidationError("invalid proof issuer")),
+    };
     let signature = attachment.signature_value.as_ref()
         .ok_or(ValidationError("missing signature"))?;
     verify_eip191_identity_proof(

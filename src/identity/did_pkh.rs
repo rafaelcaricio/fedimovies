@@ -49,14 +49,14 @@ impl FromStr for DidPkh {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let did_pkh_re = Regex::new(DID_PKH_RE).unwrap();
         let caps = did_pkh_re.captures(value).ok_or(DidParseError)?;
-        let did = Self {
+        let did_pkh = Self {
             chain_id: ChainId {
                 namespace: caps["network"].to_string(),
                 reference: caps["chain"].to_string(),
             },
             address: caps["address"].to_string(),
         };
-        Ok(did)
+        Ok(did_pkh)
     }
 }
 

@@ -434,6 +434,7 @@ pub async fn search_profiles_by_did(
             did_pkh.currency()
                 .map(|currency| (currency, did_pkh.address.clone()))
         },
+        _ => None,
     };
     let unverified = if let Some((currency, address)) = maybe_currency_address {
         // If currency is Ethereum,
