@@ -4,8 +4,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::identity::{
+    did_key::DidKey,
     did_pkh::DidPkh,
-    signatures::{PROOF_TYPE_JCS_EIP191, PROOF_TYPE_JCS_RSA},
+    signatures::{
+        PROOF_TYPE_JCS_EIP191,
+        PROOF_TYPE_JCS_MINISIGN,
+        PROOF_TYPE_JCS_RSA,
+    },
 };
 use crate::utils::canonicalization::{
     canonicalize_object,
@@ -49,6 +54,19 @@ impl IntegrityProof {
     ) -> Self {
         Self {
             proof_type: PROOF_TYPE_JCS_EIP191.to_string(),
+            proof_purpose: PROOF_PURPOSE.to_string(),
+            verification_method: signer.to_string(),
+            created: Utc::now(),
+            proof_value: signature.to_string(),
+        }
+    }
+
+    pub fn jcs_minisign(
+        signer: &DidKey,
+        signature: &str,
+    ) -> Self {
+        Self {
+            proof_type: PROOF_TYPE_JCS_MINISIGN.to_string(),
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer.to_string(),
             created: Utc::now(),

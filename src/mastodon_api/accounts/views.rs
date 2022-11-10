@@ -33,7 +33,10 @@ use crate::identity::{
 };
 use crate::json_signatures::{
     create::{add_integrity_proof, IntegrityProof},
-    verify::verify_eip191_json_signature,
+    verify::{
+        verify_eip191_json_signature,
+        verify_minisign_json_signature,
+    },
 };
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::pagination::get_paginated_response;
@@ -267,7 +270,11 @@ async fn send_signed_update(
     let canonical_json = canonicalize_object(&activity)
         .map_err(|_| HttpError::InternalError)?;
     let proof = match signer {
-        Did::Key(_) => return Err(ValidationError("unsupported DID type").into()),
+        Did::Key(signer) => {
+            verify_minisign_json_signature(&signer, &canonical_json, &data.signature)
+                .map_err(|_| ValidationError("invalid signature"))?;
+            IntegrityProof::jcs_minisign(&signer, &data.signature)
+        },
         Did::Pkh(signer) => {
             verify_eip191_json_signature(&signer, &canonical_json, &data.signature)
                 .map_err(|_| ValidationError("invalid signature"))?;

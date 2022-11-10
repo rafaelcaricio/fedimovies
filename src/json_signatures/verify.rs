@@ -3,8 +3,15 @@ use serde_json::Value;
 
 use crate::ethereum::identity::verify_eip191_signature;
 use crate::identity::{
+    did::Did,
+    did_key::DidKey,
     did_pkh::DidPkh,
-    signatures::{PROOF_TYPE_JCS_EIP191, PROOF_TYPE_JCS_RSA},
+    minisign::verify_minisign_signature,
+    signatures::{
+        PROOF_TYPE_JCS_EIP191,
+        PROOF_TYPE_JCS_MINISIGN,
+        PROOF_TYPE_JCS_RSA,
+    },
 };
 use crate::utils::canonicalization::{
     canonicalize_object,
@@ -20,7 +27,7 @@ use super::create::{
 #[derive(Debug, PartialEq)]
 pub enum JsonSigner {
     ActorKeyId(String),
-    DidPkh(DidPkh),
+    Did(Did),
 }
 
 pub struct SignatureData {
@@ -67,9 +74,14 @@ pub fn get_json_signature(
     };
     let signer = match proof.proof_type.as_str() {
         PROOF_TYPE_JCS_EIP191 => {
-            let did = proof.verification_method.parse()
+            let did_pkh: DidPkh = proof.verification_method.parse()
                 .map_err(|_| VerificationError::InvalidProof("invalid DID"))?;
-            JsonSigner::DidPkh(did)
+            JsonSigner::Did(Did::Pkh(did_pkh))
+        },
+        PROOF_TYPE_JCS_MINISIGN => {
+            let did_key: DidKey = proof.verification_method.parse()
+                .map_err(|_| VerificationError::InvalidProof("invalid DID"))?;
+            JsonSigner::Did(Did::Key(did_key))
         },
         PROOF_TYPE_JCS_RSA => {
             JsonSigner::ActorKeyId(proof.verification_method)
@@ -111,6 +123,15 @@ pub fn verify_eip191_json_signature(
         .map_err(|_| VerificationError::InvalidSignature)
 }
 
+pub fn verify_minisign_json_signature(
+    signer: &DidKey,
+    message: &str,
+    signature: &str,
+) -> Result<(), VerificationError> {
+    verify_minisign_signature(signer, message, signature)
+        .map_err(|_| VerificationError::InvalidSignature)
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -133,10 +154,10 @@ mod tests {
             },
         });
         let signature_data = get_json_signature(&signed_object).unwrap();
-        let expected_signer = JsonSigner::DidPkh(DidPkh::from_address(
+        let expected_signer = JsonSigner::Did(Did::Pkh(DidPkh::from_address(
             &Currency::Ethereum,
             "0xb9c5714089478a327f09197987f16f9e5d936e8a",
-        ));
+        )));
         assert_eq!(signature_data.signer, expected_signer);
         assert_eq!(signature_data.signature, "xxx");
     }

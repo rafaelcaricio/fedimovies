@@ -13,6 +13,7 @@ use crate::identity::did::Did;
 use crate::json_signatures::verify::{
     get_json_signature,
     verify_eip191_json_signature,
+    verify_minisign_json_signature,
     verify_rsa_json_signature,
     JsonSignatureVerificationError as JsonSignatureError,
     JsonSigner,
@@ -137,8 +138,7 @@ pub async fn verify_signed_activity(
             verify_rsa_json_signature(&signature_data, &public_key)?;
             actor_profile
         },
-        JsonSigner::DidPkh(did_pkh) => {
-            let did = Did::Pkh(did_pkh.clone());
+        JsonSigner::Did(did) => {
             let mut profiles: Vec<_> = search_profiles_by_did_only(db_client, &did)
                 .await?.into_iter()
                 // Exclude local profiles
@@ -151,11 +151,22 @@ pub async fn verify_signed_activity(
                 );
             };
             if let Some(profile) = profiles.pop() {
-                verify_eip191_json_signature(
-                    &did_pkh,
-                    &signature_data.message,
-                    &signature_data.signature,
-                )?;
+                match did {
+                    Did::Key(did_key) => {
+                        verify_minisign_json_signature(
+                            &did_key,
+                            &signature_data.message,
+                            &signature_data.signature,
+                        )?;
+                    },
+                    Did::Pkh(did_pkh) => {
+                        verify_eip191_json_signature(
+                            &did_pkh,
+                            &signature_data.message,
+                            &signature_data.signature,
+                        )?;
+                    },
+                };
                 profile
             } else {
                 return Err(AuthenticationError::ActorError("unknown signer".to_string()));
