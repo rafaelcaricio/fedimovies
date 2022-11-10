@@ -150,13 +150,21 @@ paths:
     get:
       summary: Get unsigned data for identity proof.
       parameters:
-        - name: did
+        - name: proof_type
           in: query
-          description: Identifier (DID).
+          description: Type of identity proof.
           required: true
           schema:
             type: string
-            example: 'did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a'
+            enum:
+              - ethereum
+        - name: signer
+          in: query
+          description: Information about the signer.
+          required: true
+          schema:
+            type: string
+            example: '0xb9c5714089478a327f09197987f16f9e5d936e8a'
       responses:
         200:
           description: Successful operation
@@ -165,6 +173,10 @@ paths:
               schema:
                 type: object
                 properties:
+                  did:
+                    description: Signer ID (DID).
+                    type: string
+                    example: did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a
                   claim:
                     description: Identity claim serialized as compact JSON.
                     type: string

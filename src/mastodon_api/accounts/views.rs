@@ -24,7 +24,11 @@ use crate::ethereum::identity::{
     ETHEREUM_EIP191_PROOF,
     verify_eip191_identity_proof,
 };
-use crate::identity::{claims::create_identity_claim, did::Did};
+use crate::identity::{
+    claims::create_identity_claim,
+    did::Did,
+    did_pkh::DidPkh,
+};
 use crate::json_signatures::{
     canonicalization::canonicalize_object,
     create::{add_integrity_proof, IntegrityProof},
@@ -293,12 +297,20 @@ async fn get_identity_claim(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    let did = match query_params.proof_type.as_str() {
+        "ethereum" => {
+            let did_pkh = DidPkh::from_address(
+                &Currency::Ethereum,
+                &query_params.signer,
+            );
+            Did::Pkh(did_pkh)
+        },
+        _ => return Err(ValidationError("unknown proof type").into()),
+    };
     let actor_id = current_user.profile.actor_id(&config.instance_url());
-    let did = query_params.did.parse::<Did>()
-        .map_err(|_| ValidationError("invalid DID"))?;
     let claim = create_identity_claim(&actor_id, &did)
         .map_err(|_| HttpError::InternalError)?;
-    let response = IdentityClaim { claim };
+    let response = IdentityClaim { did, claim };
     Ok(HttpResponse::Ok().json(response))
 }
 

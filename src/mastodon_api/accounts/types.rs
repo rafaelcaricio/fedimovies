@@ -274,11 +274,13 @@ pub struct SignedUpdate {
 
 #[derive(Deserialize)]
 pub struct IdentityClaimQueryParams {
-    pub did: String,
+    pub proof_type: String,
+    pub signer: String,
 }
 
 #[derive(Serialize)]
 pub struct IdentityClaim {
+    pub did: Did,
     pub claim: String,
 }
 
