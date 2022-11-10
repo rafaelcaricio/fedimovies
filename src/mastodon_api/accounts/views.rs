@@ -35,7 +35,6 @@ use crate::identity::{
     },
 };
 use crate::json_signatures::{
-    canonicalization::canonicalize_object,
     create::{add_integrity_proof, IntegrityProof},
     verify::verify_jcs_eip191_signature,
 };
@@ -73,6 +72,7 @@ use crate::models::users::queries::{
 };
 use crate::models::users::types::UserCreateData;
 use crate::utils::caip2::ChainId;
+use crate::utils::canonicalization::canonicalize_object;
 use crate::utils::crypto::{
     hash_password,
     generate_private_key,

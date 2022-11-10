@@ -4,8 +4,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::identity::did_pkh::DidPkh;
+use crate::utils::canonicalization::{
+    canonicalize_object,
+    CanonicalizationError,
+};
 use crate::utils::crypto::sign_message;
-use super::canonicalization::{canonicalize_object, CanonicalizationError};
 
 pub const PROOF_KEY: &str = "proof";
 

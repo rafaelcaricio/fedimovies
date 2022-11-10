@@ -6,8 +6,11 @@ use crate::ethereum::{
     utils::address_to_string,
 };
 use crate::identity::did_pkh::DidPkh;
+use crate::utils::canonicalization::{
+    canonicalize_object,
+    CanonicalizationError,
+};
 use crate::utils::crypto::verify_signature;
-use super::canonicalization::{canonicalize_object, CanonicalizationError};
 use super::create::{
     IntegrityProof,
     PROOF_TYPE_JCS_EIP191,

@@ -1,4 +1,5 @@
 pub mod caip2;
+pub mod canonicalization;
 pub mod crypto;
 pub mod currencies;
 pub mod files;
