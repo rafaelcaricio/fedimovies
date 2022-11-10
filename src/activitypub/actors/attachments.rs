@@ -14,6 +14,7 @@ use crate::frontend::get_subscription_page_url;
 use crate::identity::{
     claims::create_identity_claim,
     did::Did,
+    minisign::{verify_minisign_identity_proof, IDENTITY_PROOF_MINISIGN},
 };
 use crate::models::profiles::types::{
     ExtraField,
@@ -45,24 +46,34 @@ pub fn parse_identity_proof(
     };
     let proof_type = attachment.signature_algorithm.as_ref()
         .ok_or(ValidationError("missing proof type"))?;
-    if proof_type != ETHEREUM_EIP191_PROOF {
-        return Err(ValidationError("unknown proof type"));
-    };
     let did = attachment.name.parse::<Did>()
         .map_err(|_| ValidationError("invalid did"))?;
     let message = create_identity_claim(actor_id, &did)
         .map_err(|_| ValidationError("invalid claim"))?;
-    let did_pkh = match did {
-        Did::Pkh(ref did_pkh) => did_pkh,
-        _ => return Err(ValidationError("invalid proof issuer")),
-    };
     let signature = attachment.signature_value.as_ref()
         .ok_or(ValidationError("missing signature"))?;
-    verify_eip191_identity_proof(
-        did_pkh,
-        &message,
-        signature,
-    ).map_err(|_| ValidationError("invalid identity proof"))?;
+    match did {
+        Did::Key(ref did_key) => {
+            if proof_type != IDENTITY_PROOF_MINISIGN {
+                return Err(ValidationError("unknown proof type"));
+            };
+            verify_minisign_identity_proof(
+                did_key,
+                &message,
+                &signature,
+            ).map_err(|_| ValidationError("invalid identity proof"))?;
+        },
+        Did::Pkh(ref did_pkh) => {
+            if proof_type != ETHEREUM_EIP191_PROOF {
+                return Err(ValidationError("unknown proof type"));
+            };
+            verify_eip191_identity_proof(
+                did_pkh,
+                &message,
+                signature,
+            ).map_err(|_| ValidationError("invalid identity proof"))?;
+        },
+    };
     let proof = IdentityProof {
         issuer: did,
         proof_type: proof_type.to_string(),
