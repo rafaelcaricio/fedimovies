@@ -9,8 +9,6 @@ use ed25519_dalek::{
 
 use super::did_key::{DidKey, MulticodecError};
 
-pub const IDENTITY_PROOF_MINISIGN: &str = "MinisignSignatureDemo0";
-
 const MINISIGN_SIGNATURE_CODE: [u8; 2] = *b"Ed";
 const MINISIGN_SIGNATURE_HASHED_CODE: [u8; 2] = *b"ED";
 

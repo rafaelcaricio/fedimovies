@@ -3,9 +3,6 @@ use crate::identity::did_pkh::DidPkh;
 use super::signatures::recover_address;
 use super::utils::address_to_string;
 
-// Version 00
-pub const ETHEREUM_EIP191_PROOF: &str = "ethereum-eip191-00";
-
 /// Verifies proof of address ownership
 pub fn verify_eip191_identity_proof(
     did: &DidPkh,

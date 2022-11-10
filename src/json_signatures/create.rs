@@ -3,25 +3,18 @@ use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::identity::did_pkh::DidPkh;
+use crate::identity::{
+    did_pkh::DidPkh,
+    signatures::{PROOF_TYPE_JCS_EIP191, PROOF_TYPE_JCS_RSA},
+};
 use crate::utils::canonicalization::{
     canonicalize_object,
     CanonicalizationError,
 };
 use crate::utils::crypto::sign_message;
 
-pub const PROOF_KEY: &str = "proof";
-
-// Similar to https://identity.foundation/JcsEd25519Signature2020/
-// - Canonicalization algorithm: JCS
-// - Digest algorithm: SHA-256
-// - Signature algorithm: RSASSA-PKCS1-v1_5
-pub const PROOF_TYPE_JCS_RSA: &str = "JcsRsaSignature2022";
-
-// Similar to EthereumPersonalSignature2021 but with JCS
-pub const PROOF_TYPE_JCS_EIP191: &str ="JcsEip191Signature2022";
-
-pub const PROOF_PURPOSE: &str = "assertionMethod";
+pub(super) const PROOF_KEY: &str = "proof";
+pub(super) const PROOF_PURPOSE: &str = "assertionMethod";
 
 /// Data Integrity Proof
 /// https://w3c.github.io/vc-data-integrity/

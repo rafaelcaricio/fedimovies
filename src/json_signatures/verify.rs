@@ -5,7 +5,10 @@ use crate::ethereum::{
     signatures::recover_address,
     utils::address_to_string,
 };
-use crate::identity::did_pkh::DidPkh;
+use crate::identity::{
+    did_pkh::DidPkh,
+    signatures::{PROOF_TYPE_JCS_EIP191, PROOF_TYPE_JCS_RSA},
+};
 use crate::utils::canonicalization::{
     canonicalize_object,
     CanonicalizationError,
@@ -13,8 +16,6 @@ use crate::utils::canonicalization::{
 use crate::utils::crypto::verify_signature;
 use super::create::{
     IntegrityProof,
-    PROOF_TYPE_JCS_EIP191,
-    PROOF_TYPE_JCS_RSA,
     PROOF_KEY,
     PROOF_PURPOSE,
 };

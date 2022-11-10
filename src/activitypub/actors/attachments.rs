@@ -6,15 +6,13 @@ use crate::activitypub::vocabulary::{
     PROPERTY_VALUE,
 };
 use crate::errors::ValidationError;
-use crate::ethereum::identity::{
-    ETHEREUM_EIP191_PROOF,
-    verify_eip191_identity_proof,
-};
+use crate::ethereum::identity::verify_eip191_identity_proof;
 use crate::frontend::get_subscription_page_url;
 use crate::identity::{
     claims::create_identity_claim,
     did::Did,
-    minisign::{verify_minisign_identity_proof, IDENTITY_PROOF_MINISIGN},
+    minisign::verify_minisign_identity_proof,
+    signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
 use crate::models::profiles::types::{
     ExtraField,
@@ -54,7 +52,7 @@ pub fn parse_identity_proof(
         .ok_or(ValidationError("missing signature"))?;
     match did {
         Did::Key(ref did_key) => {
-            if proof_type != IDENTITY_PROOF_MINISIGN {
+            if proof_type != PROOF_TYPE_ID_MINISIGN {
                 return Err(ValidationError("unknown proof type"));
             };
             verify_minisign_identity_proof(
@@ -64,7 +62,7 @@ pub fn parse_identity_proof(
             ).map_err(|_| ValidationError("invalid identity proof"))?;
         },
         Did::Pkh(ref did_pkh) => {
-            if proof_type != ETHEREUM_EIP191_PROOF {
+            if proof_type != PROOF_TYPE_ID_EIP191 {
                 return Err(ValidationError("unknown proof type"));
             };
             verify_eip191_identity_proof(

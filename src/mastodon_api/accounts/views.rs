@@ -20,10 +20,7 @@ use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::contracts::ContractSet;
 use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::ethereum::gate::is_allowed_user;
-use crate::ethereum::identity::{
-    ETHEREUM_EIP191_PROOF,
-    verify_eip191_identity_proof,
-};
+use crate::ethereum::identity::verify_eip191_identity_proof;
 use crate::identity::{
     claims::create_identity_claim,
     did::Did,
@@ -31,8 +28,8 @@ use crate::identity::{
     minisign::{
         minisign_key_to_did,
         verify_minisign_identity_proof,
-        IDENTITY_PROOF_MINISIGN,
     },
+    signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
 use crate::json_signatures::{
     create::{add_integrity_proof, IntegrityProof},
@@ -358,7 +355,7 @@ async fn create_identity_proof(
                 &message,
                 &proof_data.signature,
             ).map_err(|_| ValidationError("invalid signature"))?;
-            IDENTITY_PROOF_MINISIGN
+            PROOF_TYPE_ID_MINISIGN
         },
         Did::Pkh(ref did_pkh) => {
             if did_pkh.chain_id != ChainId::ethereum_mainnet() {
@@ -379,7 +376,7 @@ async fn create_identity_proof(
                 &message,
                 &proof_data.signature,
             )?;
-            ETHEREUM_EIP191_PROOF
+            PROOF_TYPE_ID_EIP191
         },
     };
 
