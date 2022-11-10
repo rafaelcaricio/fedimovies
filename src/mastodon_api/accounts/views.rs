@@ -28,6 +28,11 @@ use crate::identity::{
     claims::create_identity_claim,
     did::Did,
     did_pkh::DidPkh,
+    minisign::{
+        minisign_key_to_did,
+        verify_minisign_identity_proof,
+        IDENTITY_PROOF_MINISIGN,
+    },
 };
 use crate::json_signatures::{
     canonicalization::canonicalize_object,
@@ -305,6 +310,11 @@ async fn get_identity_claim(
             );
             Did::Pkh(did_pkh)
         },
+        "minisign" => {
+            let did_key = minisign_key_to_did(&query_params.signer)
+                .map_err(|_| ValidationError("invalid key"))?;
+            Did::Key(did_key)
+        },
         _ => return Err(ValidationError("unknown proof type").into()),
     };
     let actor_id = current_user.profile.actor_id(&config.instance_url());
@@ -341,32 +351,41 @@ async fn create_identity_proof(
         .map_err(|_| ValidationError("invalid claim"))?;
 
     // Verify proof
-    let did_pkh = match did {
-        Did::Key(_) => return Err(ValidationError("unsupported DID type").into()),
-        Did::Pkh(ref did_pkh) => did_pkh,
+    let proof_type = match did {
+        Did::Key(ref did_key) => {
+            verify_minisign_identity_proof(
+                did_key,
+                &message,
+                &proof_data.signature,
+            ).map_err(|_| ValidationError("invalid signature"))?;
+            IDENTITY_PROOF_MINISIGN
+        },
+        Did::Pkh(ref did_pkh) => {
+            if did_pkh.chain_id != ChainId::ethereum_mainnet() {
+                // DID must point to Ethereum Mainnet because it is a valid
+                // identifier on any Ethereum chain
+                return Err(ValidationError("unsupported chain ID").into());
+            };
+            let maybe_public_address =
+                current_user.public_wallet_address(&Currency::Ethereum);
+            if let Some(address) = maybe_public_address {
+                // Do not allow to add more than one address proof
+                if did_pkh.address != address {
+                    return Err(ValidationError("DID doesn't match current identity").into());
+                };
+            };
+            verify_eip191_identity_proof(
+                did_pkh,
+                &message,
+                &proof_data.signature,
+            )?;
+            ETHEREUM_EIP191_PROOF
+        },
     };
-    if did_pkh.chain_id != ChainId::ethereum_mainnet() {
-        // DID must point to Ethereum Mainnet because it is a valid
-        // identifier on any Ethereum chain
-        return Err(ValidationError("unsupported chain ID").into());
-    };
-    let maybe_public_address =
-        current_user.public_wallet_address(&Currency::Ethereum);
-    if let Some(address) = maybe_public_address {
-        // Do not allow to add more than one address proof
-        if did_pkh.address != address {
-            return Err(ValidationError("DID doesn't match current identity").into());
-        };
-    };
-    verify_eip191_identity_proof(
-        did_pkh,
-        &message,
-        &proof_data.signature,
-    )?;
 
     let proof = IdentityProof {
         issuer: did,
-        proof_type: ETHEREUM_EIP191_PROOF.to_string(),
+        proof_type: proof_type.to_string(),
         value: proof_data.signature.clone(),
     };
     let mut profile_data = ProfileUpdateData::from(&current_user.profile);
