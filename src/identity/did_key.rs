@@ -23,6 +23,10 @@ pub struct DidKey {
 pub struct MulticodecError;
 
 impl DidKey {
+    pub fn key_multibase(&self) -> String {
+        encode_multibase_base58btc(&self.key)
+    }
+
     pub fn from_ed25519_key(key: [u8; 32]) -> Self {
         let prefixed_key = [
             MULTICODEC_ED25519_PREFIX.to_vec(),
@@ -99,8 +103,7 @@ impl FromStr for DidKey {
 
 impl fmt::Display for DidKey {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let encoded_key = encode_multibase_base58btc(&self.key);
-        let did_str = format!("did:key:{}", encoded_key);
+        let did_str = format!("did:key:{}", self.key_multibase());
         write!(formatter, "{}", did_str)
     }
 }

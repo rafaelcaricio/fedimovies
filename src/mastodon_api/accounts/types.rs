@@ -79,21 +79,24 @@ impl Account {
 
         let mut identity_proofs = vec![];
         for proof in profile.identity_proofs.clone().into_inner() {
-            let did_pkh = match proof.issuer {
-                Did::Pkh(did_pkh) => did_pkh,
-                _ => continue,
+            let (field_name, field_value) = match proof.issuer {
+                Did::Key(did_key) => {
+                    ("Key".to_string(), did_key.key_multibase())
+                },
+                Did::Pkh(did_pkh) => {
+                    let field_name = did_pkh.currency()
+                        .map(|currency| currency.field_name())
+                        .unwrap_or("$".to_string());
+                    (field_name, did_pkh.address)
+                }
             };
-            // Skip proof if it doesn't map to field name
-            if let Some(currency) = did_pkh.currency() {
-                let field_name = currency.field_name();
-                let field = AccountField {
-                    name: field_name,
-                    value: did_pkh.address,
-                    // Use current time because DID proofs are always valid
-                    verified_at: Some(Utc::now()),
-                };
-                identity_proofs.push(field);
+            let field = AccountField {
+                name: field_name,
+                value: field_value,
+                // Use current time because DID proofs are always valid
+                verified_at: Some(Utc::now()),
             };
+            identity_proofs.push(field);
         };
 
         let mut extra_fields = vec![];
