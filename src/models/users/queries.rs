@@ -111,6 +111,24 @@ pub async fn create_user(
     Ok(user)
 }
 
+pub async fn set_user_password(
+    db_client: &impl GenericClient,
+    user_id: &Uuid,
+    password_hash: String,
+) -> Result<(), DatabaseError> {
+    let updated_count = db_client.execute(
+        "
+        UPDATE user_account SET password_hash = $1
+        WHERE id = $2
+        ",
+        &[&password_hash, &user_id],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("user"));
+    };
+    Ok(())
+}
+
 pub async fn get_user_by_id(
     db_client: &impl GenericClient,
     user_id: &Uuid,

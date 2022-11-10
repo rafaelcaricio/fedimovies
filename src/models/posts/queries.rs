@@ -780,7 +780,7 @@ pub async fn update_reaction_count(
     ).await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));
-    }
+    };
     Ok(())
 }
 
@@ -799,7 +799,7 @@ pub async fn update_repost_count(
     ).await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));
-    }
+    };
     Ok(())
 }
 

@@ -25,9 +25,14 @@ use crate::models::users::queries::{
     create_invite_code,
     get_invite_codes,
     get_user_by_id,
+    set_user_password,
 };
 use crate::monero::wallet::create_monero_wallet;
-use crate::utils::crypto::{generate_private_key, serialize_private_key};
+use crate::utils::crypto::{
+    hash_password,
+    generate_private_key,
+    serialize_private_key,
+};
 use crate::utils::files::remove_files;
 
 /// Admin CLI tool
@@ -44,6 +49,7 @@ pub enum SubCommand {
 
     GenerateInviteCode(GenerateInviteCode),
     ListInviteCodes(ListInviteCodes),
+    SetPassword(SetPassword),
     RefetchActor(RefetchActor),
     DeleteProfile(DeleteProfile),
     DeletePost(DeletePost),
@@ -114,6 +120,25 @@ impl ListInviteCodes {
         for code in invite_codes {
             println!("{}", code);
         };
+        Ok(())
+    }
+}
+
+/// Set password
+#[derive(Parser)]
+pub struct SetPassword {
+    id: Uuid,
+    password: String,
+}
+
+impl SetPassword {
+    pub async fn execute(
+        &self,
+        db_client: &impl GenericClient,
+    ) -> Result<(), Error> {
+        let password_hash = hash_password(&self.password)?;
+        set_user_password(db_client, &self.id, password_hash).await?;
+        println!("password updated");
         Ok(())
     }
 }
