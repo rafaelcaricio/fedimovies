@@ -21,6 +21,8 @@ ammonia = "3.2.0"
 anyhow = "1.0.58"
 # Used for working with RSA keys, HTTP signatures and file uploads
 base64 = "0.13.0"
+# Used to decode base58btc
+bs58 = "0.4.0"
 # Used for working with dates
 chrono = { version = "0.4.22", features = ["serde"] }
 # Used to build admin CLI tool
