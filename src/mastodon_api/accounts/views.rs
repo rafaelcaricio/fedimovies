@@ -27,13 +27,13 @@ use crate::identity::{
     did_pkh::DidPkh,
     minisign::{
         minisign_key_to_did,
-        verify_minisign_identity_proof,
+        verify_minisign_signature,
     },
     signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
 use crate::json_signatures::{
     create::{add_integrity_proof, IntegrityProof},
-    verify::verify_jcs_eip191_signature,
+    verify::verify_eip191_json_signature,
 };
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::pagination::get_paginated_response;
@@ -269,7 +269,7 @@ async fn send_signed_update(
     let proof = match signer {
         Did::Key(_) => return Err(ValidationError("unsupported DID type").into()),
         Did::Pkh(signer) => {
-            verify_jcs_eip191_signature(&signer, &canonical_json, &data.signature)
+            verify_eip191_json_signature(&signer, &canonical_json, &data.signature)
                 .map_err(|_| ValidationError("invalid signature"))?;
             IntegrityProof::jcs_eip191(&signer, &data.signature)
         },
@@ -350,7 +350,7 @@ async fn create_identity_proof(
     // Verify proof
     let proof_type = match did {
         Did::Key(ref did_key) => {
-            verify_minisign_identity_proof(
+            verify_minisign_signature(
                 did_key,
                 &message,
                 &proof_data.signature,
@@ -375,7 +375,7 @@ async fn create_identity_proof(
                 did_pkh,
                 &message,
                 &proof_data.signature,
-            )?;
+            ).map_err(|_| ValidationError("invalid signature"))?;
             PROOF_TYPE_ID_EIP191
         },
     };

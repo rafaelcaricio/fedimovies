@@ -11,7 +11,7 @@ use crate::frontend::get_subscription_page_url;
 use crate::identity::{
     claims::create_identity_claim,
     did::Did,
-    minisign::verify_minisign_identity_proof,
+    minisign::verify_minisign_signature,
     signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
 use crate::models::profiles::types::{
@@ -55,7 +55,7 @@ pub fn parse_identity_proof(
             if proof_type != PROOF_TYPE_ID_MINISIGN {
                 return Err(ValidationError("unknown proof type"));
             };
-            verify_minisign_identity_proof(
+            verify_minisign_signature(
                 did_key,
                 &message,
                 &signature,

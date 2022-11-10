@@ -1,10 +1,7 @@
 use rsa::RsaPublicKey;
 use serde_json::Value;
 
-use crate::ethereum::{
-    signatures::recover_address,
-    utils::address_to_string,
-};
+use crate::ethereum::identity::verify_eip191_signature;
 use crate::identity::{
     did_pkh::DidPkh,
     signatures::{PROOF_TYPE_JCS_EIP191, PROOF_TYPE_JCS_RSA},
@@ -90,7 +87,7 @@ pub fn get_json_signature(
     Ok(signature_data)
 }
 
-pub fn verify_jcs_rsa_signature(
+pub fn verify_rsa_json_signature(
     signature_data: &SignatureData,
     signer_key: &RsaPublicKey,
 ) -> Result<(), VerificationError> {
@@ -105,19 +102,13 @@ pub fn verify_jcs_rsa_signature(
     Ok(())
 }
 
-pub fn verify_jcs_eip191_signature(
+pub fn verify_eip191_json_signature(
     signer: &DidPkh,
     message: &str,
     signature: &str,
 ) -> Result<(), VerificationError> {
-    let signature_data = signature.parse()
-        .map_err(|_| VerificationError::InvalidProof("invalid proof"))?;
-    let signer_address = recover_address(message.as_bytes(), &signature_data)
-        .map_err(|_| VerificationError::InvalidSignature)?;
-    if address_to_string(signer_address) != signer.address.to_lowercase() {
-        return Err(VerificationError::InvalidSignature);
-    };
-    Ok(())
+    verify_eip191_signature(signer, message, signature)
+        .map_err(|_| VerificationError::InvalidSignature)
 }
 
 #[cfg(test)]
@@ -178,7 +169,7 @@ mod tests {
         assert_eq!(signature_data.signer, expected_signer);
 
         let signer_public_key = RsaPublicKey::from(signer_key);
-        let result = verify_jcs_rsa_signature(
+        let result = verify_rsa_json_signature(
             &signature_data,
             &signer_public_key,
         );

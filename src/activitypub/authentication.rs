@@ -12,8 +12,8 @@ use crate::http_signatures::verify::{
 use crate::identity::did::Did;
 use crate::json_signatures::verify::{
     get_json_signature,
-    verify_jcs_rsa_signature,
-    verify_jcs_eip191_signature,
+    verify_eip191_json_signature,
+    verify_rsa_json_signature,
     JsonSignatureVerificationError as JsonSignatureError,
     JsonSigner,
 };
@@ -134,7 +134,7 @@ pub async fn verify_signed_activity(
                 .ok_or(AuthenticationError::ActorError("invalid profile".to_string()))?;
             let public_key =
                 deserialize_public_key(&actor.public_key.public_key_pem)?;
-            verify_jcs_rsa_signature(&signature_data, &public_key)?;
+            verify_rsa_json_signature(&signature_data, &public_key)?;
             actor_profile
         },
         JsonSigner::DidPkh(did_pkh) => {
@@ -151,7 +151,7 @@ pub async fn verify_signed_activity(
                 );
             };
             if let Some(profile) = profiles.pop() {
-                verify_jcs_eip191_signature(
+                verify_eip191_json_signature(
                     &did_pkh,
                     &signature_data.message,
                     &signature_data.signature,

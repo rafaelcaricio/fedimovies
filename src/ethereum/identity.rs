@@ -1,22 +1,36 @@
-use crate::errors::ValidationError;
 use crate::identity::did_pkh::DidPkh;
-use super::signatures::recover_address;
+use super::signatures::{recover_address, SignatureError};
 use super::utils::address_to_string;
+
+#[derive(thiserror::Error, Debug)]
+pub enum Eip191VerificationError {
+    #[error(transparent)]
+    InvalidSignature(#[from] SignatureError),
+
+    #[error("invalid signer")]
+    InvalidSigner,
+}
+
+pub fn verify_eip191_signature(
+    did: &DidPkh,
+    message: &str,
+    signature: &str,
+) -> Result<(), Eip191VerificationError> {
+    let signature_data = signature.parse()?;
+    let signer = recover_address(message.as_bytes(), &signature_data)?;
+    if address_to_string(signer) != did.address.to_lowercase() {
+        return Err(Eip191VerificationError::InvalidSigner);
+    };
+    Ok(())
+}
 
 /// Verifies proof of address ownership
 pub fn verify_eip191_identity_proof(
     did: &DidPkh,
     message: &str,
     signature: &str,
-) -> Result<(), ValidationError> {
-    let signature_data = signature.parse()
-        .map_err(|_| ValidationError("invalid signature string"))?;
-    let signer = recover_address(message.as_bytes(), &signature_data)
-        .map_err(|_| ValidationError("invalid signature"))?;
-    if address_to_string(signer) != did.address.to_lowercase() {
-        return Err(ValidationError("invalid proof"));
-    };
-    Ok(())
+) -> Result<(), Eip191VerificationError> {
+    verify_eip191_signature(did, message, signature)
 }
 
 #[cfg(test)]
