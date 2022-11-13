@@ -19,6 +19,10 @@ Simplicity is more important than minor performance improvements.
 
 Avoid advanced language features unless there's a good reason to use them. The code should be comprehensible even to a Rust beginner.
 
+### MSRV
+
+The MSRV must not be greater than the version of [rustc package](https://tracker.debian.org/pkg/rustc) in Debian testing.
+
 ### Dependencies
 
 Try to minimize the number of dependencies.
