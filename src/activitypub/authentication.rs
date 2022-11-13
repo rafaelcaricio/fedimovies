@@ -23,7 +23,7 @@ use crate::models::profiles::queries::{
     search_profiles_by_did_only,
 };
 use crate::models::profiles::types::DbActorProfile;
-use crate::utils::crypto::deserialize_public_key;
+use crate::utils::crypto_rsa::deserialize_public_key;
 use super::fetcher::helpers::get_or_import_profile_by_actor_id;
 use super::receiver::HandlerError;
 

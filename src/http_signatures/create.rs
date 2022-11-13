@@ -2,7 +2,7 @@ use actix_web::http::Method;
 use chrono::Utc;
 use rsa::RsaPrivateKey;
 
-use crate::utils::crypto::{sign_message, get_message_digest};
+use crate::utils::crypto_rsa::{get_message_digest, sign_message};
 
 const HTTP_SIGNATURE_ALGORITHM: &str = "rsa-sha256";
 const HTTP_SIGNATURE_DATE_FORMAT: &str = "%a, %d %b %Y %T GMT";
@@ -88,13 +88,13 @@ pub fn create_http_signature(
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::crypto::generate_weak_private_key;
+    use crate::utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
 
     #[test]
     fn test_create_signature_get() {
         let request_url = "https://example.org/inbox";
-        let signer_key = generate_weak_private_key().unwrap();
+        let signer_key = generate_weak_rsa_key().unwrap();
         let signer_key_id = "https://myserver.org/actor#main-key";
 
         let headers = create_http_signature(
@@ -123,7 +123,7 @@ mod tests {
     fn test_create_signature_post() {
         let request_url = "https://example.org/inbox";
         let request_body = "{}";
-        let signer_key = generate_weak_private_key().unwrap();
+        let signer_key = generate_weak_rsa_key().unwrap();
         let signer_key_id = "https://myserver.org/actor#main-key";
 
         let result = create_http_signature(

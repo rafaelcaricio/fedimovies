@@ -18,7 +18,7 @@ use crate::json_signatures::create::{
     JsonSignatureError,
 };
 use crate::models::users::types::User;
-use crate::utils::crypto::deserialize_private_key;
+use crate::utils::crypto_rsa::deserialize_private_key;
 use crate::utils::urls::get_hostname;
 use super::actors::types::Actor;
 use super::constants::{AP_MEDIA_TYPE, ACTOR_KEY_SUFFIX};

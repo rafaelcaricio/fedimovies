@@ -18,7 +18,7 @@ use crate::models::profiles::types::{
     PaymentOption,
 };
 use crate::models::users::types::User;
-use crate::utils::crypto::{deserialize_private_key, get_public_key_pem};
+use crate::utils::crypto_rsa::{deserialize_private_key, get_public_key_pem};
 use crate::utils::files::get_file_url;
 use crate::utils::urls::get_hostname;
 use super::attachments::{
@@ -346,8 +346,8 @@ pub fn get_instance_actor(
 mod tests {
     use url::Url;
     use crate::models::profiles::types::DbActorProfile;
-    use crate::utils::crypto::{
-        generate_weak_private_key,
+    use crate::utils::crypto_rsa::{
+        generate_weak_rsa_key,
         serialize_private_key,
     };
     use super::*;
@@ -378,7 +378,7 @@ mod tests {
 
     #[test]
     fn test_local_actor() {
-        let private_key = generate_weak_private_key().unwrap();
+        let private_key = generate_weak_rsa_key().unwrap();
         let private_key_pem = serialize_private_key(&private_key).unwrap();
         let profile = DbActorProfile {
             username: "testuser".to_string(),
@@ -418,7 +418,7 @@ mod tests {
     #[test]
     fn test_instance_actor() {
         let instance_url = Url::parse("https://example.com/").unwrap();
-        let instance_rsa_key = generate_weak_private_key().unwrap();
+        let instance_rsa_key = generate_weak_rsa_key().unwrap();
         let instance = Instance::new(instance_url, instance_rsa_key);
         let actor = get_instance_actor(&instance).unwrap();
         assert_eq!(actor.id, "https://example.com/actor");

@@ -1,6 +1,6 @@
 pub mod caip2;
 pub mod canonicalization;
-pub mod crypto;
+pub mod crypto_rsa;
 pub mod currencies;
 pub mod files;
 pub mod html;

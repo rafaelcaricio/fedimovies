@@ -103,8 +103,8 @@ pub async fn prepare_signed_update_person(
 #[cfg(test)]
 mod tests {
     use crate::models::profiles::types::DbActorProfile;
-    use crate::utils::crypto::{
-        generate_weak_private_key,
+    use crate::utils::crypto_rsa::{
+        generate_weak_rsa_key,
         serialize_private_key,
     };
     use super::*;
@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_build_update_person() {
-        let private_key = generate_weak_private_key().unwrap();
+        let private_key = generate_weak_rsa_key().unwrap();
         let private_key_pem = serialize_private_key(&private_key).unwrap();
         let user = User {
             private_key: private_key_pem,

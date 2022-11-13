@@ -16,7 +16,7 @@ use crate::utils::canonicalization::{
     canonicalize_object,
     CanonicalizationError,
 };
-use crate::utils::crypto::sign_message;
+use crate::utils::crypto_rsa::sign_message;
 
 pub(super) const PROOF_KEY: &str = "proof";
 pub(super) const PROOF_PURPOSE: &str = "assertionMethod";
@@ -130,12 +130,12 @@ pub fn is_object_signed(object: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use crate::utils::crypto::generate_weak_private_key;
+    use crate::utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
 
     #[test]
     fn test_sign_object() {
-        let signer_key = generate_weak_private_key().unwrap();
+        let signer_key = generate_weak_rsa_key().unwrap();
         let signer_key_id = "https://example.org/users/test#main-key";
         let object = json!({
             "type": "Create",

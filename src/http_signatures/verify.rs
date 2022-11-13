@@ -5,7 +5,7 @@ use chrono::{DateTime, Duration, TimeZone, Utc};
 use regex::Regex;
 use rsa::RsaPublicKey;
 
-use crate::utils::crypto::verify_signature;
+use crate::utils::crypto_rsa::verify_rsa_signature;
 
 #[derive(thiserror::Error, Debug)]
 pub enum HttpSignatureVerificationError {
@@ -120,7 +120,7 @@ pub fn verify_http_signature(
     if expires_at < Utc::now() {
         log::warn!("signature has expired");
     };
-    let is_valid_signature = verify_signature(
+    let is_valid_signature = verify_rsa_signature(
         signer_key,
         &signature_data.message,
         &signature_data.signature,
@@ -139,7 +139,7 @@ mod tests {
         Uri,
     };
     use crate::http_signatures::create::create_http_signature;
-    use crate::utils::crypto::generate_weak_private_key;
+    use crate::utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
 
     #[test]
@@ -185,7 +185,7 @@ mod tests {
         let request_method = Method::POST;
         let request_url = "https://example.org/inbox";
         let request_body = "{}";
-        let signer_key = generate_weak_private_key().unwrap();
+        let signer_key = generate_weak_rsa_key().unwrap();
         let signer_key_id = "https://myserver.org/actor#main-key";
         let signed_headers = create_http_signature(
             request_method.clone(),

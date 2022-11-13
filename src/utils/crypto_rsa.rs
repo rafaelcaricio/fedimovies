@@ -2,14 +2,14 @@ use rsa::{Hash, PaddingScheme, PublicKey, RsaPrivateKey, RsaPublicKey};
 use rsa::pkcs8::{FromPrivateKey, FromPublicKey, ToPrivateKey, ToPublicKey};
 use sha2::{Digest, Sha256};
 
-pub fn generate_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
+pub fn generate_rsa_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
     let mut rng = rand::rngs::OsRng;
     let bits = 2048;
     RsaPrivateKey::new(&mut rng, bits)
 }
 
 #[cfg(test)]
-pub fn generate_weak_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
+pub fn generate_weak_rsa_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
     use rand::SeedableRng;
     let mut rng = rand::rngs::SmallRng::seed_from_u64(0);
     let bits = 512;
@@ -64,7 +64,7 @@ pub fn get_message_digest(message: &str) -> String {
     digest_b64
 }
 
-pub fn verify_signature(
+pub fn verify_rsa_signature(
     public_key: &RsaPublicKey,
     message: &str,
     signature_b64: &str,
@@ -82,7 +82,6 @@ pub fn verify_signature(
 
 #[cfg(test)]
 mod tests {
-    use rand::rngs::OsRng;
     use super::*;
 
     #[test]
@@ -95,20 +94,24 @@ YsFtrgWDQ/s8k86sNBU+Ce2GOL7seh46kyAWgJeohh4Rcrr23rftHbvxOcRM8VzYuCeb1DgVhPGtA0xU
 
     #[test]
     fn test_public_key_serialization_deserialization() {
-        let private_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
+        let private_key = generate_weak_rsa_key().unwrap();
         let public_key_pem = get_public_key_pem(&private_key).unwrap();
         let public_key = deserialize_public_key(&public_key_pem).unwrap();
         assert_eq!(public_key, RsaPublicKey::from(&private_key));
     }
 
     #[test]
-    fn test_verify_signature() {
-        let private_key = RsaPrivateKey::new(&mut OsRng, 512).unwrap();
+    fn test_verify_rsa_signature() {
+        let private_key = generate_weak_rsa_key().unwrap();
         let message = "test".to_string();
         let signature = sign_message(&private_key, &message).unwrap();
         let public_key = RsaPublicKey::from(&private_key);
 
-        let is_valid = verify_signature(&public_key, &message, &signature).unwrap();
+        let is_valid = verify_rsa_signature(
+            &public_key,
+            &message,
+            &signature,
+        ).unwrap();
         assert_eq!(is_valid, true);
     }
 }

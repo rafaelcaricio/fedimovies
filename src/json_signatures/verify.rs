@@ -17,7 +17,7 @@ use crate::utils::canonicalization::{
     canonicalize_object,
     CanonicalizationError,
 };
-use crate::utils::crypto::verify_signature;
+use crate::utils::crypto_rsa::verify_rsa_signature;
 use super::create::{
     IntegrityProof,
     PROOF_KEY,
@@ -103,7 +103,7 @@ pub fn verify_rsa_json_signature(
     signature_data: &SignatureData,
     signer_key: &RsaPublicKey,
 ) -> Result<(), VerificationError> {
-    let is_valid_signature = verify_signature(
+    let is_valid_signature = verify_rsa_signature(
         signer_key,
         &signature_data.message,
         &signature_data.signature,
@@ -136,7 +136,7 @@ pub fn verify_minisign_json_signature(
 mod tests {
     use serde_json::json;
     use crate::json_signatures::create::sign_object;
-    use crate::utils::crypto::generate_weak_private_key;
+    use crate::utils::crypto_rsa::generate_weak_rsa_key;
     use crate::utils::currencies::Currency;
     use super::*;
 
@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_create_and_verify_signature() {
-        let signer_key = generate_weak_private_key().unwrap();
+        let signer_key = generate_weak_rsa_key().unwrap();
         let signer_key_id = "https://example.org/users/test#main-key";
         let object = json!({
             "type": "Create",

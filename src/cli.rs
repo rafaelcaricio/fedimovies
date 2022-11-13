@@ -29,8 +29,8 @@ use crate::models::users::queries::{
 };
 use crate::monero::wallet::create_monero_wallet;
 use crate::utils::{
-    crypto::{
-        generate_private_key,
+    crypto_rsa::{
+        generate_rsa_key,
         serialize_private_key,
     },
     files::remove_files,
@@ -69,7 +69,7 @@ pub struct GenerateRsaKey;
 
 impl GenerateRsaKey {
     pub fn execute(&self) -> () {
-        let private_key = generate_private_key().unwrap();
+        let private_key = generate_rsa_key().unwrap();
         let private_key_str = serialize_private_key(&private_key).unwrap();
         println!("{}", private_key_str);
     }

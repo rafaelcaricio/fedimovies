@@ -74,8 +74,8 @@ use crate::models::users::types::UserCreateData;
 use crate::utils::{
     caip2::ChainId,
     canonicalization::canonicalize_object,
-    crypto::{
-        generate_private_key,
+    crypto_rsa::{
+        generate_rsa_key,
         serialize_private_key,
     },
     currencies::Currency,
@@ -156,7 +156,7 @@ pub async fn create_account(
     };
 
     // Generate RSA private key for actor
-    let private_key = match web::block(generate_private_key).await {
+    let private_key = match web::block(generate_rsa_key).await {
         Ok(Ok(private_key)) => private_key,
         _ => return Err(HttpError::InternalError),
     };

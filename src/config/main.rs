@@ -10,9 +10,9 @@ use url::Url;
 use crate::activitypub::constants::ACTOR_KEY_SUFFIX;
 use crate::activitypub::identifiers::local_instance_actor_id;
 use crate::errors::ConversionError;
-use crate::utils::crypto::{
+use crate::utils::crypto_rsa::{
     deserialize_private_key,
-    generate_private_key,
+    generate_rsa_key,
     serialize_private_key,
 };
 use crate::utils::files::{set_file_permissions, write_file};
@@ -235,7 +235,7 @@ fn read_instance_rsa_key(storage_dir: &Path) -> RsaPrivateKey {
             .expect("failed to read instance RSA key");
         private_key
     } else {
-        let private_key = generate_private_key()
+        let private_key = generate_rsa_key()
             .expect("failed to generate RSA key");
         let private_key_str = serialize_private_key(&private_key)
             .expect("failed to serialize RSA key");
@@ -284,13 +284,13 @@ pub fn parse_config() -> Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::crypto::generate_weak_private_key;
+    use crate::utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
 
     #[test]
     fn test_instance_url_https_dns() {
         let instance_url = Url::parse("https://example.com/").unwrap();
-        let instance_rsa_key = generate_weak_private_key().unwrap();
+        let instance_rsa_key = generate_weak_rsa_key().unwrap();
         let instance = Instance {
             _url: instance_url,
             _version: "1.0.0".to_string(),
@@ -307,7 +307,7 @@ mod tests {
     #[test]
     fn test_instance_url_http_ipv4() {
         let instance_url = Url::parse("http://1.2.3.4:3777/").unwrap();
-        let instance_rsa_key = generate_weak_private_key().unwrap();
+        let instance_rsa_key = generate_weak_rsa_key().unwrap();
         let instance = Instance {
             _url: instance_url,
             _version: "1.0.0".to_string(),
