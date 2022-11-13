@@ -1,7 +1,7 @@
 use comrak::{
     format_commonmark,
     format_html,
-    nodes::{Ast, AstNode, NodeValue},
+    nodes::{Ast, AstNode, ListType, NodeValue},
     parse_document,
     Arena,
     ComrakOptions,
@@ -113,8 +113,16 @@ pub fn markdown_to_html(text: &str) -> Result<String, MarkdownError> {
                         };
                         paragraph.detach();
                     };
-                    let list_prefix_markdown =
+                    let mut list_prefix_markdown =
                         node_to_markdown(list_item, &options)?;
+                    if let NodeValue::Item(item) = list_item.data.borrow().value {
+                        if item.list_type == ListType::Ordered {
+                            // Preserve numbering in ordered lists
+                            let item_index_str = item.start.to_string();
+                            list_prefix_markdown =
+                                list_prefix_markdown.replace('1', &item_index_str);
+                        };
+                    };
                     let list_prefix =
                         NodeValue::Text(list_prefix_markdown.as_bytes().to_vec());
                     if !replacements.is_empty() {
@@ -184,6 +192,14 @@ mod tests {
             r#"<p># heading</p><p>test <strong>bold</strong> test <em>italic</em> test ~~strike~~ with <code>code</code>, &lt;span&gt;html&lt;/span&gt; and <a href="https://example.com">https://example.com</a><br>new line</p><p>two new lines and a list:</p><p>- item 1<br>- item 2</p><p>&gt;greentext</p><p>-----</p><p>image: ![logo](logo.png)</p><p>code block:</p>"#,
             "<pre><code>let test\ntest = 1\n</code></pre>",
         );
+        assert_eq!(html, expected_html);
+    }
+
+    #[test]
+    fn test_markdown_to_html_ordered_list() {
+        let text = "1. item 1\n2. item 2\n";
+        let html = markdown_to_html(text).unwrap();
+        let expected_html = r#"<p>1.  item 1<br>2.  item 2</p>"#;
         assert_eq!(html, expected_html);
     }
 
