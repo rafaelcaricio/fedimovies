@@ -61,6 +61,11 @@ Identity proofs are represented as attachments of `IdentityProof` type:
 }
 ```
 
+Supported proof types:
+
+- EIP-191 (Ethereum personal signatures)
+- [Minisign](https://jedisct1.github.io/minisign/)
+
 ## Subscription events
 
 Local actor profiles have `subscribers` property which points to the collection of actor's paid subscribers.
