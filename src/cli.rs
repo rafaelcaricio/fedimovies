@@ -28,12 +28,14 @@ use crate::models::users::queries::{
     set_user_password,
 };
 use crate::monero::wallet::create_monero_wallet;
-use crate::utils::crypto::{
-    hash_password,
-    generate_private_key,
-    serialize_private_key,
+use crate::utils::{
+    crypto::{
+        generate_private_key,
+        serialize_private_key,
+    },
+    files::remove_files,
+    passwords::hash_password,
 };
-use crate::utils::files::remove_files;
 
 /// Admin CLI tool
 #[derive(Parser)]

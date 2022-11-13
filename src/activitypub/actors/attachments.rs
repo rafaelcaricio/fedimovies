@@ -58,7 +58,7 @@ pub fn parse_identity_proof(
             verify_minisign_signature(
                 did_key,
                 &message,
-                &signature,
+                signature,
             ).map_err(|_| ValidationError("invalid identity proof"))?;
         },
         Did::Pkh(ref did_pkh) => {

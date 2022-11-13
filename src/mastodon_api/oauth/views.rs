@@ -10,8 +10,8 @@ use crate::models::users::queries::{
     get_user_by_name,
     get_user_by_login_address,
 };
-use crate::utils::crypto::verify_password;
 use crate::utils::currencies::{validate_wallet_address, Currency};
+use crate::utils::passwords::verify_password;
 use super::types::{TokenRequest, TokenResponse};
 use super::utils::generate_access_token;
 

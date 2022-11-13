@@ -141,7 +141,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_get_json_signature_eip155() {
+    fn test_get_json_signature_eip191() {
         let signed_object = json!({
             "type": "Test",
             "id": "https://example.org/objects/1",

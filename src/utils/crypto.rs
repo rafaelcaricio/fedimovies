@@ -1,24 +1,6 @@
-use pem;
-use rand;
-use rand::prelude::*;
 use rsa::{Hash, PaddingScheme, PublicKey, RsaPrivateKey, RsaPublicKey};
 use rsa::pkcs8::{FromPrivateKey, FromPublicKey, ToPrivateKey, ToPublicKey};
 use sha2::{Digest, Sha256};
-
-pub fn hash_password(password: &str) -> Result<String, argon2::Error> {
-    let mut rng = rand::thread_rng();
-    let salt: [u8; 32] = rng.gen();
-    let config = argon2::Config::default();
-
-    argon2::hash_encoded(password.as_bytes(), &salt, &config)
-}
-
-pub fn verify_password(
-    password_hash: &str,
-    password: &str,
-) -> Result<bool, argon2::Error> {
-    argon2::verify_encoded(password_hash, password.as_bytes())
-}
 
 pub fn generate_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
     let mut rng = rand::rngs::OsRng;
@@ -28,6 +10,7 @@ pub fn generate_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
 
 #[cfg(test)]
 pub fn generate_weak_private_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
+    use rand::SeedableRng;
     let mut rng = rand::rngs::SmallRng::seed_from_u64(0);
     let bits = 512;
     RsaPrivateKey::new(&mut rng, bits)

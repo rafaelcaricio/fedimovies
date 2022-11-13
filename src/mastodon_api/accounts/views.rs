@@ -71,15 +71,17 @@ use crate::models::users::queries::{
     get_user_by_did,
 };
 use crate::models::users::types::UserCreateData;
-use crate::utils::caip2::ChainId;
-use crate::utils::canonicalization::canonicalize_object;
-use crate::utils::crypto::{
-    hash_password,
-    generate_private_key,
-    serialize_private_key,
+use crate::utils::{
+    caip2::ChainId,
+    canonicalization::canonicalize_object,
+    crypto::{
+        generate_private_key,
+        serialize_private_key,
+    },
+    currencies::Currency,
+    id::new_uuid,
+    passwords::hash_password,
 };
-use crate::utils::currencies::Currency;
-use crate::utils::id::new_uuid;
 use super::helpers::get_relationship;
 use super::types::{
     Account,
