@@ -1,18 +1,23 @@
 use actix_web::{post, web, HttpResponse, Scope as ActixScope};
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
 
 use crate::config::Config;
 use crate::database::{Pool, get_database_client};
-use crate::errors::{HttpError, ValidationError};
+use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::eip4361::verify_eip4361_signature;
-use crate::models::oauth::queries::save_oauth_token;
+use crate::models::oauth::queries::{
+    delete_oauth_token,
+    save_oauth_token,
+};
 use crate::models::users::queries::{
     get_user_by_name,
     get_user_by_login_address,
 };
 use crate::utils::currencies::{validate_wallet_address, Currency};
 use crate::utils::passwords::verify_password;
-use super::types::{TokenRequest, TokenResponse};
+use super::auth::get_current_user;
+use super::types::{RevocationRequest, TokenRequest, TokenResponse};
 use super::utils::generate_access_token;
 
 const ACCESS_TOKEN_EXPIRES_IN: i64 = 86400 * 7;
@@ -87,7 +92,28 @@ async fn token_view(
     Ok(HttpResponse::Ok().json(token_response))
 }
 
+#[post("/revoke")]
+async fn revoke_token_view(
+    auth: BearerAuth,
+    db_pool: web::Data<Pool>,
+    request_data: web::Json<RevocationRequest>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    match delete_oauth_token(
+        db_client,
+        &current_user.id,
+        &request_data.token,
+    ).await {
+        Ok(_) => (),
+        Err(DatabaseError::NotFound(_)) => return Err(HttpError::PermissionError),
+        Err(other_error) => return Err(other_error.into()),
+    };
+    Ok(HttpResponse::Ok().finish())
+}
+
 pub fn oauth_api_scope() -> ActixScope {
     web::scope("/oauth")
         .service(token_view)
+        .service(revoke_token_view)
 }

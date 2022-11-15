@@ -31,3 +31,8 @@ impl TokenResponse {
         }
     }
 }
+
+#[derive(Deserialize)]
+pub struct RevocationRequest {
+    pub token: String,
+}

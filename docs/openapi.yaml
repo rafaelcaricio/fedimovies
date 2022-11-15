@@ -59,6 +59,25 @@ paths:
                     example: 1639747526
         400:
           description: Invalid token request
+  /oauth/revoke:
+    post:
+      summary: Revoke an access token to make it no longer valid for use.
+      security:
+        - tokenAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  description: The previously obtained token, to be invalidated.
+                  type: string
+      responses:
+        200:
+          description: Successful operation
+        403:
+          description: Token doesn't belong to user.
   /api/v1/accounts:
     post:
       summary: Creates a user and profile records.
