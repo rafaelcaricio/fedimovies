@@ -262,6 +262,11 @@ impl AccountUpdateData {
     }
 }
 
+#[derive(Deserialize)]
+pub struct PasswordChangeRequest {
+    pub new_password: String,
+}
+
 #[derive(Serialize)]
 pub struct UnsignedUpdate {
     pub internal_activity_id: Uuid,

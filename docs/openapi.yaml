@@ -157,6 +157,29 @@ paths:
                 $ref: '#/components/schemas/AccountWithSource'
         400:
           description: Invalid user data.
+  /api/v1/accounts/change_password:
+    post:
+      summary: Set or change user's password.
+      security:
+        - tokenAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_password:
+                  description: New password.
+                  type: string
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountWithSource'
+        400:
+          description: Invalid request data.
   /api/v1/accounts/signed_update:
     get:
       summary: Build Update(Person) activity for signing (experimental).

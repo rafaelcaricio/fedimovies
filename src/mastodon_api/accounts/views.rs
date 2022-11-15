@@ -69,6 +69,7 @@ use crate::models::users::queries::{
     is_valid_invite_code,
     create_user,
     get_user_by_did,
+    set_user_password,
 };
 use crate::models::users::types::UserCreateData;
 use crate::utils::{
@@ -93,6 +94,7 @@ use super::types::{
     IdentityClaim,
     IdentityClaimQueryParams,
     IdentityProofData,
+    PasswordChangeRequest,
     RelationshipQueryParams,
     SearchAcctQueryParams,
     SearchDidQueryParams,
@@ -223,6 +225,22 @@ async fn update_credentials(
     prepare_update_person(db_client, &config.instance(), &current_user).await?
         .spawn_deliver();
 
+    let account = Account::from_user(current_user, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
+}
+
+#[post("/change_password")]
+async fn change_password_view(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<Pool>,
+    request_data: web::Json<PasswordChangeRequest>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let password_hash = hash_password(&request_data.new_password)
+        .map_err(|_| HttpError::InternalError)?;
+    set_user_password(db_client, &current_user.id, password_hash).await?;
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
 }
@@ -703,6 +721,7 @@ pub fn account_api_scope() -> Scope {
         .service(create_account)
         .service(verify_credentials)
         .service(update_credentials)
+        .service(change_password_view)
         .service(get_unsigned_update)
         .service(send_signed_update)
         .service(get_identity_claim)
