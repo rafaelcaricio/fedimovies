@@ -20,6 +20,7 @@ use crate::models::profiles::queries::{
     get_profile_by_id,
     get_profile_by_remote_actor_id,
 };
+use crate::models::oauth::queries::delete_oauth_tokens;
 use crate::models::subscriptions::queries::reset_subscriptions;
 use crate::models::users::queries::{
     create_invite_code,
@@ -140,6 +141,8 @@ impl SetPassword {
     ) -> Result<(), Error> {
         let password_hash = hash_password(&self.password)?;
         set_user_password(db_client, &self.id, password_hash).await?;
+        // Revoke all sessions
+        delete_oauth_tokens(db_client, &self.id).await?;
         println!("password updated");
         Ok(())
     }

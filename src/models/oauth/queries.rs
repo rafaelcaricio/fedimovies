@@ -53,6 +53,17 @@ pub async fn delete_oauth_token(
     Ok(())
 }
 
+pub async fn delete_oauth_tokens(
+    db_client: &impl GenericClient,
+    owner_id: &Uuid,
+) -> Result<(), DatabaseError> {
+    db_client.execute(
+        "DELETE FROM oauth_token WHERE owner_id = $1",
+        &[&owner_id],
+    ).await?;
+    Ok(())
+}
+
 pub async fn get_user_by_oauth_token(
     db_client: &impl GenericClient,
     access_token: &str,

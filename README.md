@@ -219,6 +219,12 @@ List generated invites:
 mitractl list-invite-codes
 ```
 
+Set or change password:
+
+```
+mitractl set-password <user-id> <password>
+```
+
 Delete profile:
 
 ```
