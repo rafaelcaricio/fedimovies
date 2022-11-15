@@ -114,9 +114,49 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Account'
+                $ref: '#/components/schemas/AccountWithSource'
         400:
           description: Invalid user data
+  /api/v1/accounts/verify_credentials:
+    get:
+      summary: Test to make sure that the user token works.
+      security:
+        - tokenAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountWithSource'
+  /api/v1/accounts/update_credentials:
+    patch:
+      summary: Update the user's display and preferences.
+      security:
+        - tokenAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  description: The display name to use for the profile.
+                  type: string
+                  nullable: true
+                note:
+                  description: The account bio.
+                  type: string
+                  nullable: true
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountWithSource'
+        400:
+          description: Invalid user data.
   /api/v1/accounts/signed_update:
     get:
       summary: Build Update(Person) activity for signing (experimental).
@@ -1073,6 +1113,18 @@ components:
         subscribers_count:
           description: The reported subscribers of this profile.
           type: number
+    AccountWithSource:
+      allOf:
+        - $ref: '#/components/schemas/Account'
+        - type: object
+          properties:
+            source:
+              description: Additional information about the user.
+              type: object
+              properties:
+                note:
+                  description: Profile bio.
+                  type: string
     Attachment:
       type: object
       properties:
