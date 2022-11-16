@@ -1242,6 +1242,10 @@ components:
                 description: Blockchain features.
                 type: object
                 properties:
+                  gate:
+                    description: Token gate feature flag.
+                    type: boolean
+                    example: true
                   minter:
                     description: Minter feature flag.
                     type: boolean

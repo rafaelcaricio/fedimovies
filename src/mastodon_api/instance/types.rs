@@ -14,6 +14,7 @@ struct InstanceStats {
 
 #[derive(Serialize)]
 struct BlockchainFeatures {
+    gate: bool,
     minter: bool,
     subscriptions: bool,
 }
@@ -63,11 +64,13 @@ impl InstanceInfo {
             Some(BlockchainConfig::Ethereum(ethereum_config)) => {
                 let features = if let Some(contract_set) = maybe_blockchain {
                     BlockchainFeatures {
+                        gate: contract_set.gate.is_some(),
                         minter: contract_set.collectible.is_some(),
                         subscriptions: contract_set.subscription.is_some(),
                     }
                 } else {
                     BlockchainFeatures {
+                        gate: false,
                         minter: false,
                         subscriptions: false,
                     }
@@ -85,6 +88,7 @@ impl InstanceInfo {
             },
             Some(BlockchainConfig::Monero(monero_config)) => {
                 let features = BlockchainFeatures {
+                    gate: false,
                     minter: false,
                     subscriptions: true,
                 };
