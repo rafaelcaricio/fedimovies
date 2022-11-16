@@ -147,13 +147,15 @@ pub async fn create_account(
     };
 
     if let Some(contract_set) = maybe_blockchain.as_ref() {
-        // Wallet address is required if blockchain integration is enabled
-        let wallet_address = maybe_wallet_address.as_ref()
-            .ok_or(ValidationError("wallet address is required"))?;
-        let is_allowed = is_allowed_user(contract_set, wallet_address).await
-            .map_err(|_| HttpError::InternalError)?;
-        if !is_allowed {
-            return Err(ValidationError("not allowed to sign up").into());
+        if let Some(ref gate) = contract_set.gate {
+            // Wallet address is required if token gate is present
+            let wallet_address = maybe_wallet_address.as_ref()
+                .ok_or(ValidationError("wallet address is required"))?;
+            let is_allowed = is_allowed_user(gate, wallet_address).await
+                .map_err(|_| HttpError::InternalError)?;
+            if !is_allowed {
+                return Err(ValidationError("not allowed to sign up").into());
+            };
         };
     };
 

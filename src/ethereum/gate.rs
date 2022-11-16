@@ -1,17 +1,15 @@
-use web3::contract::Options;
+use web3::{
+    contract::{Contract, Options},
+    transports::Http,
+};
 
-use super::contracts::ContractSet;
 use super::errors::EthereumError;
 use super::utils::parse_address;
 
 pub async fn is_allowed_user(
-    contract_set: &ContractSet,
+    gate: &Contract<Http>,
     user_address: &str,
 ) -> Result<bool, EthereumError> {
-    let gate = match &contract_set.gate {
-        Some(contract) => contract,
-        None => return Ok(true), // no gate
-    };
     let user_address = parse_address(user_address)?;
     let result: bool = gate.query(
         "isAllowedUser", (user_address,),
