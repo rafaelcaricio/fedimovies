@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
@@ -573,6 +574,69 @@ pub async fn update_post_count(
     Ok(profile)
 }
 
+/// Finds all empty remote profiles
+/// (without any posts, reactions, relationships)
+/// updated before the specified date
+pub async fn find_empty_profiles(
+    db_client: &impl GenericClient,
+    updated_before: &DateTime<Utc>,
+) -> Result<Vec<Uuid>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT actor_profile.id
+        FROM actor_profile
+        WHERE
+            actor_profile.hostname IS NOT NULL
+            AND actor_profile.updated_at < $1
+            AND NOT EXISTS (
+                SELECT 1 FROM relationship
+                WHERE
+                    source_id = actor_profile.id
+                    OR target_id = actor_profile.id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM follow_request
+                WHERE
+                    source_id = actor_profile.id
+                    OR target_id = actor_profile.id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM post
+                WHERE author_id = actor_profile.id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM post_reaction
+                WHERE author_id = actor_profile.id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM media_attachment
+                WHERE owner_id = actor_profile.id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM mention
+                WHERE profile_id = actor_profile.id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM notification
+                WHERE sender_id = actor_profile.id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM invoice
+                WHERE sender_id = actor_profile.id
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM subscription
+                WHERE sender_id = actor_profile.id
+            )
+        ",
+        &[&updated_before],
+    ).await?;
+    let ids: Vec<Uuid> = rows.iter()
+        .map(|row| row.try_get("id"))
+        .collect::<Result<_, _>>()?;
+    Ok(ids)
+}
+
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
@@ -743,5 +807,14 @@ mod tests {
 
         assert_eq!(profiles.len(), 1);
         assert_eq!(profiles[0].id, profile.id);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_find_empty_profiles() {
+        let db_client = &mut create_test_database().await;
+        let updated_before = Utc::now();
+        let profiles = find_empty_profiles(db_client, &updated_before).await.unwrap();
+        assert_eq!(profiles.is_empty(), true);
     }
 }

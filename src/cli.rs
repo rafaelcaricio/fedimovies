@@ -17,6 +17,7 @@ use crate::models::cleanup::find_orphaned_files;
 use crate::models::posts::queries::{delete_post, find_extraneous_posts, get_post_by_id};
 use crate::models::profiles::queries::{
     delete_profile,
+    find_empty_profiles,
     get_profile_by_id,
     get_profile_by_remote_actor_id,
 };
@@ -59,6 +60,7 @@ pub enum SubCommand {
     DeleteExtraneousPosts(DeleteExtraneousPosts),
     DeleteUnusedAttachments(DeleteUnusedAttachments),
     DeleteOrphanedFiles(DeleteOrphanedFiles),
+    DeleteEmptyProfiles(DeleteEmptyProfiles),
     UpdateCurrentBlock(UpdateCurrentBlock),
     ResetSubscriptions(ResetSubscriptions),
     CreateMoneroWallet(CreateMoneroWallet),
@@ -311,6 +313,30 @@ impl DeleteOrphanedFiles {
         if !orphaned.is_empty() {
             remove_files(orphaned, &media_dir);
             println!("orphaned files deleted");
+        };
+        Ok(())
+    }
+}
+
+/// Delete empty remote profiles
+#[derive(Parser)]
+pub struct DeleteEmptyProfiles {
+    days: i64,
+}
+
+impl DeleteEmptyProfiles {
+    pub async fn execute(
+        &self,
+        config: &Config,
+        db_client: &mut impl GenericClient,
+    ) -> Result<(), Error> {
+        let updated_before = Utc::now() - Duration::days(self.days);
+        let profiles = find_empty_profiles(db_client, &updated_before).await?;
+        for profile_id in profiles {
+            let profile = get_profile_by_id(db_client, &profile_id).await?;
+            let deletion_queue = delete_profile(db_client, &profile.id).await?;
+            deletion_queue.process(config).await;
+            println!("profile {} deleted", profile.acct);
         };
         Ok(())
     }
