@@ -7,7 +7,7 @@ use crate::activitypub::{
         undo_follow::prepare_undo_follow,
     },
     fetcher::helpers::get_or_import_profile_by_actor_id,
-    receiver::find_object_id,
+    receiver::{find_object_id, parse_array},
     vocabulary::PERSON,
 };
 use crate::config::Config;
@@ -53,8 +53,9 @@ pub async fn handle_move_person(
     ).await?;
     let new_actor = new_profile.actor_json.unwrap();
     let maybe_also_known_as = new_actor.also_known_as.as_ref()
-        .and_then(|aliases| aliases.first());
-    if maybe_also_known_as != Some(&old_actor.id) {
+        .and_then(|value| parse_array(value).ok())
+        .and_then(|aliases| aliases.first().cloned());
+    if maybe_also_known_as.as_ref() != Some(&old_actor.id) {
         return Err(ValidationError("target ID is not an alias").into());
     };
 

@@ -110,7 +110,7 @@ pub struct Actor {
     pub summary: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub also_known_as: Option<Vec<String>>,
+    pub also_known_as: Option<Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attachment: Option<Vec<ActorAttachment>>,
