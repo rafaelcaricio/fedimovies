@@ -4,6 +4,10 @@ use std::str::FromStr;
 
 use regex::Regex;
 
+use crate::utils::multibase::{
+    decode_multibase_base58btc,
+    encode_multibase_base58btc,
+};
 use super::did::DidParseError;
 
 const DID_KEY_RE: &str = r"did:key:(?P<key>z[a-km-zA-HJ-NP-Z1-9]+)";
@@ -48,44 +52,6 @@ impl DidKey {
         };
         Ok(key)
     }
-}
-
-#[derive(thiserror::Error, Debug)]
-enum MultibaseError {
-    #[error("invalid base string")]
-    InvalidBaseString,
-
-    #[error("unknown base")]
-    UnknownBase,
-
-    #[error(transparent)]
-    DecodeError(#[from] bs58::decode::Error),
-}
-
-/// Decodes multibase base58 (bitcoin) value
-/// https://github.com/multiformats/multibase
-fn decode_multibase_base58btc(value: &str)
-    -> Result<Vec<u8>, MultibaseError>
-{
-    let base = value.chars().next()
-        .ok_or(MultibaseError::InvalidBaseString)?;
-    // z == base58btc
-    // https://github.com/multiformats/multibase#multibase-table
-    if base.to_string() != "z" {
-        return Err(MultibaseError::UnknownBase);
-    };
-    let encoded_data = &value[base.len_utf8()..];
-    let data = bs58::decode(encoded_data)
-        .with_alphabet(bs58::Alphabet::BITCOIN)
-        .into_vec()?;
-    Ok(data)
-}
-
-fn encode_multibase_base58btc(value: &[u8]) -> String {
-    let result = bs58::encode(value)
-        .with_alphabet(bs58::Alphabet::BITCOIN)
-        .into_string();
-    format!("z{}", result)
 }
 
 impl FromStr for DidKey {

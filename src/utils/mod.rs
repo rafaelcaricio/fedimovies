@@ -6,5 +6,6 @@ pub mod files;
 pub mod html;
 pub mod id;
 pub mod markdown;
+pub mod multibase;
 pub mod passwords;
 pub mod urls;
