@@ -2,7 +2,10 @@ use actix_web::http::Method;
 use chrono::Utc;
 use rsa::RsaPrivateKey;
 
-use crate::utils::crypto_rsa::{get_message_digest, sign_message};
+use crate::utils::crypto_rsa::{
+    create_rsa_signature,
+    get_message_digest,
+};
 
 const HTTP_SIGNATURE_ALGORITHM: &str = "rsa-sha256";
 const HTTP_SIGNATURE_DATE_FORMAT: &str = "%a, %d %b %Y %T GMT";
@@ -69,7 +72,8 @@ pub fn create_http_signature(
         .map(|(name, _)| name.to_string())
         .collect::<Vec<String>>()
         .join(" ");
-    let signature_parameter = sign_message(signer_key, &message)?;
+    let signature = create_rsa_signature(signer_key, &message)?;
+    let signature_parameter = base64::encode(signature);
     let signature_header = format!(
         r#"keyId="{}",algorithm="{}",headers="{}",signature="{}""#,
         signer_key_id,

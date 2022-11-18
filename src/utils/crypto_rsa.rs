@@ -47,15 +47,14 @@ pub fn deserialize_public_key(
 }
 
 /// RSASSA-PKCS1-v1_5 signature
-pub fn sign_message(
+pub fn create_rsa_signature(
     private_key: &RsaPrivateKey,
     message: &str,
-) -> Result<String, rsa::errors::Error> {
+) -> Result<Vec<u8>, rsa::errors::Error> {
     let digest = Sha256::digest(message.as_bytes());
     let padding = PaddingScheme::new_pkcs1v15_sign(Some(Hash::SHA2_256));
     let signature = private_key.sign(padding, &digest)?;
-    let signature_b64 = base64::encode(&signature);
-    Ok(signature_b64)
+    Ok(signature)
 }
 
 pub fn get_message_digest(message: &str) -> String {
@@ -67,17 +66,16 @@ pub fn get_message_digest(message: &str) -> String {
 pub fn verify_rsa_signature(
     public_key: &RsaPublicKey,
     message: &str,
-    signature_b64: &str,
-) -> Result<bool, base64::DecodeError> {
+    signature: &[u8],
+) -> bool {
     let digest = Sha256::digest(message.as_bytes());
     let padding = PaddingScheme::new_pkcs1v15_sign(Some(Hash::SHA2_256));
-    let signature = base64::decode(signature_b64)?;
     let is_valid = public_key.verify(
         padding,
         &digest,
-        &signature,
+        signature,
     ).is_ok();
-    Ok(is_valid)
+    is_valid
 }
 
 #[cfg(test)]
@@ -104,14 +102,17 @@ YsFtrgWDQ/s8k86sNBU+Ce2GOL7seh46kyAWgJeohh4Rcrr23rftHbvxOcRM8VzYuCeb1DgVhPGtA0xU
     fn test_verify_rsa_signature() {
         let private_key = generate_weak_rsa_key().unwrap();
         let message = "test".to_string();
-        let signature = sign_message(&private_key, &message).unwrap();
+        let signature = create_rsa_signature(
+            &private_key,
+            &message,
+        ).unwrap();
         let public_key = RsaPublicKey::from(&private_key);
 
         let is_valid = verify_rsa_signature(
             &public_key,
             &message,
             &signature,
-        ).unwrap();
+        );
         assert_eq!(is_valid, true);
     }
 }

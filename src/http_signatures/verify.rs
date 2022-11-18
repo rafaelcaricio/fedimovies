@@ -120,11 +120,12 @@ pub fn verify_http_signature(
     if expires_at < Utc::now() {
         log::warn!("signature has expired");
     };
+    let signature = base64::decode(&signature_data.signature)?;
     let is_valid_signature = verify_rsa_signature(
         signer_key,
         &signature_data.message,
-        &signature_data.signature,
-    )?;
+        &signature,
+    );
     if !is_valid_signature {
         return Err(VerificationError::InvalidSignature);
     };

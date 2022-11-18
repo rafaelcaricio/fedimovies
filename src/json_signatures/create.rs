@@ -16,7 +16,7 @@ use crate::utils::canonicalization::{
     canonicalize_object,
     CanonicalizationError,
 };
-use crate::utils::crypto_rsa::sign_message;
+use crate::utils::crypto_rsa::create_rsa_signature;
 
 pub(super) const PROOF_KEY: &str = "proof";
 pub(super) const PROOF_PURPOSE: &str = "assertionMethod";
@@ -37,14 +37,14 @@ pub struct IntegrityProof {
 impl IntegrityProof {
     fn jcs_rsa(
         signer_key_id: &str,
-        signature: &str,
+        signature: &[u8],
     ) -> Self {
         Self {
             proof_type: PROOF_TYPE_JCS_RSA.to_string(),
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer_key_id.to_string(),
             created: Utc::now(),
-            proof_value: signature.to_string(),
+            proof_value: base64::encode(signature),
         }
     }
 
@@ -115,9 +115,9 @@ pub fn sign_object(
     // Canonicalize
     let message = canonicalize_object(object)?;
     // Sign
-    let signature_b64 = sign_message(signer_key, &message)?;
+    let signature = create_rsa_signature(signer_key, &message)?;
     // Insert proof
-    let proof = IntegrityProof::jcs_rsa(signer_key_id, &signature_b64);
+    let proof = IntegrityProof::jcs_rsa(signer_key_id, &signature);
     let mut object_value = serde_json::to_value(object)?;
     add_integrity_proof(&mut object_value, proof)?;
     Ok(object_value)
