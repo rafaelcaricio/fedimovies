@@ -216,11 +216,11 @@ pub async fn receive_activity(
     let signer_id = signer.actor_id(&config.instance_url());
 
     let maybe_object_type = match (activity_type.as_str(), maybe_object_type) {
-        (ACCEPT, FOLLOW) => {
+        (ACCEPT, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_accept_follow(config, db_client, activity).await?
         },
-        (REJECT, FOLLOW) => {
+        (REJECT, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_reject_follow(config, db_client, activity).await?
         },
