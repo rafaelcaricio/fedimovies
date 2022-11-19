@@ -1,4 +1,5 @@
 use monero_rpc::{
+    HashString,
     RpcClient,
     SubaddressBalanceData,
     SweepAllArgs,
@@ -21,6 +22,9 @@ pub const DEFAULT_ACCOUNT: u32 = 0;
 pub enum MoneroError {
     #[error(transparent)]
     WalletError(#[from] anyhow::Error),
+
+    #[error("{0}")]
+    WalletRpcError(&'static str),
 
     #[error(transparent)]
     AddressError(#[from] AddressError),
@@ -58,11 +62,11 @@ pub async fn create_monero_address(
     Ok(address)
 }
 
-fn get_single_item<T: Clone>(items: Vec<T>) -> Result<T, MoneroError> {
+pub fn get_single_item<T: Clone>(items: Vec<T>) -> Result<T, MoneroError> {
     if let [item] = &items[..] {
         Ok(item.clone())
     } else {
-        Err(MoneroError::OtherError("invalid response from wallet"))
+        Err(MoneroError::WalletRpcError("expected single item"))
     }
 }
 
@@ -99,12 +103,35 @@ pub async fn send_monero(
         get_tx_metadata: None,
     };
     let sweep_data = wallet_client.sweep_all(sweep_args).await?;
-    let tx_hash = get_single_item(sweep_data.tx_hash_list)?;
+    let HashString(tx_hash) = get_single_item(sweep_data.tx_hash_list)?;
     let amount = get_single_item(sweep_data.amount_list)?;
     let fee = get_single_item(sweep_data.fee_list)?;
+
+    // TODO: transaction can fail
+    // https://github.com/monero-project/monero/issues/8372
+    let maybe_transfer = wallet_client.get_transfer(
+        tx_hash.clone(),
+        Some(DEFAULT_ACCOUNT),
+    ).await?;
+    let transfer_status = maybe_transfer
+        .map(|data| data.transfer_type.into())
+        .unwrap_or("dropped");
+    if transfer_status == "dropped" || transfer_status == "failed" {
+        log::error!(
+            "sent transaction {:x} from {}/{}, {}",
+            tx_hash,
+            DEFAULT_ACCOUNT,
+            from_address,
+            transfer_status,
+        );
+        return Err(MoneroError::WalletRpcError("transaction failed"));
+    };
+
     log::info!(
-        "sent transaction {}, amount {}, fee {}",
+        "sent transaction {:x} from {}/{}, amount {}, fee {}",
         tx_hash,
+        DEFAULT_ACCOUNT,
+        from_address,
         amount,
         fee,
     );

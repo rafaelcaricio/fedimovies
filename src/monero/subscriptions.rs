@@ -26,6 +26,7 @@ use crate::models::{
     users::queries::get_user_by_id,
 };
 use super::wallet::{
+    get_single_item,
     get_subaddress_balance,
     send_monero,
     DEFAULT_ACCOUNT,
@@ -85,11 +86,8 @@ pub async fn check_monero_subscriptions(
                 DEFAULT_ACCOUNT,
                 Some(vec![transfer.subaddr_index.minor]),
             ).await?;
-            let subaddress = if let [subaddress_data] = &address_data.addresses[..] {
-                subaddress_data.address
-            } else {
-                return Err(MoneroError::OtherError("invalid response from wallet"));
-            };
+            let subaddress_data = get_single_item(address_data.addresses)?;
+            let subaddress = subaddress_data.address;
             let invoice = get_invoice_by_address(
                 db_client,
                 &config.chain_id,
