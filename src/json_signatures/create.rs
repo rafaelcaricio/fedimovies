@@ -7,8 +7,8 @@ use crate::identity::{
     did_key::DidKey,
     did_pkh::DidPkh,
     signatures::{
+        PROOF_TYPE_JCS_ED25519,
         PROOF_TYPE_JCS_EIP191,
-        PROOF_TYPE_JCS_MINISIGN,
         PROOF_TYPE_JCS_RSA,
     },
 };
@@ -61,16 +61,16 @@ impl IntegrityProof {
         }
     }
 
-    pub fn jcs_minisign(
+    pub fn jcs_ed25519(
         signer: &DidKey,
-        signature: &str,
+        signature: &[u8],
     ) -> Self {
         Self {
-            proof_type: PROOF_TYPE_JCS_MINISIGN.to_string(),
+            proof_type: PROOF_TYPE_JCS_ED25519.to_string(),
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer.to_string(),
             created: Utc::now(),
-            proof_value: signature.to_string(),
+            proof_value: base64::encode(signature),
         }
     }
 }

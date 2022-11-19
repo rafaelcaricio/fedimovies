@@ -6,10 +6,10 @@ use crate::identity::{
     did::Did,
     did_key::DidKey,
     did_pkh::DidPkh,
-    minisign::verify_minisign_signature,
+    minisign::verify_ed25519_signature,
     signatures::{
+        PROOF_TYPE_JCS_ED25519,
         PROOF_TYPE_JCS_EIP191,
-        PROOF_TYPE_JCS_MINISIGN,
         PROOF_TYPE_JCS_RSA,
     },
 };
@@ -78,7 +78,7 @@ pub fn get_json_signature(
                 .map_err(|_| VerificationError::InvalidProof("invalid DID"))?;
             JsonSigner::Did(Did::Pkh(did_pkh))
         },
-        PROOF_TYPE_JCS_MINISIGN => {
+        PROOF_TYPE_JCS_ED25519 => {
             let did_key: DidKey = proof.verification_method.parse()
                 .map_err(|_| VerificationError::InvalidProof("invalid DID"))?;
             JsonSigner::Did(Did::Key(did_key))
@@ -126,12 +126,13 @@ pub fn verify_eip191_json_signature(
         .map_err(|_| VerificationError::InvalidSignature)
 }
 
-pub fn verify_minisign_json_signature(
+pub fn verify_ed25519_json_signature(
     signer: &DidKey,
     message: &str,
     signature: &str,
 ) -> Result<(), VerificationError> {
-    verify_minisign_signature(signer, message, signature)
+    let signature_bin = base64::decode(signature)?;
+    verify_ed25519_signature(signer, message, &signature_bin)
         .map_err(|_| VerificationError::InvalidSignature)
 }
 

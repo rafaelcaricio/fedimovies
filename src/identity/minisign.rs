@@ -1,4 +1,6 @@
 /// https://jedisct1.github.io/minisign/
+use std::convert::TryInto;
+
 use blake2::{Blake2b512, Digest};
 use ed25519_dalek::{
     PublicKey,
@@ -58,7 +60,7 @@ pub fn minisign_key_to_did(key_b64: &str) -> Result<DidKey, ParseError> {
 
 // Signature format:
 // base64(<signature_algorithm> || <key_id> || <signature>)
-fn parse_minisign_signature(signature_b64: &str)
+pub fn parse_minisign_signature(signature_b64: &str)
     -> Result<[u8; 64], ParseError>
 {
     let signature_bin = base64::decode(signature_b64)?;
@@ -79,7 +81,7 @@ fn parse_minisign_signature(signature_b64: &str)
     Ok(signature)
 }
 
-fn verify_ed25519_signature(
+fn _verify_ed25519_signature(
     message: &str,
     signer: [u8; 32],
     signature: [u8; 64],
@@ -105,7 +107,7 @@ pub enum VerificationError {
     SignatureError(#[from] SignatureError),
 }
 
-pub fn verify_minisign_signature(
+pub fn verify_minisign_identity_proof(
     signer: &DidKey,
     message: &str,
     signature: &str,
@@ -113,7 +115,24 @@ pub fn verify_minisign_signature(
     let ed25519_key = signer.try_ed25519_key()?;
     let ed25519_signature = parse_minisign_signature(signature)?;
     let message = format!("{}\n", message);
-    verify_ed25519_signature(
+    _verify_ed25519_signature(
+        &message,
+        ed25519_key,
+        ed25519_signature,
+    )?;
+    Ok(())
+}
+
+pub fn verify_ed25519_signature(
+    signer: &DidKey,
+    message: &str,
+    signature: &[u8],
+) -> Result<(), VerificationError> {
+    let ed25519_key = signer.try_ed25519_key()?;
+    let ed25519_signature = signature.try_into()
+        .map_err(|_| ParseError::InvalidSignatureLength)?;
+    let message = format!("{}\n", message);
+    _verify_ed25519_signature(
         &message,
         ed25519_key,
         ed25519_signature,
@@ -133,6 +152,6 @@ mod tests {
         let minisign_signature =
             "RUSA58rRENpGFVKxdZGMG1WdIJ+dlyP83qOqw6GP0H/Li6Brug2A3mFKLtleIRLi6IIG0smzOlX5CEsisNnc897OUHIOSNLsQQs=";
         let signer = minisign_key_to_did(minisign_key).unwrap();
-        verify_minisign_signature(&signer, message, minisign_signature).unwrap();
+        verify_minisign_identity_proof(&signer, message, minisign_signature).unwrap();
     }
 }

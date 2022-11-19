@@ -27,15 +27,16 @@ use crate::identity::{
     did_pkh::DidPkh,
     minisign::{
         minisign_key_to_did,
-        verify_minisign_signature,
+        parse_minisign_signature,
+        verify_minisign_identity_proof,
     },
     signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
 use crate::json_signatures::{
     create::{add_integrity_proof, IntegrityProof},
     verify::{
+        verify_ed25519_json_signature,
         verify_eip191_json_signature,
-        verify_minisign_json_signature,
     },
 };
 use crate::mastodon_api::oauth::auth::get_current_user;
@@ -293,9 +294,12 @@ async fn send_signed_update(
         .map_err(|_| HttpError::InternalError)?;
     let proof = match signer {
         Did::Key(signer) => {
-            verify_minisign_json_signature(&signer, &canonical_json, &data.signature)
+            let signature_bin = parse_minisign_signature(&data.signature)
+                .map_err(|_| ValidationError("invalid encoding"))?;
+            let signature_b64 = base64::encode(&signature_bin);
+            verify_ed25519_json_signature(&signer, &canonical_json, &signature_b64)
                 .map_err(|_| ValidationError("invalid signature"))?;
-            IntegrityProof::jcs_minisign(&signer, &data.signature)
+            IntegrityProof::jcs_ed25519(&signer, &signature_bin)
         },
         Did::Pkh(signer) => {
             let signature_bin = hex::decode(&data.signature)
@@ -382,7 +386,7 @@ async fn create_identity_proof(
     // Verify proof
     let proof_type = match did {
         Did::Key(ref did_key) => {
-            verify_minisign_signature(
+            verify_minisign_identity_proof(
                 did_key,
                 &message,
                 &proof_data.signature,

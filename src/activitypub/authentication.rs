@@ -12,8 +12,8 @@ use crate::http_signatures::verify::{
 use crate::identity::did::Did;
 use crate::json_signatures::verify::{
     get_json_signature,
+    verify_ed25519_json_signature,
     verify_eip191_json_signature,
-    verify_minisign_json_signature,
     verify_rsa_json_signature,
     JsonSignatureVerificationError as JsonSignatureError,
     JsonSigner,
@@ -153,7 +153,7 @@ pub async fn verify_signed_activity(
             if let Some(profile) = profiles.pop() {
                 match did {
                     Did::Key(did_key) => {
-                        verify_minisign_json_signature(
+                        verify_ed25519_json_signature(
                             &did_key,
                             &signature_data.message,
                             &signature_data.signature,

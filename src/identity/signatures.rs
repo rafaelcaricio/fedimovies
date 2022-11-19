@@ -15,5 +15,9 @@ pub const PROOF_TYPE_JCS_RSA: &str = "JcsRsaSignature2022";
 // Similar to EthereumPersonalSignature2021 but with JCS
 pub const PROOF_TYPE_JCS_EIP191: &str ="JcsEip191Signature2022";
 
-// Version 2022A
-pub const PROOF_TYPE_JCS_MINISIGN: &str = "MitraJcsMinisignSignature2022A";
+// Similar to Ed25519Signature2020
+// https://w3c-ccg.github.io/di-eddsa-2020/#ed25519signature2020
+// - Canonicalization algorithm: JCS
+// - Digest algorithm: BLAKE2b-512
+// - Signature algorithm: EdDSA
+pub const PROOF_TYPE_JCS_ED25519: &str = "MitraJcsEd25519Signature2022";
