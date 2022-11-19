@@ -249,6 +249,12 @@ Delete attachments that don't belong to any post:
 mitractl delete-unused-attachments 5
 ```
 
+Delete empty remote profiles:
+
+```
+mitractl delete-empty-profiles 100
+```
+
 Generate ethereum address:
 
 ```
