@@ -296,16 +296,14 @@ async fn send_signed_update(
         Did::Key(signer) => {
             let signature_bin = parse_minisign_signature(&data.signature)
                 .map_err(|_| ValidationError("invalid encoding"))?;
-            let signature_b64 = base64::encode(&signature_bin);
-            verify_ed25519_json_signature(&signer, &canonical_json, &signature_b64)
+            verify_ed25519_json_signature(&signer, &canonical_json, &signature_bin)
                 .map_err(|_| ValidationError("invalid signature"))?;
             IntegrityProof::jcs_ed25519(&signer, &signature_bin)
         },
         Did::Pkh(signer) => {
             let signature_bin = hex::decode(&data.signature)
                 .map_err(|_| ValidationError("invalid encoding"))?;
-            let signature_b64 = base64::encode(&signature_bin);
-            verify_eip191_json_signature(&signer, &canonical_json, &signature_b64)
+            verify_eip191_json_signature(&signer, &canonical_json, &signature_bin)
                 .map_err(|_| ValidationError("invalid signature"))?;
             IntegrityProof::jcs_eip191(&signer, &signature_bin)
         },

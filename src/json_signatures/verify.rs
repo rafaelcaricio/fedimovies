@@ -13,11 +13,14 @@ use crate::identity::{
         PROOF_TYPE_JCS_RSA,
     },
 };
-use crate::utils::canonicalization::{
-    canonicalize_object,
-    CanonicalizationError,
+use crate::utils::{
+    canonicalization::{
+        canonicalize_object,
+        CanonicalizationError,
+    },
+    crypto_rsa::verify_rsa_signature,
+    multibase::{decode_multibase_base58btc, MultibaseError},
 };
-use crate::utils::crypto_rsa::verify_rsa_signature;
 use super::create::{
     IntegrityProof,
     PROOF_KEY,
@@ -33,7 +36,7 @@ pub enum JsonSigner {
 pub struct SignatureData {
     pub signer: JsonSigner,
     pub message: String,
-    pub signature: String,
+    pub signature: Vec<u8>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -51,7 +54,7 @@ pub enum JsonSignatureVerificationError {
     CanonicalizationError(#[from] CanonicalizationError),
 
     #[error("invalid encoding")]
-    InvalidEncoding(#[from] base64::DecodeError),
+    InvalidEncoding(#[from] MultibaseError),
 
     #[error("invalid signature")]
     InvalidSignature,
@@ -91,10 +94,11 @@ pub fn get_json_signature(
         },
     };
     let message = canonicalize_object(&object)?;
+    let signature = decode_multibase_base58btc(&proof.proof_value)?;
     let signature_data = SignatureData {
         signer: signer,
         message: message,
-        signature: proof.proof_value,
+        signature: signature,
     };
     Ok(signature_data)
 }
@@ -103,11 +107,10 @@ pub fn verify_rsa_json_signature(
     signature_data: &SignatureData,
     signer_key: &RsaPublicKey,
 ) -> Result<(), VerificationError> {
-    let signature = base64::decode(&signature_data.signature)?;
     let is_valid_signature = verify_rsa_signature(
         signer_key,
         &signature_data.message,
-        &signature,
+        &signature_data.signature,
     );
     if !is_valid_signature {
         return Err(VerificationError::InvalidSignature);
@@ -118,10 +121,9 @@ pub fn verify_rsa_json_signature(
 pub fn verify_eip191_json_signature(
     signer: &DidPkh,
     message: &str,
-    signature: &str,
+    signature: &[u8],
 ) -> Result<(), VerificationError> {
-    let signature_bin = base64::decode(signature)?;
-    let signature_hex = hex::encode(&signature_bin);
+    let signature_hex = hex::encode(signature);
     verify_eip191_signature(signer, message, &signature_hex)
         .map_err(|_| VerificationError::InvalidSignature)
 }
@@ -129,10 +131,9 @@ pub fn verify_eip191_json_signature(
 pub fn verify_ed25519_json_signature(
     signer: &DidKey,
     message: &str,
-    signature: &str,
+    signature: &[u8],
 ) -> Result<(), VerificationError> {
-    let signature_bin = base64::decode(signature)?;
-    verify_ed25519_signature(signer, message, &signature_bin)
+    verify_ed25519_signature(signer, message, signature)
         .map_err(|_| VerificationError::InvalidSignature)
 }
 
@@ -154,7 +155,7 @@ mod tests {
                 "proofPurpose": "assertionMethod",
                 "verificationMethod": "did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a",
                 "created": "2020-11-05T19:23:24Z",
-                "proofValue": "xxx",
+                "proofValue": "zE5J",
             },
         });
         let signature_data = get_json_signature(&signed_object).unwrap();
@@ -163,7 +164,7 @@ mod tests {
             "0xb9c5714089478a327f09197987f16f9e5d936e8a",
         )));
         assert_eq!(signature_data.signer, expected_signer);
-        assert_eq!(signature_data.signature, "xxx");
+        assert_eq!(hex::encode(signature_data.signature), "abcd");
     }
 
     #[test]

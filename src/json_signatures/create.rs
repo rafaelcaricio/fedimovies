@@ -12,11 +12,14 @@ use crate::identity::{
         PROOF_TYPE_JCS_RSA,
     },
 };
-use crate::utils::canonicalization::{
-    canonicalize_object,
-    CanonicalizationError,
+use crate::utils::{
+    canonicalization::{
+        canonicalize_object,
+        CanonicalizationError,
+    },
+    crypto_rsa::create_rsa_signature,
+    multibase::encode_multibase_base58btc,
 };
-use crate::utils::crypto_rsa::create_rsa_signature;
 
 pub(super) const PROOF_KEY: &str = "proof";
 pub(super) const PROOF_PURPOSE: &str = "assertionMethod";
@@ -44,7 +47,7 @@ impl IntegrityProof {
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer_key_id.to_string(),
             created: Utc::now(),
-            proof_value: base64::encode(signature),
+            proof_value: encode_multibase_base58btc(signature),
         }
     }
 
@@ -57,7 +60,7 @@ impl IntegrityProof {
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer.to_string(),
             created: Utc::now(),
-            proof_value: base64::encode(signature),
+            proof_value: encode_multibase_base58btc(signature),
         }
     }
 
@@ -70,7 +73,7 @@ impl IntegrityProof {
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer.to_string(),
             created: Utc::now(),
-            proof_value: base64::encode(signature),
+            proof_value: encode_multibase_base58btc(signature),
         }
     }
 }
@@ -157,7 +160,7 @@ mod tests {
         assert_eq!(result["object"], object["object"]);
         let signature_date = result["proof"]["created"].as_str().unwrap();
         // Put * in place of date to avoid escaping all curly brackets
-        let expected_result = r#"{"actor":"https://example.org/users/test","id":"https://example.org/objects/1","object":{"content":"test","type":"Note"},"proof":{"created":"*","proofPurpose":"assertionMethod","proofValue":"P4ye1hDvrGQCCClzHfCU9xobMAeqlUfgEWGlZfOTE3WmjH8JC/OJwlsjUMOUwTVlyKStp+AY+zzU4z6mjZN0Ug==","type":"JcsRsaSignature2022","verificationMethod":"https://example.org/users/test#main-key"},"to":["https://example.org/users/yyy","https://example.org/users/xxx"],"type":"Create"}"#;
+        let expected_result = r#"{"actor":"https://example.org/users/test","id":"https://example.org/objects/1","object":{"content":"test","type":"Note"},"proof":{"created":"*","proofPurpose":"assertionMethod","proofValue":"z2Gh9LYrXjSqFrkia6gMg7xp2wftn1hqmYeEXxrsH9Eh6agB2VYraSYrDoSufbXEHnnyHMCoDSAriLpVacj6E4LFK","type":"JcsRsaSignature2022","verificationMethod":"https://example.org/users/test#main-key"},"to":["https://example.org/users/yyy","https://example.org/users/xxx"],"type":"Create"}"#;
         assert_eq!(
             serde_json::to_string(&result).unwrap(),
             expected_result.replace('*', signature_date),
