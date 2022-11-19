@@ -14,9 +14,9 @@ pub enum Eip191VerificationError {
 pub fn verify_eip191_signature(
     did: &DidPkh,
     message: &str,
-    signature: &str,
+    signature_hex: &str,
 ) -> Result<(), Eip191VerificationError> {
-    let signature_data = signature.parse()?;
+    let signature_data = signature_hex.parse()?;
     let signer = recover_address(message.as_bytes(), &signature_data)?;
     if address_to_string(signer) != did.address.to_lowercase() {
         return Err(Eip191VerificationError::InvalidSigner);
@@ -28,9 +28,9 @@ pub fn verify_eip191_signature(
 pub fn verify_eip191_identity_proof(
     did: &DidPkh,
     message: &str,
-    signature: &str,
+    signature_hex: &str,
 ) -> Result<(), Eip191VerificationError> {
-    verify_eip191_signature(did, message, signature)
+    verify_eip191_signature(did, message, signature_hex)
 }
 
 #[cfg(test)]

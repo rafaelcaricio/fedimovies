@@ -50,14 +50,14 @@ impl IntegrityProof {
 
     pub fn jcs_eip191(
         signer: &DidPkh,
-        signature: &str,
+        signature: &[u8],
     ) -> Self {
         Self {
             proof_type: PROOF_TYPE_JCS_EIP191.to_string(),
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer.to_string(),
             created: Utc::now(),
-            proof_value: signature.to_string(),
+            proof_value: base64::encode(signature),
         }
     }
 

@@ -298,9 +298,12 @@ async fn send_signed_update(
             IntegrityProof::jcs_minisign(&signer, &data.signature)
         },
         Did::Pkh(signer) => {
-            verify_eip191_json_signature(&signer, &canonical_json, &data.signature)
+            let signature_bin = hex::decode(&data.signature)
+                .map_err(|_| ValidationError("invalid encoding"))?;
+            let signature_b64 = base64::encode(&signature_bin);
+            verify_eip191_json_signature(&signer, &canonical_json, &signature_b64)
                 .map_err(|_| ValidationError("invalid signature"))?;
-            IntegrityProof::jcs_eip191(&signer, &data.signature)
+            IntegrityProof::jcs_eip191(&signer, &signature_bin)
         },
     };
     let mut activity_value = serde_json::to_value(activity)

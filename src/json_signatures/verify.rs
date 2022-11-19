@@ -120,7 +120,9 @@ pub fn verify_eip191_json_signature(
     message: &str,
     signature: &str,
 ) -> Result<(), VerificationError> {
-    verify_eip191_signature(signer, message, signature)
+    let signature_bin = base64::decode(signature)?;
+    let signature_hex = hex::encode(&signature_bin);
+    verify_eip191_signature(signer, message, &signature_hex)
         .map_err(|_| VerificationError::InvalidSignature)
 }
 

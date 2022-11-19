@@ -62,9 +62,9 @@ impl ToString for SignatureData {
 impl FromStr for SignatureData {
     type Err = SignatureError;
 
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
+    fn from_str(value_hex: &str) -> Result<Self, Self::Err> {
         let mut bytes = [0u8; 65];
-        hex::decode_to_slice(value, &mut bytes)
+        hex::decode_to_slice(value_hex, &mut bytes)
             .map_err(|_| Self::Err::InvalidSignature)?;
         let v = bytes[64].into();
         let r = bytes[0..32].try_into()
