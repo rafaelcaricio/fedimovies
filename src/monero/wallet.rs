@@ -110,7 +110,7 @@ pub async fn send_monero(
     // TODO: transaction can fail
     // https://github.com/monero-project/monero/issues/8372
     let maybe_transfer = wallet_client.get_transfer(
-        tx_hash.clone(),
+        tx_hash,
         Some(DEFAULT_ACCOUNT),
     ).await?;
     let transfer_status = maybe_transfer

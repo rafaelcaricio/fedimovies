@@ -4,19 +4,24 @@ use regex::Regex;
 use tokio_postgres::GenericClient;
 use url::Url;
 
-use crate::activitypub::actors::types::ActorAddress;
-use crate::activitypub::fetcher::helpers::{
-    import_post,
-    import_profile_by_actor_address,
+use crate::activitypub::{
+    actors::types::ActorAddress,
+    fetcher::helpers::{
+        import_post,
+        import_profile_by_actor_address,
+    },
+    identifiers::parse_local_object_id,
 };
 use crate::config::Config;
-use crate::errors::{ValidationError, HttpError};
+use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::identity::did::Did;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Tag;
-use crate::models::posts::helpers::can_view_post;
-use crate::models::posts::types::Post;
+use crate::models::posts::{
+    helpers::{can_view_post, get_local_post_by_id},
+    types::Post,
+};
 use crate::models::profiles::queries::{
     search_profiles,
     search_profiles_by_did_only,
@@ -94,7 +99,7 @@ async fn search_profiles_or_import(
     username: String,
     mut maybe_hostname: Option<String>,
     limit: u16,
-) -> Result<Vec<DbActorProfile>, HttpError> {
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
     if let Some(ref hostname) = maybe_hostname {
         if hostname == &config.instance().host() {
             // This is a local profile
@@ -129,21 +134,37 @@ async fn search_profiles_or_import(
     Ok(profiles)
 }
 
-/// Finds public post by its object ID
-async fn search_post(
+/// Finds post by its object ID
+async fn find_post_by_url(
     config: &Config,
     db_client: &mut impl GenericClient,
     url: String,
-) -> Result<Option<Post>, HttpError> {
-    let maybe_post = match import_post(
-        config, db_client,
-        url,
-        None,
-    ).await {
-        Ok(post) => Some(post),
-        Err(err) => {
-            log::warn!("{}", err);
-            None
+) -> Result<Option<Post>, DatabaseError> {
+    let maybe_post = match parse_local_object_id(
+        &config.instance_url(),
+        &url,
+    ) {
+        Ok(post_id) => {
+            // Local URL
+            match get_local_post_by_id(db_client, &post_id).await {
+                Ok(post) => Some(post),
+                Err(DatabaseError::NotFound(_)) => None,
+                Err(other_error) => return Err(other_error),
+            }
+        },
+        Err(_) => {
+            match import_post(
+                config,
+                db_client,
+                url,
+                None,
+            ).await {
+                Ok(post) => Some(post),
+                Err(err) => {
+                    log::warn!("{}", err);
+                    None
+                },
+            }
         },
     };
     Ok(maybe_post)
@@ -177,7 +198,7 @@ pub async fn search(
             ).await?;
         },
         SearchQuery::Url(url) => {
-            let maybe_post = search_post(config, db_client, url).await?;
+            let maybe_post = find_post_by_url(config, db_client, url).await?;
             if let Some(post) = maybe_post {
                 if can_view_post(db_client, Some(current_user), &post).await? {
                     posts = vec![post];

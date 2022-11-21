@@ -124,6 +124,17 @@ pub async fn can_view_post(
     Ok(result)
 }
 
+pub async fn get_local_post_by_id(
+    db_client: &impl GenericClient,
+    post_id: &Uuid,
+) -> Result<Post, DatabaseError> {
+    let post = get_post_by_id(db_client, post_id).await?;
+    if !post.is_local() {
+        return Err(DatabaseError::NotFound("post"));
+    };
+    Ok(post)
+}
+
 pub async fn get_post_by_object_id(
     db_client: &impl GenericClient,
     instance_url: &str,
@@ -132,7 +143,7 @@ pub async fn get_post_by_object_id(
     match parse_local_object_id(instance_url, object_id) {
         Ok(post_id) => {
             // Local post
-            let post = get_post_by_id(db_client, &post_id).await?;
+            let post = get_local_post_by_id(db_client, &post_id).await?;
             Ok(post)
         },
         Err(_) => {

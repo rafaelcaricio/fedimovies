@@ -304,7 +304,7 @@ pub async fn object_view(
     // Try to find local post by ID,
     // return 404 if not found, or not public, or it is a repost
     let mut post = get_post_by_id(db_client, &internal_object_id).await?;
-    if !post.author.is_local() || !can_view_post(db_client, None, &post).await? {
+    if !post.is_local() || !can_view_post(db_client, None, &post).await? {
         return Err(HttpError::NotFoundError("post"));
     };
     if !is_activitypub_request(request.headers()) {

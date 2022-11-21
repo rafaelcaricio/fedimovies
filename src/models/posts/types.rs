@@ -167,6 +167,10 @@ impl Post {
         Ok(post)
     }
 
+    pub fn is_local(&self) -> bool {
+        self.author.is_local()
+    }
+
     pub fn is_public(&self) -> bool {
         matches!(self.visibility, Visibility::Public)
     }
