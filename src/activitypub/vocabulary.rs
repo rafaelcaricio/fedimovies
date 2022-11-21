@@ -21,12 +21,14 @@ pub const PERSON: &str = "Person";
 pub const SERVICE: &str = "Service";
 
 // Object types
+pub const ARTICLE: &str = "Article";
 pub const DOCUMENT: &str = "Document";
 pub const IMAGE: &str = "Image";
 pub const MENTION: &str = "Mention";
 pub const NOTE: &str = "Note";
 pub const PAGE: &str = "Page";
 pub const TOMBSTONE: &str = "Tombstone";
+pub const VIDEO: &str = "Video";
 
 // Collections
 pub const ORDERED_COLLECTION: &str = "OrderedCollection";

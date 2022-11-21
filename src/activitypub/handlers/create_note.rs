@@ -16,7 +16,7 @@ use crate::activitypub::{
     },
     identifiers::parse_local_actor_id,
     receiver::{parse_array, parse_property_value, HandlerError},
-    vocabulary::{DOCUMENT, HASHTAG, IMAGE, LINK, MENTION, NOTE},
+    vocabulary::*,
 };
 use crate::config::Instance;
 use crate::errors::{ConversionError, DatabaseError, ValidationError};
@@ -127,9 +127,15 @@ pub async fn handle_note(
     object: Object,
     redirects: &HashMap<String, String>,
 ) -> Result<Post, HandlerError> {
-    if object.object_type != NOTE {
-        // Could be Page (in Lemmy) or some other type
-        log::warn!("processing object of type {}", object.object_type);
+    match object.object_type.as_str() {
+        NOTE => (),
+        ARTICLE | QUESTION | PAGE | VIDEO => {
+            log::info!("processing object of type {}", object.object_type);
+        },
+        other_type => {
+            log::warn!("discarding object of type {}", other_type);
+            return Err(ValidationError("unsupported type").into());
+        },
     };
 
     let author_id = get_note_author_id(&object)?;

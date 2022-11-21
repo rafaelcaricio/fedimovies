@@ -224,7 +224,7 @@ pub async fn receive_activity(
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_reject_follow(config, db_client, activity).await?
         },
-        (CREATE, NOTE | QUESTION | PAGE) => {
+        (CREATE, _) => {
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
             let object_id = object.id.clone();
