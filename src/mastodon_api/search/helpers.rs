@@ -7,10 +7,11 @@ use url::Url;
 use crate::activitypub::{
     actors::types::ActorAddress,
     fetcher::helpers::{
+        get_or_import_profile_by_actor_id,
         import_post,
         import_profile_by_actor_address,
     },
-    identifiers::parse_local_object_id,
+    identifiers::{parse_local_actor_id, parse_local_object_id},
 };
 use crate::config::Config;
 use crate::errors::{DatabaseError, HttpError, ValidationError};
@@ -29,7 +30,10 @@ use crate::models::profiles::queries::{
 };
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::tags::queries::search_tags;
-use crate::models::users::types::User;
+use crate::models::users::{
+    queries::get_user_by_name,
+    types::User,
+};
 use crate::utils::currencies::{validate_wallet_address, Currency};
 use super::types::SearchResults;
 
@@ -138,11 +142,11 @@ async fn search_profiles_or_import(
 async fn find_post_by_url(
     config: &Config,
     db_client: &mut impl GenericClient,
-    url: String,
+    url: &str,
 ) -> Result<Option<Post>, DatabaseError> {
     let maybe_post = match parse_local_object_id(
         &config.instance_url(),
-        &url,
+        url,
     ) {
         Ok(post_id) => {
             // Local URL
@@ -156,7 +160,7 @@ async fn find_post_by_url(
             match import_post(
                 config,
                 db_client,
-                url,
+                url.to_string(),
                 None,
             ).await {
                 Ok(post) => Some(post),
@@ -168,6 +172,37 @@ async fn find_post_by_url(
         },
     };
     Ok(maybe_post)
+}
+
+async fn find_profile_by_url(
+    config: &Config,
+    db_client: &impl GenericClient,
+    url: &str,
+) -> Result<Option<DbActorProfile>, DatabaseError> {
+    let profile = match parse_local_actor_id(
+        &config.instance_url(),
+        url,
+    ) {
+        Ok(username) => {
+            // Local URL
+            match get_user_by_name(db_client, &username).await {
+                Ok(user) => Some(user.profile),
+                Err(DatabaseError::NotFound(_)) => None,
+                Err(other_error) => return Err(other_error),
+            }
+        },
+        Err(_) => {
+            get_or_import_profile_by_actor_id(
+                db_client,
+                &config.instance(),
+                &config.media_dir(),
+                url,
+            ).await
+                .map_err(|err| log::warn!("{}", err))
+                .ok()
+        },
+    };
+    Ok(profile)
 }
 
 pub async fn search(
@@ -198,10 +233,19 @@ pub async fn search(
             ).await?;
         },
         SearchQuery::Url(url) => {
-            let maybe_post = find_post_by_url(config, db_client, url).await?;
+            let maybe_post = find_post_by_url(config, db_client, &url).await?;
             if let Some(post) = maybe_post {
                 if can_view_post(db_client, Some(current_user), &post).await? {
                     posts = vec![post];
+                };
+            } else {
+                let maybe_profile = find_profile_by_url(
+                    config,
+                    db_client,
+                    &url,
+                ).await?;
+                if let Some(profile) = maybe_profile {
+                    profiles = vec![profile];
                 };
             };
         },
