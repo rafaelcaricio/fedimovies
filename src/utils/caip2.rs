@@ -1,4 +1,5 @@
 /// https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md
+use std::fmt;
 use std::str::FromStr;
 
 use regex::Regex;
@@ -59,9 +60,9 @@ impl FromStr for ChainId {
     }
 }
 
-impl ToString for ChainId {
-    fn to_string(&self) -> String {
-        format!("{}:{}", self.namespace, self.reference)
+impl fmt::Display for ChainId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}:{}", self.namespace, self.reference)
     }
 }
 
