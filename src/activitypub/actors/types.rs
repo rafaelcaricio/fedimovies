@@ -2,7 +2,12 @@ use std::fmt;
 use std::str::FromStr;
 
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Deserializer,
+    Serialize,
+    de::{Error as DeserializerError},
+};
 use serde_json::{json, Value};
 
 use crate::activitypub::{
@@ -70,6 +75,30 @@ pub struct ActorAttachment {
     pub signature_value: Option<String>,
 }
 
+// Some implementations use empty object instead of null
+pub fn deserialize_image_opt<'de, D>(
+    deserializer: D,
+) -> Result<Option<Image>, D::Error>
+    where D: Deserializer<'de>
+{
+    let maybe_value: Option<Value> = Option::deserialize(deserializer)?;
+    let maybe_image = if let Some(value) = maybe_value {
+        let is_empty_object = value.as_object()
+            .map(|map| map.is_empty())
+            .unwrap_or(false);
+        if is_empty_object {
+            None
+        } else {
+            let image = Image::deserialize(value)
+                .map_err(DeserializerError::custom)?;
+            Some(image)
+        }
+    } else {
+        None
+    };
+    Ok(maybe_image)
+}
+
 // Clone and Debug traits are required by FromSql
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(test, derive(Default))]
@@ -100,7 +129,11 @@ pub struct Actor {
 
     pub public_key: PublicKey,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_image_opt",
+        skip_serializing_if = "Option::is_none",
+    )]
     pub icon: Option<Image>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
