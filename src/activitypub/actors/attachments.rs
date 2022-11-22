@@ -12,13 +12,13 @@ use crate::identity::{
     claims::create_identity_claim,
     did::Did,
     minisign::verify_minisign_identity_proof,
-    signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
 use crate::models::profiles::types::{
     ExtraField,
     IdentityProof,
     PaymentLink,
     PaymentOption,
+    ProofType,
 };
 use super::types::ActorAttachment;
 
@@ -30,7 +30,7 @@ pub fn attach_identity_proof(
         name: proof.issuer.to_string(),
         value: None,
         href: None,
-        signature_algorithm: Some(proof.proof_type),
+        signature_algorithm: Some(proof.proof_type.to_string()),
         signature_value: Some(proof.value),
     }
 }
@@ -43,17 +43,19 @@ pub fn parse_identity_proof(
         return Err(ValidationError("invalid attachment type"));
     };
     let proof_type = attachment.signature_algorithm.as_ref()
-        .ok_or(ValidationError("missing proof type"))?;
+        .ok_or(ValidationError("missing proof type"))?
+        .parse()
+        .map_err(|_| ValidationError("unsupported proof type"))?;
     let did = attachment.name.parse::<Did>()
-        .map_err(|_| ValidationError("invalid did"))?;
+        .map_err(|_| ValidationError("invalid DID"))?;
     let message = create_identity_claim(actor_id, &did)
         .map_err(|_| ValidationError("invalid claim"))?;
     let signature = attachment.signature_value.as_ref()
         .ok_or(ValidationError("missing signature"))?;
     match did {
         Did::Key(ref did_key) => {
-            if proof_type != PROOF_TYPE_ID_MINISIGN {
-                return Err(ValidationError("unknown proof type"));
+            if !matches!(proof_type, ProofType::LegacyMinisignIdentityProof) {
+                return Err(ValidationError("incorrect proof type"));
             };
             verify_minisign_identity_proof(
                 did_key,
@@ -62,8 +64,8 @@ pub fn parse_identity_proof(
             ).map_err(|_| ValidationError("invalid identity proof"))?;
         },
         Did::Pkh(ref did_pkh) => {
-            if proof_type != PROOF_TYPE_ID_EIP191 {
-                return Err(ValidationError("unknown proof type"));
+            if !matches!(proof_type, ProofType::LegacyEip191IdentityProof) {
+                return Err(ValidationError("incorrect proof type"));
             };
             verify_eip191_identity_proof(
                 did_pkh,
@@ -74,7 +76,7 @@ pub fn parse_identity_proof(
     };
     let proof = IdentityProof {
         issuer: did,
-        proof_type: proof_type.to_string(),
+        proof_type: proof_type,
         value: signature.to_string(),
     };
     Ok(proof)

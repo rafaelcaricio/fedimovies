@@ -1,4 +1,6 @@
 use std::convert::TryFrom;
+use std::fmt;
+use std::str::FromStr;
 
 use chrono::{DateTime, Duration, Utc};
 use postgres_types::FromSql;
@@ -14,7 +16,10 @@ use crate::activitypub::actors::types::{Actor, ActorAddress};
 use crate::activitypub::identifiers::local_actor_id;
 use crate::database::json_macro::{json_from_sql, json_to_sql};
 use crate::errors::{ConversionError, ValidationError};
-use crate::identity::did::Did;
+use crate::identity::{
+    did::Did,
+    signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
+};
 use crate::utils::caip2::ChainId;
 use super::validators::{
     validate_username,
@@ -23,10 +28,56 @@ use super::validators::{
     clean_extra_fields,
 };
 
+#[derive(Clone, Debug)]
+pub enum ProofType {
+    LegacyEip191IdentityProof,
+    LegacyMinisignIdentityProof,
+}
+
+impl FromStr for ProofType {
+    type Err = ConversionError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let proof_type = match value {
+            PROOF_TYPE_ID_EIP191 => Self::LegacyEip191IdentityProof,
+            PROOF_TYPE_ID_MINISIGN => Self::LegacyMinisignIdentityProof,
+            _ => return Err(ConversionError),
+        };
+        Ok(proof_type)
+    }
+}
+
+impl fmt::Display for ProofType {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let proof_type_str = match self {
+            Self::LegacyEip191IdentityProof => PROOF_TYPE_ID_EIP191,
+            Self::LegacyMinisignIdentityProof => PROOF_TYPE_ID_MINISIGN,
+        };
+        write!(formatter, "{}", proof_type_str)
+    }
+}
+
+impl<'de> Deserialize<'de> for ProofType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        String::deserialize(deserializer)?
+            .parse().map_err(DeserializerError::custom)
+    }
+}
+
+impl Serialize for ProofType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct IdentityProof {
     pub issuer: Did,
-    pub proof_type: String,
+    pub proof_type: ProofType,
     pub value: String,
 }
 

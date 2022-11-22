@@ -30,7 +30,6 @@ use crate::identity::{
         parse_minisign_signature,
         verify_minisign_identity_proof,
     },
-    signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
 use crate::json_signatures::{
     create::{add_integrity_proof, IntegrityProof},
@@ -53,6 +52,7 @@ use crate::models::profiles::queries::{
 use crate::models::profiles::types::{
     IdentityProof,
     ProfileUpdateData,
+    ProofType,
 };
 use crate::models::relationships::queries::{
     create_follow_request,
@@ -389,7 +389,7 @@ async fn create_identity_proof(
                 &message,
                 &proof_data.signature,
             ).map_err(|_| ValidationError("invalid signature"))?;
-            PROOF_TYPE_ID_MINISIGN
+            ProofType::LegacyMinisignIdentityProof
         },
         Did::Pkh(ref did_pkh) => {
             if did_pkh.chain_id != ChainId::ethereum_mainnet() {
@@ -410,13 +410,13 @@ async fn create_identity_proof(
                 &message,
                 &proof_data.signature,
             ).map_err(|_| ValidationError("invalid signature"))?;
-            PROOF_TYPE_ID_EIP191
+            ProofType::LegacyEip191IdentityProof
         },
     };
 
     let proof = IdentityProof {
         issuer: did,
-        proof_type: proof_type.to_string(),
+        proof_type: proof_type,
         value: proof_data.signature.clone(),
     };
     let mut profile_data = ProfileUpdateData::from(&current_user.profile);

@@ -647,6 +647,7 @@ mod tests {
         ExtraField,
         IdentityProof,
         ProfileCreateData,
+        ProofType,
     };
     use crate::models::users::queries::create_user;
     use crate::models::users::types::UserCreateData;
@@ -794,7 +795,7 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let identity_proof = IdentityProof {
             issuer: Did::Pkh(DidPkh::from_address(&ETHEREUM, "0x1234abcd")),
-            proof_type: "ethereum".to_string(),
+            proof_type: ProofType::LegacyEip191IdentityProof,
             value: "13590013185bdea963".to_string(),
         };
         let profile_data = ProfileCreateData {
