@@ -9,7 +9,7 @@ use crate::http_signatures::verify::{
     verify_http_signature,
     HttpSignatureVerificationError as HttpSignatureError,
 };
-use crate::identity::did::Did;
+use crate::identity::{did::Did, signatures::SignatureType};
 use crate::json_signatures::verify::{
     get_json_signature,
     verify_ed25519_json_signature,
@@ -38,6 +38,9 @@ pub enum AuthenticationError {
     #[error("no JSON signature")]
     NoJsonSignature,
 
+    #[error("invalid JSON signature type")]
+    InvalidJsonSignatureType,
+
     #[error("invalid key ID")]
     InvalidKeyId(#[from] url::ParseError),
 
@@ -51,7 +54,7 @@ pub enum AuthenticationError {
     InvalidPublicKey(#[from] rsa::pkcs8::Error),
 
     #[error("actor and request signer do not match")]
-    InvalidSigner,
+    UnexpectedSigner,
 }
 
 fn key_id_to_actor_id(key_id: &str) -> Result<String, AuthenticationError> {
@@ -116,6 +119,9 @@ pub async fn verify_signed_activity(
 
     let actor_profile = match signature_data.signer {
         JsonSigner::ActorKeyId(ref key_id) => {
+            if signature_data.signature_type != SignatureType::JcsRsaSignature {
+                return Err(AuthenticationError::InvalidJsonSignatureType);
+            };
             let actor_id = key_id_to_actor_id(key_id)?;
             let actor_profile = match get_or_import_profile_by_actor_id(
                 db_client,
@@ -151,21 +157,30 @@ pub async fn verify_signed_activity(
                 );
             };
             if let Some(profile) = profiles.pop() {
-                match did {
-                    Did::Key(did_key) => {
+                match signature_data.signature_type {
+                    SignatureType::JcsEd25519Signature => {
+                        let did_key = match did {
+                            Did::Key(did_key) => did_key,
+                            _ => return Err(AuthenticationError::InvalidJsonSignatureType),
+                        };
                         verify_ed25519_json_signature(
                             &did_key,
                             &signature_data.message,
                             &signature_data.signature,
                         )?;
                     },
-                    Did::Pkh(did_pkh) => {
+                    SignatureType::JcsEip191Signature => {
+                        let did_pkh = match did {
+                            Did::Pkh(did_pkh) => did_pkh,
+                            _ => return Err(AuthenticationError::InvalidJsonSignatureType),
+                        };
                         verify_eip191_json_signature(
                             &did_pkh,
                             &signature_data.message,
                             &signature_data.signature,
                         )?;
                     },
+                    _ => return Err(AuthenticationError::InvalidJsonSignatureType),
                 };
                 profile
             } else {

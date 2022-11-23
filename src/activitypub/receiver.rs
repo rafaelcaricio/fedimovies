@@ -141,7 +141,7 @@ fn require_actor_signature(actor_id: &str, signer_id: &str)
             signer_id,
             actor_id,
         );
-        return Err(AuthenticationError::InvalidSigner);
+        return Err(AuthenticationError::UnexpectedSigner);
     };
     Ok(())
 }

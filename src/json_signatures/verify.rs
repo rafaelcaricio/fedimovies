@@ -1,5 +1,8 @@
+use std::str::FromStr;
+
 use rsa::RsaPublicKey;
 use serde_json::Value;
+use url::Url;
 
 use crate::ethereum::identity::verify_eip191_signature;
 use crate::identity::{
@@ -74,20 +77,12 @@ pub fn get_json_signature(
     };
     let signature_type = proof.proof_type.parse()
         .map_err(|_| VerificationError::InvalidProof("unsupported proof type"))?;
-    let signer = match signature_type {
-        SignatureType::JcsEip191Signature => {
-            let did_pkh: DidPkh = proof.verification_method.parse()
-                .map_err(|_| VerificationError::InvalidProof("invalid DID"))?;
-            JsonSigner::Did(Did::Pkh(did_pkh))
-        },
-        SignatureType::JcsEd25519Signature => {
-            let did_key: DidKey = proof.verification_method.parse()
-                .map_err(|_| VerificationError::InvalidProof("invalid DID"))?;
-            JsonSigner::Did(Did::Key(did_key))
-        },
-        SignatureType::JcsRsaSignature => {
-            JsonSigner::ActorKeyId(proof.verification_method)
-        },
+    let signer = if let Ok(did) = Did::from_str(&proof.verification_method) {
+        JsonSigner::Did(did)
+    } else if Url::parse(&proof.verification_method).is_ok() {
+        JsonSigner::ActorKeyId(proof.verification_method)
+    } else {
+        return Err(VerificationError::InvalidProof("unsupported verification method"));
     };
     let message = canonicalize_object(&object)?;
     let signature = decode_multibase_base58btc(&proof.proof_value)?;
