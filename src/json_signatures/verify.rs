@@ -7,11 +7,7 @@ use crate::identity::{
     did_key::DidKey,
     did_pkh::DidPkh,
     minisign::verify_ed25519_signature,
-    signatures::{
-        PROOF_TYPE_JCS_ED25519,
-        PROOF_TYPE_JCS_EIP191,
-        PROOF_TYPE_JCS_RSA,
-    },
+    signatures::SignatureType,
 };
 use crate::utils::{
     canonicalization::{
@@ -34,6 +30,7 @@ pub enum JsonSigner {
 }
 
 pub struct SignatureData {
+    pub signature_type: SignatureType,
     pub signer: JsonSigner,
     pub message: String,
     pub signature: Vec<u8>,
@@ -75,30 +72,30 @@ pub fn get_json_signature(
     if proof.proof_purpose != PROOF_PURPOSE {
         return Err(VerificationError::InvalidProof("invalid proof purpose"));
     };
-    let signer = match proof.proof_type.as_str() {
-        PROOF_TYPE_JCS_EIP191 => {
+    let signature_type = proof.proof_type.parse()
+        .map_err(|_| VerificationError::InvalidProof("unsupported proof type"))?;
+    let signer = match signature_type {
+        SignatureType::JcsEip191Signature => {
             let did_pkh: DidPkh = proof.verification_method.parse()
                 .map_err(|_| VerificationError::InvalidProof("invalid DID"))?;
             JsonSigner::Did(Did::Pkh(did_pkh))
         },
-        PROOF_TYPE_JCS_ED25519 => {
+        SignatureType::JcsEd25519Signature => {
             let did_key: DidKey = proof.verification_method.parse()
                 .map_err(|_| VerificationError::InvalidProof("invalid DID"))?;
             JsonSigner::Did(Did::Key(did_key))
         },
-        PROOF_TYPE_JCS_RSA => {
+        SignatureType::JcsRsaSignature => {
             JsonSigner::ActorKeyId(proof.verification_method)
-        },
-        _ => {
-            return Err(VerificationError::InvalidProof("unsupported proof type"));
         },
     };
     let message = canonicalize_object(&object)?;
     let signature = decode_multibase_base58btc(&proof.proof_value)?;
     let signature_data = SignatureData {
-        signer: signer,
-        message: message,
-        signature: signature,
+        signature_type,
+        signer,
+        message,
+        signature,
     };
     Ok(signature_data)
 }
@@ -159,6 +156,10 @@ mod tests {
             },
         });
         let signature_data = get_json_signature(&signed_object).unwrap();
+        assert_eq!(
+            signature_data.signature_type,
+            SignatureType::JcsEip191Signature,
+        );
         let expected_signer = JsonSigner::Did(Did::Pkh(DidPkh::from_address(
             &Currency::Ethereum,
             "0xb9c5714089478a327f09197987f16f9e5d936e8a",
@@ -191,6 +192,10 @@ mod tests {
         ).unwrap();
 
         let signature_data = get_json_signature(&signed_object).unwrap();
+        assert_eq!(
+            signature_data.signature_type,
+            SignatureType::JcsRsaSignature,
+        );
         let expected_signer = JsonSigner::ActorKeyId(signer_key_id.to_string());
         assert_eq!(signature_data.signer, expected_signer);
 

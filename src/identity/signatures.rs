@@ -1,4 +1,7 @@
-/// Signature suites
+/// Signature types
+use std::str::FromStr;
+
+use crate::errors::ConversionError;
 
 // Identity proof, version 00
 pub const PROOF_TYPE_ID_EIP191: &str = "ethereum-eip191-00";
@@ -21,3 +24,24 @@ pub const PROOF_TYPE_JCS_EIP191: &str ="JcsEip191Signature2022";
 // - Digest algorithm: BLAKE2b-512
 // - Signature algorithm: EdDSA
 pub const PROOF_TYPE_JCS_ED25519: &str = "MitraJcsEd25519Signature2022";
+
+#[derive(Debug, PartialEq)]
+pub enum SignatureType {
+    JcsEip191Signature,
+    JcsEd25519Signature,
+    JcsRsaSignature,
+}
+
+impl FromStr for SignatureType {
+    type Err = ConversionError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let signature_type = match value {
+            PROOF_TYPE_JCS_EIP191 => Self::JcsEip191Signature,
+            PROOF_TYPE_JCS_ED25519 => Self::JcsEd25519Signature,
+            PROOF_TYPE_JCS_RSA => Self::JcsRsaSignature,
+            _ => return Err(ConversionError),
+        };
+        Ok(signature_type)
+    }
+}
