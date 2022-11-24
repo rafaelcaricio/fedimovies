@@ -33,7 +33,7 @@ use super::wallet::{
     MoneroError,
 };
 
-const INVOICE_TIMEOUT: i64 = 30 * 60; // 30 minutes
+pub const MONERO_INVOICE_TIMEOUT: i64 = 3 * 60 * 60; // 3 hours
 
 pub async fn check_monero_subscriptions(
     instance: &Instance,
@@ -57,7 +57,7 @@ pub async fn check_monero_subscriptions(
     ).await?;
     for invoice in open_invoices {
         let invoice_age = Utc::now() - invoice.created_at;
-        if invoice_age.num_seconds() >= INVOICE_TIMEOUT {
+        if invoice_age.num_seconds() >= MONERO_INVOICE_TIMEOUT {
             set_invoice_status(
                 db_client,
                 &invoice.id,

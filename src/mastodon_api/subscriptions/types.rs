@@ -1,9 +1,10 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::models::invoices::types::{DbInvoice, InvoiceStatus};
 use crate::models::profiles::types::PaymentOption;
+use crate::monero::subscriptions::MONERO_INVOICE_TIMEOUT;
 
 #[derive(Deserialize)]
 pub struct InvoiceData {
@@ -20,6 +21,7 @@ pub struct Invoice {
     pub payment_address: String,
     pub amount: i64,
     pub status: String,
+    pub expires_at: DateTime<Utc>,
 }
 
 impl From<DbInvoice> for Invoice {
@@ -30,6 +32,12 @@ impl From<DbInvoice> for Invoice {
             InvoiceStatus::Forwarded => "forwarded",
             InvoiceStatus::Timeout => "timeout",
         };
+        let expires_at = if value.chain_id.is_monero() {
+            value.created_at + Duration::seconds(MONERO_INVOICE_TIMEOUT)
+        } else {
+            // Epoch 0
+            Default::default()
+        };
         Self {
             id: value.id,
             sender_id: value.sender_id,
@@ -37,6 +45,7 @@ impl From<DbInvoice> for Invoice {
             payment_address: value.payment_address,
             amount: value.amount,
             status: status.to_string(),
+            expires_at,
         }
     }
 }
