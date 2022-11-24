@@ -105,7 +105,7 @@ async fn search_profiles_or_import(
     limit: u16,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     if let Some(ref hostname) = maybe_hostname {
-        if hostname == &config.instance().host() {
+        if hostname == &config.instance().hostname() {
             // This is a local profile
             maybe_hostname = None;
         };

@@ -38,7 +38,7 @@ async fn create_remote_profile(
     actor: Actor,
 ) -> Result<DbActorProfile, HandlerError> {
     let actor_address = actor.address()?;
-    if actor_address.is_local(&instance.host()) {
+    if actor_address.hostname == instance.hostname() {
         return Err(HandlerError::LocalObject);
     };
     let (maybe_avatar, maybe_banner) = fetch_actor_images(
@@ -110,7 +110,7 @@ pub async fn get_or_import_profile_by_actor_id(
         Err(DatabaseError::NotFound(_)) => {
             let actor = fetch_actor(instance, actor_id).await?;
             let actor_address = actor.address()?;
-            let acct = actor_address.acct(&instance.host());
+            let acct = actor_address.acct(&instance.hostname());
             match get_profile_by_acct(db_client, &acct).await {
                 Ok(profile) => {
                     // WARNING: Possible actor ID change
@@ -149,13 +149,13 @@ pub async fn import_profile_by_actor_address(
     media_dir: &Path,
     actor_address: &ActorAddress,
 ) -> Result<DbActorProfile, HandlerError> {
-    if actor_address.hostname == instance.host() {
+    if actor_address.hostname == instance.hostname() {
         return Err(HandlerError::LocalObject);
     };
     let actor_id = perform_webfinger_query(instance, actor_address).await?;
     let actor = fetch_actor(instance, &actor_id).await?;
-    let profile_acct = actor.address()?.acct(&instance.host());
-    if profile_acct != actor_address.acct(&instance.host()) {
+    let profile_acct = actor.address()?.acct(&instance.hostname());
+    if profile_acct != actor_address.acct(&instance.hostname()) {
         // Redirected to different server
         match get_profile_by_acct(db_client, &profile_acct).await {
             Ok(profile) => return Ok(profile),

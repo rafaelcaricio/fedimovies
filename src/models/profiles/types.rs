@@ -330,12 +330,12 @@ impl DbActorProfile {
         self.actor_id(instance_url)
     }
 
-    pub fn actor_address(&self, instance_host: &str) -> ActorAddress {
+    pub fn actor_address(&self, local_hostname: &str) -> ActorAddress {
         assert_eq!(self.hostname.is_none(), self.is_local());
         ActorAddress {
             username: self.username.clone(),
             hostname: self.hostname.as_deref()
-                .unwrap_or(instance_host)
+                .unwrap_or(local_hostname)
                 .to_string(),
         }
     }
@@ -475,7 +475,7 @@ mod tests {
     use crate::activitypub::actors::types::Actor;
     use super::*;
 
-    const INSTANCE_HOST: &str = "example.com";
+    const INSTANCE_HOSTNAME: &str = "example.com";
 
     #[test]
     fn test_identity_proof_serialization() {
@@ -527,7 +527,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            local_profile.actor_address(INSTANCE_HOST).to_string(),
+            local_profile.actor_address(INSTANCE_HOSTNAME).to_string(),
             "user@example.com",
         );
     }
@@ -545,7 +545,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            remote_profile.actor_address(INSTANCE_HOST).to_string(),
+            remote_profile.actor_address(INSTANCE_HOSTNAME).to_string(),
             remote_profile.acct,
         );
     }

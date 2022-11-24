@@ -17,7 +17,7 @@ use super::create_note::{
 };
 
 fn build_delete_note(
-    instance_host: &str,
+    instance_hostname: &str,
     instance_url: &str,
     post: &Post,
 ) -> Activity {
@@ -31,7 +31,7 @@ fn build_delete_note(
     };
     let activity_id = format!("{}/delete", object.id);
     let Note { to, cc, .. } = build_note(
-        instance_host,
+        instance_hostname,
         instance_url,
         post,
     );
@@ -57,7 +57,7 @@ pub async fn prepare_delete_note(
     let mut post = post.clone();
     add_related_posts(db_client, vec![&mut post]).await?;
     let activity = build_delete_note(
-        &instance.host(),
+        &instance.hostname(),
         &instance.url(),
         &post,
     );
@@ -80,7 +80,7 @@ mod tests {
     use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
-    const INSTANCE_HOST: &str = "example.com";
+    const INSTANCE_HOSTNAME: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";
 
     #[test]
@@ -91,7 +91,7 @@ mod tests {
         };
         let post = Post { author, ..Default::default() };
         let activity = build_delete_note(
-            INSTANCE_HOST,
+            INSTANCE_HOSTNAME,
             INSTANCE_URL,
             &post,
         );

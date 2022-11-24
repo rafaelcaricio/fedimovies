@@ -217,13 +217,9 @@ pub struct ActorAddress {
 }
 
 impl ActorAddress {
-    pub fn is_local(&self, instance_host: &str) -> bool {
-        self.hostname == instance_host
-    }
-
     /// Returns acct string, as used in Mastodon
-    pub fn acct(&self, instance_host: &str) -> String {
-        if self.is_local(instance_host) {
+    pub fn acct(&self, local_hostname: &str) -> String {
+        if self.hostname == local_hostname {
             self.username.clone()
         } else {
            self.to_string()
@@ -357,8 +353,8 @@ pub fn get_instance_actor(
         ])),
         id: actor_id,
         object_type: SERVICE.to_string(),
-        name: Some(instance.host()),
-        preferred_username: instance.host(),
+        name: Some(instance.hostname()),
+        preferred_username: instance.hostname(),
         inbox: actor_inbox,
         outbox: actor_outbox,
         followers: None,
@@ -385,7 +381,7 @@ mod tests {
     };
     use super::*;
 
-    const INSTANCE_HOST: &str = "example.com";
+    const INSTANCE_HOSTNAME: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";
 
     #[test]
@@ -405,8 +401,7 @@ mod tests {
             ..Default::default()
         };
         let actor_address = actor.address().unwrap();
-        assert_eq!(actor_address.is_local(INSTANCE_HOST), false);
-        assert_eq!(actor_address.acct(INSTANCE_HOST), "test@test.org");
+        assert_eq!(actor_address.acct(INSTANCE_HOSTNAME), "test@test.org");
     }
 
     #[test]

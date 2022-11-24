@@ -135,7 +135,7 @@ pub async fn create_account(
         let wallet_address = verify_eip4361_signature(
             message,
             signature,
-            &config.instance().host(),
+            &config.instance().hostname(),
             &config.login_message,
         )?;
         Some(wallet_address)

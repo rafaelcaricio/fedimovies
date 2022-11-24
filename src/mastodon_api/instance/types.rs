@@ -102,7 +102,7 @@ impl InstanceInfo {
             None => (),
         };
         Self {
-            uri: config.instance().host(),
+            uri: config.instance().hostname(),
             title: config.instance_title.clone(),
             short_description: config.instance_short_description.clone(),
             description: config.instance_description.clone(),

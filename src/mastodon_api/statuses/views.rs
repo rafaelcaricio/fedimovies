@@ -61,12 +61,12 @@ async fn create_status(
     // Mentions
     let mention_map = find_mentioned_profiles(
         db_client,
-        &instance.host(),
+        &instance.hostname(),
         &post_data.content,
     ).await?;
     post_data.content = replace_mentions(
         &mention_map,
-        &instance.host(),
+        &instance.hostname(),
         &instance.url(),
         &post_data.content,
     );

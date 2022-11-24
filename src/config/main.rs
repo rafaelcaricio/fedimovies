@@ -185,7 +185,7 @@ impl Instance {
         self._url.origin().ascii_serialization()
     }
 
-    pub fn host(&self) -> String {
+    pub fn hostname(&self) -> String {
         self._url.host_str().unwrap().to_string()
     }
 
@@ -300,7 +300,7 @@ mod tests {
         };
 
         assert_eq!(instance.url(), "https://example.com");
-        assert_eq!(instance.host(), "example.com");
+        assert_eq!(instance.hostname(), "example.com");
         assert_eq!(instance.agent(), "Mitra 1.0.0; https://example.com");
     }
 
@@ -317,6 +317,6 @@ mod tests {
         };
 
         assert_eq!(instance.url(), "http://1.2.3.4:3777");
-        assert_eq!(instance.host(), "1.2.3.4");
+        assert_eq!(instance.hostname(), "1.2.3.4");
     }
 }

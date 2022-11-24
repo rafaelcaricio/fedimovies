@@ -52,7 +52,7 @@ async fn token_view(
             let wallet_address = verify_eip4361_signature(
                 message,
                 signature,
-                &config.instance().host(),
+                &config.instance().hostname(),
                 &config.login_message,
             )?;
             get_user_by_login_address(db_client, &wallet_address).await?

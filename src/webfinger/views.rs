@@ -37,11 +37,11 @@ async fn get_user_info(
     query_params: WebfingerQueryParams,
 ) -> Result<JsonResourceDescriptor, HttpError> {
     let actor_address = parse_acct_uri(&query_params.resource)?;
-    if !actor_address.is_local(&instance.host()) {
+    if actor_address.hostname != instance.hostname() {
         // Wrong instance
         return Err(HttpError::NotFoundError("user"));
     };
-    let actor_url = if actor_address.username == instance.host() {
+    let actor_url = if actor_address.username == instance.hostname() {
         local_instance_actor_id(&instance.url())
     } else {
         if !is_registered_user(db_client, &actor_address.username).await? {

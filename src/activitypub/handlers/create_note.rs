@@ -260,7 +260,7 @@ pub async fn handle_note(
                     },
                 };
                 if let Ok(actor_address) = mention_to_address(&tag_name) {
-                    let acct = actor_address.acct(&instance.host());
+                    let acct = actor_address.acct(&instance.hostname());
                     let profile = match get_profile_by_acct(
                         db_client,
                         &acct,

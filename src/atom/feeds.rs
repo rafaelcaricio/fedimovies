@@ -52,7 +52,7 @@ pub fn make_feed(
     let actor_url = local_actor_id(&instance.url(), &profile.username);
     let actor_name = profile.display_name.as_ref()
         .unwrap_or(&profile.username);
-    let actor_address = profile.actor_address(&instance.host());
+    let actor_address = profile.actor_address(&instance.hostname());
     let feed_title = format!("{} (@{})", actor_name, actor_address);
     let mut entries = vec![];
     let mut feed_updated_at = get_min_datetime();

@@ -58,7 +58,7 @@ pub struct Note {
 }
 
 pub fn build_note(
-    instance_host: &str,
+    instance_hostname: &str,
     instance_url: &str,
     post: &Post,
 ) -> Note {
@@ -97,7 +97,7 @@ pub fn build_note(
 
     let mut tags = vec![];
     for profile in &post.mentions {
-        let tag_name = format!("@{}", profile.actor_address(instance_host));
+        let tag_name = format!("@{}", profile.actor_address(instance_hostname));
         let actor_id = profile.actor_id(instance_url);
         if !primary_audience.contains(&actor_id) {
             primary_audience.push(actor_id.clone());
@@ -164,11 +164,11 @@ pub fn build_note(
 }
 
 pub fn build_create_note(
-    instance_host: &str,
+    instance_hostname: &str,
     instance_url: &str,
     post: &Post,
 ) -> Activity {
-    let object = build_note(instance_host, instance_url, post);
+    let object = build_note(instance_hostname, instance_url, post);
     let primary_audience = object.to.clone();
     let secondary_audience = object.cc.clone();
     let activity_id = format!("{}/create", object.id);
@@ -225,7 +225,7 @@ pub async fn prepare_create_note(
 ) -> Result<OutgoingActivity<Activity>, DatabaseError> {
     assert_eq!(author.id, post.author.id);
     let activity = build_create_note(
-        &instance.host(),
+        &instance.hostname(),
         &instance.url(),
         post,
     );
@@ -244,7 +244,7 @@ mod tests {
     use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
-    const INSTANCE_HOST: &str = "example.com";
+    const INSTANCE_HOSTNAME: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";
 
     #[test]
@@ -254,7 +254,7 @@ mod tests {
             ..Default::default()
         };
         let post = Post { author, ..Default::default() };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(
             note.id,
@@ -279,7 +279,7 @@ mod tests {
             visibility: Visibility::Followers,
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(note.to, vec![
             local_actor_followers(INSTANCE_URL, &post.author.username),
@@ -305,7 +305,7 @@ mod tests {
             mentions: vec![subscriber],
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(note.to, vec![
             local_actor_subscribers(INSTANCE_URL, &post.author.username),
@@ -332,7 +332,7 @@ mod tests {
             mentions: vec![mentioned],
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(note.to, vec![mentioned_id]);
         assert_eq!(note.cc.is_empty(), true);
@@ -346,7 +346,7 @@ mod tests {
             in_reply_to: Some(Box::new(parent.clone())),
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(
             note.in_reply_to.unwrap(),
@@ -386,7 +386,7 @@ mod tests {
             mentions: vec![parent_author],
             ..Default::default()
         };
-        let note = build_note(INSTANCE_HOST, INSTANCE_URL, &post);
+        let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(
             note.in_reply_to.unwrap(),
@@ -408,7 +408,7 @@ mod tests {
         };
         let post = Post { author, ..Default::default() };
         let activity = build_create_note(
-            INSTANCE_HOST,
+            INSTANCE_HOSTNAME,
             INSTANCE_URL,
             &post,
         );

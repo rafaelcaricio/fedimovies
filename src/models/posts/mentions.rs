@@ -15,7 +15,7 @@ const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<username>[\w\.-]+)(@(?P<hostnam
 
 /// Finds everything that looks like a mention
 fn find_mentions(
-    instance_host: &str,
+    instance_hostname: &str,
     text: &str,
 ) -> Vec<String> {
     let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
@@ -26,10 +26,10 @@ fn find_mentions(
             let username = secondary_caps["username"].to_string();
             let hostname = secondary_caps.name("hostname")
                 .map(|match_| match_.as_str())
-                .unwrap_or(instance_host)
+                .unwrap_or(instance_hostname)
                 .to_string();
             let actor_address = ActorAddress { username, hostname };
-            let acct = actor_address.acct(instance_host);
+            let acct = actor_address.acct(instance_hostname);
             if !mentions.contains(&acct) {
                 mentions.push(acct);
             };
@@ -40,10 +40,10 @@ fn find_mentions(
 
 pub async fn find_mentioned_profiles(
     db_client: &impl GenericClient,
-    instance_host: &str,
+    instance_hostname: &str,
     text: &str,
 ) -> Result<HashMap<String, DbActorProfile>, DatabaseError> {
-    let mentions = find_mentions(instance_host, text);
+    let mentions = find_mentions(instance_hostname, text);
     let profiles = get_profiles_by_accts(db_client, mentions).await?;
     let mut mention_map: HashMap<String, DbActorProfile> = HashMap::new();
     for profile in profiles {
@@ -54,7 +54,7 @@ pub async fn find_mentioned_profiles(
 
 pub fn replace_mentions(
     mention_map: &HashMap<String, DbActorProfile>,
-    instance_host: &str,
+    instance_hostname: &str,
     instance_url: &str,
     text: &str,
 ) -> String {
@@ -65,10 +65,10 @@ pub fn replace_mentions(
             let username = secondary_caps["username"].to_string();
             let hostname = secondary_caps.name("hostname")
                 .map(|match_| match_.as_str())
-                .unwrap_or(instance_host)
+                .unwrap_or(instance_hostname)
                 .to_string();
             let actor_address = ActorAddress { username, hostname };
-            let acct = actor_address.acct(instance_host);
+            let acct = actor_address.acct(instance_hostname);
             if let Some(profile) = mention_map.get(&acct) {
                 // Replace with a link to profile.
                 // Actor URL may differ from actor ID.
@@ -108,7 +108,7 @@ mod tests {
     use crate::activitypub::actors::types::Actor;
     use super::*;
 
-    const INSTANCE_HOST: &str = "server1.com";
+    const INSTANCE_HOSTNAME: &str = "server1.com";
     const INSTANCE_URL: &str = "https://server1.com";
     const TEXT_WITH_MENTIONS: &str = concat!(
         "@user1 ",
@@ -124,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_find_mentions() {
-        let results = find_mentions(INSTANCE_HOST, TEXT_WITH_MENTIONS);
+        let results = find_mentions(INSTANCE_HOSTNAME, TEXT_WITH_MENTIONS);
         assert_eq!(results, vec![
             "user1",
             "user_x",
@@ -171,7 +171,7 @@ mod tests {
         ]);
         let result = replace_mentions(
             &mention_map,
-            INSTANCE_HOST,
+            INSTANCE_HOSTNAME,
             INSTANCE_URL,
             TEXT_WITH_MENTIONS,
         );

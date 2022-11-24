@@ -147,7 +147,7 @@ async fn outbox(
             return None;
         };
         let activity = build_create_note(
-            &instance.host(),
+            &instance.hostname(),
             &instance.url(),
             post,
         );
@@ -316,7 +316,7 @@ pub async fn object_view(
     };
     add_related_posts(db_client, vec![&mut post]).await?;
     let object = build_note(
-        &config.instance().host(),
+        &config.instance().hostname(),
         &config.instance().url(),
         &post,
     );
