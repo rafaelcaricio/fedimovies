@@ -633,6 +633,36 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Notification'
+  /api/v1/settings/export_followers:
+    get:
+      summary: Export followers to CSV file
+      security:
+        - tokenAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            text/csv:
+              schema:
+                type: string
+              example: |
+                user1@example.org
+                user2@example.org
+  /api/v1/settings/export_follows:
+    get:
+      summary: Export follows to CSV file
+      security:
+        - tokenAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            text/csv:
+              schema:
+                type: string
+              example: |
+                user1@example.org
+                user2@example.org
   /api/v1/statuses:
     post:
       summary: Create new post.

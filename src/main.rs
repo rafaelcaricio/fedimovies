@@ -25,6 +25,7 @@ use mitra::mastodon_api::notifications::views::notification_api_scope;
 use mitra::mastodon_api::oauth::auth::create_auth_error_handler;
 use mitra::mastodon_api::oauth::views::oauth_api_scope;
 use mitra::mastodon_api::search::views::search_api_scope;
+use mitra::mastodon_api::settings::views::settings_api_scope;
 use mitra::mastodon_api::statuses::views::status_api_scope;
 use mitra::mastodon_api::subscriptions::views::subscription_api_scope;
 use mitra::mastodon_api::timelines::views::timeline_api_scope;
@@ -146,6 +147,7 @@ async fn main() -> std::io::Result<()> {
             .service(media_api_scope())
             .service(notification_api_scope())
             .service(search_api_scope())
+            .service(settings_api_scope())
             .service(status_api_scope())
             .service(subscription_api_scope())
             .service(timeline_api_scope())
