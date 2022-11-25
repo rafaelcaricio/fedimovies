@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use std::str::FromStr;
 
 use chrono::{Duration, Utc};
-use monero_rpc::{RpcClient, TransferType};
+use monero_rpc::TransferType;
 use monero_rpc::monero::{Address, Amount};
 
 use crate::config::{Instance, MoneroConfig};
@@ -28,6 +28,7 @@ use crate::models::{
 use super::wallet::{
     get_single_item,
     get_subaddress_balance,
+    open_monero_wallet,
     send_monero,
     DEFAULT_ACCOUNT,
     MoneroError,
@@ -41,12 +42,7 @@ pub async fn check_monero_subscriptions(
     db_pool: &Pool,
 ) -> Result<(), MoneroError> {
     let db_client = &mut **get_database_client(db_pool).await?;
-
-    let wallet_client = RpcClient::new(config.wallet_url.clone()).wallet();
-    wallet_client.open_wallet(
-        config.wallet_name.clone(),
-        config.wallet_password.clone(),
-    ).await?;
+    let wallet_client = open_monero_wallet(config).await?;
 
     // Invoices waiting for payment
     let mut address_waitlist = vec![];
@@ -98,7 +94,11 @@ pub async fn check_monero_subscriptions(
                 invoice.id,
                 transfer.amount,
             );
-            set_invoice_status(db_client, &invoice.id, InvoiceStatus::Paid).await?;
+            if invoice.invoice_status == InvoiceStatus::Open {
+                set_invoice_status(db_client, &invoice.id, InvoiceStatus::Paid).await?;
+            } else {
+                log::warn!("invoice has already been paid");
+            };
         };
     };
 

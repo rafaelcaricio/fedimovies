@@ -48,14 +48,21 @@ pub async fn create_monero_wallet(
     Ok(())
 }
 
-pub async fn create_monero_address(
+pub async fn open_monero_wallet(
     config: &MoneroConfig,
-) -> Result<Address, MoneroError> {
+) -> Result<WalletClient, MoneroError> {
     let wallet_client = RpcClient::new(config.wallet_url.clone()).wallet();
     wallet_client.open_wallet(
         config.wallet_name.clone(),
         config.wallet_password.clone(),
     ).await?;
+    Ok(wallet_client)
+}
+
+pub async fn create_monero_address(
+    config: &MoneroConfig,
+) -> Result<Address, MoneroError> {
+    let wallet_client = open_monero_wallet(config).await?;
     let (address, address_index) =
         wallet_client.create_address(DEFAULT_ACCOUNT, None).await?;
     log::info!("created monero address {}/{}", DEFAULT_ACCOUNT, address_index);

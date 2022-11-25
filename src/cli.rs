@@ -29,7 +29,10 @@ use crate::models::users::queries::{
     get_user_by_id,
     set_user_password,
 };
-use crate::monero::wallet::create_monero_wallet;
+use crate::monero::{
+    helpers::check_expired_invoice,
+    wallet::create_monero_wallet,
+};
 use crate::utils::{
     crypto_rsa::{
         generate_rsa_key,
@@ -64,6 +67,7 @@ pub enum SubCommand {
     UpdateCurrentBlock(UpdateCurrentBlock),
     ResetSubscriptions(ResetSubscriptions),
     CreateMoneroWallet(CreateMoneroWallet),
+    CheckExpiredInvoice(CheckExpiredInvoice),
 }
 
 /// Generate RSA private key
@@ -401,6 +405,30 @@ impl CreateMoneroWallet {
             self.password.clone(),
         ).await?;
         println!("wallet created");
+        Ok(())
+    }
+}
+
+/// Check expired invoice
+#[derive(Parser)]
+pub struct CheckExpiredInvoice {
+    id: Uuid,
+}
+
+impl CheckExpiredInvoice {
+    pub async fn execute(
+        &self,
+        config: &Config,
+        db_client: &impl GenericClient,
+    ) -> Result<(), Error> {
+        let monero_config = config.blockchain()
+            .and_then(|conf| conf.monero_config())
+            .ok_or(anyhow!("monero configuration not found"))?;
+        check_expired_invoice(
+            monero_config,
+            db_client,
+            &self.id,
+        ).await?;
         Ok(())
     }
 }

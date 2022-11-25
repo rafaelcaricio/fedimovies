@@ -85,3 +85,9 @@ Create Monero wallet:
 ```shell
 mitractl create-monero-wallet "mitra-wallet" "passw0rd"
 ```
+
+Check expired invoice:
+
+```shell
+mitractl check-expired-invoice 0184b062-d8d5-cbf1-a71b-6d1aafbae2ab
+```

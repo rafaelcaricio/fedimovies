@@ -8,7 +8,7 @@ use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
 use crate::errors::ConversionError;
 use crate::utils::caip2::ChainId;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum InvoiceStatus {
     Open,
     Paid,

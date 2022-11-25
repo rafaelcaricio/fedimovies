@@ -156,6 +156,6 @@ mod tests {
         assert_eq!(invoice.chain_id, chain_id);
         assert_eq!(invoice.payment_address, payment_address);
         assert_eq!(invoice.amount, amount);
-        assert!(matches!(invoice.invoice_status, InvoiceStatus::Open));
+        assert_eq!(invoice.invoice_status, InvoiceStatus::Open);
     }
 }
