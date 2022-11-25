@@ -47,7 +47,7 @@ Ethereum contracts: https://codeberg.org/silverpill/mitra-contracts
 
 Run:
 
-```
+```shell
 cargo build --release --features production
 ```
 
@@ -64,7 +64,7 @@ Create configuration file by copying `contrib/mitra_config.yaml` and configure t
 
 Start Mitra:
 
-```
+```shell
 ./mitra
 ```
 
@@ -78,7 +78,7 @@ To run Mitra as a systemd service, check out the [systemd unit file example](./c
 
 Download and install Mitra package:
 
-```
+```shell
 dpkg -i mitra.deb
 ```
 
@@ -93,7 +93,7 @@ Open configuration file `/etc/mitra/config.yaml` and configure the instance.
 
 Start Mitra:
 
-```
+```shell
 systemctl start mitra
 ```
 
@@ -123,13 +123,13 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ### Start database server
 
-```
+```shell
 docker-compose up -d
 ```
 
 Test connection:
 
-```
+```shell
 psql -h localhost -p 55432 -U mitra mitra
 ```
 
@@ -137,7 +137,7 @@ psql -h localhost -p 55432 -U mitra mitra
 
 (this step is optional)
 
-```
+```shell
 docker-compose --profile monero up -d
 ```
 
@@ -145,31 +145,31 @@ docker-compose --profile monero up -d
 
 Create config file, adjust settings if needed:
 
-```
+```shell
 cp config.yaml.example config.yaml
 ```
 
 Compile and run service:
 
-```
+```shell
 cargo run
 ```
 
 ### Run CLI
 
-```
+```shell
 cargo run --bin mitractl
 ```
 
 ### Run linter
 
-```
+```shell
 cargo clippy
 ```
 
 ### Run tests
 
-```
+```shell
 cargo test
 ```
 
@@ -179,99 +179,15 @@ See [FEDERATION.md](./FEDERATION.md)
 
 ## Client API
 
-### Mastodon API
-
 Most methods are similar to Mastodon API, but Mitra is not fully compatible.
 
 [OpenAPI spec](./docs/openapi.yaml)
 
 ## CLI
 
-Commands must be run as the same user as the web service:
+`mitractl` is a command-line tool for performing instance maintenance.
 
-```
-su mitra -c "mitractl generate-invite-code"
-```
-
-### Commands
-
-Print help:
-
-```shell
-mitractl --help
-```
-
-Generate RSA private key:
-
-```
-mitractl generate-rsa-key
-```
-
-Generate invite code:
-
-```
-mitractl generate-invite-code
-```
-
-List generated invites:
-
-```
-mitractl list-invite-codes
-```
-
-Set or change password:
-
-```
-mitractl set-password <user-id> <password>
-```
-
-Delete profile:
-
-```
-mitractl delete-profile 55a3005f-f293-4168-ab70-6ab09a879679
-```
-
-Delete post:
-
-```
-mitractl delete-post 55a3005f-f293-4168-ab70-6ab09a879679
-```
-
-Remove remote posts and media older than 30 days:
-
-```
-mitractl delete-extraneous-posts 30
-```
-
-Delete attachments that don't belong to any post:
-
-```
-mitractl delete-unused-attachments 5
-```
-
-Delete empty remote profiles:
-
-```
-mitractl delete-empty-profiles 100
-```
-
-Generate ethereum address:
-
-```
-mitractl generate-ethereum-address
-```
-
-Update synchronization starting block of Ethereum blockchain:
-
-```shell
-mitractl update-current-block 2000000
-```
-
-Create Monero wallet:
-
-```shell
-mitractl create-monero-wallet "mitra-wallet" "passw0rd"
-```
+[Documentation](./docs/mitractl.md)
 
 ## License
 
