@@ -89,13 +89,20 @@ pub async fn prepare_signed_update_person(
     db_client: &impl GenericClient,
     instance: &Instance,
     user: &User,
-    activity: Value,
+    internal_activity_id: Uuid,
 ) -> Result<OutgoingActivity<Value>, DatabaseError> {
+    let activity = build_update_person(
+        &instance.url(),
+        user,
+        Some(internal_activity_id),
+    ).map_err(|_| ConversionError)?;
+    let activity_value = serde_json::to_value(activity)
+        .map_err(|_| ConversionError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
     Ok(OutgoingActivity {
         instance: instance.clone(),
         sender: user.clone(),
-        activity,
+        activity: activity_value,
         recipients,
     })
 }

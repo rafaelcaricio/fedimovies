@@ -267,12 +267,13 @@ async fn send_signed_update(
     if !current_user.profile.identity_proofs.any(&signer) {
         return Err(ValidationError("unknown signer").into());
     };
-    let activity = build_update_person(
-        &config.instance_url(),
+    let mut outgoing_activity = prepare_signed_update_person(
+        db_client,
+        &config.instance(),
         &current_user,
-        Some(data.internal_activity_id),
-    ).map_err(|_| HttpError::InternalError)?;
-    let canonical_json = canonicalize_object(&activity)
+        data.internal_activity_id,
+    ).await.map_err(|_| HttpError::InternalError)?;
+    let canonical_json = canonicalize_object(&outgoing_activity.activity)
         .map_err(|_| HttpError::InternalError)?;
     let proof = match signer {
         Did::Key(signer) => {
@@ -290,17 +291,10 @@ async fn send_signed_update(
             IntegrityProof::jcs_eip191(&signer, &signature_bin)
         },
     };
-    let mut activity_value = serde_json::to_value(activity)
-        .map_err(|_| HttpError::InternalError)?;
-    add_integrity_proof(&mut activity_value, proof)
+    add_integrity_proof(&mut outgoing_activity.activity, proof)
         .map_err(|_| HttpError::InternalError)?;
 
-    prepare_signed_update_person(
-        db_client,
-        &config.instance(),
-        &current_user,
-        activity_value,
-    ).await?.spawn_deliver();
+    outgoing_activity.spawn_deliver();
 
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
