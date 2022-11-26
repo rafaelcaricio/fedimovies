@@ -254,8 +254,8 @@ async fn get_unsigned_update(
     Ok(HttpResponse::Ok().json(data))
 }
 
-#[post("/signed_update")]
-async fn send_signed_update(
+#[post("/send_activity")]
+async fn send_signed_activity(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<Pool>,
@@ -707,7 +707,7 @@ pub fn account_api_scope() -> Scope {
         .service(verify_credentials)
         .service(update_credentials)
         .service(get_unsigned_update)
-        .service(send_signed_update)
+        .service(send_signed_activity)
         .service(get_identity_claim)
         .service(create_identity_proof)
         .service(get_relationships_view)

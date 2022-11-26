@@ -175,6 +175,7 @@ paths:
                     description: Canonical representation of activity.
                     type: string
                     example: '{"type":"Update"}'
+  /api/v1/accounts/send_activity:
     post:
       summary: Send signed activity (experimental).
       requestBody:
