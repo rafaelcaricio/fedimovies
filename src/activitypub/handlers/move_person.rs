@@ -14,6 +14,7 @@ use crate::config::Config;
 use crate::errors::{DatabaseError, ValidationError};
 use crate::models::{
     notifications::queries::create_move_notification,
+    profiles::queries::search_profiles_by_did_only,
     relationships::queries::{
         create_follow_request,
         get_followers,
@@ -52,10 +53,29 @@ pub async fn handle_move_person(
         &target_id,
     ).await?;
     let new_actor = new_profile.actor_json.unwrap();
-    let maybe_also_known_as = new_actor.also_known_as.as_ref()
-        .and_then(|value| parse_array(value).ok())
-        .and_then(|aliases| aliases.first().cloned());
-    if maybe_also_known_as.as_ref() != Some(&old_actor.id) {
+
+    // Find aliases by DIDs
+    let mut aliases = vec![];
+    for identity_proof in new_profile.identity_proofs.inner() {
+        let profiles = search_profiles_by_did_only(
+            db_client,
+            &identity_proof.issuer,
+        ).await?;
+        for profile in profiles {
+            if profile.id == new_profile.id {
+                continue;
+            };
+            let actor_id = profile.actor_id(&instance.url());
+            aliases.push(actor_id);
+        };
+    };
+    // Read aliases from alsoKnownAs property
+    if let Some(ref value) = new_actor.also_known_as {
+        let also_known_as = parse_array(value)
+            .map_err(|_| ValidationError("invalid alias list"))?;
+        aliases.extend(also_known_as);
+    };
+    if !aliases.iter().any(|actor_id| actor_id == &old_actor.id) {
         return Err(ValidationError("target ID is not an alias").into());
     };
 

@@ -85,6 +85,11 @@ pub struct IdentityProof {
 pub struct IdentityProofs(pub Vec<IdentityProof>);
 
 impl IdentityProofs {
+    pub fn inner(&self) -> &[IdentityProof] {
+        let Self(identity_proofs) = self;
+        identity_proofs
+    }
+
     pub fn into_inner(self) -> Vec<IdentityProof> {
         let Self(identity_proofs) = self;
         identity_proofs
