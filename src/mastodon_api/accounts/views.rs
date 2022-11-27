@@ -56,6 +56,7 @@ use crate::models::profiles::queries::{
     get_profile_by_id,
     get_profile_by_remote_actor_id,
     search_profiles_by_did,
+    search_profiles_by_did_only,
     update_profile,
 };
 use crate::models::profiles::types::{
@@ -273,7 +274,8 @@ async fn move_followers(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    // Old profile could be deleted
+    // Existence of actor is not verified because
+    // the old profile could have been deleted
     let maybe_from_profile = match get_profile_by_remote_actor_id(
         db_client,
         &request_data.from_actor_id,
@@ -281,6 +283,26 @@ async fn move_followers(
         Ok(profile) => Some(profile),
         Err(DatabaseError::NotFound(_)) => None,
         Err(other_error) => return Err(other_error.into()),
+    };
+    if maybe_from_profile.is_some() {
+        // Find known aliases of the current user
+        let mut aliases = vec![];
+        for identity_proof in current_user.profile.identity_proofs.inner() {
+            let profiles = search_profiles_by_did_only(
+                db_client,
+                &identity_proof.issuer,
+            ).await?;
+            for profile in profiles {
+                if profile.id == current_user.id {
+                    continue;
+                };
+                let actor_id = profile.actor_id(&config.instance_url());
+                aliases.push(actor_id);
+            };
+        };
+        if !aliases.contains(&request_data.from_actor_id) {
+            return Err(ValidationError("old profile is not an alias").into());
+        };
     };
     let mut followers = vec![];
     for follower_address in request_data.followers_csv.lines() {
@@ -292,19 +314,33 @@ async fn move_followers(
             // Add remote actor to activity recipients list
             followers.push(remote_actor.id);
         } else {
-            // Immediately move local followers
+            // Immediately move local followers (only if alias can be verified)
             if let Some(ref from_profile) = maybe_from_profile {
                 match unfollow(db_client, &follower.id, &from_profile.id).await {
-                    Ok(_) => (),
-                    Err(DatabaseError::NotFound(_)) => (),
+                    Ok(maybe_follow_request_id) => {
+                        // Send Undo(Follow) to a remote actor
+                        let remote_actor = from_profile.actor_json.as_ref()
+                            .expect("actor data must be present");
+                        let follow_request_id = maybe_follow_request_id
+                            .expect("follow request must exist");
+                        // TODO: send in a batch
+                        prepare_undo_follow(
+                            &config.instance(),
+                            &current_user,
+                            remote_actor,
+                            &follow_request_id,
+                        ).spawn_deliver();
+                    },
+                    // Not a follower, ignore
+                    Err(DatabaseError::NotFound(_)) => continue,
                     Err(other_error) => return Err(other_error.into()),
                 };
-            };
-            match follow(db_client, &follower.id, &current_user.id).await {
-                Ok(_) => (),
-                // Ignore if already following
-                Err(DatabaseError::AlreadyExists(_)) => (),
-                Err(other_error) => return Err(other_error.into()),
+                match follow(db_client, &follower.id, &current_user.id).await {
+                    Ok(_) => (),
+                    // Ignore if already following
+                    Err(DatabaseError::AlreadyExists(_)) => (),
+                    Err(other_error) => return Err(other_error.into()),
+                };
             };
         };
     };

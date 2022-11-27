@@ -87,7 +87,7 @@ pub async fn handle_move_person(
             .map_err(|_| ValidationError("invalid alias list"))?;
         aliases.extend(also_known_as);
     };
-    if !aliases.iter().any(|actor_id| actor_id == &old_actor_id) {
+    if !aliases.contains(&old_actor_id) {
         return Err(ValidationError("target ID is not an alias").into());
     };
 
