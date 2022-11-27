@@ -30,12 +30,15 @@ pub async fn handle_move_person(
     activity: Activity,
 ) -> HandlerResult {
     let object_id = find_object_id(&activity.object)?;
-    if object_id != activity.actor {
-        return Err(ValidationError("actor ID mismatch").into());
-    };
     let target_value = activity.target
         .ok_or(ValidationError("target is missing"))?;
     let target_id = find_object_id(&target_value)?;
+
+    // Actor is old profile (Mastodon)
+    // Actor is new profile (Mitra)
+    if object_id != activity.actor && target_id != activity.actor {
+        return Err(ValidationError("actor ID mismatch").into());
+    };
 
     let instance = config.instance();
     let media_dir = config.media_dir();
@@ -43,7 +46,7 @@ pub async fn handle_move_person(
         db_client,
         &instance,
         &media_dir,
-        &activity.actor,
+        &object_id,
     ).await?;
     let old_actor = old_profile.actor_json.unwrap();
     let new_profile = get_or_import_profile_by_actor_id(
