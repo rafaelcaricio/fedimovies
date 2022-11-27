@@ -48,7 +48,10 @@ pub enum AuthenticationError {
     DatabaseError(#[from] DatabaseError),
 
     #[error("{0}")]
-    ActorError(String),
+    ImportError(String),
+
+    #[error("{0}")]
+    ActorError(&'static str),
 
     #[error("invalid public key")]
     InvalidPublicKey(#[from] rsa::pkcs8::Error),
@@ -92,12 +95,12 @@ pub async fn verify_signed_request(
             Ok(profile) => profile,
             Err(HandlerError::DatabaseError(error)) => return Err(error.into()),
             Err(other_error) => {
-                return Err(AuthenticationError::ActorError(other_error.to_string()));
+                return Err(AuthenticationError::ImportError(other_error.to_string()));
             },
         }
     };
     let actor = actor_profile.actor_json.as_ref()
-        .ok_or(AuthenticationError::ActorError("invalid profile".to_string()))?;
+        .ok_or(AuthenticationError::ActorError("local signer"))?;
     let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
 
     verify_http_signature(&signature_data, &public_key)?;
@@ -134,11 +137,11 @@ pub async fn verify_signed_activity(
                     return Err(error.into());
                 },
                 Err(other_error) => {
-                    return Err(AuthenticationError::ActorError(other_error.to_string()));
+                    return Err(AuthenticationError::ImportError(other_error.to_string()));
                 },
             };
             let actor = actor_profile.actor_json.as_ref()
-                .ok_or(AuthenticationError::ActorError("invalid profile".to_string()))?;
+                .ok_or(AuthenticationError::ActorError("local signer"))?;
             let public_key =
                 deserialize_public_key(&actor.public_key.public_key_pem)?;
             verify_rsa_json_signature(&signature_data, &public_key)?;
@@ -184,7 +187,7 @@ pub async fn verify_signed_activity(
                 };
                 profile
             } else {
-                return Err(AuthenticationError::ActorError("unknown signer".to_string()));
+                return Err(AuthenticationError::ActorError("unknown signer"));
             }
         },
     };
