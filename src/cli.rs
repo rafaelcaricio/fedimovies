@@ -385,6 +385,7 @@ impl ResetSubscriptions {
 }
 
 /// Create Monero wallet
+/// (can be used when monero-wallet-rpc runs with --wallet-dir option)
 #[derive(Parser)]
 pub struct CreateMoneroWallet {
     name: String,

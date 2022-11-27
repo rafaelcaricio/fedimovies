@@ -36,7 +36,7 @@ pub enum MoneroError {
     OtherError(&'static str),
 }
 
-/// http://monerotoruzizulg5ttgat2emf4d6fbmiea25detrmmy7erypseyteyd.onion/resources/developer-guides/wallet-rpc.html#create_wallet
+/// https://monerodocs.org/interacting/monero-wallet-rpc-reference/#create_wallet
 pub async fn create_monero_wallet(
     config: &MoneroConfig,
     name: String,
@@ -48,14 +48,17 @@ pub async fn create_monero_wallet(
     Ok(())
 }
 
+/// https://monerodocs.org/interacting/monero-wallet-rpc-reference/#open_wallet
 pub async fn open_monero_wallet(
     config: &MoneroConfig,
 ) -> Result<WalletClient, MoneroError> {
     let wallet_client = RpcClient::new(config.wallet_url.clone()).wallet();
-    wallet_client.open_wallet(
-        config.wallet_name.clone(),
-        config.wallet_password.clone(),
-    ).await?;
+    if let Some(ref wallet_name) = config.wallet_name {
+        wallet_client.open_wallet(
+            wallet_name.clone(),
+            config.wallet_password.clone(),
+        ).await?;
+    };
     Ok(wallet_client)
 }
 
@@ -89,7 +92,7 @@ pub async fn get_subaddress_balance(
     Ok(subaddress_data)
 }
 
-/// http://monerotoruzizulg5ttgat2emf4d6fbmiea25detrmmy7erypseyteyd.onion/resources/developer-guides/wallet-rpc.html#sweep_all
+/// https://monerodocs.org/interacting/monero-wallet-rpc-reference/#sweep_all
 pub async fn send_monero(
     wallet_client: &WalletClient,
     from_address: u32,

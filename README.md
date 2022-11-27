@@ -103,7 +103,7 @@ An HTTP server will be needed to handle HTTPS requests and serve the frontend. S
 
 Install Monero node or choose a [public one](https://monero.fail/).
 
-Configure and start [monero-wallet-rpc](https://monerodocs.org/interacting/monero-wallet-rpc-reference/) daemon.
+Configure and start [monero-wallet-rpc](https://monerodocs.org/interacting/monero-wallet-rpc-reference/) daemon. Add `disable-rpc-login=1` to your `monero-wallet-rpc` config (currently RPC auth is not supported in Mitra).
 
 Create a wallet for your instance.
 
