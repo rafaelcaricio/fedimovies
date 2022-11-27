@@ -148,7 +148,7 @@ pub async fn verify_signed_activity(
             actor_profile
         },
         JsonSigner::Did(did) => {
-            let mut profiles: Vec<_> = search_profiles_by_did_only(db_client, &did)
+            let profiles: Vec<_> = search_profiles_by_did_only(db_client, &did)
                 .await?.into_iter()
                 // Exclude local profiles
                 .filter(|profile| !profile.is_local())
@@ -159,36 +159,43 @@ pub async fn verify_signed_activity(
                     profiles.len(),
                 );
             };
-            if let Some(profile) = profiles.pop() {
-                match signature_data.signature_type {
-                    SignatureType::JcsEd25519Signature => {
-                        let did_key = match did {
-                            Did::Key(did_key) => did_key,
-                            _ => return Err(AuthenticationError::InvalidJsonSignatureType),
-                        };
-                        verify_ed25519_json_signature(
-                            &did_key,
-                            &signature_data.message,
-                            &signature_data.signature,
-                        )?;
-                    },
-                    SignatureType::JcsEip191Signature => {
-                        let did_pkh = match did {
-                            Did::Pkh(did_pkh) => did_pkh,
-                            _ => return Err(AuthenticationError::InvalidJsonSignatureType),
-                        };
-                        verify_eip191_json_signature(
-                            &did_pkh,
-                            &signature_data.message,
-                            &signature_data.signature,
-                        )?;
-                    },
-                    _ => return Err(AuthenticationError::InvalidJsonSignatureType),
-                };
-                profile
-            } else {
-                return Err(AuthenticationError::ActorError("unknown signer"));
-            }
+            let actor_id = activity["actor"].as_str()
+                .ok_or(AuthenticationError::ActorError("unknown actor"))?;
+            let actor_profile = profiles.iter()
+                .find(|profile| profile.actor_id(&config.instance_url()) == actor_id)
+                // Use first profile with a given DID
+                // if none of them matches actor
+                .or(profiles.first())
+                .ok_or(AuthenticationError::ActorError("unknown signer"))?
+                .clone();
+
+            match signature_data.signature_type {
+                SignatureType::JcsEd25519Signature => {
+                    let did_key = match did {
+                        Did::Key(did_key) => did_key,
+                        _ => return Err(AuthenticationError::InvalidJsonSignatureType),
+                    };
+                    verify_ed25519_json_signature(
+                        &did_key,
+                        &signature_data.message,
+                        &signature_data.signature,
+                    )?;
+                },
+                SignatureType::JcsEip191Signature => {
+                    let did_pkh = match did {
+                        Did::Pkh(did_pkh) => did_pkh,
+                        _ => return Err(AuthenticationError::InvalidJsonSignatureType),
+                    };
+                    verify_eip191_json_signature(
+                        &did_pkh,
+                        &signature_data.message,
+                        &signature_data.signature,
+                    )?;
+                },
+                _ => return Err(AuthenticationError::InvalidJsonSignatureType),
+            };
+
+            actor_profile
         },
     };
 
