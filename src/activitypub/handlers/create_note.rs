@@ -27,7 +27,7 @@ use crate::models::posts::{
     mentions::mention_to_address,
     queries::create_post,
     types::{Post, PostCreateData, Visibility},
-    validators::CONTENT_MAX_SIZE,
+    validators::{content_allowed_classes, CONTENT_MAX_SIZE},
 };
 use crate::models::profiles::queries::get_profile_by_acct;
 use crate::models::profiles::types::DbActorProfile;
@@ -88,7 +88,7 @@ pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
     if content.len() > CONTENT_MAX_SIZE {
         return Err(ValidationError("content is too long"));
     };
-    let content_safe = clean_html(&content);
+    let content_safe = clean_html(&content, content_allowed_classes());
     Ok(content_safe)
 }
 

@@ -13,7 +13,7 @@ const CONTENT_ALLOWED_TAGS: [&str; 8] = [
     "span",
 ];
 
-fn content_allowed_classes() -> Vec<(&'static str, Vec<&'static str>)> {
+pub fn content_allowed_classes() -> Vec<(&'static str, Vec<&'static str>)> {
     vec![
         ("a", vec!["hashtag", "mention", "u-url"]),
         ("span", vec!["h-card"]),

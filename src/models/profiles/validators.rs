@@ -37,7 +37,7 @@ pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> 
     let cleaned_bio = if is_remote {
         // Remote profile
         let truncated_bio: String = bio.chars().take(BIO_MAX_LENGTH).collect();
-        clean_html(&truncated_bio)
+        clean_html(&truncated_bio, vec![])
     } else {
         // Local profile
         if bio.chars().count() > BIO_MAX_LENGTH {
