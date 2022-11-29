@@ -7,6 +7,10 @@ use rsa::RsaPublicKey;
 
 use crate::utils::crypto_rsa::verify_rsa_signature;
 
+const SIGNATURE_PARAMETER_RE: &str = r#"^(?P<key>[a-zA-Z]+)="(?P<value>.+)"$"#;
+
+const SIGNATURE_EXPIRES_IN: i64 = 12; // 12 hours
+
 #[derive(thiserror::Error, Debug)]
 pub enum HttpSignatureVerificationError {
     #[error("{0}")]
@@ -28,10 +32,8 @@ pub struct HttpSignatureData {
     pub key_id: String,
     pub message: String, // reconstructed message
     pub signature: String, // base64-encoded signature
-    pub created_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
 }
-
-const SIGNATURE_PARAMETER_RE: &str = r#"^(?P<key>[a-zA-Z]+)="(?P<value>.+)"$"#;
 
 pub fn parse_http_signature(
     request_method: &Method,
@@ -75,6 +77,13 @@ pub fn parse_http_signature(
             .map_err(|_| VerificationError::ParseError("invalid date"))?;
         date.with_timezone(&Utc)
     };
+    let expires_at = if let Some(expires_at) = signature_parameters.get("expires") {
+        let expires_at_timestamp = expires_at.parse()
+            .map_err(|_| VerificationError::ParseError("invalid timestamp"))?;
+        Utc.timestamp(expires_at_timestamp, 0)
+    } else {
+        created_at + Duration::hours(SIGNATURE_EXPIRES_IN)
+    };
 
     let mut message_parts = vec![];
     for header in headers_parameter.split(' ') {
@@ -107,7 +116,7 @@ pub fn parse_http_signature(
         key_id,
         message,
         signature,
-        created_at,
+        expires_at,
     };
     Ok(signature_data)
 }
@@ -116,8 +125,7 @@ pub fn verify_http_signature(
     signature_data: &HttpSignatureData,
     signer_key: &RsaPublicKey,
 ) -> Result<(), VerificationError> {
-    let expires_at = signature_data.created_at + Duration::hours(12);
-    if expires_at < Utc::now() {
+    if signature_data.expires_at < Utc::now() {
         log::warn!("signature has expired");
     };
     let signature = base64::decode(&signature_data.signature)?;
@@ -178,7 +186,7 @@ mod tests {
             "(request-target): post /user/123/inbox\nhost: example.com\ndate: 20 Oct 2022 20:00:00 GMT",
         );
         assert_eq!(signature_data.signature, "test");
-        assert!(signature_data.created_at < Utc::now());
+        assert!(signature_data.expires_at < Utc::now());
     }
 
     #[test]
