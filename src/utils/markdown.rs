@@ -19,6 +19,21 @@ pub enum MarkdownError {
     Utf8Error(#[from] std::string::FromUtf8Error),
 }
 
+fn build_comrak_options() -> ComrakOptions {
+    ComrakOptions {
+        extension: ComrakExtensionOptions {
+            autolink: true,
+            ..Default::default()
+        },
+        parse: ComrakParseOptions::default(),
+        render: ComrakRenderOptions {
+            hardbreaks: true,
+            escape: true,
+            ..Default::default()
+        },
+    }
+}
+
 fn iter_nodes<'a, F>(
     node: &'a AstNode<'a>,
     func: &F,
@@ -48,19 +63,8 @@ fn node_to_markdown<'a>(
 /// - bold and italic
 /// - links and autolinks
 /// - inline code and code blocks
-pub fn markdown_to_html(text: &str) -> Result<String, MarkdownError> {
-    let options = ComrakOptions {
-        extension: ComrakExtensionOptions {
-            autolink: true,
-            ..Default::default()
-        },
-        parse: ComrakParseOptions::default(),
-        render: ComrakRenderOptions {
-            hardbreaks: true,
-            escape: true,
-            ..Default::default()
-        },
-    };
+pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
+    let options = build_comrak_options();
     let arena = Arena::new();
     let root = parse_document(
         &arena,
@@ -180,14 +184,20 @@ pub fn markdown_to_html(text: &str) -> Result<String, MarkdownError> {
     Ok(html)
 }
 
+/// Full markdown
+pub fn markdown_to_html(text: &str) -> String {
+    let options = build_comrak_options();
+    comrak::markdown_to_html(text, &options)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_markdown_to_html() {
+    fn test_markdown_lite_to_html() {
         let text = "# heading\n\ntest **bold** test *italic* test ~~strike~~ with `code`, <span>html</span> and https://example.com\nnew line\n\ntwo new lines and a list:\n- item 1\n- item 2\n\n>greentext\n\n---\n\nimage: ![logo](logo.png)\n\ncode block:\n```\nlet test\ntest = 1\n```";
-        let html = markdown_to_html(text).unwrap();
+        let html = markdown_lite_to_html(text).unwrap();
         let expected_html = concat!(
             r#"<p># heading</p><p>test <strong>bold</strong> test <em>italic</em> test ~~strike~~ with <code>code</code>, &lt;span&gt;html&lt;/span&gt; and <a href="https://example.com">https://example.com</a><br>new line</p><p>two new lines and a list:</p><p>- item 1<br>- item 2</p><p>&gt;greentext</p><p>-----</p><p>image: ![logo](logo.png)</p><p>code block:</p>"#,
             "<pre><code>let test\ntest = 1\n</code></pre>",
@@ -196,31 +206,41 @@ mod tests {
     }
 
     #[test]
-    fn test_markdown_to_html_ordered_list() {
+    fn test_markdown_lite_to_html_ordered_list() {
         let text = "1. item 1\n2. item 2\n";
-        let html = markdown_to_html(text).unwrap();
+        let html = markdown_lite_to_html(text).unwrap();
         let expected_html = r#"<p>1.  item 1<br>2.  item 2</p>"#;
         assert_eq!(html, expected_html);
     }
 
     #[test]
-    fn test_markdown_to_html_mention() {
+    fn test_markdown_lite_to_html_mention() {
         let text = "@user@example.org test";
-        let html = markdown_to_html(text).unwrap();
+        let html = markdown_lite_to_html(text).unwrap();
         assert_eq!(html, format!("<p>{}</p>", text));
     }
 
     #[test]
-    fn test_markdown_to_html_hashtag() {
+    fn test_markdown_lite_to_html_hashtag() {
         let text = "#hashtag test";
-        let html = markdown_to_html(text).unwrap();
+        let html = markdown_lite_to_html(text).unwrap();
         assert_eq!(html, format!("<p>{}</p>", text));
     }
 
     #[test]
-    fn test_markdown_to_html_object_link() {
+    fn test_markdown_lite_to_html_object_link() {
         let text = "[[https://example.org/objects/1]] test";
-        let html = markdown_to_html(text).unwrap();
+        let html = markdown_lite_to_html(text).unwrap();
         assert_eq!(html, format!("<p>{}</p>", text));
+    }
+
+    #[test]
+    fn test_markdown_to_html() {
+        let text = "# heading\n\ntest";
+        let html = markdown_to_html(text);
+        assert_eq!(
+            html,
+            "<h1>heading</h1>\n<p>test</p>\n",
+        );
     }
 }

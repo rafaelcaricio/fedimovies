@@ -4,6 +4,7 @@ use serde_json::{to_value, Value};
 use crate::config::{BlockchainConfig, Config};
 use crate::ethereum::contracts::ContractSet;
 use crate::mastodon_api::MASTODON_API_VERSION;
+use crate::utils::markdown::markdown_to_html;
 
 #[derive(Serialize)]
 struct InstanceStats {
@@ -32,7 +33,9 @@ pub struct InstanceInfo {
     uri: String,
     title: String,
     short_description: String,
+    // TODO: HTML by default
     description: String,
+    description_html: String,
     version: String,
     registrations: bool,
     stats: InstanceStats,
@@ -106,6 +109,7 @@ impl InstanceInfo {
             title: config.instance_title.clone(),
             short_description: config.instance_short_description.clone(),
             description: config.instance_description.clone(),
+            description_html: markdown_to_html(&config.instance_description),
             version: get_full_api_version(&config.version),
             registrations: config.registrations_open,
             stats: InstanceStats {
