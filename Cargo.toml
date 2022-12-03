@@ -75,7 +75,7 @@ serde_yaml = "0.8.17"
 # Used to calculate SHA2 hashes
 sha2 = "0.9.5"
 # Used to verify EIP-4361 signatures
-siwe = "0.3.0"
+siwe = "0.4.0"
 # Used for creating error types
 thiserror = "1.0.37"
 # Async runtime

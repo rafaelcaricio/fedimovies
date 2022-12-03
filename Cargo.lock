@@ -3053,11 +3053,10 @@ checksum = "cbce6d4507c7e4a3962091436e56e95290cb71fa302d0d270e32130b75fbff27"
 
 [[package]]
 name = "siwe"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86f2d8ae2d4ae58df46e173aa496562ea857ac6a4f0d435ed30fcd19da0aaa79"
+checksum = "8bf4de418b0989028f138b74db880525e1dbab7fdbeeb4ba8ad96f62bc9ed9a3"
 dependencies = [
- "chrono",
  "hex",
  "http",
  "iri-string",
@@ -3065,6 +3064,7 @@ dependencies = [
  "rand 0.8.4",
  "sha3",
  "thiserror",
+ "time 0.3.9",
 ]
 
 [[package]]
