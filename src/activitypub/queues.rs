@@ -5,7 +5,12 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::config::Config;
-use crate::database::{DatabaseError, DatabaseTypeError};
+use crate::database::{
+    get_database_client,
+    DatabaseError,
+    DatabaseTypeError,
+    DbPool,
+};
 use crate::models::{
     background_jobs::queries::{
         enqueue_job,
@@ -122,8 +127,9 @@ impl OutgoingActivityJobData {
 
 pub async fn process_queued_outgoing_activities(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_pool: &DbPool,
 ) -> Result<(), DatabaseError> {
+    let db_client = &**get_database_client(db_pool).await?;
     let batch_size = 1;
     let batch = get_job_batch(
         db_client,
@@ -141,7 +147,7 @@ pub async fn process_queued_outgoing_activities(
             activity: job_data.activity,
             recipients: job_data.recipients,
         };
-        outgoing_activity.spawn_deliver();
+        outgoing_activity.spawn_deliver_with_tracking(db_pool.clone());
         delete_job_from_queue(db_client, &job.id).await?;
     };
     Ok(())

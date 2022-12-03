@@ -32,6 +32,7 @@ CREATE TABLE actor_profile (
     actor_id VARCHAR(200) UNIQUE GENERATED ALWAYS AS (actor_json ->> 'id') STORED,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    unreachable_since TIMESTAMP WITH TIME ZONE,
     CHECK ((hostname IS NULL) = (actor_json IS NULL))
 );
 

@@ -302,6 +302,7 @@ pub struct DbActorProfile {
     pub actor_json: Option<Actor>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub unreachable_since: Option<DateTime<Utc>>,
 
     // auto-generated database fields
     pub acct: String,
@@ -381,6 +382,7 @@ impl Default for DbActorProfile {
             actor_id: None,
             created_at: now,
             updated_at: now,
+            unreachable_since: None,
         }
     }
 }

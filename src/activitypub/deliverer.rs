@@ -10,7 +10,7 @@ use tokio::time::sleep;
 use tokio_postgres::GenericClient;
 
 use crate::config::Instance;
-use crate::database::DatabaseError;
+use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::http_signatures::create::{
     create_http_signature,
     HttpSignatureError,
@@ -20,7 +20,10 @@ use crate::json_signatures::create::{
     sign_object,
     JsonSignatureError,
 };
-use crate::models::users::types::User;
+use crate::models::{
+    profiles::queries::set_reachability_status,
+    users::types::User,
+};
 use crate::utils::crypto_rsa::deserialize_private_key;
 use super::actors::types::Actor;
 use super::constants::{AP_MEDIA_TYPE, ACTOR_KEY_SUFFIX};
@@ -46,6 +49,9 @@ pub enum DelivererError {
 
     #[error("http error {0:?}")]
     HttpError(reqwest::StatusCode),
+
+    #[error(transparent)]
+    DatabaseError(#[from] DatabaseError),
 }
 
 fn build_client(instance: &Instance) -> reqwest::Result<Client> {
@@ -117,6 +123,7 @@ pub struct Recipient {
 }
 
 async fn deliver_activity_worker(
+    maybe_db_pool: Option<DbPool>,
     instance: Instance,
     sender: User,
     activity: Value,
@@ -185,6 +192,18 @@ async fn deliver_activity_worker(
         };
         retry_count += 1;
     };
+
+    if let Some(ref db_pool) = maybe_db_pool {
+        // Get connection from pool only after finishing delivery
+        let db_client = &**get_database_client(db_pool).await?;
+        for (recipient, is_delivered) in queue {
+            set_reachability_status(
+                db_client,
+                &recipient.id,
+                is_delivered,
+            ).await?;
+        };
+    };
     Ok(())
 }
 
@@ -224,6 +243,7 @@ impl OutgoingActivity {
 
     pub async fn deliver(self) -> Result<(), DelivererError> {
         deliver_activity_worker(
+            None,
             self.instance,
             self.sender,
             self.activity,
@@ -240,6 +260,23 @@ impl OutgoingActivity {
     pub fn spawn_deliver(self) -> () {
         tokio::spawn(async move {
             self.deliver_or_log().await;
+        });
+    }
+
+    pub fn spawn_deliver_with_tracking(
+        self,
+        db_pool: DbPool,
+    ) -> () {
+        tokio::spawn(async move {
+            deliver_activity_worker(
+                Some(db_pool),
+                self.instance,
+                self.sender,
+                self.activity,
+                self.recipients,
+            ).await.unwrap_or_else(|err| {
+                log::error!("{}", err);
+            });
         });
     }
 

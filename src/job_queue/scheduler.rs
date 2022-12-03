@@ -130,8 +130,7 @@ async fn outgoing_activity_queue_task(
     config: &Config,
     db_pool: &DbPool,
 ) -> Result<(), Error> {
-    let db_client = &**get_database_client(db_pool).await?;
-    process_queued_outgoing_activities(config, db_client).await?;
+    process_queued_outgoing_activities(config, db_pool).await?;
     Ok(())
 }
 

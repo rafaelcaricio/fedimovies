@@ -576,6 +576,36 @@ pub async fn update_post_count(
     Ok(profile)
 }
 
+// Doesn't return error if profile doesn't exist
+pub async fn set_reachability_status(
+    db_client: &impl GenericClient,
+    actor_id: &str,
+    is_reachable: bool,
+) -> Result<(), DatabaseError> {
+    if !is_reachable {
+        // Don't update profile if unreachable_since is already set
+        db_client.execute(
+            "
+            UPDATE actor_profile
+            SET unreachable_since = CURRENT_TIMESTAMP
+            WHERE actor_id = $1 AND unreachable_since IS NULL
+            ",
+            &[&actor_id],
+        ).await?;
+    } else {
+        // Remove status (if set)
+        db_client.execute(
+            "
+            UPDATE actor_profile
+            SET unreachable_since = NULL
+            WHERE actor_id = $1
+            ",
+            &[&actor_id],
+        ).await?;
+    };
+    Ok(())
+}
+
 /// Finds all empty remote profiles
 /// (without any posts, reactions, relationships)
 /// updated before the specified date
@@ -810,6 +840,23 @@ mod tests {
 
         assert_eq!(profiles.len(), 1);
         assert_eq!(profiles[0].id, profile.id);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_set_reachability_status() {
+        let db_client = &create_test_database().await;
+        let actor_id = "https://example.com/users/test";
+        let profile_data = ProfileCreateData {
+            username: "test".to_string(),
+            hostname: Some("example.com".to_string()),
+            actor_json: Some(create_test_actor(actor_id)),
+            ..Default::default()
+        };
+        let profile = create_profile(db_client, profile_data).await.unwrap();
+        set_reachability_status(db_client, actor_id, false).await.unwrap();
+        let profile = get_profile_by_id(db_client, &profile.id).await.unwrap();
+        assert_eq!(profile.unreachable_since.is_some(), true);
     }
 
     #[tokio::test]
