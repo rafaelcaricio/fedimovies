@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::time::Duration;
 
-use reqwest::{Client, Method, Proxy};
+use reqwest::{Client, Method, Proxy, RequestBuilder};
 use serde_json::Value;
 
 use crate::activitypub::activity::Object;
@@ -48,6 +48,21 @@ fn build_client(instance: &Instance) -> reqwest::Result<Client> {
         .build()
 }
 
+fn build_request(
+    instance: &Instance,
+    client: Client,
+    method: Method,
+    url: &str,
+) -> RequestBuilder {
+    let mut request_builder = client.request(method, url);
+    if !instance.is_private {
+        // Public instance should set User-Agent header
+        request_builder = request_builder
+            .header(reqwest::header::USER_AGENT, instance.agent());
+    };
+    request_builder
+}
+
 /// Sends GET request to fetch AP object
 async fn send_request(
     instance: &Instance,
@@ -55,11 +70,12 @@ async fn send_request(
     query_params: &[(&str, &str)],
 ) -> Result<String, FetchError> {
     let client = build_client(instance)?;
-    let mut request_builder = client.get(url);
+    let mut request_builder = build_request(instance, client, Method::GET, url)
+        .header(reqwest::header::ACCEPT, AP_MEDIA_TYPE);
+
     if !query_params.is_empty() {
         request_builder = request_builder.query(query_params);
     };
-
     if !instance.is_private {
         // Only public instance can send signed request
         let headers = create_http_signature(
@@ -74,14 +90,8 @@ async fn send_request(
             .header("Date", headers.date)
             .header("Signature", headers.signature);
     };
-    if !instance.is_private {
-        // Public instance should set User-Agent header
-        request_builder = request_builder
-            .header(reqwest::header::USER_AGENT, instance.agent());
-    };
 
     let data = request_builder
-        .header(reqwest::header::ACCEPT, AP_MEDIA_TYPE)
         .send().await?
         .error_for_status()?
         .text().await?;
@@ -96,7 +106,9 @@ pub async fn fetch_file(
     output_dir: &Path,
 ) -> Result<(String, Option<String>), FetchError> {
     let client = build_client(instance)?;
-    let response = client.get(url).send().await?;
+    let request_builder =
+        build_request(instance, client, Method::GET, url);
+    let response = request_builder.send().await?;
     if let Some(file_size) = response.content_length() {
         if file_size > FILE_MAX_SIZE {
             return Err(FetchError::OtherError("file is too large"));
@@ -121,12 +133,8 @@ pub async fn perform_webfinger_query(
         actor_address.hostname,
     );
     let client = build_client(instance)?;
-    let mut request_builder = client.get(&webfinger_url);
-    if !instance.is_private {
-        // Public instance should set User-Agent header
-        request_builder = request_builder
-            .header(reqwest::header::USER_AGENT, instance.agent());
-    };
+    let request_builder =
+        build_request(instance, client, Method::GET, &webfinger_url);
     let webfinger_data = request_builder
         .query(&[("resource", webfinger_account_uri)])
         .send().await?
