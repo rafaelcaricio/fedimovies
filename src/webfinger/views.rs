@@ -9,7 +9,7 @@ use crate::activitypub::identifiers::{
     local_instance_actor_id,
 };
 use crate::config::{Config, Instance};
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::models::users::queries::is_registered_user;
 use super::types::{
@@ -64,7 +64,7 @@ async fn get_user_info(
 #[get("/.well-known/webfinger")]
 pub async fn get_descriptor(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<WebfingerQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;

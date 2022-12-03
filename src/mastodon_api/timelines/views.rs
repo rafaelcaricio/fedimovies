@@ -3,7 +3,7 @@ use actix_web::{get, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::mastodon_api::statuses::helpers::build_status_list;
@@ -18,7 +18,7 @@ use super::types::TimelineQueryParams;
 async fn home_timeline(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<TimelineQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -43,7 +43,7 @@ async fn home_timeline(
 async fn public_timeline(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<TimelineQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -67,7 +67,7 @@ async fn public_timeline(
 async fn hashtag_timeline(
     auth: Option<BearerAuth>,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     hashtag: web::Path<String>,
     query_params: web::Query<TimelineQueryParams>,
 ) -> Result<HttpResponse, HttpError> {

@@ -3,7 +3,7 @@
 use actix_web::{get, web, HttpResponse};
 
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::webfinger::types::{
     Link,
@@ -33,7 +33,7 @@ pub async fn get_nodeinfo(
 #[get("/nodeinfo/2.0")]
 pub async fn get_nodeinfo_2_0(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let usage = get_usage(db_client).await?;

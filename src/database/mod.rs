@@ -10,7 +10,7 @@ pub mod query_macro;
 #[cfg(test)]
 pub mod test_utils;
 
-pub type Pool = deadpool_postgres::Pool;
+pub type DbPool = deadpool_postgres::Pool;
 
 pub async fn create_database_client(db_config: &DbConfig) -> tokio_postgres::Client {
     let (client, connection) = db_config.connect(tokio_postgres::NoTls)
@@ -23,22 +23,22 @@ pub async fn create_database_client(db_config: &DbConfig) -> tokio_postgres::Cli
     client
 }
 
-pub fn create_pool(database_url: &str) -> Pool {
+pub fn create_pool(database_url: &str) -> DbPool {
     let manager = deadpool_postgres::Manager::new(
         database_url.parse().expect("invalid database URL"),
         tokio_postgres::NoTls,
     );
     // https://wiki.postgresql.org/wiki/Number_Of_Database_Connections
     let pool_size = num_cpus::get() * 2;
-    Pool::builder(manager).max_size(pool_size).build().unwrap()
+    DbPool::builder(manager).max_size(pool_size).build().unwrap()
 }
 
-pub async fn get_database_client(pool: &Pool)
+pub async fn get_database_client(db_pool: &DbPool)
     -> Result<deadpool_postgres::Client, DatabaseError>
 {
     // Returns wrapped client
     // https://github.com/bikeshedder/deadpool/issues/56
-    let client = pool.get().await?;
+    let client = db_pool.get().await?;
     Ok(client)
 }
 

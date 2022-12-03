@@ -22,7 +22,7 @@ use crate::activitypub::builders::{
     },
 };
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::contracts::ContractSet;
 use crate::ethereum::eip4361::verify_eip4361_signature;
@@ -117,7 +117,7 @@ use super::types::{
 #[post("")]
 pub async fn create_account(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     maybe_blockchain: web::Data<Option<ContractSet>>,
     account_data: web::Json<AccountCreateData>,
 ) -> Result<HttpResponse, HttpError> {
@@ -202,7 +202,7 @@ pub async fn create_account(
 async fn verify_credentials(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_current_user(db_client, auth.token()).await?;
@@ -214,7 +214,7 @@ async fn verify_credentials(
 async fn update_credentials(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     account_data: web::Json<AccountUpdateData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -246,7 +246,7 @@ async fn update_credentials(
 async fn get_unsigned_update(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -269,7 +269,7 @@ async fn get_unsigned_update(
 async fn move_followers(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     request_data: web::Json<MoveFollowersRequest>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -369,7 +369,7 @@ async fn move_followers(
 async fn send_signed_activity(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     data: web::Json<SignedActivity>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -440,7 +440,7 @@ async fn send_signed_activity(
 async fn get_identity_claim(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<IdentityClaimQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -471,7 +471,7 @@ async fn get_identity_claim(
 async fn create_identity_proof(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     proof_data: web::Json<IdentityProofData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -550,7 +550,7 @@ async fn create_identity_proof(
 #[get("/relationships")]
 async fn get_relationships_view(
     auth: BearerAuth,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<RelationshipQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -566,7 +566,7 @@ async fn get_relationships_view(
 #[get("/search")]
 async fn search_by_acct(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<SearchAcctQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -582,7 +582,7 @@ async fn search_by_acct(
 #[get("/search_did")]
 async fn search_by_did(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<SearchDidQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -598,7 +598,7 @@ async fn search_by_did(
 #[get("/{account_id}")]
 async fn get_account(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -611,7 +611,7 @@ async fn get_account(
 async fn follow_account(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
     follow_data: web::Json<FollowData>,
 ) -> Result<HttpResponse, HttpError> {
@@ -661,7 +661,7 @@ async fn follow_account(
 async fn unfollow_account(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -696,7 +696,7 @@ async fn unfollow_account(
 async fn get_account_statuses(
     auth: Option<BearerAuth>,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
     query_params: web::Query<StatusListQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
@@ -734,7 +734,7 @@ async fn get_account_statuses(
 async fn get_account_followers(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
     request: HttpRequest,
@@ -771,7 +771,7 @@ async fn get_account_followers(
 async fn get_account_following(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
     request: HttpRequest,
@@ -808,7 +808,7 @@ async fn get_account_following(
 async fn get_account_subscribers(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
 ) -> Result<HttpResponse, HttpError> {

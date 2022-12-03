@@ -12,7 +12,7 @@ use web3::{
 };
 
 use crate::config::EthereumConfig;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::DatabaseError;
 use crate::ipfs::utils::parse_ipfs_url;
 use crate::models::posts::queries::{
@@ -34,7 +34,7 @@ pub async fn process_nft_events(
     web3: &Web3<Http>,
     contract: &Contract<Http>,
     sync_state: &mut SyncState,
-    db_pool: &Pool,
+    db_pool: &DbPool,
     token_waitlist_map: &mut HashMap<Uuid, DateTime<Utc>>,
 ) -> Result<(), EthereumError> {
     let db_client = &**get_database_client(db_pool).await?;

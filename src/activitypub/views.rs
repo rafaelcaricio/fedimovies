@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::frontend::{get_post_page_url, get_profile_page_url};
 use crate::models::posts::helpers::{add_related_posts, can_view_post};
@@ -54,7 +54,7 @@ fn is_activitypub_request(headers: &HeaderMap) -> bool {
 #[get("")]
 async fn actor_view(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     request: HttpRequest,
     username: web::Path<String>,
 ) -> Result<HttpResponse, HttpError> {
@@ -78,7 +78,7 @@ async fn actor_view(
 #[post("/inbox")]
 async fn inbox(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     inbox_mutex: web::Data<Mutex<()>>,
     request: HttpRequest,
     activity: web::Json<serde_json::Value>,
@@ -111,7 +111,7 @@ struct CollectionQueryParams {
 #[get("/outbox")]
 async fn outbox(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
@@ -171,7 +171,7 @@ async fn outbox_client_to_server() -> HttpResponse {
 #[get("/followers")]
 async fn followers_collection(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
@@ -199,7 +199,7 @@ async fn followers_collection(
 #[get("/following")]
 async fn following_collection(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
@@ -227,7 +227,7 @@ async fn following_collection(
 #[get("/subscribers")]
 async fn subscribers_collection(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     username: web::Path<String>,
     query_params: web::Query<CollectionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
@@ -295,7 +295,7 @@ pub fn instance_actor_scope() -> Scope {
 #[get("/objects/{object_id}")]
 pub async fn object_view(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     request: HttpRequest,
     internal_object_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
@@ -329,7 +329,7 @@ pub async fn object_view(
 #[get("/profile/{profile_id}")]
 pub async fn frontend_profile_redirect(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     profile_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;

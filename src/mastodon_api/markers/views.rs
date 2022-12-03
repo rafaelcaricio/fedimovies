@@ -1,7 +1,7 @@
 use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::mastodon_api::oauth::auth::get_current_user;
 use crate::models::markers::queries::{
@@ -15,7 +15,7 @@ use super::types::{MarkerQueryParams, MarkerCreateData, Markers};
 #[get("")]
 async fn get_marker_view(
     auth: BearerAuth,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<MarkerQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -31,7 +31,7 @@ async fn get_marker_view(
 #[post("")]
 async fn update_marker_view(
     auth: BearerAuth,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     marker_data: web::Json<MarkerCreateData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;

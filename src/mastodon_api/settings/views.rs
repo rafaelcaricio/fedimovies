@@ -2,7 +2,7 @@ use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::mastodon_api::{
     accounts::types::Account,
@@ -17,7 +17,7 @@ use super::types::PasswordChangeRequest;
 async fn change_password_view(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     request_data: web::Json<PasswordChangeRequest>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -33,7 +33,7 @@ async fn change_password_view(
 async fn export_followers_view(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -52,7 +52,7 @@ async fn export_followers_view(
 async fn export_follows_view(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;

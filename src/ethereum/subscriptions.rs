@@ -17,7 +17,7 @@ use crate::activitypub::builders::{
 };
 use crate::activitypub::identifiers::LocalActorCollection;
 use crate::config::{EthereumConfig, Instance};
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::{ConversionError, DatabaseError};
 use crate::models::notifications::queries::{
     create_subscription_notification,
@@ -92,7 +92,7 @@ pub async fn check_ethereum_subscriptions(
     web3: &Web3<Http>,
     contract: &Contract<Http>,
     sync_state: &mut SyncState,
-    db_pool: &Pool,
+    db_pool: &DbPool,
 ) -> Result<(), EthereumError> {
     let db_client = &mut **get_database_client(db_pool).await?;
     let event_abi = contract.abi().event("UpdateSubscription")?;
@@ -258,7 +258,7 @@ pub async fn check_ethereum_subscriptions(
 
 pub async fn update_expired_subscriptions(
     instance: &Instance,
-    db_pool: &Pool,
+    db_pool: &DbPool,
 ) -> Result<(), EthereumError> {
     let db_client = &mut **get_database_client(db_pool).await?;
     for subscription in get_expired_subscriptions(db_client).await? {

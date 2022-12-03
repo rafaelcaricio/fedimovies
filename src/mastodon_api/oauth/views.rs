@@ -3,7 +3,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
 
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::models::oauth::queries::{
@@ -27,7 +27,7 @@ const ACCESS_TOKEN_EXPIRES_IN: i64 = 86400 * 7;
 #[post("/token")]
 async fn token_view(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     request_data: web::Json<TokenRequest>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -95,7 +95,7 @@ async fn token_view(
 #[post("/revoke")]
 async fn revoke_token_view(
     auth: BearerAuth,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     request_data: web::Json<RevocationRequest>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;

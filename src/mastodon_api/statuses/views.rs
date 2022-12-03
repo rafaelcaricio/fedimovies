@@ -14,7 +14,7 @@ use crate::activitypub::builders::{
     undo_like_note::prepare_undo_like_note,
 };
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::{DatabaseError, HttpError, ValidationError};
 use crate::ethereum::nft::create_mint_signature;
 use crate::ipfs::store as ipfs_store;
@@ -51,7 +51,7 @@ use super::types::{Status, StatusData, TransactionData};
 async fn create_status(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_data: web::Json<StatusData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -204,7 +204,7 @@ async fn create_status(
 async fn get_status(
     auth: Option<BearerAuth>,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -229,7 +229,7 @@ async fn get_status(
 async fn delete_status(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -257,7 +257,7 @@ async fn delete_status(
 async fn get_context(
     auth: Option<BearerAuth>,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -283,7 +283,7 @@ async fn get_context(
 async fn favourite(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -327,7 +327,7 @@ async fn favourite(
 async fn unfavourite(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -368,7 +368,7 @@ async fn unfavourite(
 async fn reblog(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -403,7 +403,7 @@ async fn reblog(
 async fn unreblog(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -440,7 +440,7 @@ async fn unreblog(
 async fn make_permanent(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -499,7 +499,7 @@ async fn make_permanent(
 async fn get_signature(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -533,7 +533,7 @@ async fn get_signature(
 async fn token_minted(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
     transaction_data: web::Json<TransactionData>,
 ) -> Result<HttpResponse, HttpError> {

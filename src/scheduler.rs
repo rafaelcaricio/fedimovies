@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::config::{Config, Instance};
-use crate::database::Pool;
+use crate::database::DbPool;
 use crate::ethereum::contracts::Blockchain;
 use crate::ethereum::nft::process_nft_events;
 use crate::ethereum::subscriptions::{
@@ -47,7 +47,7 @@ fn is_task_ready(last_run: &Option<DateTime<Utc>>, period: i64) -> bool {
 
 async fn nft_monitor_task(
     maybe_blockchain: Option<&mut Blockchain>,
-    db_pool: &Pool,
+    db_pool: &DbPool,
     token_waitlist_map: &mut HashMap<Uuid, DateTime<Utc>>,
 ) -> Result<(), Error> {
     let blockchain = match maybe_blockchain {
@@ -71,7 +71,7 @@ async fn nft_monitor_task(
 async fn ethereum_subscription_monitor_task(
     instance: &Instance,
     maybe_blockchain: Option<&mut Blockchain>,
-    db_pool: &Pool,
+    db_pool: &DbPool,
 ) -> Result<(), Error> {
     let blockchain = match maybe_blockchain {
         Some(blockchain) => blockchain,
@@ -93,7 +93,7 @@ async fn ethereum_subscription_monitor_task(
 
 async fn monero_payment_monitor_task(
     config: &Config,
-    db_pool: &Pool,
+    db_pool: &DbPool,
 ) -> Result<(), Error> {
     let maybe_monero_config = config.blockchain()
         .and_then(|conf| conf.monero_config());
@@ -112,7 +112,7 @@ async fn monero_payment_monitor_task(
 pub fn run(
     config: Config,
     mut maybe_blockchain: Option<Blockchain>,
-    db_pool: Pool,
+    db_pool: DbPool,
 ) -> () {
     tokio::spawn(async move {
         let mut scheduler_state = HashMap::new();

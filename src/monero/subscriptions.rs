@@ -6,7 +6,7 @@ use monero_rpc::TransferType;
 use monero_rpc::monero::{Address, Amount};
 
 use crate::config::{Instance, MoneroConfig};
-use crate::database::{get_database_client, Pool};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::DatabaseError;
 use crate::ethereum::subscriptions::send_subscription_notifications;
 use crate::models::{
@@ -39,7 +39,7 @@ pub const MONERO_INVOICE_TIMEOUT: i64 = 3 * 60 * 60; // 3 hours
 pub async fn check_monero_subscriptions(
     instance: &Instance,
     config: &MoneroConfig,
-    db_pool: &Pool,
+    db_pool: &DbPool,
 ) -> Result<(), MoneroError> {
     let db_client = &mut **get_database_client(db_pool).await?;
     let wallet_client = open_monero_wallet(config).await?;

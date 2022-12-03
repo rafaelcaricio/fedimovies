@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::activitypub::builders::update_person::prepare_update_person;
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::contracts::ContractSet;
 use crate::ethereum::subscriptions::{
@@ -41,7 +41,7 @@ use super::types::{
 pub async fn authorize_subscription(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<SubscriptionAuthorizationQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -67,7 +67,7 @@ pub async fn authorize_subscription(
 #[get("/options")]
 async fn get_subscription_options(
     auth: BearerAuth,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -82,7 +82,7 @@ async fn get_subscription_options(
 pub async fn register_subscription_option(
     auth: BearerAuth,
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     maybe_blockchain: web::Data<Option<ContractSet>>,
     subscription_option: web::Json<SubscriptionOption>,
 ) -> Result<HttpResponse, HttpError> {
@@ -152,7 +152,7 @@ pub async fn register_subscription_option(
 
 #[get("/find")]
 async fn find_subscription(
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     query_params: web::Query<SubscriptionQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
@@ -171,7 +171,7 @@ async fn find_subscription(
 #[post("/invoices")]
 async fn create_invoice_view(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     invoice_data: web::Json<InvoiceData>,
 ) -> Result<HttpResponse, HttpError> {
     let monero_config = config.blockchain()
@@ -204,7 +204,7 @@ async fn create_invoice_view(
 
 #[get("/invoices/{invoice_id}")]
 async fn get_invoice(
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     invoice_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;

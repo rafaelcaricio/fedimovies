@@ -1,7 +1,7 @@
 use actix_web::{get, web, HttpResponse, Scope};
 
 use crate::config::Config;
-use crate::database::{Pool, get_database_client};
+use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::ethereum::contracts::ContractSet;
 use crate::models::{
@@ -14,7 +14,7 @@ use super::types::InstanceInfo;
 #[get("")]
 async fn instance_view(
     config: web::Data<Config>,
-    db_pool: web::Data<Pool>,
+    db_pool: web::Data<DbPool>,
     maybe_blockchain: web::Data<Option<ContractSet>>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
