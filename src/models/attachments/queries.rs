@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::cleanup::{
     find_orphaned_files,
     find_orphaned_ipfs_objects,

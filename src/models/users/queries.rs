@@ -1,8 +1,7 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::catch_unique_violation;
-use crate::errors::DatabaseError;
+use crate::database::{catch_unique_violation, DatabaseError};
 use crate::identity::{did::Did, did_pkh::DidPkh};
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};

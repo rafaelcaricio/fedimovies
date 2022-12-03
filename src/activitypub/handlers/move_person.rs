@@ -12,7 +12,8 @@ use crate::activitypub::{
     vocabulary::PERSON,
 };
 use crate::config::Config;
-use crate::errors::{DatabaseError, ValidationError};
+use crate::database::DatabaseError;
+use crate::errors::ValidationError;
 use crate::models::{
     notifications::queries::create_move_notification,
     profiles::queries::search_profiles_by_did_only,

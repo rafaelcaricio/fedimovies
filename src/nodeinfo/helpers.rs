@@ -1,6 +1,6 @@
 use tokio_postgres::GenericClient;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::posts::queries::get_local_post_count;
 use crate::models::users::queries::get_user_count;
 use super::types::{Usage, Users};

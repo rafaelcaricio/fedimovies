@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::{DbUser, User};
 

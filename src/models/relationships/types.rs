@@ -4,8 +4,11 @@ use postgres_types::FromSql;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
-use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
-use crate::errors::{ConversionError, DatabaseError};
+use crate::database::{
+    int_enum::{int_enum_from_sql, int_enum_to_sql},
+    DatabaseError,
+    DatabaseTypeError,
+};
 use crate::models::profiles::types::DbActorProfile;
 
 #[derive(Debug)]
@@ -30,7 +33,7 @@ impl From<&RelationshipType> for i16 {
 }
 
 impl TryFrom<i16> for RelationshipType {
-    type Error = ConversionError;
+    type Error = DatabaseTypeError;
 
     fn try_from(value: i16) -> Result<Self, Self::Error> {
         let relationship_type = match value {
@@ -39,7 +42,7 @@ impl TryFrom<i16> for RelationshipType {
             3 => Self::Subscription,
             4 => Self::HideReposts,
             5 => Self::HideReplies,
-            _ => return Err(ConversionError),
+            _ => return Err(DatabaseTypeError),
         };
         Ok(relationship_type)
     }
@@ -59,13 +62,13 @@ impl DbRelationship {
         &self,
         source_id: &Uuid,
         target_id: &Uuid,
-    ) -> Result<bool, ConversionError> {
+    ) -> Result<bool, DatabaseTypeError> {
         if &self.source_id == source_id && &self.target_id == target_id {
             Ok(true)
         } else if &self.source_id == target_id && &self.target_id == source_id {
             Ok(false)
         } else {
-            Err(ConversionError)
+            Err(DatabaseTypeError)
         }
     }
 }
@@ -102,14 +105,14 @@ impl From<&FollowRequestStatus> for i16 {
 }
 
 impl TryFrom<i16> for FollowRequestStatus {
-    type Error = ConversionError;
+    type Error = DatabaseTypeError;
 
     fn try_from(value: i16) -> Result<Self, Self::Error> {
         let status = match value {
             1 => Self::Pending,
             2 => Self::Accepted,
             3 => Self::Rejected,
-            _ => return Err(ConversionError),
+            _ => return Err(DatabaseTypeError),
         };
         Ok(status)
     }

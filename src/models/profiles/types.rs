@@ -14,7 +14,10 @@ use uuid::Uuid;
 
 use crate::activitypub::actors::types::{Actor, ActorAddress};
 use crate::activitypub::identifiers::local_actor_id;
-use crate::database::json_macro::{json_from_sql, json_to_sql};
+use crate::database::{
+    json_macro::{json_from_sql, json_to_sql},
+    DatabaseTypeError,
+};
 use crate::errors::{ConversionError, ValidationError};
 use crate::identity::{
     did::Did,
@@ -124,14 +127,14 @@ impl From<&PaymentType> for i16 {
 }
 
 impl TryFrom<i16> for PaymentType {
-    type Error = ConversionError;
+    type Error = DatabaseTypeError;
 
     fn try_from(value: i16) -> Result<Self, Self::Error> {
         let payment_type = match value {
             1 => Self::Link,
             2 => Self::EthereumSubscription,
             3 => Self::MoneroSubscription,
-            _ => return Err(ConversionError),
+            _ => return Err(DatabaseTypeError),
         };
         Ok(payment_type)
     }

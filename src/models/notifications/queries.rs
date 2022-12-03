@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::posts::helpers::{add_related_posts, add_user_actions};
 use crate::models::posts::queries::{
     RELATED_ATTACHMENTS,

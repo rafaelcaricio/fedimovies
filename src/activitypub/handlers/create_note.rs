@@ -19,7 +19,8 @@ use crate::activitypub::{
     vocabulary::*,
 };
 use crate::config::Instance;
-use crate::errors::{ConversionError, DatabaseError, ValidationError};
+use crate::database::DatabaseError;
+use crate::errors::{ConversionError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
 use crate::models::posts::{
     hashtags::normalize_hashtag,

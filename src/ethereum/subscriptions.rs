@@ -17,8 +17,8 @@ use crate::activitypub::builders::{
 };
 use crate::activitypub::identifiers::LocalActorCollection;
 use crate::config::{EthereumConfig, Instance};
-use crate::database::{get_database_client, DbPool};
-use crate::errors::{ConversionError, DatabaseError};
+use crate::database::{get_database_client, DatabaseError, DbPool};
+use crate::errors::ConversionError;
 use crate::models::notifications::queries::{
     create_subscription_notification,
     create_subscription_expiration_notification,

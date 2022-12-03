@@ -1,6 +1,6 @@
 use tokio_postgres::GenericClient;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 
 pub async fn search_tags(
     db_client: &impl GenericClient,

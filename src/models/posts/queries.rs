@@ -4,9 +4,11 @@ use chrono::{DateTime, Utc};
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::catch_unique_violation;
-use crate::database::query_macro::query;
-use crate::errors::DatabaseError;
+use crate::database::{
+    catch_unique_violation,
+    query_macro::query,
+    DatabaseError,
+};
 use crate::models::attachments::queries::set_attachment_ipfs_cid;
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::cleanup::{

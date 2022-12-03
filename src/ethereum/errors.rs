@@ -1,4 +1,4 @@
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use super::contracts::ArtifactError;
 use super::signatures::SignatureError;
 use super::utils::AddressError;

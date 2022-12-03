@@ -3,7 +3,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::activity::Object;
 use crate::activitypub::vocabulary::NOTE;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::posts::queries::{
     get_post_by_remote_object_id,
     update_post,

@@ -2,7 +2,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::identifiers::parse_local_object_id;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::reactions::queries::find_favourited_by_user;
 use crate::models::relationships::queries::has_relationship;
 use crate::models::relationships::types::RelationshipType;

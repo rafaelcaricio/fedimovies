@@ -3,8 +3,7 @@ use std::convert::TryFrom;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::catch_unique_violation;
-use crate::errors::DatabaseError;
+use crate::database::{catch_unique_violation, DatabaseError};
 use crate::models::notifications::queries::create_follow_notification;
 use crate::models::profiles::queries::{
     update_follower_count,
@@ -506,8 +505,10 @@ pub async fn show_replies(
 mod tests {
     use serial_test::serial;
     use crate::activitypub::actors::types::Actor;
-    use crate::database::test_utils::create_test_database;
-    use crate::errors::DatabaseError;
+    use crate::database::{
+        test_utils::create_test_database,
+        DatabaseError,
+    };
     use crate::models::profiles::queries::create_profile;
     use crate::models::profiles::types::ProfileCreateData;
     use crate::models::users::queries::create_user;

@@ -3,7 +3,7 @@ use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::config::Config;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::http_signatures::verify::{
     parse_http_signature,
     verify_http_signature,

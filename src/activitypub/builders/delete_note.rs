@@ -6,7 +6,7 @@ use crate::activitypub::constants::AP_CONTEXT;
 use crate::activitypub::deliverer::OutgoingActivity;
 use crate::activitypub::vocabulary::{DELETE, NOTE, TOMBSTONE};
 use crate::config::Instance;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::posts::helpers::add_related_posts;
 use crate::models::posts::types::Post;
 use crate::models::users::types::User;

@@ -1,7 +1,7 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::relationships::queries::get_relationships;
 use crate::models::relationships::types::RelationshipType;
 use super::types::RelationshipMap;

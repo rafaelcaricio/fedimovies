@@ -5,7 +5,7 @@ use postgres_types::FromSql;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::caip2::ChainId;
 

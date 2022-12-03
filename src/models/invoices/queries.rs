@@ -1,8 +1,7 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::catch_unique_violation;
-use crate::errors::DatabaseError;
+use crate::database::{catch_unique_violation, DatabaseError};
 use crate::utils::caip2::ChainId;
 use crate::utils::id::new_uuid;
 use super::types::{DbInvoice, InvoiceStatus};

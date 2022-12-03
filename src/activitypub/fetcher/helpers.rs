@@ -14,7 +14,8 @@ use crate::activitypub::{
     receiver::HandlerError,
 };
 use crate::config::{Config, Instance};
-use crate::errors::{DatabaseError, ValidationError};
+use crate::database::DatabaseError;
+use crate::errors::ValidationError;
 use crate::models::posts::helpers::get_local_post_by_id;
 use crate::models::posts::queries::get_post_by_remote_object_id;
 use crate::models::posts::types::Post;

@@ -6,8 +6,7 @@ use monero_rpc::TransferType;
 use monero_rpc::monero::{Address, Amount};
 
 use crate::config::{Instance, MoneroConfig};
-use crate::database::{get_database_client, DbPool};
-use crate::errors::DatabaseError;
+use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::ethereum::subscriptions::send_subscription_notifications;
 use crate::models::{
     invoices::queries::{

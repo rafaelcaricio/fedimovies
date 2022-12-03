@@ -8,7 +8,7 @@ use crate::activitypub::{
     vocabulary::UNDO,
 };
 use crate::config::Instance;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;

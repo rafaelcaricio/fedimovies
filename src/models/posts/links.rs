@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use regex::{Captures, Regex};
 use tokio_postgres::GenericClient;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use super::helpers::get_post_by_object_id;
 use super::types::Post;
 

@@ -16,7 +16,7 @@ use crate::activitypub::{
     vocabulary::{CREATE, DOCUMENT, HASHTAG, LINK, MENTION, NOTE},
 };
 use crate::config::Instance;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::frontend::get_tag_page_url;
 use crate::models::posts::queries::get_post_author;
 use crate::models::posts::types::{Post, Visibility};

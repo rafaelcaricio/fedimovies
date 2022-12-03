@@ -8,7 +8,7 @@ use crate::activitypub::{
     vocabulary::{CREATE, LIKE, NOTE, UNDO, UPDATE},
 };
 use crate::config::Config;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::posts::queries::{
     create_post,
     get_post_by_remote_object_id,

@@ -6,7 +6,8 @@ use crate::activitypub::{
     vocabulary::{NOTE, PERSON},
 };
 use crate::config::Config;
-use crate::errors::{DatabaseError, ValidationError};
+use crate::database::DatabaseError;
+use crate::errors::ValidationError;
 use crate::models::posts::queries::{
     delete_post,
     get_post_by_remote_object_id,

@@ -8,7 +8,7 @@ use crate::activitypub::{
     vocabulary::NOTE,
 };
 use crate::config::Config;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::reactions::queries::create_reaction;
 use crate::models::posts::queries::get_post_by_remote_object_id;
 use super::HandlerResult;

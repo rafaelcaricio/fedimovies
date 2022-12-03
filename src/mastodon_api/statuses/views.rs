@@ -14,8 +14,8 @@ use crate::activitypub::builders::{
     undo_like_note::prepare_undo_like_note,
 };
 use crate::config::Config;
-use crate::database::{get_database_client, DbPool};
-use crate::errors::{DatabaseError, HttpError, ValidationError};
+use crate::database::{get_database_client, DatabaseError, DbPool};
+use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::nft::create_mint_signature;
 use crate::ipfs::store as ipfs_store;
 use crate::ipfs::posts::PostMetadata;

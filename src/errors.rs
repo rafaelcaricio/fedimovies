@@ -5,6 +5,8 @@ use actix_web::{
 };
 use serde::Serialize;
 
+use crate::database::DatabaseError;
+
 #[derive(thiserror::Error, Debug)]
 #[error("conversion error")]
 pub struct ConversionError;
@@ -12,27 +14,6 @@ pub struct ConversionError;
 #[derive(thiserror::Error, Debug)]
 #[error("{0}")]
 pub struct ValidationError(pub &'static str);
-
-#[derive(thiserror::Error, Debug)]
-pub enum DatabaseError {
-    #[error("database pool error")]
-    DatabasePoolError(#[from] deadpool_postgres::PoolError),
-
-    #[error("database query error")]
-    DatabaseQueryError(#[from] postgres_query::Error),
-
-    #[error("database client error")]
-    DatabaseClientError(#[from] tokio_postgres::Error),
-
-    #[error("database type error")]
-    DatabaseTypeError(#[from] ConversionError),
-
-    #[error("{0} not found")]
-    NotFound(&'static str), // object type
-
-    #[error("{0} already exists")]
-    AlreadyExists(&'static str), // object type
-}
 
 #[derive(thiserror::Error, Debug)]
 pub enum HttpError {

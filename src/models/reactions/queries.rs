@@ -1,8 +1,7 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::catch_unique_violation;
-use crate::errors::DatabaseError;
+use crate::database::{catch_unique_violation, DatabaseError};
 use crate::models::notifications::queries::create_reaction_notification;
 use crate::models::posts::queries::{
     update_reaction_count,

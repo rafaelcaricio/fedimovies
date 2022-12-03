@@ -4,8 +4,10 @@ use chrono::{DateTime, Utc};
 use postgres_types::FromSql;
 use uuid::Uuid;
 
-use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
-use crate::errors::ConversionError;
+use crate::database::{
+    int_enum::{int_enum_from_sql, int_enum_to_sql},
+    DatabaseTypeError,
+};
 use crate::utils::caip2::ChainId;
 
 #[derive(Debug, PartialEq)]
@@ -28,7 +30,7 @@ impl From<&InvoiceStatus> for i16 {
 }
 
 impl TryFrom<i16> for InvoiceStatus {
-    type Error = ConversionError;
+    type Error = DatabaseTypeError;
 
     fn try_from(value: i16) -> Result<Self, Self::Error> {
         let invoice_status = match value {
@@ -36,7 +38,7 @@ impl TryFrom<i16> for InvoiceStatus {
             2 => Self::Paid,
             3 => Self::Forwarded,
             4 => Self::Timeout,
-            _ => return Err(ConversionError),
+            _ => return Err(DatabaseTypeError),
         };
         Ok(invoice_status)
     }

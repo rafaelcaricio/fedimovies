@@ -11,7 +11,7 @@ use crate::activitypub::{
     vocabulary::UPDATE,
 };
 use crate::config::Instance;
-use crate::errors::{ConversionError, DatabaseError};
+use crate::database::{DatabaseError, DatabaseTypeError};
 use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;
 use crate::utils::id::new_uuid;
@@ -75,7 +75,7 @@ pub async fn prepare_update_person(
     user: &User,
 ) -> Result<OutgoingActivity<UpdatePerson>, DatabaseError> {
     let activity = build_update_person(&instance.url(), user, None)
-        .map_err(|_| ConversionError)?;
+        .map_err(|_| DatabaseTypeError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
     Ok(OutgoingActivity {
         instance: instance.clone(),
@@ -95,9 +95,9 @@ pub async fn prepare_signed_update_person(
         &instance.url(),
         user,
         Some(internal_activity_id),
-    ).map_err(|_| ConversionError)?;
+    ).map_err(|_| DatabaseTypeError)?;
     let activity_value = serde_json::to_value(activity)
-        .map_err(|_| ConversionError)?;
+        .map_err(|_| DatabaseTypeError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
     Ok(OutgoingActivity {
         instance: instance.clone(),

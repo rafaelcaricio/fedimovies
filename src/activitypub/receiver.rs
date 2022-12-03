@@ -4,9 +4,9 @@ use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::config::Config;
+use crate::database::DatabaseError;
 use crate::errors::{
     ConversionError,
-    DatabaseError,
     HttpError,
     ValidationError,
 };

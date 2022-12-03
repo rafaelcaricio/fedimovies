@@ -1,7 +1,7 @@
 use tokio_postgres::GenericClient;
 
 use crate::config::Config;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::ipfs::store as ipfs_store;
 use crate::utils::files::remove_files;
 

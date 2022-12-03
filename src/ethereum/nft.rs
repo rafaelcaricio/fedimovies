@@ -12,8 +12,7 @@ use web3::{
 };
 
 use crate::config::EthereumConfig;
-use crate::database::{get_database_client, DbPool};
-use crate::errors::DatabaseError;
+use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::ipfs::utils::parse_ipfs_url;
 use crate::models::posts::queries::{
     get_post_by_ipfs_cid,

@@ -9,7 +9,7 @@ use crate::activitypub::{
     vocabulary::PERSON,
 };
 use crate::config::Config;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::relationships::queries::follow;
 use crate::models::users::queries::get_user_by_name;
 use super::{HandlerError, HandlerResult};

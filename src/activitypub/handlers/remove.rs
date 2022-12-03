@@ -7,7 +7,8 @@ use crate::activitypub::{
     vocabulary::PERSON,
 };
 use crate::config::Config;
-use crate::errors::{DatabaseError, ValidationError};
+use crate::database::DatabaseError;
+use crate::errors::ValidationError;
 use crate::models::notifications::queries::{
     create_subscription_expiration_notification,
 };

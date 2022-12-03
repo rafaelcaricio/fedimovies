@@ -1,6 +1,6 @@
 use tokio_postgres::GenericClient;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::posts::helpers::{
     add_user_actions,
     add_related_posts,

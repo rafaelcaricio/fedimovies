@@ -14,7 +14,8 @@ use crate::activitypub::{
     identifiers::{parse_local_actor_id, parse_local_object_id},
 };
 use crate::config::Config;
-use crate::errors::{DatabaseError, HttpError, ValidationError};
+use crate::database::DatabaseError;
+use crate::errors::{HttpError, ValidationError};
 use crate::identity::did::Did;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::statuses::helpers::build_status_list;

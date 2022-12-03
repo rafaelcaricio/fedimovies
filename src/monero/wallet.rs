@@ -14,7 +14,7 @@ use monero_rpc::monero::{
 };
 
 use crate::config::MoneroConfig;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 
 pub const DEFAULT_ACCOUNT: u32 = 0;
 

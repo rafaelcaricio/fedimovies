@@ -4,8 +4,7 @@ use chrono::{DateTime, Utc};
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::catch_unique_violation;
-use crate::errors::DatabaseError;
+use crate::database::{catch_unique_violation, DatabaseError};
 use crate::models::profiles::types::PaymentType;
 use crate::models::relationships::queries::{subscribe, subscribe_opt};
 use crate::models::relationships::types::RelationshipType;

@@ -1,7 +1,7 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use super::types::{DbTimelineMarker, Timeline};
 
 pub async fn create_or_update_marker(

@@ -10,7 +10,7 @@ use crate::activitypub::{
     vocabulary::ANNOUNCE,
 };
 use crate::config::Instance;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::posts::types::Post;
 use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;

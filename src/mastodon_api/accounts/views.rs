@@ -22,8 +22,8 @@ use crate::activitypub::builders::{
     },
 };
 use crate::config::Config;
-use crate::database::{get_database_client, DbPool};
-use crate::errors::{DatabaseError, HttpError, ValidationError};
+use crate::database::{get_database_client, DatabaseError, DbPool};
+use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::contracts::ContractSet;
 use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::ethereum::gate::is_allowed_user;

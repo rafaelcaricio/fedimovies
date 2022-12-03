@@ -9,7 +9,7 @@ use crate::activitypub::{
     vocabulary::DELETE,
 };
 use crate::config::Instance;
-use crate::errors::DatabaseError;
+use crate::database::DatabaseError;
 use crate::models::relationships::queries::{get_followers, get_following};
 use crate::models::users::types::User;
 

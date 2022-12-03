@@ -4,8 +4,10 @@ use chrono::{DateTime, Utc};
 use postgres_types::FromSql;
 use uuid::Uuid;
 
-use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
-use crate::errors::ConversionError;
+use crate::database::{
+    int_enum::{int_enum_from_sql, int_enum_to_sql},
+    DatabaseTypeError,
+};
 
 #[derive(Debug)]
 pub enum Timeline {
@@ -23,13 +25,13 @@ impl From<&Timeline> for i16 {
 }
 
 impl TryFrom<i16> for Timeline {
-    type Error = ConversionError;
+    type Error = DatabaseTypeError;
 
     fn try_from(value: i16) -> Result<Self, Self::Error> {
         let timeline = match value {
             1 => Self::Home,
             2 => Self::Notifications,
-            _ => return Err(ConversionError),
+            _ => return Err(DatabaseTypeError),
         };
         Ok(timeline)
     }

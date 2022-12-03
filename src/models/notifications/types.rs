@@ -5,8 +5,11 @@ use postgres_types::FromSql;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
-use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
-use crate::errors::{ConversionError, DatabaseError};
+use crate::database::{
+    int_enum::{int_enum_from_sql, int_enum_to_sql},
+    DatabaseError,
+    DatabaseTypeError,
+};
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::posts::types::{DbPost, Post};
 use crate::models::profiles::types::DbActorProfile;
@@ -43,7 +46,7 @@ impl From<&EventType> for i16 {
 }
 
 impl TryFrom<i16> for EventType {
-    type Error = ConversionError;
+    type Error = DatabaseTypeError;
 
     fn try_from(value: i16) -> Result<Self, Self::Error> {
         let event_type = match value {
@@ -57,7 +60,7 @@ impl TryFrom<i16> for EventType {
             8 => Self::SubscriptionStart,
             9 => Self::SubscriptionExpiration,
             10 => Self::Move,
-            _ => return Err(ConversionError),
+            _ => return Err(DatabaseTypeError),
         };
         Ok(event_type)
     }

@@ -7,7 +7,8 @@ use actix_web::{
 use serde_json::json;
 use tokio_postgres::GenericClient;
 
-use crate::errors::{DatabaseError, HttpError};
+use crate::database::DatabaseError;
+use crate::errors::HttpError;
 use crate::models::oauth::queries::get_user_by_oauth_token;
 use crate::models::users::types::User;
 

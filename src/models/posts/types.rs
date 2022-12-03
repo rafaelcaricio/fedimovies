@@ -6,8 +6,12 @@ use tokio_postgres::Row;
 use uuid::Uuid;
 
 use crate::activitypub::identifiers::local_object_id;
-use crate::database::int_enum::{int_enum_from_sql, int_enum_to_sql};
-use crate::errors::{ConversionError, DatabaseError, ValidationError};
+use crate::database::{
+    int_enum::{int_enum_from_sql, int_enum_to_sql},
+    DatabaseError,
+    DatabaseTypeError,
+};
+use crate::errors::ValidationError;
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::types::DbActorProfile;
 use super::validators::clean_content;
@@ -36,7 +40,7 @@ impl From<&Visibility> for i16 {
 }
 
 impl TryFrom<i16> for Visibility {
-    type Error = ConversionError;
+    type Error = DatabaseTypeError;
 
     fn try_from(value: i16) -> Result<Self, Self::Error> {
         let visibility = match value {
@@ -44,7 +48,7 @@ impl TryFrom<i16> for Visibility {
             2 => Self::Direct,
             3 => Self::Followers,
             4 => Self::Subscribers,
-            _ => return Err(ConversionError),
+            _ => return Err(DatabaseTypeError),
         };
         Ok(visibility)
     }
@@ -118,13 +122,13 @@ impl Post {
         db_mentions: Vec<DbActorProfile>,
         db_tags: Vec<String>,
         db_links: Vec<Uuid>,
-    ) -> Result<Self, ConversionError> {
+    ) -> Result<Self, DatabaseTypeError> {
         // Consistency checks
         if db_post.author_id != db_author.id {
-            return Err(ConversionError);
+            return Err(DatabaseTypeError);
         };
         if db_author.is_local() != db_post.object_id.is_none() {
-            return Err(ConversionError);
+            return Err(DatabaseTypeError);
         };
         if db_post.repost_of_id.is_some() && (
             db_post.content.len() != 0 ||
@@ -137,7 +141,7 @@ impl Post {
             !db_tags.is_empty() ||
             !db_links.is_empty()
         ) {
-            return Err(ConversionError);
+            return Err(DatabaseTypeError);
         };
         let post = Self {
             id: db_post.id,

@@ -4,7 +4,8 @@ use regex::{Captures, Regex};
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::actors::types::ActorAddress;
-use crate::errors::{DatabaseError, ValidationError};
+use crate::database::DatabaseError;
+use crate::errors::ValidationError;
 use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
 
