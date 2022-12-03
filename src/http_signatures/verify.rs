@@ -70,7 +70,8 @@ pub fn parse_http_signature(
     let created_at = if let Some(created_at) = signature_parameters.get("created") {
         let create_at_timestamp = created_at.parse()
             .map_err(|_| VerificationError::ParseError("invalid timestamp"))?;
-        Utc.timestamp(create_at_timestamp, 0)
+        Utc.timestamp_opt(create_at_timestamp, 0).single()
+            .ok_or(VerificationError::ParseError("invalid timestamp"))?
     } else {
         let date_str = request_headers.get("date")
             .ok_or(VerificationError::ParseError("missing date"))?
@@ -83,7 +84,8 @@ pub fn parse_http_signature(
     let expires_at = if let Some(expires_at) = signature_parameters.get("expires") {
         let expires_at_timestamp = expires_at.parse()
             .map_err(|_| VerificationError::ParseError("invalid timestamp"))?;
-        Utc.timestamp(expires_at_timestamp, 0)
+        Utc.timestamp_opt(expires_at_timestamp, 0).single()
+            .ok_or(VerificationError::ParseError("invalid timestamp"))?
     } else {
         created_at + Duration::hours(SIGNATURE_EXPIRES_IN)
     };

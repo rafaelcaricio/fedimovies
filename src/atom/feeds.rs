@@ -10,7 +10,9 @@ use crate::utils::html::clean_html_all;
 const ENTRY_TITLE_MAX_LENGTH: usize = 75;
 
 fn get_min_datetime() -> DateTime<Utc> {
-    DateTime::from_utc(NaiveDateTime::from_timestamp(0, 0), Utc)
+    let native = NaiveDateTime::from_timestamp_opt(0, 0)
+        .expect("0 should be a valid argument");
+    DateTime::from_utc(native, Utc)
 }
 
 fn make_entry(
