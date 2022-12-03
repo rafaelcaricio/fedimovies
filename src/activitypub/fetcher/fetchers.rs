@@ -108,7 +108,7 @@ pub async fn fetch_file(
     let client = build_client(instance)?;
     let request_builder =
         build_request(instance, client, Method::GET, url);
-    let response = request_builder.send().await?;
+    let response = request_builder.send().await?.error_for_status()?;
     if let Some(file_size) = response.content_length() {
         if file_size > FILE_MAX_SIZE {
             return Err(FetchError::OtherError("file is too large"));
