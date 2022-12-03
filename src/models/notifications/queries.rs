@@ -160,7 +160,7 @@ pub async fn get_notifications(
         related_links=RELATED_LINKS,
     );
     let rows = db_client.query(
-        statement.as_str(),
+        &statement,
         &[&recipient_id, &max_id, &i64::from(limit)],
     ).await?;
     let mut notifications: Vec<Notification> = rows.iter()

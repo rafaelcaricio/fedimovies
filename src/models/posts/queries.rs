@@ -68,7 +68,7 @@ pub async fn create_post(
         visibility_public=i16::from(&Visibility::Public),
     );
     let maybe_post_row = transaction.query_opt(
-        insert_statement.as_str(),
+        &insert_statement,
         &[
             &post_id,
             &author_id,
@@ -586,7 +586,7 @@ pub async fn get_post_by_id(
         related_links=RELATED_LINKS,
     );
     let maybe_row = db_client.query_opt(
-        statement.as_str(),
+        &statement,
         &[&post_id],
     ).await?;
     let post = match maybe_row {
@@ -678,7 +678,7 @@ pub async fn get_post_by_remote_object_id(
         related_links=RELATED_LINKS,
     );
     let maybe_row = db_client.query_opt(
-        statement.as_str(),
+        &statement,
         &[&object_id],
     ).await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
@@ -708,7 +708,7 @@ pub async fn get_post_by_ipfs_cid(
         related_links=RELATED_LINKS,
     );
     let result = db_client.query_opt(
-        statement.as_str(),
+        &statement,
         &[&ipfs_cid],
     ).await?;
     let post = match result {

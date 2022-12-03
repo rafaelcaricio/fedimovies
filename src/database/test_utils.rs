@@ -21,13 +21,13 @@ pub async fn create_test_database() -> Client {
         "DROP DATABASE IF EXISTS {db_name:?}",
         db_name=db_name,
     );
-    db_client.execute(drop_db_statement.as_str(), &[]).await.unwrap();
+    db_client.execute(&drop_db_statement, &[]).await.unwrap();
     let create_db_statement = format!(
         "CREATE DATABASE {db_name:?} WITH OWNER={owner:?};",
         db_name=db_name,
         owner=db_config.get_user().unwrap(),
     );
-    db_client.execute(create_db_statement.as_str(), &[]).await.unwrap();
+    db_client.execute(&create_db_statement, &[]).await.unwrap();
 
     // Create new connection to database
     db_config.dbname(&db_name);
