@@ -1,34 +1,48 @@
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity},
     actors::types::Actor,
+    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
-    identifiers::local_object_id,
+    identifiers::{local_actor_id, local_object_id},
     vocabulary::FOLLOW,
 };
 use crate::config::Instance;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
 
+#[derive(Serialize)]
+struct Follow {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: String,
+
+    to: Vec<String>,
+}
+
 fn build_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     target_actor_id: &str,
     follow_request_id: &Uuid,
-) -> Activity {
-    let object = target_actor_id.to_string();
+) -> Follow {
     let activity_id = local_object_id(instance_url, follow_request_id);
-    let activity = create_activity(
-        instance_url,
-        &actor_profile.username,
-        FOLLOW,
-        activity_id,
-        object,
-        vec![target_actor_id.to_string()],
-        vec![],
-    );
-    activity
+    let actor_id = local_actor_id(instance_url, &actor_profile.username);
+    Follow {
+        context: AP_CONTEXT.to_string(),
+        activity_type: FOLLOW.to_string(),
+        id: activity_id,
+        actor: actor_id,
+        object: target_actor_id.to_string(),
+        to: vec![target_actor_id.to_string()],
+    }
 }
 
 pub fn prepare_follow(
@@ -54,7 +68,6 @@ pub fn prepare_follow(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use crate::utils::id::new_uuid;
     use super::*;
 
@@ -85,7 +98,6 @@ mod tests {
             format!("{}/users/{}", INSTANCE_URL, follower.username),
         );
         assert_eq!(activity.object, target_actor_id);
-        assert_eq!(activity.to.unwrap(), json!([target_actor_id]));
-        assert_eq!(activity.cc.unwrap(), json!([]));
+        assert_eq!(activity.to, vec![target_actor_id]);
     }
 }

@@ -1,11 +1,12 @@
+use serde::Serialize;
 use serde_json::json;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity, Object},
+    activity::Object,
     actors::types::Actor,
     constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
-    identifiers::local_object_id,
+    identifiers::{local_actor_id, local_object_id},
     vocabulary::{ACCEPT, FOLLOW},
 };
 use crate::config::Instance;
@@ -13,12 +14,27 @@ use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
 use crate::utils::id::new_uuid;
 
+#[derive(Serialize)]
+struct AcceptFollow {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: Object,
+
+    to: Vec<String>,
+}
+
 fn build_accept_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     source_actor_id: &str,
     follow_activity_id: &str,
-) -> Activity {
+) -> AcceptFollow {
     let object = Object {
         context: Some(json!(AP_CONTEXT)),
         id: follow_activity_id.to_string(),
@@ -27,16 +43,15 @@ fn build_accept_follow(
     };
     // Accept(Follow) is idempotent so its ID can be random
     let activity_id = local_object_id(instance_url, &new_uuid());
-    let activity = create_activity(
-        instance_url,
-        &actor_profile.username,
-        ACCEPT,
-        activity_id,
-        object,
-        vec![source_actor_id.to_string()],
-        vec![],
-    );
-    activity
+    let actor_id = local_actor_id(instance_url, &actor_profile.username);
+    AcceptFollow {
+        context: AP_CONTEXT.to_string(),
+        activity_type: ACCEPT.to_string(),
+        id: activity_id,
+        actor: actor_id,
+        object: object,
+        to: vec![source_actor_id.to_string()],
+    }
 }
 
 pub fn prepare_accept_follow(
@@ -83,7 +98,7 @@ mod tests {
 
         assert_eq!(activity.id.starts_with(INSTANCE_URL), true);
         assert_eq!(activity.activity_type, "Accept");
-        assert_eq!(activity.object["id"], follow_activity_id);
-        assert_eq!(activity.to.unwrap(), json!([follower_id]));
+        assert_eq!(activity.object.id, follow_activity_id);
+        assert_eq!(activity.to, vec![follower_id]);
     }
 }

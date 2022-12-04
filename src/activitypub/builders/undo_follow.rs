@@ -1,8 +1,9 @@
+use serde::Serialize;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity, Object},
+    activity::Object,
     actors::types::Actor,
     constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
@@ -13,12 +14,27 @@ use crate::config::Instance;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
 
+#[derive(Serialize)]
+struct UndoFollow {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: Object,
+
+    to: Vec<String>,
+}
+
 fn build_undo_follow(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     target_actor_id: &str,
     follow_request_id: &Uuid,
-) -> Activity {
+) -> UndoFollow {
     let follow_activity_id = local_object_id(
         instance_url,
         follow_request_id,
@@ -36,16 +52,15 @@ fn build_undo_follow(
         ..Default::default()
     };
     let activity_id = format!("{}/undo", object.id);
-    let activity = create_activity(
-        instance_url,
-        &actor_profile.username,
-        UNDO,
-        activity_id,
-        object,
-        vec![target_actor_id.to_string()],
-        vec![],
-    );
-    activity
+    let actor_id = local_actor_id(instance_url, &actor_profile.username);
+    UndoFollow {
+        context: AP_CONTEXT.to_string(),
+        activity_type: UNDO.to_string(),
+        id: activity_id,
+        actor: actor_id,
+        object: object,
+        to: vec![target_actor_id.to_string()],
+    }
 }
 
 pub fn prepare_undo_follow(
@@ -97,10 +112,10 @@ mod tests {
         );
         assert_eq!(activity.activity_type, "Undo");
         assert_eq!(
-            activity.object["id"],
+            activity.object.id,
             format!("{}/objects/{}", INSTANCE_URL, follow_request_id),
         );
-        assert_eq!(activity.object["object"], target_actor_id);
-        assert_eq!(activity.to.unwrap(), json!([target_actor_id]));
+        assert_eq!(activity.object.object.unwrap(), target_actor_id);
+        assert_eq!(activity.to, vec![target_actor_id]);
     }
 }
