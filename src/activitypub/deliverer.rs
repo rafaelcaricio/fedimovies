@@ -5,6 +5,7 @@ use actix_web::http::Method;
 use reqwest::{Client, Proxy};
 use rsa::RsaPrivateKey;
 use serde::Serialize;
+use serde_json::Value;
 use tokio::time::sleep;
 
 use crate::config::Instance;
@@ -111,7 +112,7 @@ fn backoff(retry_count: u32) -> Duration {
 async fn deliver_activity_worker(
     instance: Instance,
     sender: User,
-    activity: impl Serialize,
+    activity: Value,
     recipients: Vec<Actor>,
 ) -> Result<(), DelivererError> {
     let actor_key = deserialize_private_key(&sender.private_key)?;
@@ -123,12 +124,11 @@ async fn deliver_activity_worker(
         ),
         ACTOR_KEY_SUFFIX,
     );
-    let activity_value = serde_json::to_value(&activity)?;
-    let activity_signed = if is_object_signed(&activity_value) {
+    let activity_signed = if is_object_signed(&activity) {
         log::warn!("activity is already signed");
-        activity_value
+        activity
     } else {
-        sign_object(&activity_value, &actor_key, &actor_key_id)?
+        sign_object(&activity, &actor_key, &actor_key_id)?
     };
 
     let activity_json = serde_json::to_string(&activity_signed)?;
@@ -189,14 +189,29 @@ async fn deliver_activity_worker(
     Ok(())
 }
 
-pub struct OutgoingActivity<A: Serialize> {
+pub struct OutgoingActivity {
     pub instance: Instance,
     pub sender: User,
-    pub activity: A,
+    pub activity: Value,
     pub recipients: Vec<Actor>,
 }
 
-impl<A: Serialize + Send + 'static> OutgoingActivity<A> {
+impl OutgoingActivity {
+    pub fn new(
+        instance: &Instance,
+        sender: &User,
+        activity: impl Serialize,
+        recipients: Vec<Actor>,
+    ) -> Self {
+        Self {
+            instance: instance.clone(),
+            sender: sender.clone(),
+            activity: serde_json::to_value(activity)
+                .expect("activity should be serializable"),
+            recipients,
+        }
+    }
+
     pub async fn deliver(self) -> Result<(), DelivererError> {
         deliver_activity_worker(
             self.instance,

@@ -36,7 +36,7 @@ pub fn prepare_follow(
     sender: &User,
     target_actor: &Actor,
     follow_request_id: &Uuid,
-) -> OutgoingActivity<Activity> {
+) -> OutgoingActivity {
     let activity = build_follow(
         &instance.url(),
         &sender.profile,
@@ -44,12 +44,12 @@ pub fn prepare_follow(
         follow_request_id,
     );
     let recipients = vec![target_actor.clone()];
-    OutgoingActivity {
-        instance: instance.clone(),
-        sender: sender.clone(),
+    OutgoingActivity::new(
+        instance,
+        sender,
         activity,
         recipients,
-    }
+    )
 }
 
 #[cfg(test)]

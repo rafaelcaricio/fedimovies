@@ -222,7 +222,7 @@ pub async fn prepare_create_note(
     instance: &Instance,
     author: &User,
     post: &Post,
-) -> Result<OutgoingActivity<Activity>, DatabaseError> {
+) -> Result<OutgoingActivity, DatabaseError> {
     assert_eq!(author.id, post.author.id);
     let activity = build_create_note(
         &instance.hostname(),
@@ -230,12 +230,12 @@ pub async fn prepare_create_note(
         post,
     );
     let recipients = get_note_recipients(db_client, author, post).await?;
-    Ok(OutgoingActivity {
-        instance: instance.clone(),
-        sender: author.clone(),
+    Ok(OutgoingActivity::new(
+        instance,
+        author,
         activity,
         recipients,
-    })
+    ))
 }
 
 #[cfg(test)]

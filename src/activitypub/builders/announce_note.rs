@@ -16,7 +16,7 @@ use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;
 
 #[derive(Serialize)]
-pub struct Announce {
+struct Announce {
     #[serde(rename = "@context")]
     context: String,
 
@@ -80,7 +80,7 @@ pub async fn prepare_announce_note(
     instance: &Instance,
     sender: &User,
     repost: &Post,
-) -> Result<OutgoingActivity<Announce>, DatabaseError> {
+) -> Result<OutgoingActivity, DatabaseError> {
     let post = repost.repost_of.as_ref().unwrap();
     let (recipients, _) = get_announce_note_recipients(
         db_client,
@@ -93,12 +93,12 @@ pub async fn prepare_announce_note(
         &sender.profile.username,
         repost,
     );
-    Ok(OutgoingActivity {
-        instance: instance.clone(),
-        sender: sender.clone(),
+    Ok(OutgoingActivity::new(
+        instance,
+        sender,
         activity,
         recipients,
-    })
+    ))
 }
 
 #[cfg(test)]

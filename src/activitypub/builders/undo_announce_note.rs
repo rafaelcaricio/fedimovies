@@ -47,7 +47,7 @@ pub async fn prepare_undo_announce_note(
     sender: &User,
     post: &Post,
     repost_id: &Uuid,
-) -> Result<OutgoingActivity<Activity>, DatabaseError> {
+) -> Result<OutgoingActivity, DatabaseError> {
     assert_ne!(&post.id, repost_id);
     let (recipients, primary_recipient) = get_announce_note_recipients(
         db_client,
@@ -61,12 +61,12 @@ pub async fn prepare_undo_announce_note(
         repost_id,
         &primary_recipient,
     );
-    Ok(OutgoingActivity {
-        instance: instance.clone(),
-        sender: sender.clone(),
+    Ok(OutgoingActivity::new(
+        instance,
+        sender,
         activity,
         recipients,
-    })
+    ))
 }
 
 #[cfg(test)]

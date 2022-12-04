@@ -398,7 +398,7 @@ async fn send_signed_activity(
                 from_actor_id,
                 followers,
                 internal_activity_id,
-            ).map_err(|_| HttpError::InternalError)?
+            )
         },
         ActivityParams::Update { internal_activity_id } => {
             prepare_signed_update_person(

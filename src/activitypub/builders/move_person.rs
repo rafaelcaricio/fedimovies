@@ -1,5 +1,4 @@
 use serde::Serialize;
-use serde_json::Value;
 use uuid::Uuid;
 
 use crate::activitypub::{
@@ -10,7 +9,6 @@ use crate::activitypub::{
     vocabulary::MOVE,
 };
 use crate::config::Instance;
-use crate::errors::ConversionError;
 use crate::models::users::types::User;
 
 #[derive(Serialize)]
@@ -55,7 +53,7 @@ pub fn prepare_signed_move_person(
     from_actor_id: &str,
     followers: Vec<Actor>,
     internal_activity_id: &Uuid,
-) -> Result<OutgoingActivity<Value>, ConversionError> {
+) -> OutgoingActivity {
     let followers_ids: Vec<String> = followers.iter()
         .map(|actor| actor.id.clone())
         .collect();
@@ -66,12 +64,10 @@ pub fn prepare_signed_move_person(
         &followers_ids,
         internal_activity_id,
     );
-    let activity_value = serde_json::to_value(activity)
-        .map_err(|_| ConversionError)?;
-    Ok(OutgoingActivity {
-        instance: instance.clone(),
-        sender: sender.clone(),
-        activity: activity_value,
-        recipients: followers,
-    })
+    OutgoingActivity::new(
+        instance,
+        sender,
+        activity,
+        followers,
+    )
 }

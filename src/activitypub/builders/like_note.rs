@@ -68,7 +68,7 @@ pub async fn prepare_like_note(
     sender: &User,
     post: &Post,
     reaction_id: &Uuid,
-) -> Result<OutgoingActivity<Activity>, DatabaseError> {
+) -> Result<OutgoingActivity, DatabaseError> {
     let recipients = get_like_note_recipients(
         db_client,
         &instance.url(),
@@ -84,12 +84,12 @@ pub async fn prepare_like_note(
         &note_author_id,
         &post.visibility,
     );
-    Ok(OutgoingActivity {
-        instance: instance.clone(),
-        sender: sender.clone(),
+    Ok(OutgoingActivity::new(
+        instance,
+        sender,
         activity,
         recipients,
-    })
+    ))
 }
 
 #[cfg(test)]

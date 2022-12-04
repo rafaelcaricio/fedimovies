@@ -49,15 +49,15 @@ pub async fn prepare_delete_person(
     db_client: &impl GenericClient,
     instance: &Instance,
     user: &User,
-) -> Result<OutgoingActivity<Activity>, DatabaseError> {
+) -> Result<OutgoingActivity, DatabaseError> {
     let activity = build_delete_person(&instance.url(), user);
     let recipients = get_delete_person_recipients(db_client, &user.id).await?;
-    Ok(OutgoingActivity {
-        instance: instance.clone(),
-        sender: user.clone(),
+    Ok(OutgoingActivity::new(
+        instance,
+        user,
         activity,
         recipients,
-    })
+    ))
 }
 
 #[cfg(test)]

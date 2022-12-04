@@ -12,7 +12,7 @@ use crate::models::users::types::User;
 use crate::utils::id::new_uuid;
 
 #[derive(Serialize)]
-pub struct AddOrRemovePerson {
+struct AddOrRemovePerson {
     #[serde(rename = "@context")]
     context: String,
 
@@ -55,7 +55,7 @@ pub fn prepare_update_collection(
     person: &Actor,
     collection: LocalActorCollection,
     remove: bool,
-) -> OutgoingActivity<AddOrRemovePerson> {
+) -> OutgoingActivity {
     let activity = build_update_collection(
         &instance.url(),
         &sender.profile.username,
@@ -64,12 +64,12 @@ pub fn prepare_update_collection(
         remove,
     );
     let recipients = vec![person.clone()];
-    OutgoingActivity {
-        instance: instance.clone(),
-        sender: sender.clone(),
+    OutgoingActivity::new(
+        instance,
+        sender,
         activity,
         recipients,
-    }
+    )
 }
 
 pub fn prepare_add_person(
@@ -77,7 +77,7 @@ pub fn prepare_add_person(
     sender: &User,
     person: &Actor,
     collection: LocalActorCollection,
-) -> OutgoingActivity<AddOrRemovePerson> {
+) -> OutgoingActivity {
     prepare_update_collection(instance, sender, person, collection, false)
 }
 

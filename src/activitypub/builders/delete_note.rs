@@ -52,7 +52,7 @@ pub async fn prepare_delete_note(
     instance: &Instance,
     author: &User,
     post: &Post,
-) -> Result<OutgoingActivity<Activity>, DatabaseError> {
+) -> Result<OutgoingActivity, DatabaseError> {
     assert_eq!(author.id, post.author.id);
     let mut post = post.clone();
     add_related_posts(db_client, vec![&mut post]).await?;
@@ -62,12 +62,12 @@ pub async fn prepare_delete_note(
         &post,
     );
     let recipients = get_note_recipients(db_client, author, &post).await?;
-    Ok(OutgoingActivity {
-        instance: instance.clone(),
-        sender: author.clone(),
+    Ok(OutgoingActivity::new(
+        instance,
+        author,
         activity,
         recipients,
-    })
+    ))
 }
 
 #[cfg(test)]

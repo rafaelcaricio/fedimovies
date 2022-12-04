@@ -1,5 +1,4 @@
 use serde::Serialize;
-use serde_json::Value;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
@@ -73,16 +72,16 @@ pub async fn prepare_update_person(
     db_client: &impl GenericClient,
     instance: &Instance,
     user: &User,
-) -> Result<OutgoingActivity<UpdatePerson>, DatabaseError> {
+) -> Result<OutgoingActivity, DatabaseError> {
     let activity = build_update_person(&instance.url(), user, None)
         .map_err(|_| DatabaseTypeError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
-    Ok(OutgoingActivity {
-        instance: instance.clone(),
-        sender: user.clone(),
+    Ok(OutgoingActivity::new(
+        instance,
+        user,
         activity,
         recipients,
-    })
+    ))
 }
 
 pub async fn prepare_signed_update_person(
@@ -90,21 +89,19 @@ pub async fn prepare_signed_update_person(
     instance: &Instance,
     user: &User,
     internal_activity_id: Uuid,
-) -> Result<OutgoingActivity<Value>, DatabaseError> {
+) -> Result<OutgoingActivity, DatabaseError> {
     let activity = build_update_person(
         &instance.url(),
         user,
         Some(internal_activity_id),
     ).map_err(|_| DatabaseTypeError)?;
-    let activity_value = serde_json::to_value(activity)
-        .map_err(|_| DatabaseTypeError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
-    Ok(OutgoingActivity {
-        instance: instance.clone(),
-        sender: user.clone(),
-        activity: activity_value,
+    Ok(OutgoingActivity::new(
+        instance,
+        user,
+        activity,
         recipients,
-    })
+    ))
 }
 
 #[cfg(test)]
