@@ -1,13 +1,11 @@
 use serde::Serialize;
-use serde_json::json;
 
 use crate::activitypub::{
-    activity::Object,
     actors::types::Actor,
     constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
-    vocabulary::{ACCEPT, FOLLOW},
+    vocabulary::ACCEPT,
 };
 use crate::config::Instance;
 use crate::models::profiles::types::DbActorProfile;
@@ -24,7 +22,7 @@ struct AcceptFollow {
 
     id: String,
     actor: String,
-    object: Object,
+    object: String,
 
     to: Vec<String>,
 }
@@ -35,12 +33,6 @@ fn build_accept_follow(
     source_actor_id: &str,
     follow_activity_id: &str,
 ) -> AcceptFollow {
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
-        id: follow_activity_id.to_string(),
-        object_type: FOLLOW.to_string(),
-        ..Default::default()
-    };
     // Accept(Follow) is idempotent so its ID can be random
     let activity_id = local_object_id(instance_url, &new_uuid());
     let actor_id = local_actor_id(instance_url, &actor_profile.username);
@@ -49,7 +41,7 @@ fn build_accept_follow(
         activity_type: ACCEPT.to_string(),
         id: activity_id,
         actor: actor_id,
-        object: object,
+        object: follow_activity_id.to_string(),
         to: vec![source_actor_id.to_string()],
     }
 }
@@ -98,7 +90,7 @@ mod tests {
 
         assert_eq!(activity.id.starts_with(INSTANCE_URL), true);
         assert_eq!(activity.activity_type, "Accept");
-        assert_eq!(activity.object.id, follow_activity_id);
+        assert_eq!(activity.object, follow_activity_id);
         assert_eq!(activity.to, vec![follower_id]);
     }
 }
