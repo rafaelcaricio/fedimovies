@@ -13,18 +13,18 @@ use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
 
 #[derive(Serialize)]
-struct Follow {
+pub(super) struct Follow {
     #[serde(rename = "@context")]
-    context: String,
+    pub context: String,
 
     #[serde(rename = "type")]
-    activity_type: String,
+    pub activity_type: String,
 
-    id: String,
-    actor: String,
-    object: String,
+    pub id: String,
+    pub actor: String,
+    pub object: String,
 
-    to: Vec<String>,
+    pub to: Vec<String>,
 }
 
 fn build_follow(

@@ -1,9 +1,7 @@
 use serde::Serialize;
-use serde_json::json;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::Object,
     actors::types::Actor,
     constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
@@ -13,6 +11,7 @@ use crate::activitypub::{
 use crate::config::Instance;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
+use super::follow::Follow;
 
 #[derive(Serialize)]
 struct UndoFollow {
@@ -24,7 +23,7 @@ struct UndoFollow {
 
     id: String,
     actor: String,
-    object: Object,
+    object: Follow,
 
     to: Vec<String>,
 }
@@ -43,13 +42,13 @@ fn build_undo_follow(
         instance_url,
         &actor_profile.username,
     );
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
+    let object = Follow {
+        context: AP_CONTEXT.to_string(),
+        activity_type: FOLLOW.to_string(),
         id: follow_activity_id,
-        object_type: FOLLOW.to_string(),
-        actor: Some(follow_actor_id),
-        object: Some(target_actor_id.to_owned()),
-        ..Default::default()
+        actor: follow_actor_id,
+        object: target_actor_id.to_string(),
+        to: vec![target_actor_id.to_string()],
     };
     let activity_id = format!("{}/undo", object.id);
     let actor_id = local_actor_id(instance_url, &actor_profile.username);
@@ -115,7 +114,7 @@ mod tests {
             activity.object.id,
             format!("{}/objects/{}", INSTANCE_URL, follow_request_id),
         );
-        assert_eq!(activity.object.object.unwrap(), target_actor_id);
+        assert_eq!(activity.object.object, target_actor_id);
         assert_eq!(activity.to, vec![target_actor_id]);
     }
 }
