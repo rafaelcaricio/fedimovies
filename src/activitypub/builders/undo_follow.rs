@@ -68,3 +68,39 @@ pub fn prepare_undo_follow(
         recipients,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::id::new_uuid;
+    use super::*;
+
+    const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_build_undo_follow() {
+        let actor_profile = DbActorProfile {
+            username: "user".to_string(),
+            ..Default::default()
+        };
+        let target_actor_id = "https://test.remote/users/123";
+        let follow_request_id = new_uuid();
+        let activity = build_undo_follow(
+            INSTANCE_URL,
+            &actor_profile,
+            target_actor_id,
+            &follow_request_id,
+        );
+
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}/undo", INSTANCE_URL, follow_request_id),
+        );
+        assert_eq!(activity.activity_type, "Undo");
+        assert_eq!(
+            activity.object["id"],
+            format!("{}/objects/{}", INSTANCE_URL, follow_request_id),
+        );
+        assert_eq!(activity.object["object"], target_actor_id);
+        assert_eq!(activity.to.unwrap(), json!([target_actor_id]));
+    }
+}

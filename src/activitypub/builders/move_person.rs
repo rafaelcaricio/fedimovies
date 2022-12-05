@@ -71,3 +71,49 @@ pub fn prepare_signed_move_person(
         followers,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::models::profiles::types::DbActorProfile;
+    use crate::utils::id::new_uuid;
+    use super::*;
+
+    const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_build_move_person() {
+        let sender = User {
+            profile: DbActorProfile {
+                username: "testuser".to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let from_actor_id = "https://server0.org/users/test";
+        let followers = vec![
+            "https://server1.org/users/1".to_string(),
+            "https://server2.org/users/2".to_string(),
+        ];
+        let internal_activity_id = new_uuid();
+        let activity = build_move_person(
+            INSTANCE_URL,
+            &sender,
+            from_actor_id,
+            &followers,
+            &internal_activity_id,
+        );
+
+        assert_eq!(
+            activity.id,
+            format!("{}/objects/{}", INSTANCE_URL, internal_activity_id),
+        );
+        assert_eq!(activity.activity_type, "Move");
+        assert_eq!(
+            activity.actor,
+            format!("{}/users/{}", INSTANCE_URL, sender.profile.username),
+        );
+        assert_eq!(activity.object, from_actor_id);
+        assert_eq!(activity.target, activity.actor);
+        assert_eq!(activity.to, followers);
+    }
+}

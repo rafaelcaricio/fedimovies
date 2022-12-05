@@ -67,7 +67,7 @@ mod tests {
     const INSTANCE_URL: &str = "https://example.com";
 
     #[test]
-    fn test_create_activity_accept_follow() {
+    fn test_build_accept_follow() {
         let target = DbActorProfile {
             username: "user".to_string(),
             ..Default::default()
@@ -82,6 +82,7 @@ mod tests {
         );
 
         assert_eq!(activity.id.starts_with(INSTANCE_URL), true);
+        assert_eq!(activity.activity_type, "Accept");
         assert_eq!(activity.object["id"], follow_activity_id);
         assert_eq!(activity.to.unwrap(), json!([follower_id]));
     }
