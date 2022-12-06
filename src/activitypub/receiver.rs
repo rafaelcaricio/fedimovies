@@ -32,8 +32,7 @@ use super::handlers::{
     remove::handle_remove,
     undo::handle_undo,
     undo_follow::handle_undo_follow,
-    update_note::handle_update_note,
-    update_person::handle_update_person,
+    update::handle_update,
 };
 use super::vocabulary::*;
 
@@ -264,15 +263,9 @@ pub async fn receive_activity(
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_undo(db_client, activity).await?
         },
-        (UPDATE, NOTE) => {
+        (UPDATE, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            let object: Object = serde_json::from_value(activity.object)
-                .map_err(|_| ValidationError("invalid object"))?;
-            handle_update_note(db_client, object).await?
-        },
-        (UPDATE, PERSON) => {
-            require_actor_signature(&activity.actor, &signer_id)?;
-            handle_update_person(config, db_client, activity).await?
+            handle_update(config, db_client, activity).await?
         },
         (MOVE, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;

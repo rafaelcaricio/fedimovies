@@ -15,5 +15,6 @@ pub mod reject_follow;
 pub mod remove;
 pub mod undo;
 pub mod undo_follow;
-pub mod update_note;
+pub mod update;
+mod update_note;
 pub mod update_person;
