@@ -1,10 +1,10 @@
+use serde::Serialize;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity},
     actors::types::Actor,
-    constants::AP_PUBLIC,
+    constants::{AP_CONTEXT, AP_PUBLIC},
     deliverer::OutgoingActivity,
     vocabulary::DELETE,
 };
@@ -13,21 +13,35 @@ use crate::database::DatabaseError;
 use crate::models::relationships::queries::{get_followers, get_following};
 use crate::models::users::types::User;
 
+#[derive(Serialize)]
+struct DeletePerson {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: String,
+
+    to: Vec<String>,
+}
+
 fn build_delete_person(
     instance_url: &str,
     user: &User,
-) -> Activity {
+) -> DeletePerson {
     let actor_id = user.profile.actor_id(instance_url);
     let activity_id = format!("{}/delete", actor_id);
-    create_activity(
-        instance_url,
-        &user.profile.username,
-        DELETE,
-        activity_id,
-        actor_id,
-        vec![AP_PUBLIC.to_string()],
-        vec![],
-    )
+    DeletePerson {
+        context: AP_CONTEXT.to_string(),
+        activity_type: DELETE.to_string(),
+        id: activity_id,
+        actor: actor_id.clone(),
+        object: actor_id,
+        to: vec![AP_PUBLIC.to_string()],
+    }
 }
 
 async fn get_delete_person_recipients(
@@ -62,7 +76,6 @@ pub async fn prepare_delete_person(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
@@ -82,10 +95,11 @@ mod tests {
             activity.id,
             format!("{}/users/testuser/delete", INSTANCE_URL),
         );
+        assert_eq!(activity.actor, activity.object);
         assert_eq!(
             activity.object,
             format!("{}/users/testuser", INSTANCE_URL),
         );
-        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC]));
+        assert_eq!(activity.to, vec![AP_PUBLIC]);
     }
 }

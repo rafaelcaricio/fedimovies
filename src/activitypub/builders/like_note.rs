@@ -1,12 +1,12 @@
+use serde::Serialize;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity},
     actors::types::Actor,
-    constants::AP_PUBLIC,
+    constants::{AP_CONTEXT, AP_PUBLIC},
     deliverer::OutgoingActivity,
-    identifiers::local_object_id,
+    identifiers::{local_actor_id, local_object_id},
     vocabulary::LIKE,
 };
 use crate::config::Instance;
@@ -14,6 +14,22 @@ use crate::database::DatabaseError;
 use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
+
+#[derive(Serialize)]
+struct Like {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: String,
+
+    to: Vec<String>,
+    cc: Vec<String>,
+}
 
 pub fn get_like_note_audience(
     note_author_id: &str,
@@ -34,20 +50,20 @@ fn build_like_note(
     reaction_id: &Uuid,
     note_author_id: &str,
     note_visibility: &Visibility,
-) -> Activity {
+) -> Like {
     let activity_id = local_object_id(instance_url, reaction_id);
+    let actor_id = local_actor_id(instance_url, &actor_profile.username);
     let (primary_audience, secondary_audience) =
         get_like_note_audience(note_author_id, note_visibility);
-    let activity = create_activity(
-        instance_url,
-        &actor_profile.username,
-        LIKE,
-        activity_id,
-        note_id,
-        primary_audience,
-        secondary_audience,
-    );
-    activity
+    Like {
+        context: AP_CONTEXT.to_string(),
+        activity_type: LIKE.to_string(),
+        id: activity_id,
+        actor: actor_id,
+        object: note_id.to_string(),
+        to: primary_audience,
+        cc: secondary_audience,
+    }
 }
 
 pub async fn get_like_note_recipients(
@@ -94,7 +110,6 @@ pub async fn prepare_like_note(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use crate::utils::id::new_uuid;
     use super::*;
 
@@ -118,7 +133,8 @@ mod tests {
             activity.id,
             format!("{}/objects/{}", INSTANCE_URL, reaction_id),
         );
-        assert_eq!(activity.object, json!(note_id));
-        assert_eq!(activity.to.unwrap(), json!([note_author_id, AP_PUBLIC]));
+        assert_eq!(activity.object, note_id);
+        assert_eq!(activity.to, vec![note_author_id, AP_PUBLIC]);
+        assert_eq!(activity.cc.is_empty(), true);
     }
 }

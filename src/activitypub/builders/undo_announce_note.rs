@@ -1,11 +1,11 @@
+use serde::Serialize;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity},
-    constants::AP_PUBLIC,
+    constants::{AP_CONTEXT, AP_PUBLIC},
     deliverer::OutgoingActivity,
-    identifiers::{local_actor_followers, local_object_id},
+    identifiers::{local_actor_id, local_actor_followers, local_object_id},
     vocabulary::UNDO,
 };
 use crate::config::Instance;
@@ -15,14 +15,31 @@ use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
 use super::announce_note::get_announce_note_recipients;
 
+#[derive(Serialize)]
+struct UndoAnnounce {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: String,
+
+    to: Vec<String>,
+    cc: Vec<String>,
+}
+
 fn build_undo_announce(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     repost_id: &Uuid,
     recipient_id: &str,
-) -> Activity {
+) -> UndoAnnounce {
     let object_id = local_object_id(instance_url, repost_id);
     let activity_id = format!("{}/undo", object_id);
+    let actor_id = local_actor_id(instance_url, &actor_profile.username);
     let primary_audience = vec![
         AP_PUBLIC.to_string(),
         recipient_id.to_string(),
@@ -30,15 +47,15 @@ fn build_undo_announce(
     let secondary_audience = vec![
         local_actor_followers(instance_url, &actor_profile.username),
     ];
-    create_activity(
-        instance_url,
-        &actor_profile.username,
-        UNDO,
-        activity_id,
-        object_id,
-        primary_audience,
-        secondary_audience,
-    )
+    UndoAnnounce {
+        context: AP_CONTEXT.to_string(),
+        activity_type: UNDO.to_string(),
+        id: activity_id,
+        actor: actor_id,
+        object: object_id,
+        to: primary_audience,
+        cc: secondary_audience,
+    }
 }
 
 pub async fn prepare_undo_announce_note(
@@ -71,7 +88,6 @@ pub async fn prepare_undo_announce_note(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use crate::utils::id::new_uuid;
     use super::*;
 
@@ -96,6 +112,6 @@ mod tests {
             activity.object,
             format!("{}/objects/{}", INSTANCE_URL, repost_id),
         );
-        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC, post_author_id]));
+        assert_eq!(activity.to, vec![AP_PUBLIC, post_author_id]);
     }
 }

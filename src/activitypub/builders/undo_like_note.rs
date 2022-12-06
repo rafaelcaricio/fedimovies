@@ -1,10 +1,11 @@
+use serde::Serialize;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity},
+    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
-    identifiers::local_object_id,
+    identifiers::{local_actor_id, local_object_id},
     vocabulary::UNDO,
 };
 use crate::config::Instance;
@@ -17,26 +18,43 @@ use super::like_note::{
     get_like_note_recipients,
 };
 
+#[derive(Serialize)]
+struct UndoLike {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: String,
+
+    to: Vec<String>,
+    cc: Vec<String>,
+}
+
 fn build_undo_like(
     instance_url: &str,
     actor_profile: &DbActorProfile,
     reaction_id: &Uuid,
     note_author_id: &str,
     note_visibility: &Visibility,
-) -> Activity {
+) -> UndoLike {
     let object_id = local_object_id(instance_url, reaction_id);
     let activity_id = format!("{}/undo", object_id);
+    let actor_id = local_actor_id(instance_url, &actor_profile.username);
     let (primary_audience, secondary_audience) =
         get_like_note_audience(note_author_id, note_visibility);
-    create_activity(
-        instance_url,
-        &actor_profile.username,
-        UNDO,
-        activity_id,
-        object_id,
-        primary_audience,
-        secondary_audience,
-    )
+    UndoLike {
+        context: AP_CONTEXT.to_string(),
+        activity_type: UNDO.to_string(),
+        id: activity_id,
+        actor: actor_id,
+        object: object_id,
+        to: primary_audience,
+        cc: secondary_audience,
+    }
 }
 
 pub async fn prepare_undo_like_note(
@@ -69,7 +87,6 @@ pub async fn prepare_undo_like_note(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use crate::activitypub::constants::AP_PUBLIC;
     use crate::utils::id::new_uuid;
     use super::*;
@@ -96,6 +113,6 @@ mod tests {
             activity.object,
             format!("{}/objects/{}", INSTANCE_URL, reaction_id),
         );
-        assert_eq!(activity.to.unwrap(), json!([note_author_id, AP_PUBLIC]));
+        assert_eq!(activity.to, vec![note_author_id, AP_PUBLIC]);
     }
 }

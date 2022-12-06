@@ -23,8 +23,8 @@ struct Announce {
     #[serde(rename = "type")]
     activity_type: String,
 
-    actor: String,
     id: String,
+    actor: String,
     object: String,
     published: DateTime<Utc>,
 

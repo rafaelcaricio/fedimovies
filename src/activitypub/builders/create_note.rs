@@ -3,7 +3,7 @@ use serde::Serialize;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::{create_activity, Activity, Attachment, Tag},
+    activity::{Attachment, Tag},
     actors::types::Actor,
     constants::{AP_MEDIA_TYPE, AP_CONTEXT, AP_PUBLIC},
     deliverer::OutgoingActivity,
@@ -163,25 +163,40 @@ pub fn build_note(
     }
 }
 
+#[derive(Serialize)]
+pub struct CreateNote {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: Note,
+
+    to: Vec<String>,
+    cc: Vec<String>,
+}
+
 pub fn build_create_note(
     instance_hostname: &str,
     instance_url: &str,
     post: &Post,
-) -> Activity {
+) -> CreateNote {
     let object = build_note(instance_hostname, instance_url, post);
     let primary_audience = object.to.clone();
     let secondary_audience = object.cc.clone();
     let activity_id = format!("{}/create", object.id);
-    let activity = create_activity(
-        instance_url,
-        &post.author.username,
-        CREATE,
-        activity_id,
-        object,
-        primary_audience,
-        secondary_audience,
-    );
-    activity
+    CreateNote {
+        context: AP_CONTEXT.to_string(),
+        activity_type: CREATE.to_string(),
+        id: activity_id,
+        actor: object.attributed_to.clone(),
+        object: object,
+        to: primary_audience,
+        cc: secondary_audience,
+    }
 }
 
 pub async fn get_note_recipients(
@@ -240,7 +255,6 @@ pub async fn prepare_create_note(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
@@ -422,6 +436,9 @@ mod tests {
             activity.actor,
             format!("{}/users/{}", INSTANCE_URL, author_username),
         );
-        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC]));
+        assert_eq!(activity.to, vec![AP_PUBLIC]);
+        assert_eq!(activity.object.attributed_to, activity.actor);
+        assert_eq!(activity.object.to, activity.to);
+        assert_eq!(activity.object.cc, activity.cc);
     }
 }

@@ -1,10 +1,12 @@
-use serde_json::json;
+use serde::Serialize;
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::activity::{create_activity, Activity, Object};
-use crate::activitypub::constants::AP_CONTEXT;
-use crate::activitypub::deliverer::OutgoingActivity;
-use crate::activitypub::vocabulary::{DELETE, NOTE, TOMBSTONE};
+use crate::activitypub::{
+    constants::AP_CONTEXT,
+    deliverer::OutgoingActivity,
+    identifiers::local_actor_id,
+    vocabulary::{DELETE, NOTE, TOMBSTONE},
+};
 use crate::config::Instance;
 use crate::database::DatabaseError;
 use crate::models::posts::helpers::add_related_posts;
@@ -16,35 +18,59 @@ use super::create_note::{
     Note,
 };
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Tombstone {
+    id: String,
+
+    #[serde(rename = "type")]
+    object_type: String,
+
+    former_type: String,
+}
+
+#[derive(Serialize)]
+struct DeleteNote {
+    #[serde(rename = "@context")]
+    context: String,
+
+    #[serde(rename = "type")]
+    activity_type: String,
+
+    id: String,
+    actor: String,
+    object: Tombstone,
+
+    to: Vec<String>,
+    cc: Vec<String>,
+}
+
 fn build_delete_note(
     instance_hostname: &str,
     instance_url: &str,
     post: &Post,
-) -> Activity {
+) -> DeleteNote {
     let object_id = post.object_id(instance_url);
-    let object = Object {
-        context: Some(json!(AP_CONTEXT)),
-        id: object_id,
-        object_type: TOMBSTONE.to_string(),
-        former_type: Some(NOTE.to_string()),
-        ..Default::default()
-    };
-    let activity_id = format!("{}/delete", object.id);
+    let activity_id = format!("{}/delete", object_id);
+    let actor_id = local_actor_id(instance_url, &post.author.username);
     let Note { to, cc, .. } = build_note(
         instance_hostname,
         instance_url,
         post,
     );
-    let activity = create_activity(
-        instance_url,
-        &post.author.username,
-        DELETE,
-        activity_id,
-        object,
-        to,
-        cc,
-    );
-    activity
+    DeleteNote {
+        context: AP_CONTEXT.to_string(),
+        activity_type: DELETE.to_string(),
+        id: activity_id,
+        actor: actor_id,
+        object: Tombstone {
+            id: object_id,
+            object_type: TOMBSTONE.to_string(),
+            former_type: NOTE.to_string(),
+        },
+        to: to,
+        cc: cc,
+    }
 }
 
 pub async fn prepare_delete_note(
@@ -72,7 +98,6 @@ pub async fn prepare_delete_note(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use crate::activitypub::{
         constants::AP_PUBLIC,
         identifiers::local_actor_followers,
@@ -101,13 +126,14 @@ mod tests {
             format!("{}/objects/{}/delete", INSTANCE_URL, post.id),
         );
         assert_eq!(
-            activity.object["id"],
+            activity.object.id,
             format!("{}/objects/{}", INSTANCE_URL, post.id),
         );
-        assert_eq!(activity.to.unwrap(), json!([AP_PUBLIC]));
+        assert_eq!(activity.object.object_type, "Tombstone");
+        assert_eq!(activity.to, vec![AP_PUBLIC]);
         assert_eq!(
-            activity.cc.unwrap(),
-            json!([local_actor_followers(INSTANCE_URL, "author")]),
+            activity.cc,
+            vec![local_actor_followers(INSTANCE_URL, "author")],
         );
     }
 }

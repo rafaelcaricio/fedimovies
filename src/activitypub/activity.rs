@@ -1,10 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
-use super::constants::AP_CONTEXT;
-use super::identifiers::local_actor_id;
-use super::vocabulary::*;
+use super::vocabulary::HASHTAG;
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -122,26 +120,4 @@ pub struct Activity {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cc: Option<Value>,
-}
-
-pub fn create_activity(
-    instance_url: &str,
-    actor_name: &str,
-    activity_type: &str,
-    activity_id: String,
-    object: impl Serialize,
-    primary_audience: Vec<String>,
-    secondary_audience: Vec<String>,
-) -> Activity {
-    let actor_id = local_actor_id(instance_url, actor_name);
-    Activity {
-        context: json!(AP_CONTEXT),
-        id: activity_id,
-        activity_type: activity_type.to_string(),
-        actor: actor_id,
-        object: serde_json::to_value(object).unwrap(),
-        target: None,
-        to: Some(json!(primary_audience)),
-        cc: Some(json!(secondary_audience)),
-    }
 }
