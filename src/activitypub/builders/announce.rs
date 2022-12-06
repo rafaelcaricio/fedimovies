@@ -32,7 +32,7 @@ struct Announce {
     cc: Vec<String>,
 }
 
-fn build_announce_note(
+fn build_announce(
     instance_url: &str,
     sender_username: &str,
     repost: &Post,
@@ -55,7 +55,7 @@ fn build_announce_note(
     }
 }
 
-pub async fn get_announce_note_recipients(
+pub async fn get_announce_recipients(
     db_client: &impl GenericClient,
     instance_url: &str,
     current_user: &User,
@@ -75,20 +75,20 @@ pub async fn get_announce_note_recipients(
     Ok((recipients, primary_recipient))
 }
 
-pub async fn prepare_announce_note(
+pub async fn prepare_announce(
     db_client: &impl GenericClient,
     instance: &Instance,
     sender: &User,
     repost: &Post,
 ) -> Result<OutgoingActivity, DatabaseError> {
     let post = repost.repost_of.as_ref().unwrap();
-    let (recipients, _) = get_announce_note_recipients(
+    let (recipients, _) = get_announce_recipients(
         db_client,
         &instance.url(),
         sender,
         post,
     ).await?;
-    let activity = build_announce_note(
+    let activity = build_announce(
         &instance.url(),
         &sender.profile.username,
         repost,
@@ -110,7 +110,7 @@ mod tests {
     const INSTANCE_URL: &str = "https://example.com";
 
     #[test]
-    fn test_build_announce_note() {
+    fn test_build_announce() {
         let post_author_id = "https://test.net/user/test";
         let post_author = DbActorProfile {
             actor_json: Some(Actor {
@@ -136,7 +136,7 @@ mod tests {
             repost_of: Some(Box::new(post)),
             ..Default::default()
         };
-        let activity = build_announce_note(
+        let activity = build_announce(
             INSTANCE_URL,
             &repost_author.username,
             &repost,

@@ -6,12 +6,12 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
 use crate::activitypub::builders::{
-    announce_note::prepare_announce_note,
+    announce::prepare_announce,
     create_note::prepare_create_note,
     delete_note::prepare_delete_note,
-    like_note::prepare_like_note,
-    undo_announce_note::prepare_undo_announce_note,
-    undo_like_note::prepare_undo_like_note,
+    like::prepare_like,
+    undo_announce::prepare_undo_announce,
+    undo_like::prepare_undo_like,
 };
 use crate::config::Config;
 use crate::database::{get_database_client, DatabaseError, DbPool};
@@ -305,7 +305,7 @@ async fn favourite(
 
     if let Some(reaction) = maybe_reaction_created {
         // Federate
-        prepare_like_note(
+        prepare_like(
             db_client,
             &config.instance(),
             &current_user,
@@ -346,7 +346,7 @@ async fn unfavourite(
 
     if let Some(reaction_id) = maybe_reaction_deleted {
         // Federate
-        prepare_undo_like_note(
+        prepare_undo_like(
             db_client,
             &config.instance(),
             &current_user,
@@ -383,7 +383,7 @@ async fn reblog(
     repost.repost_of = Some(Box::new(post));
 
     // Federate
-    prepare_announce_note(
+    prepare_announce(
         db_client,
         &config.instance(),
         &current_user,
@@ -419,7 +419,7 @@ async fn unreblog(
     let post = get_post_by_id(db_client, &status_id).await?;
 
     // Federate
-    prepare_undo_announce_note(
+    prepare_undo_announce(
         db_client,
         &config.instance(),
         &current_user,

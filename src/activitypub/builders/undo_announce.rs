@@ -13,7 +13,7 @@ use crate::database::DatabaseError;
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
-use super::announce_note::get_announce_note_recipients;
+use super::announce::get_announce_recipients;
 
 #[derive(Serialize)]
 struct UndoAnnounce {
@@ -58,7 +58,7 @@ fn build_undo_announce(
     }
 }
 
-pub async fn prepare_undo_announce_note(
+pub async fn prepare_undo_announce(
     db_client: &impl GenericClient,
     instance: &Instance,
     sender: &User,
@@ -66,7 +66,7 @@ pub async fn prepare_undo_announce_note(
     repost_id: &Uuid,
 ) -> Result<OutgoingActivity, DatabaseError> {
     assert_ne!(&post.id, repost_id);
-    let (recipients, primary_recipient) = get_announce_note_recipients(
+    let (recipients, primary_recipient) = get_announce_recipients(
         db_client,
         &instance.url(),
         sender,
