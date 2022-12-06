@@ -31,7 +31,6 @@ use super::handlers::{
     reject_follow::handle_reject_follow,
     remove::handle_remove,
     undo::handle_undo,
-    undo_follow::handle_undo_follow,
     update::handle_update,
 };
 use super::vocabulary::*;
@@ -255,13 +254,9 @@ pub async fn receive_activity(
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_follow(config, db_client, activity).await?
         },
-        (UNDO, FOLLOW) => {
-            require_actor_signature(&activity.actor, &signer_id)?;
-            handle_undo_follow(config, db_client, activity).await?
-        },
         (UNDO, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            handle_undo(db_client, activity).await?
+            handle_undo(config, db_client, activity).await?
         },
         (UPDATE, _) => {
             require_actor_signature(&activity.actor, &signer_id)?;

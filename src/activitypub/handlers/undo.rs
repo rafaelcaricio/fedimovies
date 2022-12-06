@@ -3,8 +3,9 @@ use tokio_postgres::GenericClient;
 use crate::activitypub::{
     activity::Activity,
     receiver::find_object_id,
-    vocabulary::{ANNOUNCE, LIKE},
+    vocabulary::{ANNOUNCE, FOLLOW, LIKE},
 };
+use crate::config::Config;
 use crate::database::DatabaseError;
 use crate::errors::ValidationError;
 use crate::models::posts::queries::{
@@ -17,11 +18,17 @@ use crate::models::reactions::queries::{
     get_reaction_by_remote_activity_id,
 };
 use super::HandlerResult;
+use super::undo_follow::handle_undo_follow;
 
 pub async fn handle_undo(
+    config: &Config,
     db_client: &mut impl GenericClient,
     activity: Activity,
 ) -> HandlerResult {
+    if let Some(FOLLOW) = activity.object["type"].as_str() {
+        return handle_undo_follow(config, db_client, activity).await
+    };
+
     let actor_profile = get_profile_by_remote_actor_id(
         db_client,
         &activity.actor,
