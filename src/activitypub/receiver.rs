@@ -154,9 +154,6 @@ pub async fn receive_activity(
         .map_err(|_| ValidationError("invalid activity"))?;
     let activity_type = activity.activity_type.clone();
     let activity_actor = activity.actor.clone();
-    let maybe_object_type = activity.object.get("type")
-        .and_then(|val| val.as_str())
-        .unwrap_or("Unknown");
 
     let is_self_delete = if activity_type == DELETE {
         let object_id = find_object_id(&activity.object)?;
@@ -213,16 +210,16 @@ pub async fn receive_activity(
 
     let signer_id = signer.actor_id(&config.instance_url());
 
-    let maybe_object_type = match (activity_type.as_str(), maybe_object_type) {
-        (ACCEPT, _) => {
+    let maybe_object_type = match activity_type.as_str() {
+        ACCEPT => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_accept_follow(config, db_client, activity).await?
         },
-        (REJECT, _) => {
+        REJECT => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_reject_follow(config, db_client, activity).await?
         },
-        (CREATE, _) => {
+        CREATE => {
             let object: Object = serde_json::from_value(activity.object)
                 .map_err(|_| ValidationError("invalid object"))?;
             let object_id = object.id.clone();
@@ -235,42 +232,42 @@ pub async fn receive_activity(
             import_post(config, db_client, object_id, object_received).await?;
             Some(NOTE)
         },
-        (ANNOUNCE, _) => {
+        ANNOUNCE => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_announce(config, db_client, activity).await?
         },
-        (DELETE, _) => {
+        DELETE => {
             if signer_id != activity.actor {
                 // Ignore forwarded Delete() activities
                 return Ok(());
             };
             handle_delete(config, db_client, activity).await?
         },
-        (EMOJI_REACT | LIKE, _) => {
+        EMOJI_REACT | LIKE => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_like(config, db_client, activity).await?
         },
-        (FOLLOW, _) => {
+        FOLLOW => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_follow(config, db_client, activity).await?
         },
-        (UNDO, _) => {
+        UNDO => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_undo(config, db_client, activity).await?
         },
-        (UPDATE, _) => {
+        UPDATE => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_update(config, db_client, activity).await?
         },
-        (MOVE, _) => {
+        MOVE => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_move_person(config, db_client, activity).await?
         },
-        (ADD, _) => {
+        ADD => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_add(config, db_client, activity).await?
         },
-        (REMOVE, _) => {
+        REMOVE => {
             require_actor_signature(&activity.actor, &signer_id)?;
             handle_remove(config, db_client, activity).await?
         },
