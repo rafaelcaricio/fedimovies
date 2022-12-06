@@ -23,6 +23,7 @@ pub const SERVICE: &str = "Service";
 // Object types
 pub const ARTICLE: &str = "Article";
 pub const DOCUMENT: &str = "Document";
+pub const EVENT: &str = "Event";
 pub const IMAGE: &str = "Image";
 pub const MENTION: &str = "Mention";
 pub const NOTE: &str = "Note";

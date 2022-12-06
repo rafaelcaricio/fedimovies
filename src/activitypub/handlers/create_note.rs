@@ -76,15 +76,17 @@ pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
         object.name.as_deref().unwrap_or("").to_string()
     };
     if object.object_type != NOTE {
-        if let Some(ref value) = object.url {
-            // Append link to object
-            let object_url = parse_object_url(value)
-                .map_err(|_| ValidationError("invalid object URL"))?;
-            content += &format!(
-                r#"<p><a href="{0}">{0}</a></p>"#,
-                object_url,
-            );
+        // Append link to object
+        let object_url = if let Some(ref value) = object.url {
+            parse_object_url(value)
+                .map_err(|_| ValidationError("invalid object URL"))?
+        } else {
+            object.id.clone()
         };
+        content += &format!(
+            r#"<p><a href="{0}">{0}</a></p>"#,
+            object_url,
+        );
     };
     if content.len() > CONTENT_MAX_SIZE {
         return Err(ValidationError("content is too long"));
@@ -130,7 +132,7 @@ pub async fn handle_note(
 ) -> Result<Post, HandlerError> {
     match object.object_type.as_str() {
         NOTE => (),
-        ARTICLE | QUESTION | PAGE | VIDEO => {
+        ARTICLE | EVENT | QUESTION | PAGE | VIDEO => {
             log::info!("processing object of type {}", object.object_type);
         },
         other_type => {
