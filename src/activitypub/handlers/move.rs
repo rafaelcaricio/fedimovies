@@ -1,15 +1,15 @@
+use serde::Deserialize;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::Activity,
     builders::{
         follow::prepare_follow,
         undo_follow::prepare_undo_follow,
     },
     fetcher::helpers::get_or_import_profile_by_actor_id,
     identifiers::parse_local_actor_id,
-    receiver::{find_object_id, parse_array},
+    receiver::parse_array,
     vocabulary::PERSON,
 };
 use crate::config::Config;
@@ -27,22 +27,24 @@ use crate::models::{
 };
 use super::HandlerResult;
 
+#[derive(Deserialize)]
+struct Move {
+    actor: String,
+    object: String,
+    target: String,
+}
+
 pub async fn handle_move(
     config: &Config,
     db_client: &mut impl GenericClient,
     activity: Value,
 ) -> HandlerResult {
     // Move(Person)
-    let activity: Activity = serde_json::from_value(activity)
+    let activity: Move = serde_json::from_value(activity)
         .map_err(|_| ValidationError("unexpected activity structure"))?;
-    let object_id = find_object_id(&activity.object)?;
-    let target_value = activity.target
-        .ok_or(ValidationError("target is missing"))?;
-    let target_id = find_object_id(&target_value)?;
-
-    // Actor is old profile (Mastodon)
-    // Actor is new profile (Mitra)
-    if object_id != activity.actor && target_id != activity.actor {
+    // Mastodon: actor is old profile (object)
+    // Mitra: actor is new profile (target)
+    if activity.object != activity.actor && activity.target != activity.actor {
         return Err(ValidationError("actor ID mismatch").into());
     };
 
@@ -50,7 +52,7 @@ pub async fn handle_move(
     let media_dir = config.media_dir();
     let old_profile = if let Ok(username) = parse_local_actor_id(
         &instance.url(),
-        &object_id,
+        &activity.object,
     ) {
         let old_user = get_user_by_name(db_client, &username).await?;
         old_user.profile
@@ -59,7 +61,7 @@ pub async fn handle_move(
             db_client,
             &instance,
             &media_dir,
-            &object_id,
+            &activity.object,
         ).await?
     };
     let old_actor_id = old_profile.actor_id(&instance.url());
@@ -67,9 +69,10 @@ pub async fn handle_move(
         db_client,
         &instance,
         &media_dir,
-        &target_id,
+        &activity.target,
     ).await?;
-    let new_actor = new_profile.actor_json.unwrap();
+    let new_actor = new_profile.actor_json
+        .expect("target should be a remote actor");
 
     // Find aliases by DIDs
     let mut aliases = vec![];
