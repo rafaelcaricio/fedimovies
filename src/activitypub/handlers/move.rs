@@ -26,11 +26,12 @@ use crate::models::{
 };
 use super::HandlerResult;
 
-pub async fn handle_move_person(
+pub async fn handle_move(
     config: &Config,
     db_client: &mut impl GenericClient,
     activity: Activity,
 ) -> HandlerResult {
+    // Move(Person)
     let object_id = find_object_id(&activity.object)?;
     let target_value = activity.target
         .ok_or(ValidationError("target is missing"))?;

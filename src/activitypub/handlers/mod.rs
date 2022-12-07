@@ -3,15 +3,15 @@ pub use super::receiver::HandlerError;
 // or None if it has been ignored
 pub type HandlerResult = Result<Option<&'static str>, HandlerError>;
 
-pub mod accept_follow;
+pub mod accept;
 pub mod add;
 pub mod announce;
-pub mod create_note;
+pub mod create;
 pub mod delete;
 pub mod follow;
 pub mod like;
-pub mod move_person;
-pub mod reject_follow;
+pub mod r#move;
+pub mod reject;
 pub mod remove;
 pub mod undo;
 mod undo_follow;

@@ -10,17 +10,18 @@ use crate::config::Config;
 use crate::errors::ValidationError;
 use crate::models::profiles::queries::get_profile_by_remote_actor_id;
 use crate::models::relationships::queries::{
-    follow_request_rejected,
+    follow_request_accepted,
     get_follow_request_by_id,
 };
 use crate::models::relationships::types::FollowRequestStatus;
 use super::HandlerResult;
 
-pub async fn handle_reject_follow(
+pub async fn handle_accept(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_client: &mut impl GenericClient,
     activity: Activity,
 ) -> HandlerResult {
+    // Accept(Follow)
     let actor_profile = get_profile_by_remote_actor_id(
         db_client,
         &activity.actor,
@@ -34,10 +35,10 @@ pub async fn handle_reject_follow(
     if follow_request.target_id != actor_profile.id {
         return Err(ValidationError("actor is not a target").into());
     };
-    if matches!(follow_request.request_status, FollowRequestStatus::Rejected) {
-        // Ignore Reject if follow request already rejected
+    if matches!(follow_request.request_status, FollowRequestStatus::Accepted) {
+        // Ignore Accept if follow request already accepted
         return Ok(None);
     };
-    follow_request_rejected(db_client, &follow_request_id).await?;
+    follow_request_accepted(db_client, &follow_request_id).await?;
     Ok(Some(FOLLOW))
 }

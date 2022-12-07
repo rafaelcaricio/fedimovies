@@ -18,15 +18,15 @@ use super::authentication::{
 };
 use super::fetcher::fetchers::FetchError;
 use super::handlers::{
-    accept_follow::handle_accept_follow,
+    accept::handle_accept,
     add::handle_add,
     announce::handle_announce,
-    create_note::handle_create,
+    create::handle_create,
     delete::handle_delete,
     follow::handle_follow,
     like::handle_like,
-    move_person::handle_move_person,
-    reject_follow::handle_reject_follow,
+    r#move::handle_move,
+    reject::handle_reject,
     remove::handle_remove,
     undo::handle_undo,
     update::handle_update,
@@ -211,11 +211,11 @@ pub async fn receive_activity(
     let maybe_object_type = match activity_type.as_str() {
         ACCEPT => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            handle_accept_follow(config, db_client, activity).await?
+            handle_accept(config, db_client, activity).await?
         },
         REJECT => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            handle_reject_follow(config, db_client, activity).await?
+            handle_reject(config, db_client, activity).await?
         },
         CREATE => {
             handle_create(config, db_client, activity, &signer_id).await?
@@ -249,7 +249,7 @@ pub async fn receive_activity(
         },
         MOVE => {
             require_actor_signature(&activity.actor, &signer_id)?;
-            handle_move_person(config, db_client, activity).await?
+            handle_move(config, db_client, activity).await?
         },
         ADD => {
             require_actor_signature(&activity.actor, &signer_id)?;

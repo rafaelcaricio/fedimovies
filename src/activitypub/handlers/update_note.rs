@@ -10,7 +10,7 @@ use crate::models::posts::queries::{
 };
 use crate::models::posts::types::PostUpdateData;
 use super::HandlerResult;
-use super::create_note::get_note_content;
+use super::create::get_note_content;
 
 pub async fn handle_update_note(
     db_client: &mut impl GenericClient,

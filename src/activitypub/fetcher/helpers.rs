@@ -7,7 +7,7 @@ use crate::activitypub::{
     activity::Object,
     actors::types::{Actor, ActorAddress},
     handlers::{
-        create_note::handle_note,
+        create::handle_note,
         update_person::update_remote_profile,
     },
     identifiers::parse_local_object_id,
