@@ -91,15 +91,15 @@ pub async fn verify_signed_request(
         Err(other_error) => return Err(other_error.into()),
     };
 
-    let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
-    let actor_profile = if no_fetch {
-        get_profile_by_remote_actor_id(db_client, &actor_id).await?
+    let signer_id = key_id_to_actor_id(&signature_data.key_id)?;
+    let signer = if no_fetch {
+        get_profile_by_remote_actor_id(db_client, &signer_id).await?
     } else {
         match get_or_import_profile_by_actor_id(
             db_client,
             &config.instance(),
             &config.media_dir(),
-            &actor_id,
+            &signer_id,
         ).await {
             Ok(profile) => profile,
             Err(HandlerError::DatabaseError(error)) => return Err(error.into()),
@@ -108,13 +108,14 @@ pub async fn verify_signed_request(
             },
         }
     };
-    let actor = actor_profile.actor_json.as_ref()
-        .ok_or(AuthenticationError::ActorError("local signer"))?;
-    let public_key = deserialize_public_key(&actor.public_key.public_key_pem)?;
+    let signer_actor = signer.actor_json.as_ref()
+        .expect("request should be signed by remote actor");
+    let signer_key =
+        deserialize_public_key(&signer_actor.public_key.public_key_pem)?;
 
-    verify_http_signature(&signature_data, &public_key)?;
+    verify_http_signature(&signature_data, &signer_key)?;
 
-    Ok(actor_profile)
+    Ok(signer)
 }
 
 pub async fn verify_signed_activity(
@@ -122,6 +123,8 @@ pub async fn verify_signed_activity(
     db_client: &impl GenericClient,
     activity: &Value,
 ) -> Result<DbActorProfile, AuthenticationError> {
+    let actor_id = activity["actor"].as_str()
+        .ok_or(AuthenticationError::ActorError("unknown actor"))?;
     let signature_data = match get_json_signature(activity) {
         Ok(signature_data) => signature_data,
         Err(JsonSignatureError::NoProof) => {
@@ -130,17 +133,17 @@ pub async fn verify_signed_activity(
         Err(other_error) => return Err(other_error.into()),
     };
 
-    let actor_profile = match signature_data.signer {
+    let signer = match signature_data.signer {
         JsonSigner::ActorKeyId(ref key_id) => {
             if signature_data.signature_type != SignatureType::JcsRsaSignature {
                 return Err(AuthenticationError::InvalidJsonSignatureType);
             };
-            let actor_id = key_id_to_actor_id(key_id)?;
-            let actor_profile = match get_or_import_profile_by_actor_id(
+            let signer_id = key_id_to_actor_id(key_id)?;
+            let signer = match get_or_import_profile_by_actor_id(
                 db_client,
                 &config.instance(),
                 &config.media_dir(),
-                &actor_id,
+                &signer_id,
             ).await {
                 Ok(profile) => profile,
                 Err(HandlerError::DatabaseError(error)) => {
@@ -150,12 +153,12 @@ pub async fn verify_signed_activity(
                     return Err(AuthenticationError::ImportError(other_error.to_string()));
                 },
             };
-            let actor = actor_profile.actor_json.as_ref()
-                .ok_or(AuthenticationError::ActorError("local signer"))?;
-            let public_key =
-                deserialize_public_key(&actor.public_key.public_key_pem)?;
-            verify_rsa_json_signature(&signature_data, &public_key)?;
-            actor_profile
+            let signer_actor = signer.actor_json.as_ref()
+                .expect("activity should be signed by remote actor");
+            let signer_key =
+                deserialize_public_key(&signer_actor.public_key.public_key_pem)?;
+            verify_rsa_json_signature(&signature_data, &signer_key)?;
+            signer
         },
         JsonSigner::Did(did) => {
             let profiles: Vec<_> = search_profiles_by_did_only(db_client, &did)
@@ -169,9 +172,7 @@ pub async fn verify_signed_activity(
                     profiles.len(),
                 );
             };
-            let actor_id = activity["actor"].as_str()
-                .ok_or(AuthenticationError::ActorError("unknown actor"))?;
-            let actor_profile = profiles.iter()
+            let signer = profiles.iter()
                 .find(|profile| profile.actor_id(&config.instance_url()) == actor_id)
                 // Use first profile with a given DID
                 // if none of them matches actor
@@ -205,11 +206,11 @@ pub async fn verify_signed_activity(
                 _ => return Err(AuthenticationError::InvalidJsonSignatureType),
             };
 
-            actor_profile
+            signer
         },
     };
 
-    Ok(actor_profile)
+    Ok(signer)
 }
 
 #[cfg(test)]
