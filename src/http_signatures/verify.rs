@@ -13,6 +13,9 @@ const SIGNATURE_EXPIRES_IN: i64 = 12; // 12 hours
 
 #[derive(thiserror::Error, Debug)]
 pub enum HttpSignatureVerificationError {
+    #[error("missing signature header")]
+    NoSignature,
+
     #[error("{0}")]
     HeaderError(&'static str),
 
@@ -41,7 +44,7 @@ pub fn parse_http_signature(
     request_headers: &HeaderMap,
 ) -> Result<HttpSignatureData, VerificationError> {
     let signature_header = request_headers.get("signature")
-        .ok_or(VerificationError::HeaderError("missing signature header"))?
+        .ok_or(VerificationError::NoSignature)?
         .to_str()
         .map_err(|_| VerificationError::HeaderError("invalid signature header"))?;
 

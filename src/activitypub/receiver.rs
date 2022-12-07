@@ -157,6 +157,8 @@ pub async fn receive_activity(
         let object_id = find_object_id(&activity.object)?;
         activity.actor == object_id
     } else { false };
+
+    // HTTP signature is required
     let mut signer = match verify_signed_request(
         config,
         db_client,
@@ -169,8 +171,13 @@ pub async fn receive_activity(
             request_signer
         },
         Err(error) => {
-            if is_self_delete {
+            if is_self_delete && matches!(
+                error,
+                AuthenticationError::NoHttpSignature |
+                AuthenticationError::DatabaseError(_)
+            ) {
                 // Ignore Delete(Person) activities without HTTP signatures
+                // or if signer is not found in local database
                 return Ok(());
             };
             log::warn!("invalid HTTP signature: {}", error);
@@ -178,7 +185,7 @@ pub async fn receive_activity(
         },
     };
 
-    // Verify embedded signature
+    // JSON signature is optional
     match verify_signed_activity(config, db_client, activity_raw).await {
         Ok(activity_signer) => {
             if activity_signer.acct != signer.acct {

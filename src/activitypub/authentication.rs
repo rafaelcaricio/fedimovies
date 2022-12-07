@@ -32,6 +32,9 @@ pub enum AuthenticationError {
     #[error(transparent)]
     HttpSignatureError(#[from] HttpSignatureError),
 
+    #[error("no HTTP signature")]
+    NoHttpSignature,
+
     #[error(transparent)]
     JsonSignatureError(#[from] JsonSignatureError),
 
@@ -76,11 +79,17 @@ pub async fn verify_signed_request(
     request: &HttpRequest,
     no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {
-    let signature_data = parse_http_signature(
+    let signature_data = match parse_http_signature(
         request.method(),
         request.uri(),
         request.headers(),
-    )?;
+    ) {
+        Ok(signature_data) => signature_data,
+        Err(HttpSignatureError::NoSignature) => {
+            return Err(AuthenticationError::NoHttpSignature);
+        },
+        Err(other_error) => return Err(other_error.into()),
+    };
 
     let actor_id = key_id_to_actor_id(&signature_data.key_id)?;
     let actor_profile = if no_fetch {
@@ -113,12 +122,13 @@ pub async fn verify_signed_activity(
     db_client: &impl GenericClient,
     activity: &Value,
 ) -> Result<DbActorProfile, AuthenticationError> {
-    let signature_data = get_json_signature(activity).map_err(|error| {
-        match error {
-            JsonSignatureError::NoProof => AuthenticationError::NoJsonSignature,
-            other_error => other_error.into(),
-        }
-    })?;
+    let signature_data = match get_json_signature(activity) {
+        Ok(signature_data) => signature_data,
+        Err(JsonSignatureError::NoProof) => {
+            return Err(AuthenticationError::NoJsonSignature);
+        },
+        Err(other_error) => return Err(other_error.into()),
+    };
 
     let actor_profile = match signature_data.signer {
         JsonSigner::ActorKeyId(ref key_id) => {
