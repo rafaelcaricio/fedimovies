@@ -7,18 +7,19 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{Attachment, Link, Object, Tag},
+    activity::{Activity, Attachment, Link, Object, Tag},
     constants::{AP_MEDIA_TYPE, AP_PUBLIC, AS_MEDIA_TYPE},
     fetcher::fetchers::fetch_file,
     fetcher::helpers::{
         get_or_import_profile_by_actor_id,
+        import_post,
         import_profile_by_actor_address,
     },
     identifiers::parse_local_actor_id,
     receiver::{parse_array, parse_property_value, HandlerError},
     vocabulary::*,
 };
-use crate::config::Instance;
+use crate::config::{Config, Instance};
 use crate::database::DatabaseError;
 use crate::errors::{ConversionError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
@@ -34,6 +35,7 @@ use crate::models::profiles::queries::get_profile_by_acct;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::queries::get_user_by_name;
 use crate::utils::html::clean_html;
+use super::HandlerResult;
 
 fn get_note_author_id(object: &Object) -> Result<String, ValidationError> {
     let attributed_to = object.attributed_to.as_ref()
@@ -384,6 +386,26 @@ pub async fn handle_note(
     };
     let post = create_post(db_client, &author.id, post_data).await?;
     Ok(post)
+}
+
+pub async fn handle_create(
+    config: &Config,
+    db_client: &mut impl GenericClient,
+    activity: Activity,
+    signer_id: &str,
+) -> HandlerResult {
+    let object: Object = serde_json::from_value(activity.object)
+        .map_err(|_| ValidationError("invalid object"))?;
+    let object_id = object.id.clone();
+    let object_received = if activity.actor == signer_id {
+        Some(object)
+    } else {
+        // Fetch forwarded object, don't trust the sender.
+        // Most likely it's a forwarded reply.
+        None
+    };
+    import_post(config, db_client, object_id, object_received).await?;
+    Ok(Some(NOTE))
 }
 
 #[cfg(test)]

@@ -10,20 +10,18 @@ use crate::errors::{
     HttpError,
     ValidationError,
 };
-use super::activity::{Activity, Object};
+use super::activity::Activity;
 use super::authentication::{
     verify_signed_activity,
     verify_signed_request,
     AuthenticationError,
 };
-use super::fetcher::{
-    fetchers::FetchError,
-    helpers::import_post,
-};
+use super::fetcher::fetchers::FetchError;
 use super::handlers::{
     accept_follow::handle_accept_follow,
     add::handle_add,
     announce::handle_announce,
+    create_note::handle_create,
     delete::handle_delete,
     follow::handle_follow,
     like::handle_like,
@@ -220,17 +218,7 @@ pub async fn receive_activity(
             handle_reject_follow(config, db_client, activity).await?
         },
         CREATE => {
-            let object: Object = serde_json::from_value(activity.object)
-                .map_err(|_| ValidationError("invalid object"))?;
-            let object_id = object.id.clone();
-            let object_received = if activity.actor == signer_id {
-                Some(object)
-            } else {
-                // Fetch forwarded note, don't trust the sender
-                None
-            };
-            import_post(config, db_client, object_id, object_received).await?;
-            Some(NOTE)
+            handle_create(config, db_client, activity, &signer_id).await?
         },
         ANNOUNCE => {
             require_actor_signature(&activity.actor, &signer_id)?;
