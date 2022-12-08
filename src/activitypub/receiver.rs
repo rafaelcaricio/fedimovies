@@ -127,35 +127,20 @@ pub fn find_object_id(object: &Value) -> Result<String, ValidationError> {
     Ok(object_id)
 }
 
-fn require_actor_signature(actor_id: &str, signer_id: &str)
-    -> Result<(), AuthenticationError>
-{
-    if actor_id != signer_id {
-        // Forwarded activity
-        log::warn!(
-            "request signer {} does not match actor {}",
-            signer_id,
-            actor_id,
-        );
-        return Err(AuthenticationError::UnexpectedSigner);
-    };
-    Ok(())
-}
-
 pub async fn receive_activity(
     config: &Config,
     db_client: &mut impl GenericClient,
     request: &HttpRequest,
     activity_raw: &Value,
 ) -> Result<(), HandlerError> {
-    let activity: Activity = serde_json::from_value(activity_raw.clone())
-        .map_err(|_| ValidationError("invalid activity"))?;
-    let activity_type = activity.activity_type.clone();
-    let activity_actor = activity.actor.clone();
+    let activity_type = activity_raw["type"].as_str()
+        .ok_or(ValidationError("type property is missing"))?;
+    let activity_actor = activity_raw["actor"].as_str()
+        .ok_or(ValidationError("actor property is missing"))?;
 
     let is_self_delete = if activity_type == DELETE {
-        let object_id = find_object_id(&activity.object)?;
-        activity.actor == object_id
+        let object_id = find_object_id(&activity_raw["object"])?;
+        object_id == activity_actor
     } else { false };
 
     // HTTP signature is required
@@ -220,56 +205,63 @@ pub async fn receive_activity(
     };
 
     let signer_id = signer.actor_id(&config.instance_url());
+    let is_authenticated = activity_actor == signer_id;
+    if !is_authenticated {
+        match activity_type {
+            CREATE => (), // Accept forwarded Create() activities
+            DELETE => {
+                // Ignore forwarded Delete(Person) and Delete(Note) activities
+                return Ok(());
+            },
+            _ => {
+                // Reject other types
+                log::warn!(
+                    "request signer {} does not match actor {}",
+                    signer_id,
+                    activity_actor,
+                );
+                return Err(AuthenticationError::UnexpectedSigner.into());
+            },
+        };
+    };
 
-    let maybe_object_type = match activity_type.as_str() {
+    let activity: Activity = serde_json::from_value(activity_raw.clone())
+        .map_err(|_| ValidationError("invalid activity"))?;
+    let maybe_object_type = match activity_type {
         ACCEPT => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_accept(config, db_client, activity).await?
         },
         REJECT => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_reject(config, db_client, activity).await?
         },
         CREATE => {
-            handle_create(config, db_client, activity, &signer_id).await?
+            handle_create(config, db_client, activity, is_authenticated).await?
         },
         ANNOUNCE => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_announce(config, db_client, activity).await?
         },
         DELETE => {
-            if signer_id != activity.actor {
-                // Ignore forwarded Delete() activities
-                return Ok(());
-            };
             handle_delete(config, db_client, activity).await?
         },
         EMOJI_REACT | LIKE => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_like(config, db_client, activity).await?
         },
         FOLLOW => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_follow(config, db_client, activity).await?
         },
         UNDO => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_undo(config, db_client, activity).await?
         },
         UPDATE => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_update(config, db_client, activity).await?
         },
         MOVE => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_move(config, db_client, activity).await?
         },
         ADD => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_add(config, db_client, activity).await?
         },
         REMOVE => {
-            require_actor_signature(&activity.actor, &signer_id)?;
             handle_remove(config, db_client, activity).await?
         },
         _ => {

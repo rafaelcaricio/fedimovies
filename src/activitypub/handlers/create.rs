@@ -392,15 +392,15 @@ pub async fn handle_create(
     config: &Config,
     db_client: &mut impl GenericClient,
     activity: Activity,
-    signer_id: &str,
+    is_authenticated: bool,
 ) -> HandlerResult {
     let object: Object = serde_json::from_value(activity.object)
         .map_err(|_| ValidationError("invalid object"))?;
     let object_id = object.id.clone();
-    let object_received = if activity.actor == signer_id {
+    let object_received = if is_authenticated {
         Some(object)
     } else {
-        // Fetch forwarded object, don't trust the sender.
+        // Fetch object, don't trust the sender.
         // Most likely it's a forwarded reply.
         None
     };
