@@ -1,13 +1,13 @@
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::{Activity, Object},
+    activity::Activity,
     identifiers::parse_local_actor_id,
+    receiver::find_object_id,
     vocabulary::FOLLOW,
 };
 use crate::config::Config;
 use crate::database::DatabaseError;
-use crate::errors::ValidationError;
 use crate::models::profiles::queries::{
     get_profile_by_acct,
     get_profile_by_remote_actor_id,
@@ -20,14 +20,11 @@ pub async fn handle_undo_follow(
     db_client: &mut impl GenericClient,
     activity: Activity,
 ) -> HandlerResult {
-    let object: Object = serde_json::from_value(activity.object)
-        .map_err(|_| ValidationError("invalid object"))?;
     let source_profile = get_profile_by_remote_actor_id(
         db_client,
         &activity.actor,
     ).await?;
-    let target_actor_id = object.object
-        .ok_or(ValidationError("invalid object"))?;
+    let target_actor_id = find_object_id(&activity.object["object"])?;
     let target_username = parse_local_actor_id(
         &config.instance_url(),
         &target_actor_id,

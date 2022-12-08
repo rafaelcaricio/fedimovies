@@ -26,6 +26,8 @@ pub async fn handle_undo(
     activity: Activity,
 ) -> HandlerResult {
     if let Some(FOLLOW) = activity.object["type"].as_str() {
+        // Object type is currently required for processing Undo(Follow)
+        // because activity IDs of remote follow requests are not stored.
         return handle_undo_follow(config, db_client, activity).await
     };
 
