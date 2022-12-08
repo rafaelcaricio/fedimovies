@@ -186,7 +186,13 @@ pub async fn receive_activity(
     };
 
     // JSON signature is optional
-    match verify_signed_activity(config, db_client, activity_raw).await {
+    match verify_signed_activity(
+        config,
+        db_client,
+        activity_raw,
+        // Don't fetch actor if this is Delete(Person) activity
+        is_self_delete,
+    ).await {
         Ok(activity_signer) => {
             if activity_signer.acct != signer.acct {
                 log::warn!(

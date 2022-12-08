@@ -69,6 +69,32 @@ fn key_id_to_actor_id(key_id: &str) -> Result<String, AuthenticationError> {
     Ok(actor_id.to_string())
 }
 
+async fn get_signer(
+    config: &Config,
+    db_client: &impl GenericClient,
+    signer_id: &str,
+    no_fetch: bool,
+) -> Result<DbActorProfile, AuthenticationError> {
+    let signer = if no_fetch {
+        // Avoid fetching (e.g. if signer was deleted)
+        get_profile_by_remote_actor_id(db_client, signer_id).await?
+    } else {
+        match get_or_import_profile_by_actor_id(
+            db_client,
+            &config.instance(),
+            &config.media_dir(),
+            signer_id,
+        ).await {
+            Ok(profile) => profile,
+            Err(HandlerError::DatabaseError(error)) => return Err(error.into()),
+            Err(other_error) => {
+                return Err(AuthenticationError::ImportError(other_error.to_string()));
+            },
+        }
+    };
+    Ok(signer)
+}
+
 /// Verifies HTTP signature and returns signer
 pub async fn verify_signed_request(
     config: &Config,
@@ -89,22 +115,7 @@ pub async fn verify_signed_request(
     };
 
     let signer_id = key_id_to_actor_id(&signature_data.key_id)?;
-    let signer = if no_fetch {
-        get_profile_by_remote_actor_id(db_client, &signer_id).await?
-    } else {
-        match get_or_import_profile_by_actor_id(
-            db_client,
-            &config.instance(),
-            &config.media_dir(),
-            &signer_id,
-        ).await {
-            Ok(profile) => profile,
-            Err(HandlerError::DatabaseError(error)) => return Err(error.into()),
-            Err(other_error) => {
-                return Err(AuthenticationError::ImportError(other_error.to_string()));
-            },
-        }
-    };
+    let signer = get_signer(config, db_client, &signer_id, no_fetch).await?;
     let signer_actor = signer.actor_json.as_ref()
         .expect("request should be signed by remote actor");
     let signer_key =
@@ -120,26 +131,15 @@ pub async fn verify_signed_activity(
     config: &Config,
     db_client: &impl GenericClient,
     activity: &Value,
+    no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {
     // Signed activities must have `actor` property, to avoid situations
     // where signer is identified by DID but there is no matching
     // identity proof in the local database.
     let actor_id = activity["actor"].as_str()
         .ok_or(AuthenticationError::ActorError("unknown actor"))?;
-    let actor_profile = match get_or_import_profile_by_actor_id(
-        db_client,
-        &config.instance(),
-        &config.media_dir(),
-        actor_id,
-    ).await {
-        Ok(profile) => profile,
-        Err(HandlerError::DatabaseError(error)) => {
-            return Err(error.into());
-        },
-        Err(other_error) => {
-            return Err(AuthenticationError::ImportError(other_error.to_string()));
-        },
-    };
+    let actor_profile = get_signer(config, db_client, actor_id, no_fetch).await?;
+
     let signature_data = match get_json_signature(activity) {
         Ok(signature_data) => signature_data,
         Err(JsonSignatureError::NoProof) => {
