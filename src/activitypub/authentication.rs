@@ -18,10 +18,7 @@ use crate::json_signatures::verify::{
     JsonSignatureVerificationError as JsonSignatureError,
     JsonSigner,
 };
-use crate::models::profiles::queries::{
-    get_profile_by_remote_actor_id,
-    search_profiles_by_did_only,
-};
+use crate::models::profiles::queries::get_profile_by_remote_actor_id;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::crypto_rsa::deserialize_public_key;
 use super::fetcher::helpers::get_or_import_profile_by_actor_id;
@@ -118,13 +115,31 @@ pub async fn verify_signed_request(
     Ok(signer)
 }
 
+/// Verifies JSON signature and returns signer
 pub async fn verify_signed_activity(
     config: &Config,
     db_client: &impl GenericClient,
     activity: &Value,
 ) -> Result<DbActorProfile, AuthenticationError> {
+    // Signed activities must have `actor` property, to avoid situations
+    // where signer is identified by DID but there is no matching
+    // identity proof in the local database.
     let actor_id = activity["actor"].as_str()
         .ok_or(AuthenticationError::ActorError("unknown actor"))?;
+    let actor_profile = match get_or_import_profile_by_actor_id(
+        db_client,
+        &config.instance(),
+        &config.media_dir(),
+        actor_id,
+    ).await {
+        Ok(profile) => profile,
+        Err(HandlerError::DatabaseError(error)) => {
+            return Err(error.into());
+        },
+        Err(other_error) => {
+            return Err(AuthenticationError::ImportError(other_error.to_string()));
+        },
+    };
     let signature_data = match get_json_signature(activity) {
         Ok(signature_data) => signature_data,
         Err(JsonSignatureError::NoProof) => {
@@ -133,53 +148,25 @@ pub async fn verify_signed_activity(
         Err(other_error) => return Err(other_error.into()),
     };
 
-    let signer = match signature_data.signer {
+    match signature_data.signer {
         JsonSigner::ActorKeyId(ref key_id) => {
             if signature_data.signature_type != SignatureType::JcsRsaSignature {
                 return Err(AuthenticationError::InvalidJsonSignatureType);
             };
             let signer_id = key_id_to_actor_id(key_id)?;
-            let signer = match get_or_import_profile_by_actor_id(
-                db_client,
-                &config.instance(),
-                &config.media_dir(),
-                &signer_id,
-            ).await {
-                Ok(profile) => profile,
-                Err(HandlerError::DatabaseError(error)) => {
-                    return Err(error.into());
-                },
-                Err(other_error) => {
-                    return Err(AuthenticationError::ImportError(other_error.to_string()));
-                },
+            if signer_id != actor_id {
+                return Err(AuthenticationError::UnexpectedSigner);
             };
-            let signer_actor = signer.actor_json.as_ref()
+            let signer_actor = actor_profile.actor_json.as_ref()
                 .expect("activity should be signed by remote actor");
             let signer_key =
                 deserialize_public_key(&signer_actor.public_key.public_key_pem)?;
             verify_rsa_json_signature(&signature_data, &signer_key)?;
-            signer
         },
         JsonSigner::Did(did) => {
-            let profiles: Vec<_> = search_profiles_by_did_only(db_client, &did)
-                .await?.into_iter()
-                // Exclude local profiles
-                .filter(|profile| !profile.is_local())
-                .collect();
-            if profiles.len() > 1 {
-                log::info!(
-                    "signer with multiple profiles ({})",
-                    profiles.len(),
-                );
+            if !actor_profile.identity_proofs.any(&did) {
+                return Err(AuthenticationError::UnexpectedSigner);
             };
-            let signer = profiles.iter()
-                .find(|profile| profile.actor_id(&config.instance_url()) == actor_id)
-                // Use first profile with a given DID
-                // if none of them matches actor
-                .or(profiles.first())
-                .ok_or(AuthenticationError::ActorError("unknown signer"))?
-                .clone();
-
             match signature_data.signature_type {
                 SignatureType::JcsEd25519Signature => {
                     let did_key = match did {
@@ -205,12 +192,10 @@ pub async fn verify_signed_activity(
                 },
                 _ => return Err(AuthenticationError::InvalidJsonSignatureType),
             };
-
-            signer
         },
     };
-
-    Ok(signer)
+    // Signer is actor
+    Ok(actor_profile)
 }
 
 #[cfg(test)]
