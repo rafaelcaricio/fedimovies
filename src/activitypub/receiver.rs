@@ -10,7 +10,6 @@ use crate::errors::{
     HttpError,
     ValidationError,
 };
-use super::activity::Activity;
 use super::authentication::{
     verify_signed_activity,
     verify_signed_request,
@@ -131,15 +130,15 @@ pub async fn receive_activity(
     config: &Config,
     db_client: &mut impl GenericClient,
     request: &HttpRequest,
-    activity_raw: &Value,
+    activity: &Value,
 ) -> Result<(), HandlerError> {
-    let activity_type = activity_raw["type"].as_str()
+    let activity_type = activity["type"].as_str()
         .ok_or(ValidationError("type property is missing"))?;
-    let activity_actor = activity_raw["actor"].as_str()
+    let activity_actor = activity["actor"].as_str()
         .ok_or(ValidationError("actor property is missing"))?;
 
     let is_self_delete = if activity_type == DELETE {
-        let object_id = find_object_id(&activity_raw["object"])?;
+        let object_id = find_object_id(&activity["object"])?;
         object_id == activity_actor
     } else { false };
 
@@ -174,7 +173,7 @@ pub async fn receive_activity(
     match verify_signed_activity(
         config,
         db_client,
-        activity_raw,
+        activity,
         // Don't fetch actor if this is Delete(Person) activity
         is_self_delete,
     ).await {
@@ -200,7 +199,7 @@ pub async fn receive_activity(
     if config.blocked_instances.iter()
         .any(|instance| signer.hostname.as_ref() == Some(instance))
     {
-        log::warn!("ignoring activity from blocked instance: {}", activity_raw);
+        log::warn!("ignoring activity from blocked instance: {}", activity);
         return Ok(());
     };
 
@@ -225,8 +224,7 @@ pub async fn receive_activity(
         };
     };
 
-    let activity: Activity = serde_json::from_value(activity_raw.clone())
-        .map_err(|_| ValidationError("invalid activity"))?;
+    let activity = activity.clone();
     let maybe_object_type = match activity_type {
         ACCEPT => {
             handle_accept(config, db_client, activity).await?
@@ -265,7 +263,7 @@ pub async fn receive_activity(
             handle_update(config, db_client, activity).await?
         },
         _ => {
-            log::warn!("activity type is not supported: {}", activity_raw);
+            log::warn!("activity type is not supported: {}", activity);
             return Ok(());
         },
     };

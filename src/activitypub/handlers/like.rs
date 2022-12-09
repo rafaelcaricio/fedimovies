@@ -1,3 +1,4 @@
+use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
@@ -9,6 +10,7 @@ use crate::activitypub::{
 };
 use crate::config::Config;
 use crate::database::DatabaseError;
+use crate::errors::ValidationError;
 use crate::models::reactions::queries::create_reaction;
 use crate::models::posts::queries::get_post_by_remote_object_id;
 use super::HandlerResult;
@@ -16,8 +18,10 @@ use super::HandlerResult;
 pub async fn handle_like(
     config: &Config,
     db_client: &mut impl GenericClient,
-    activity: Activity,
+    activity: Value,
 ) -> HandlerResult {
+    let activity: Activity = serde_json::from_value(activity)
+        .map_err(|_| ValidationError("unexpected activity structure"))?;
     let author = get_or_import_profile_by_actor_id(
         db_client,
         &config.instance(),

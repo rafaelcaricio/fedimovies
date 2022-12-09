@@ -1,3 +1,4 @@
+use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
@@ -21,8 +22,10 @@ use super::HandlerResult;
 pub async fn handle_delete(
     config: &Config,
     db_client: &mut impl GenericClient,
-    activity: Activity,
+    activity: Value,
 ) -> HandlerResult {
+    let activity: Activity = serde_json::from_value(activity)
+        .map_err(|_| ValidationError("unexpected activity structure"))?;
     let object_id = find_object_id(&activity.object)?;
     if object_id == activity.actor {
         // Self-delete

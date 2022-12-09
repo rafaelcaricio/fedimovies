@@ -1,3 +1,4 @@
+use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
@@ -16,8 +17,10 @@ use super::{HandlerError, HandlerResult};
 pub async fn handle_add(
     config: &Config,
     db_client: &mut impl GenericClient,
-    activity: Activity,
+    activity: Value,
 ) -> HandlerResult {
+    let activity: Activity = serde_json::from_value(activity)
+        .map_err(|_| ValidationError("unexpected activity structure"))?;
     let actor_profile = get_profile_by_remote_actor_id(
         db_client,
         &activity.actor,

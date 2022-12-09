@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use chrono::Utc;
+use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
@@ -122,8 +123,10 @@ async fn handle_update_person(
 pub async fn handle_update(
     config: &Config,
     db_client: &mut impl GenericClient,
-    activity: Activity,
+    activity: Value,
 ) -> HandlerResult {
+    let activity: Activity = serde_json::from_value(activity)
+        .map_err(|_| ValidationError("unexpected activity structure"))?;
     let object_type = activity.object["type"].as_str()
         .ok_or(ValidationError("unknown object type"))?;
     match object_type {

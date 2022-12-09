@@ -1,3 +1,4 @@
+use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
@@ -29,9 +30,11 @@ use super::HandlerResult;
 pub async fn handle_move(
     config: &Config,
     db_client: &mut impl GenericClient,
-    activity: Activity,
+    activity: Value,
 ) -> HandlerResult {
     // Move(Person)
+    let activity: Activity = serde_json::from_value(activity)
+        .map_err(|_| ValidationError("unexpected activity structure"))?;
     let object_id = find_object_id(&activity.object)?;
     let target_value = activity.target
         .ok_or(ValidationError("target is missing"))?;

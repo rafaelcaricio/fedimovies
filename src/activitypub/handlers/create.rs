@@ -7,7 +7,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{Activity, Attachment, Link, Object, Tag},
+    activity::{Attachment, Link, Object, Tag},
     constants::{AP_MEDIA_TYPE, AP_PUBLIC, AS_MEDIA_TYPE},
     fetcher::fetchers::fetch_file,
     fetcher::helpers::{
@@ -391,10 +391,10 @@ pub async fn handle_note(
 pub async fn handle_create(
     config: &Config,
     db_client: &mut impl GenericClient,
-    activity: Activity,
+    activity: JsonValue,
     is_authenticated: bool,
 ) -> HandlerResult {
-    let object: Object = serde_json::from_value(activity.object)
+    let object: Object = serde_json::from_value(activity["object"].to_owned())
         .map_err(|_| ValidationError("invalid object"))?;
     let object_id = object.id.clone();
     let object_received = if is_authenticated {

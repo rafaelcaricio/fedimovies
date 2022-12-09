@@ -1,3 +1,4 @@
+use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
@@ -54,8 +55,10 @@ async fn handle_undo_follow(
 pub async fn handle_undo(
     config: &Config,
     db_client: &mut impl GenericClient,
-    activity: Activity,
+    activity: Value,
 ) -> HandlerResult {
+    let activity: Activity = serde_json::from_value(activity)
+        .map_err(|_| ValidationError("unexpected activity structure"))?;
     if let Some(FOLLOW) = activity.object["type"].as_str() {
         // Object type is currently required for processing Undo(Follow)
         // because activity IDs of remote follow requests are not stored.
