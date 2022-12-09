@@ -1,5 +1,10 @@
 use actix_web::HttpRequest;
-use serde::de::DeserializeOwned;
+use serde::{
+    Deserialize,
+    Deserializer,
+    de::DeserializeOwned,
+    de::Error as DeserializerError,
+};
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 
@@ -123,6 +128,17 @@ pub fn find_object_id(object: &Value) -> Result<String, ValidationError> {
             object_id
         },
     };
+    Ok(object_id)
+}
+
+pub fn deserialize_into_object_id<'de, D>(
+    deserializer: D,
+) -> Result<String, D::Error>
+    where D: Deserializer<'de>
+{
+    let value = Value::deserialize(deserializer)?;
+    let object_id = find_object_id(&value)
+        .map_err(DeserializerError::custom)?;
     Ok(object_id)
 }
 

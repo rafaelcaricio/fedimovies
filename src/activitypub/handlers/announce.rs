@@ -1,11 +1,11 @@
+use serde::Deserialize;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::Activity,
     fetcher::helpers::{get_or_import_profile_by_actor_id, import_post},
     identifiers::parse_local_object_id,
-    receiver::find_object_id,
+    receiver::deserialize_into_object_id,
     vocabulary::{CREATE, LIKE, NOTE, UNDO, UPDATE},
 };
 use crate::config::Config;
@@ -18,12 +18,25 @@ use crate::models::posts::queries::{
 use crate::models::posts::types::PostCreateData;
 use super::HandlerResult;
 
+#[derive(Deserialize)]
+struct Announce {
+    id: String,
+    actor: String,
+    #[serde(deserialize_with = "deserialize_into_object_id")]
+    object: String,
+}
+
 pub async fn handle_announce(
     config: &Config,
     db_client: &mut impl GenericClient,
     activity: Value,
 ) -> HandlerResult {
-    let activity: Activity = serde_json::from_value(activity)
+    if let Some(CREATE | LIKE | UNDO | UPDATE) = activity["object"]["type"].as_str() {
+        // Ignore wrapped activities from Lemmy
+        // https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-1b12.md
+        return Ok(None);
+    };
+    let activity: Announce = serde_json::from_value(activity)
         .map_err(|_| ValidationError("unexpected activity structure"))?;
     let repost_object_id = activity.id;
     match get_post_by_remote_object_id(
@@ -40,21 +53,51 @@ pub async fn handle_announce(
         &config.media_dir(),
         &activity.actor,
     ).await?;
-    if let Some(CREATE | LIKE | UNDO | UPDATE) = activity.object["type"].as_str() {
-        // Ignore wrapped activities from Lemmy
-        // https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-1b12.md
-        return Ok(None);
-    };
-    let object_id = find_object_id(&activity.object)?;
-    let post_id = match parse_local_object_id(&config.instance_url(), &object_id) {
+    let post_id = match parse_local_object_id(
+        &config.instance_url(),
+        &activity.object,
+    ) {
         Ok(post_id) => post_id,
         Err(_) => {
             // Try to get remote post
-            let post = import_post(config, db_client, object_id, None).await?;
+            let post = import_post(config, db_client, activity.object, None).await?;
             post.id
         },
     };
     let repost_data = PostCreateData::repost(post_id, Some(repost_object_id));
     create_post(db_client, &author.id, repost_data).await?;
     Ok(Some(NOTE))
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use super::*;
+
+    #[test]
+    fn test_deserialize_announce() {
+        let activity_raw = json!({
+            "type": "Announce",
+            "id": "https://example.com/activities/321",
+            "actor": "https://example.com/users/1",
+            "object": "https://test.org/objects/999",
+        });
+        let activity: Announce = serde_json::from_value(activity_raw).unwrap();
+        assert_eq!(activity.object, "https://test.org/objects/999");
+    }
+
+    #[test]
+    fn test_deserialize_announce_nested() {
+        let activity_raw = json!({
+            "type": "Announce",
+            "id": "https://example.com/activities/321",
+            "actor": "https://example.com/users/1",
+            "object": {
+                "type": "Note",
+                "id": "https://test.org/objects/999",
+            },
+        });
+        let activity: Announce = serde_json::from_value(activity_raw).unwrap();
+        assert_eq!(activity.object, "https://test.org/objects/999");
+    }
 }
