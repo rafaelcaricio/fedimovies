@@ -231,38 +231,38 @@ pub async fn receive_activity(
         ACCEPT => {
             handle_accept(config, db_client, activity).await?
         },
-        REJECT => {
-            handle_reject(config, db_client, activity).await?
-        },
-        CREATE => {
-            handle_create(config, db_client, activity, is_authenticated).await?
+        ADD => {
+            handle_add(config, db_client, activity).await?
         },
         ANNOUNCE => {
             handle_announce(config, db_client, activity).await?
         },
+        CREATE => {
+            handle_create(config, db_client, activity, is_authenticated).await?
+        },
         DELETE => {
             handle_delete(config, db_client, activity).await?
         },
-        EMOJI_REACT | LIKE => {
-            handle_like(config, db_client, activity).await?
-        },
         FOLLOW => {
             handle_follow(config, db_client, activity).await?
+        },
+        LIKE | EMOJI_REACT => {
+            handle_like(config, db_client, activity).await?
+        },
+        MOVE => {
+            handle_move(config, db_client, activity).await?
+        },
+        REJECT => {
+            handle_reject(config, db_client, activity).await?
+        },
+        REMOVE => {
+            handle_remove(config, db_client, activity).await?
         },
         UNDO => {
             handle_undo(config, db_client, activity).await?
         },
         UPDATE => {
             handle_update(config, db_client, activity).await?
-        },
-        MOVE => {
-            handle_move(config, db_client, activity).await?
-        },
-        ADD => {
-            handle_add(config, db_client, activity).await?
-        },
-        REMOVE => {
-            handle_remove(config, db_client, activity).await?
         },
         _ => {
             log::warn!("activity type is not supported: {}", activity_raw);

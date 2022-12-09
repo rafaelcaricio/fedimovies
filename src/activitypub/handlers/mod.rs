@@ -14,7 +14,4 @@ pub mod r#move;
 pub mod reject;
 pub mod remove;
 pub mod undo;
-mod undo_follow;
 pub mod update;
-mod update_note;
-pub mod update_person;
