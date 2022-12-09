@@ -1,11 +1,11 @@
+use serde::Deserialize;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::Activity,
     fetcher::helpers::get_or_import_profile_by_actor_id,
     identifiers::parse_local_object_id,
-    receiver::find_object_id,
+    receiver::deserialize_into_object_id,
     vocabulary::NOTE,
 };
 use crate::config::Config;
@@ -15,12 +15,20 @@ use crate::models::reactions::queries::create_reaction;
 use crate::models::posts::queries::get_post_by_remote_object_id;
 use super::HandlerResult;
 
+#[derive(Deserialize)]
+struct Like {
+    id: String,
+    actor: String,
+    #[serde(deserialize_with = "deserialize_into_object_id")]
+    object: String,
+}
+
 pub async fn handle_like(
     config: &Config,
     db_client: &mut impl GenericClient,
     activity: Value,
 ) -> HandlerResult {
-    let activity: Activity = serde_json::from_value(activity)
+    let activity: Like = serde_json::from_value(activity)
         .map_err(|_| ValidationError("unexpected activity structure"))?;
     let author = get_or_import_profile_by_actor_id(
         db_client,
@@ -28,16 +36,15 @@ pub async fn handle_like(
         &config.media_dir(),
         &activity.actor,
     ).await?;
-    let object_id = find_object_id(&activity.object)?;
     let post_id = match parse_local_object_id(
         &config.instance_url(),
-        &object_id,
+        &activity.object,
     ) {
         Ok(post_id) => post_id,
         Err(_) => {
             let post = match get_post_by_remote_object_id(
                 db_client,
-                &object_id,
+                &activity.object,
             ).await {
                 Ok(post) => post,
                 // Ignore like if post is not found locally
