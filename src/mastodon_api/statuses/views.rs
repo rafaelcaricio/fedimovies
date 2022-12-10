@@ -106,9 +106,6 @@ async fn create_status(
         if post.visibility != Visibility::Public {
             return Err(ValidationError("can't reference non-public post").into());
         };
-        if post.author.id != current_user.id {
-            post_data.mentions.push(post.author.id);
-        };
         // Append inline quote
         post_data.content += &format!(
             r#"<p class="inline-quote">RE: <a href="{0}">{0}</a></p>"#,
