@@ -7,11 +7,10 @@ use super::vocabulary::HASHTAG;
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Attachment {
-    pub name: Option<String>,
-
     #[serde(rename = "type")]
     pub attachment_type: String,
 
+    pub name: Option<String>,
     pub media_type: Option<String>,
     pub url: Option<String>,
 }

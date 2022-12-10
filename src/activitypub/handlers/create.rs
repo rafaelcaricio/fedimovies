@@ -162,14 +162,15 @@ pub async fn handle_note(
             .map_err(|_| ValidationError("invalid attachment property"))?;
         let mut downloaded = vec![];
         for attachment in list {
-            if attachment.attachment_type != DOCUMENT &&
-                attachment.attachment_type != IMAGE
-            {
-                log::warn!(
-                    "skipping attachment of type {}",
-                    attachment.attachment_type,
-                );
-                continue;
+            match attachment.attachment_type.as_str() {
+                DOCUMENT | IMAGE | VIDEO => (),
+                _ => {
+                    log::warn!(
+                        "skipping attachment of type {}",
+                        attachment.attachment_type,
+                    );
+                    continue;
+                },
             };
             let attachment_url = attachment.url
                 .ok_or(ValidationError("attachment URL is missing"))?;
