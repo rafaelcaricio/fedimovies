@@ -14,6 +14,7 @@ Supported payment methods:
 Other features:
 
 - [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
+- Account migrations (from one server to another).
 - Donation buttons.
 - Token-gated registration (can be used to verify membership in some group or to stop bots).
 - Converting posts into NFTs.

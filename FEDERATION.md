@@ -67,6 +67,30 @@ Supported proof types:
 - EIP-191 (Ethereum personal signatures)
 - [Minisign](https://jedisct1.github.io/minisign/)
 
+[FEP-c390](https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-c390.md) identity proofs are not supported yet.
+
+## Account migrations
+
+After registering an account its owner can upload the list of followers and start the migration process. The server then sends `Move` activity to each follower:
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams"
+  ],
+  "actor": "https://server2.com/users/alice",
+  "id": "https://server2.com/activities/00000000-0000-0000-0000-000000000001",
+  "object": "https://server1.com/users/alice",
+  "target": "https://server2.com/users/alice",
+  "to": [
+    "https://example.com/users/bob"
+  ],
+  "type": "Move"
+}
+```
+
+Where `object` is an ID of old account and `target` is an ID of new account. Actors identifed by `object` and `target` properties must have at least one identity key in common to be considered aliases. Upon receipt of such activity, actors that follow `object` should un-follow it and follow `target` instead.
+
 ## Subscription events
 
 Local actor profiles have `subscribers` property which points to the collection of actor's paid subscribers.
