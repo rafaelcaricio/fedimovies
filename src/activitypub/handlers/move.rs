@@ -17,7 +17,7 @@ use crate::database::DatabaseError;
 use crate::errors::ValidationError;
 use crate::models::{
     notifications::queries::create_move_notification,
-    profiles::queries::search_profiles_by_did_only,
+    profiles::helpers::find_aliases,
     relationships::queries::{
         create_follow_request,
         get_followers,
@@ -71,24 +71,14 @@ pub async fn handle_move(
         &media_dir,
         &activity.target,
     ).await?;
-    let new_actor = new_profile.actor_json
+    let new_actor = new_profile.actor_json.as_ref()
         .expect("target should be a remote actor");
 
     // Find aliases by DIDs
-    let mut aliases = vec![];
-    for identity_proof in new_profile.identity_proofs.inner() {
-        let profiles = search_profiles_by_did_only(
-            db_client,
-            &identity_proof.issuer,
-        ).await?;
-        for profile in profiles {
-            if profile.id == new_profile.id {
-                continue;
-            };
-            let actor_id = profile.actor_id(&instance.url());
-            aliases.push(actor_id);
-        };
-    };
+    let mut aliases = find_aliases(db_client, &new_profile).await?
+        .into_iter()
+        .map(|profile| profile.actor_id(&instance.url()))
+        .collect::<Vec<_>>();
     // Read aliases from alsoKnownAs property
     if let Some(ref value) = new_actor.also_known_as {
         let also_known_as = parse_array(value)
@@ -130,7 +120,7 @@ pub async fn handle_move(
                 activities.push(prepare_follow(
                     &instance,
                     &follower,
-                    &new_actor,
+                    new_actor,
                     &follow_request.id,
                 ));
             },

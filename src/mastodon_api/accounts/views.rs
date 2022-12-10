@@ -51,12 +51,12 @@ use crate::mastodon_api::search::helpers::search_profiles_only;
 use crate::mastodon_api::statuses::helpers::build_status_list;
 use crate::mastodon_api::statuses::types::Status;
 use crate::models::posts::queries::get_posts_by_author;
+use crate::models::profiles::helpers::find_aliases;
 use crate::models::profiles::queries::{
     get_profile_by_acct,
     get_profile_by_id,
     get_profile_by_remote_actor_id,
     search_profiles_by_did,
-    search_profiles_by_did_only,
     update_profile,
 };
 use crate::models::profiles::types::{
@@ -286,21 +286,10 @@ async fn move_followers(
     };
     if maybe_from_profile.is_some() {
         // Find known aliases of the current user
-        let mut aliases = vec![];
-        for identity_proof in current_user.profile.identity_proofs.inner() {
-            let profiles = search_profiles_by_did_only(
-                db_client,
-                &identity_proof.issuer,
-            ).await?;
-            for profile in profiles {
-                if profile.id == current_user.id {
-                    continue;
-                };
-                let actor_id = profile.actor_id(&config.instance_url());
-                aliases.push(actor_id);
-            };
-        };
-        if !aliases.contains(&request_data.from_actor_id) {
+        let mut aliases = find_aliases(db_client, &current_user.profile).await?
+            .into_iter()
+            .map(|profile| profile.actor_id(&config.instance_url()));
+        if !aliases.any(|actor_id| actor_id == request_data.from_actor_id) {
             return Err(ValidationError("old profile is not an alias").into());
         };
     };
