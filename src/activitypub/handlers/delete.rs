@@ -1,9 +1,9 @@
+use serde::Deserialize;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::Activity,
-    receiver::find_object_id,
+    receiver::deserialize_into_object_id,
     vocabulary::{NOTE, PERSON},
 };
 use crate::config::Config;
@@ -19,19 +19,25 @@ use crate::models::profiles::queries::{
 };
 use super::HandlerResult;
 
+#[derive(Deserialize)]
+struct Delete {
+    actor: String,
+    #[serde(deserialize_with = "deserialize_into_object_id")]
+    object: String,
+}
+
 pub async fn handle_delete(
     config: &Config,
     db_client: &mut impl GenericClient,
     activity: Value,
 ) -> HandlerResult {
-    let activity: Activity = serde_json::from_value(activity)
+    let activity: Delete = serde_json::from_value(activity)
         .map_err(|_| ValidationError("unexpected activity structure"))?;
-    let object_id = find_object_id(&activity.object)?;
-    if object_id == activity.actor {
+    if activity.object == activity.actor {
         // Self-delete
         let profile = match get_profile_by_remote_actor_id(
             db_client,
-            &object_id,
+            &activity.object,
         ).await {
             Ok(profile) => profile,
             // Ignore Delete(Person) if profile is not found
@@ -48,7 +54,7 @@ pub async fn handle_delete(
     };
     let post = match get_post_by_remote_object_id(
         db_client,
-        &object_id,
+        &activity.object,
     ).await {
         Ok(post) => post,
         // Ignore Delete(Note) if post is not found
