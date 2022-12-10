@@ -1,8 +1,8 @@
+use serde::Deserialize;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::Activity,
     identifiers::parse_local_actor_id,
     receiver::find_object_id,
     vocabulary::{ANNOUNCE, FOLLOW, LIKE},
@@ -27,10 +27,16 @@ use crate::models::{
 };
 use super::HandlerResult;
 
+#[derive(Deserialize)]
+struct Undo {
+    actor: String,
+    object: Value,
+}
+
 async fn handle_undo_follow(
     config: &Config,
     db_client: &mut impl GenericClient,
-    activity: Activity,
+    activity: Undo,
 ) -> HandlerResult {
     let source_profile = get_profile_by_remote_actor_id(
         db_client,
@@ -57,7 +63,7 @@ pub async fn handle_undo(
     db_client: &mut impl GenericClient,
     activity: Value,
 ) -> HandlerResult {
-    let activity: Activity = serde_json::from_value(activity)
+    let activity: Undo = serde_json::from_value(activity)
         .map_err(|_| ValidationError("unexpected activity structure"))?;
     if let Some(FOLLOW) = activity.object["type"].as_str() {
         // Object type is currently required for processing Undo(Follow)

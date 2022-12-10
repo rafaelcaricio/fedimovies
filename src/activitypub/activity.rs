@@ -60,18 +60,3 @@ pub struct Object {
     pub updated: Option<DateTime<Utc>>,
     pub url: Option<Value>,
 }
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Activity {
-    pub id: String,
-    
-    #[serde(rename = "type")]
-    pub activity_type: String,
-
-    pub actor: String,
-    pub object: Value,
-    pub target: Option<Value>,
-    pub to: Option<Value>,
-    pub cc: Option<Value>,
-}
