@@ -5,7 +5,10 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::activitypub::queues::process_queued_activities;
+use crate::activitypub::queues::{
+    process_queued_incoming_activities,
+    process_queued_outgoing_activities,
+};
 use crate::config::{Config, Instance};
 use crate::database::{get_database_client, DbPool};
 use crate::ethereum::contracts::Blockchain;
@@ -23,6 +26,7 @@ enum Task {
     SubscriptionExpirationMonitor,
     MoneroPaymentMonitor,
     IncomingActivityQueue,
+    OutgoingActivityQueue,
 }
 
 impl Task {
@@ -34,6 +38,7 @@ impl Task {
             Self::SubscriptionExpirationMonitor => 300,
             Self::MoneroPaymentMonitor => 30,
             Self::IncomingActivityQueue => 5,
+            Self::OutgoingActivityQueue => 5,
         }
     }
 }
@@ -117,7 +122,16 @@ async fn incoming_activity_queue_task(
     db_pool: &DbPool,
 ) -> Result<(), Error> {
     let db_client = &mut **get_database_client(db_pool).await?;
-    process_queued_activities(config, db_client).await?;
+    process_queued_incoming_activities(config, db_client).await?;
+    Ok(())
+}
+
+async fn outgoing_activity_queue_task(
+    config: &Config,
+    db_pool: &DbPool,
+) -> Result<(), Error> {
+    let db_client = &**get_database_client(db_pool).await?;
+    process_queued_outgoing_activities(config, db_client).await?;
     Ok(())
 }
 
@@ -133,6 +147,7 @@ pub fn run(
             (Task::SubscriptionExpirationMonitor, None),
             (Task::MoneroPaymentMonitor, None),
             (Task::IncomingActivityQueue, None),
+            (Task::OutgoingActivityQueue, None),
         ]);
 
         let mut interval = tokio::time::interval(Duration::from_secs(5));
@@ -170,6 +185,9 @@ pub fn run(
                     },
                     Task::IncomingActivityQueue => {
                         incoming_activity_queue_task(&config, &db_pool).await
+                    },
+                    Task::OutgoingActivityQueue => {
+                        outgoing_activity_queue_task(&config, &db_pool).await
                     },
                 };
                 task_result.unwrap_or_else(|err| {

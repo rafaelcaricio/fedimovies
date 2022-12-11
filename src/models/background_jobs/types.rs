@@ -11,12 +11,14 @@ use crate::database::{
 #[derive(Debug, PartialEq)]
 pub enum JobType {
     IncomingActivity,
+    OutgoingActivity,
 }
 
 impl From<&JobType> for i16 {
     fn from(value: &JobType) -> i16 {
         match value {
             JobType::IncomingActivity => 1,
+            JobType::OutgoingActivity => 2,
         }
     }
 }
@@ -27,6 +29,7 @@ impl TryFrom<i16> for JobType {
     fn try_from(value: i16) -> Result<Self, Self::Error> {
         let job_type = match value {
             1 => Self::IncomingActivity,
+            2 => Self::OutgoingActivity,
             _ => return Err(DatabaseTypeError),
         };
         Ok(job_type)

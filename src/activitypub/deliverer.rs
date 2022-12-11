@@ -4,11 +4,13 @@ use std::time::Duration;
 use actix_web::http::Method;
 use reqwest::{Client, Proxy};
 use rsa::RsaPrivateKey;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::time::sleep;
+use tokio_postgres::GenericClient;
 
 use crate::config::Instance;
+use crate::database::DatabaseError;
 use crate::http_signatures::create::{
     create_http_signature,
     HttpSignatureError,
@@ -23,6 +25,7 @@ use crate::utils::crypto_rsa::deserialize_private_key;
 use super::actors::types::Actor;
 use super::constants::{AP_MEDIA_TYPE, ACTOR_KEY_SUFFIX};
 use super::identifiers::local_actor_id;
+use super::queues::OutgoingActivityJobData;
 
 #[derive(thiserror::Error, Debug)]
 pub enum DelivererError {
@@ -107,8 +110,8 @@ fn backoff(retry_count: u32) -> Duration {
     Duration::from_secs(3 * 10_u64.pow(retry_count))
 }
 
-#[allow(dead_code)]
-struct Recipient {
+#[derive(Deserialize, Serialize)]
+pub struct Recipient {
     id: String,
     inbox: String,
 }
@@ -186,10 +189,10 @@ async fn deliver_activity_worker(
 }
 
 pub struct OutgoingActivity {
-    instance: Instance,
-    sender: User,
+    pub instance: Instance,
+    pub sender: User,
     pub activity: Value,
-    recipients: Vec<Recipient>,
+    pub recipients: Vec<Recipient>,
 }
 
 impl OutgoingActivity {
@@ -238,6 +241,18 @@ impl OutgoingActivity {
         tokio::spawn(async move {
             self.deliver_or_log().await;
         });
+    }
+
+    pub async fn enqueue(
+        self,
+        db_client: &impl GenericClient,
+    ) -> Result<(), DatabaseError> {
+        let job_data = OutgoingActivityJobData {
+            activity: self.activity,
+            sender_id: self.sender.id,
+            recipients: self.recipients,
+        };
+        job_data.into_job(db_client).await
     }
 }
 
