@@ -142,6 +142,72 @@ pub fn deserialize_into_object_id<'de, D>(
     Ok(object_id)
 }
 
+async fn handle_activity(
+    config: &Config,
+    db_client: &mut impl GenericClient,
+    activity: &Value,
+    is_authenticated: bool,
+) -> Result<(), HandlerError> {
+    let activity_type = activity["type"].as_str()
+        .ok_or(ValidationError("type property is missing"))?
+        .to_owned();
+    let activity_actor = activity["actor"].as_str()
+        .ok_or(ValidationError("actor property is missing"))?
+        .to_owned();
+    let activity = activity.clone();
+    let maybe_object_type = match activity_type.as_str() {
+        ACCEPT => {
+            handle_accept(config, db_client, activity).await?
+        },
+        ADD => {
+            handle_add(config, db_client, activity).await?
+        },
+        ANNOUNCE => {
+            handle_announce(config, db_client, activity).await?
+        },
+        CREATE => {
+            handle_create(config, db_client, activity, is_authenticated).await?
+        },
+        DELETE => {
+            handle_delete(config, db_client, activity).await?
+        },
+        FOLLOW => {
+            handle_follow(config, db_client, activity).await?
+        },
+        LIKE | EMOJI_REACT => {
+            handle_like(config, db_client, activity).await?
+        },
+        MOVE => {
+            handle_move(config, db_client, activity).await?
+        },
+        REJECT => {
+            handle_reject(config, db_client, activity).await?
+        },
+        REMOVE => {
+            handle_remove(config, db_client, activity).await?
+        },
+        UNDO => {
+            handle_undo(config, db_client, activity).await?
+        },
+        UPDATE => {
+            handle_update(config, db_client, activity).await?
+        },
+        _ => {
+            log::warn!("activity type is not supported: {}", activity);
+            None
+        },
+    };
+    if let Some(object_type) = maybe_object_type {
+        log::info!(
+            "processed {}({}) from {}",
+            activity_type,
+            object_type,
+            activity_actor,
+        );
+    };
+    Ok(())
+}
+
 pub async fn receive_activity(
     config: &Config,
     db_client: &mut impl GenericClient,
@@ -240,58 +306,12 @@ pub async fn receive_activity(
         };
     };
 
-    let activity = activity.clone();
-    let maybe_object_type = match activity_type {
-        ACCEPT => {
-            handle_accept(config, db_client, activity).await?
-        },
-        ADD => {
-            handle_add(config, db_client, activity).await?
-        },
-        ANNOUNCE => {
-            handle_announce(config, db_client, activity).await?
-        },
-        CREATE => {
-            handle_create(config, db_client, activity, is_authenticated).await?
-        },
-        DELETE => {
-            handle_delete(config, db_client, activity).await?
-        },
-        FOLLOW => {
-            handle_follow(config, db_client, activity).await?
-        },
-        LIKE | EMOJI_REACT => {
-            handle_like(config, db_client, activity).await?
-        },
-        MOVE => {
-            handle_move(config, db_client, activity).await?
-        },
-        REJECT => {
-            handle_reject(config, db_client, activity).await?
-        },
-        REMOVE => {
-            handle_remove(config, db_client, activity).await?
-        },
-        UNDO => {
-            handle_undo(config, db_client, activity).await?
-        },
-        UPDATE => {
-            handle_update(config, db_client, activity).await?
-        },
-        _ => {
-            log::warn!("activity type is not supported: {}", activity);
-            return Ok(());
-        },
-    };
-    if let Some(object_type) = maybe_object_type {
-        log::info!(
-            "processed {}({}) from {}",
-            activity_type,
-            object_type,
-            activity_actor,
-        );
-    };
-    Ok(())
+    handle_activity(
+        config,
+        db_client,
+        activity,
+        is_authenticated,
+    ).await
 }
 
 #[cfg(test)]

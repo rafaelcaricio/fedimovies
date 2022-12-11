@@ -96,9 +96,13 @@ async fn inbox(
     );
     let db_client = &mut **get_database_client(&db_pool).await?;
     receive_activity(&config, db_client, &request, &activity).await
-        .map_err(|err| {
-            log::warn!("failed to process activity ({}): {}", err, activity);
-            err
+        .map_err(|error| {
+            log::warn!(
+                "failed to process activity ({}): {}",
+                error,
+                activity,
+            );
+            error
         })?;
     Ok(HttpResponse::Ok().finish())
 }
