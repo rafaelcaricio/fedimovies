@@ -1,3 +1,12 @@
+CREATE TABLE background_job (
+    id UUID PRIMARY KEY,
+    job_type SMALLINT NOT NULL,
+    job_data JSONB NOT NULL,
+    job_status SMALLINT NOT NULL DEFAULT 1,
+    scheduled_for TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE instance (
     hostname VARCHAR(100) PRIMARY KEY
 );
