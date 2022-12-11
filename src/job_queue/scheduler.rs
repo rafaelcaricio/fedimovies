@@ -5,8 +5,9 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use crate::activitypub::receiver::process_queued_activities;
 use crate::config::{Config, Instance};
-use crate::database::DbPool;
+use crate::database::{get_database_client, DbPool};
 use crate::ethereum::contracts::Blockchain;
 use crate::ethereum::nft::process_nft_events;
 use crate::ethereum::subscriptions::{
@@ -21,6 +22,7 @@ enum Task {
     EthereumSubscriptionMonitor,
     SubscriptionExpirationMonitor,
     MoneroPaymentMonitor,
+    IncomingActivityQueue,
 }
 
 impl Task {
@@ -31,6 +33,7 @@ impl Task {
             Self::EthereumSubscriptionMonitor => 300,
             Self::SubscriptionExpirationMonitor => 300,
             Self::MoneroPaymentMonitor => 30,
+            Self::IncomingActivityQueue => 5,
         }
     }
 }
@@ -109,6 +112,15 @@ async fn monero_payment_monitor_task(
     Ok(())
 }
 
+async fn incoming_activity_queue_task(
+    config: &Config,
+    db_pool: &DbPool,
+) -> Result<(), Error> {
+    let db_client = &mut **get_database_client(db_pool).await?;
+    process_queued_activities(config, db_client).await?;
+    Ok(())
+}
+
 pub fn run(
     config: Config,
     mut maybe_blockchain: Option<Blockchain>,
@@ -120,6 +132,7 @@ pub fn run(
         scheduler_state.insert(Task::EthereumSubscriptionMonitor, None);
         scheduler_state.insert(Task::SubscriptionExpirationMonitor, None);
         scheduler_state.insert(Task::MoneroPaymentMonitor, None);
+        scheduler_state.insert(Task::IncomingActivityQueue, None);
 
         let mut interval = tokio::time::interval(Duration::from_secs(5));
         let mut token_waitlist_map: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
@@ -153,6 +166,9 @@ pub fn run(
                     },
                     Task::MoneroPaymentMonitor => {
                         monero_payment_monitor_task(&config, &db_pool).await
+                    },
+                    Task::IncomingActivityQueue => {
+                        incoming_activity_queue_task(&config, &db_pool).await
                     },
                 };
                 task_result.unwrap_or_else(|err| {

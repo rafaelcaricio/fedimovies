@@ -8,6 +8,6 @@ mod deliverer;
 pub mod fetcher;
 mod handlers;
 pub mod identifiers;
-mod receiver;
+pub mod receiver;
 pub mod views;
 mod vocabulary;
