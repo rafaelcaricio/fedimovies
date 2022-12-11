@@ -5,11 +5,11 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::Object,
-    actors::types::{Actor, ActorAddress},
-    handlers::{
-        create::handle_note,
-        update::update_remote_profile,
+    actors::{
+        helpers::{create_remote_profile, update_remote_profile},
+        types::ActorAddress,
     },
+    handlers::create::handle_note,
     identifiers::parse_local_object_id,
     receiver::HandlerError,
 };
@@ -22,51 +22,13 @@ use crate::models::posts::types::Post;
 use crate::models::profiles::queries::{
     get_profile_by_acct,
     get_profile_by_remote_actor_id,
-    create_profile,
 };
-use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
+use crate::models::profiles::types::DbActorProfile;
 use super::fetchers::{
     fetch_actor,
-    fetch_actor_images,
     fetch_object,
     perform_webfinger_query,
 };
-
-async fn create_remote_profile(
-    db_client: &impl GenericClient,
-    instance: &Instance,
-    media_dir: &Path,
-    actor: Actor,
-) -> Result<DbActorProfile, HandlerError> {
-    let actor_address = actor.address()?;
-    if actor_address.hostname == instance.hostname() {
-        return Err(HandlerError::LocalObject);
-    };
-    let (maybe_avatar, maybe_banner) = fetch_actor_images(
-        instance,
-        &actor,
-        media_dir,
-        None,
-        None,
-    ).await;
-    let (identity_proofs, payment_options, extra_fields) =
-        actor.parse_attachments();
-    let mut profile_data = ProfileCreateData {
-        username: actor.preferred_username.clone(),
-        hostname: Some(actor_address.hostname),
-        display_name: actor.name.clone(),
-        bio: actor.summary.clone(),
-        avatar: maybe_avatar,
-        banner: maybe_banner,
-        identity_proofs,
-        payment_options,
-        extra_fields,
-        actor_json: Some(actor),
-    };
-    profile_data.clean()?;
-    let profile = create_profile(db_client, profile_data).await?;
-    Ok(profile)
-}
 
 pub async fn get_or_import_profile_by_actor_id(
     db_client: &impl GenericClient,

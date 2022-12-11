@@ -6,7 +6,7 @@ mod collections;
 pub mod constants;
 mod deliverer;
 pub mod fetcher;
-pub mod handlers;
+mod handlers;
 pub mod identifiers;
 mod receiver;
 pub mod views;

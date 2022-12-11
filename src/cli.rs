@@ -4,10 +4,12 @@ use clap::Parser;
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::activitypub::builders::delete_note::prepare_delete_note;
-use crate::activitypub::builders::delete_person::prepare_delete_person;
-use crate::activitypub::fetcher::fetchers::fetch_actor;
-use crate::activitypub::handlers::update::update_remote_profile;
+use crate::activitypub::{
+    actors::helpers::update_remote_profile,
+    builders::delete_note::prepare_delete_note,
+    builders::delete_person::prepare_delete_person,
+    fetcher::fetchers::fetch_actor,
+};
 use crate::config::Config;
 use crate::ethereum::signatures::generate_ecdsa_key;
 use crate::ethereum::sync::save_current_block_number;

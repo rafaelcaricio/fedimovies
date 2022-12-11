@@ -1,17 +1,17 @@
-use std::path::Path;
-
 use chrono::Utc;
 use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::{Activity, Object},
-    actors::types::Actor,
-    fetcher::fetchers::fetch_actor_images,
+    actors::{
+        helpers::update_remote_profile,
+        types::Actor,
+    },
     handlers::create::get_note_content,
     vocabulary::{NOTE, PERSON},
 };
-use crate::config::{Config, Instance};
+use crate::config::Config;
 use crate::database::DatabaseError;
 use crate::errors::ValidationError;
 use crate::models::{
@@ -20,13 +20,9 @@ use crate::models::{
         update_post,
     },
     posts::types::PostUpdateData,
-    profiles::queries::{
-        get_profile_by_remote_actor_id,
-        update_profile,
-    },
-    profiles::types::{DbActorProfile, ProfileUpdateData},
+    profiles::queries::get_profile_by_remote_actor_id,
 };
-use super::{HandlerError, HandlerResult};
+use super::HandlerResult;
 
 async fn handle_update_note(
     db_client: &mut impl GenericClient,
@@ -46,54 +42,6 @@ async fn handle_update_note(
     let post_data = PostUpdateData { content, updated_at };
     update_post(db_client, &post_id, post_data).await?;
     Ok(Some(NOTE))
-}
-
-/// Updates remote actor's profile
-pub async fn update_remote_profile(
-    db_client: &impl GenericClient,
-    instance: &Instance,
-    media_dir: &Path,
-    profile: DbActorProfile,
-    actor: Actor,
-) -> Result<DbActorProfile, HandlerError> {
-    let actor_old = profile.actor_json.ok_or(HandlerError::LocalObject)?;
-    if actor_old.id != actor.id {
-        log::warn!(
-            "actor ID changed from {} to {}",
-            actor_old.id,
-            actor.id,
-        );
-    };
-    if actor_old.public_key.public_key_pem != actor.public_key.public_key_pem {
-        log::warn!(
-            "actor public key changed from {} to {}",
-            actor_old.public_key.public_key_pem,
-            actor.public_key.public_key_pem,
-        );
-    };
-    let (maybe_avatar, maybe_banner) = fetch_actor_images(
-        instance,
-        &actor,
-        media_dir,
-        profile.avatar_file_name,
-        profile.banner_file_name,
-    ).await;
-    let (identity_proofs, payment_options, extra_fields) =
-        actor.parse_attachments();
-    let mut profile_data = ProfileUpdateData {
-        display_name: actor.name.clone(),
-        bio: actor.summary.clone(),
-        bio_source: actor.summary.clone(),
-        avatar: maybe_avatar,
-        banner: maybe_banner,
-        identity_proofs,
-        payment_options,
-        extra_fields,
-        actor_json: Some(actor),
-    };
-    profile_data.clean()?;
-    let profile = update_profile(db_client, &profile.id, profile_data).await?;
-    Ok(profile)
 }
 
 async fn handle_update_person(
