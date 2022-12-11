@@ -15,6 +15,7 @@ use mitra::database::{get_database_client, create_pool};
 use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::contracts::get_contracts;
 use mitra::http::json_error_handler;
+use mitra::job_queue::scheduler;
 use mitra::logger::configure_logger;
 use mitra::mastodon_api::accounts::views::account_api_scope;
 use mitra::mastodon_api::directory::views::directory_api_scope;
@@ -31,7 +32,6 @@ use mitra::mastodon_api::subscriptions::views::subscription_api_scope;
 use mitra::mastodon_api::timelines::views::timeline_api_scope;
 use mitra::mastodon_api::UPLOAD_MAX_SIZE;
 use mitra::nodeinfo::views as nodeinfo;
-use mitra::scheduler;
 use mitra::webfinger::views as webfinger;
 
 #[actix_web::main]
