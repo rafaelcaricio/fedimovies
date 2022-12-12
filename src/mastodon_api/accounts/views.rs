@@ -609,7 +609,11 @@ async fn follow_account(
     let target = get_profile_by_id(db_client, &account_id).await?;
     if let Some(remote_actor) = target.actor_json {
         // Create follow request if target is remote
-        match create_follow_request(db_client, &current_user.id, &target.id).await {
+        match create_follow_request(
+            db_client,
+            &current_user.id,
+            &target.id,
+        ).await {
             Ok(follow_request) => {
                 prepare_follow(
                     &config.instance(),

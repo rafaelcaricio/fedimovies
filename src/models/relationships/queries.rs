@@ -140,26 +140,23 @@ pub async fn create_follow_request(
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<DbFollowRequest, DatabaseError> {
-    let request = DbFollowRequest {
-        id: new_uuid(),
-        source_id: source_id.to_owned(),
-        target_id: target_id.to_owned(),
-        request_status: FollowRequestStatus::Pending,
-    };
-    db_client.execute(
+    let request_id = new_uuid();
+    let row = db_client.query_one(
         "
         INSERT INTO follow_request (
             id, source_id, target_id, request_status
         )
         VALUES ($1, $2, $3, $4)
+        RETURNING follow_request
         ",
         &[
-            &request.id,
-            &request.source_id,
-            &request.target_id,
-            &request.request_status,
+            &request_id,
+            &source_id,
+            &target_id,
+            &FollowRequestStatus::Pending,
         ],
     ).await.map_err(catch_unique_violation("follow request"))?;
+    let request = row.try_get("follow_request")?;
     Ok(request)
 }
 
@@ -517,7 +514,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn test_remote_follow() {
+    async fn test_follow_remote_profile() {
         let db_client = &mut create_test_database().await;
         let source_data = UserCreateData {
             username: "test".to_string(),
@@ -536,20 +533,15 @@ mod tests {
             .await.unwrap();
         assert_eq!(follow_request.source_id, source.id);
         assert_eq!(follow_request.target_id, target.id);
-        assert!(matches!(
-            follow_request.request_status,
-            FollowRequestStatus::Pending,
-        ));
+        assert_eq!(follow_request.activity_id, None);
+        assert_eq!(follow_request.request_status, FollowRequestStatus::Pending);
         let following = get_following(db_client, &source.id).await.unwrap();
         assert!(following.is_empty());
         // Accept follow request
         follow_request_accepted(db_client, &follow_request.id).await.unwrap();
         let follow_request = get_follow_request_by_id(db_client, &follow_request.id)
             .await.unwrap();
-        assert!(matches!(
-            follow_request.request_status,
-            FollowRequestStatus::Accepted,
-        ));
+        assert_eq!(follow_request.request_status, FollowRequestStatus::Accepted);
         let following = get_following(db_client, &source.id).await.unwrap();
         assert_eq!(following[0].id, target.id);
         // Unfollow

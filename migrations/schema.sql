@@ -69,6 +69,7 @@ CREATE TABLE follow_request (
     id UUID PRIMARY KEY,
     source_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     target_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
+    activity_id VARCHAR(250) UNIQUE,
     request_status SMALLINT NOT NULL,
     UNIQUE (source_id, target_id)
 );

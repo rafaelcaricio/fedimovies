@@ -87,7 +87,7 @@ impl TryFrom<&Row> for DbRelationship {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FollowRequestStatus {
     Pending,
     Accepted,
@@ -127,6 +127,7 @@ pub struct DbFollowRequest {
     pub id: Uuid,
     pub source_id: Uuid,
     pub target_id: Uuid,
+    pub activity_id: Option<String>,
     pub request_status: FollowRequestStatus,
 }
 
