@@ -316,11 +316,11 @@ pub async fn receive_activity(
         };
     };
 
-    if activity_type == CREATE {
+    if let ANNOUNCE | CREATE | UPDATE = activity_type {
         // Add activity to job queue and release lock
         IncomingActivity::new(activity, is_authenticated)
             .enqueue(db_client, 0).await?;
-        log::info!("activity added to the queue: {}", activity_type);
+        log::debug!("activity added to the queue: {}", activity_type);
         return Ok(());
     };
 
