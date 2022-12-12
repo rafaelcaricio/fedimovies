@@ -133,13 +133,6 @@ pub async fn verify_signed_activity(
     activity: &Value,
     no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {
-    // Signed activities must have `actor` property, to avoid situations
-    // where signer is identified by DID but there is no matching
-    // identity proof in the local database.
-    let actor_id = activity["actor"].as_str()
-        .ok_or(AuthenticationError::ActorError("unknown actor"))?;
-    let actor_profile = get_signer(config, db_client, actor_id, no_fetch).await?;
-
     let signature_data = match get_json_signature(activity) {
         Ok(signature_data) => signature_data,
         Err(JsonSignatureError::NoProof) => {
@@ -147,6 +140,12 @@ pub async fn verify_signed_activity(
         },
         Err(other_error) => return Err(other_error.into()),
     };
+    // Signed activities must have `actor` property, to avoid situations
+    // where signer is identified by DID but there is no matching
+    // identity proof in the local database.
+    let actor_id = activity["actor"].as_str()
+        .ok_or(AuthenticationError::ActorError("unknown actor"))?;
+    let actor_profile = get_signer(config, db_client, actor_id, no_fetch).await?;
 
     match signature_data.signer {
         JsonSigner::ActorKeyId(ref key_id) => {
