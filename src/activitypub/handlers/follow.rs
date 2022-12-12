@@ -12,8 +12,13 @@ use crate::activitypub::{
 use crate::config::Config;
 use crate::database::DatabaseError;
 use crate::errors::ValidationError;
-use crate::models::relationships::queries::follow;
-use crate::models::users::queries::get_user_by_name;
+use crate::models::{
+    relationships::queries::{
+        create_remote_follow_request_opt,
+        follow_request_accepted,
+    },
+    users::queries::get_user_by_name,
+};
 use super::{HandlerError, HandlerResult};
 
 #[derive(Deserialize)]
@@ -45,7 +50,13 @@ pub async fn handle_follow(
         &activity.object,
     )?;
     let target_user = get_user_by_name(db_client, &target_username).await?;
-    match follow(db_client, &source_profile.id, &target_user.profile.id).await {
+    let follow_request = create_remote_follow_request_opt(
+        db_client,
+        &source_profile.id,
+        &target_user.id,
+        &activity.id,
+    ).await?;
+    match follow_request_accepted(db_client, &follow_request.id).await {
         Ok(_) => (),
         // Proceed even if relationship already exists
         Err(DatabaseError::AlreadyExists(_)) => (),
