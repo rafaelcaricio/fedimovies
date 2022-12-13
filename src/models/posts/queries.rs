@@ -82,6 +82,7 @@ pub async fn create_post(
             &data.created_at,
         ],
     ).await.map_err(catch_unique_violation("post"))?;
+    // Return NotFound error if reply/repost is not allowed
     let post_row = maybe_post_row.ok_or(DatabaseError::NotFound("post"))?;
     let db_post: DbPost = post_row.try_get("post")?;
     // Create links to attachments
@@ -175,7 +176,7 @@ pub async fn create_post(
             ).await?;
             notified_users.push(in_reply_to_author.id);
         };
-    }
+    };
     if let Some(repost_of_id) = &db_post.repost_of_id {
         update_repost_count(&transaction, repost_of_id, 1).await?;
         let repost_of_author = get_post_author(&transaction, repost_of_id).await?;

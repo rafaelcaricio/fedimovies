@@ -65,8 +65,16 @@ pub async fn handle_announce(
         },
     };
     let repost_data = PostCreateData::repost(post_id, Some(repost_object_id));
-    create_post(db_client, &author.id, repost_data).await?;
-    Ok(Some(NOTE))
+    match create_post(db_client, &author.id, repost_data).await {
+        Ok(_) => Ok(Some(NOTE)),
+        Err(DatabaseError::AlreadyExists("post")) => {
+            // Ignore activity if repost already exists (with a different
+            // object ID, or due to race condition in a handler).
+            log::warn!("repost already exists");
+            Ok(None)
+        },
+        Err(other_error) => Err(other_error.into()),
+    }
 }
 
 #[cfg(test)]
