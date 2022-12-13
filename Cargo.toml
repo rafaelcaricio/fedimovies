@@ -47,7 +47,7 @@ blake2 = "0.10.4"
 mime_guess = "2.0.3"
 mime-sniffer = "0.1.2"
 # Used to query Monero node
-monero-rpc = "0.2.0"
+monero-rpc = "0.3.2"
 # Used to determine the number of CPUs on the system
 num_cpus = "1.13.0"
 # Used for working with regular expressions

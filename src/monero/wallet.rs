@@ -1,6 +1,6 @@
 use monero_rpc::{
     HashString,
-    RpcClient,
+    RpcClientBuilder,
     SubaddressBalanceData,
     SweepAllArgs,
     TransferPriority,
@@ -42,7 +42,9 @@ pub async fn create_monero_wallet(
     name: String,
     password: Option<String>,
 ) -> Result<(), MoneroError> {
-    let wallet_client = RpcClient::new(config.wallet_url.clone()).wallet();
+    let wallet_client = RpcClientBuilder::new()
+        .build(config.wallet_url.clone())?
+        .wallet();
     let language = "English".to_string();
     wallet_client.create_wallet(name, password, language).await?;
     Ok(())
@@ -52,7 +54,9 @@ pub async fn create_monero_wallet(
 pub async fn open_monero_wallet(
     config: &MoneroConfig,
 ) -> Result<WalletClient, MoneroError> {
-    let wallet_client = RpcClient::new(config.wallet_url.clone()).wallet();
+    let wallet_client = RpcClientBuilder::new()
+        .build(config.wallet_url.clone())?
+        .wallet();
     if let Some(ref wallet_name) = config.wallet_name {
         wallet_client.open_wallet(
             wallet_name.clone(),
