@@ -108,12 +108,11 @@ fn backoff(retry_count: u32) -> Duration {
     Duration::from_secs(3 * 10_u64.pow(retry_count))
 }
 
-#[allow(clippy::bool_comparison)]
 async fn deliver_activity_worker(
     instance: Instance,
     sender: User,
     activity: Value,
-    recipients: Vec<Actor>,
+    inboxes: Vec<String>,
 ) -> Result<(), DelivererError> {
     let actor_key = deserialize_private_key(&sender.private_key)?;
     let actor_key_id = format!(
@@ -132,25 +131,30 @@ async fn deliver_activity_worker(
     };
 
     let activity_json = serde_json::to_string(&activity_signed)?;
-    if recipients.is_empty() {
+    if inboxes.is_empty() {
         return Ok(());
     };
-    let mut inboxes: BTreeMap<String, bool> = BTreeMap::new();
-    for recipient in recipients {
-        inboxes.insert(recipient.inbox, false);
-    };
-
     log::info!("sending activity to {} inboxes: {}", inboxes.len(), activity_json);
+
+    let mut queue: BTreeMap<String, bool> = BTreeMap::new();
+    for inbox in inboxes {
+        // is_delivered: false
+        queue.insert(inbox, false);
+    };
     let mut retry_count = 0;
     let max_retries = 2;
 
-    while inboxes.values().any(|res| *res == false) && retry_count <= max_retries {
+    while queue.values().any(|is_delivered| !is_delivered) &&
+        retry_count <= max_retries
+    {
         if retry_count > 0 {
             // Wait before next attempt
             sleep(backoff(retry_count)).await;
         };
-        let queue = inboxes.iter_mut().filter(|(_, res)| **res == false);
-        for (inbox_url, result) in queue {
+        for (inbox_url, is_delivered) in queue.iter_mut() {
+            if *is_delivered {
+                continue;
+            };
             if let Err(error) = send_activity(
                 &instance,
                 &actor_key,
@@ -165,19 +169,20 @@ async fn deliver_activity_worker(
                     error,
                 );
             } else {
-                *result = true;
+                *is_delivered = true;
             };
         };
         retry_count += 1;
     };
 
+    // Generate report
     let mut instances: HashMap<String, bool> = HashMap::new();
-    for (inbox_url, result) in inboxes {
+    for (inbox_url, is_delivered) in queue {
         let hostname = get_hostname(&inbox_url).unwrap_or(inbox_url);
-        if !instances.contains_key(&hostname) || result == true {
+        if !instances.contains_key(&hostname) || is_delivered {
             // If flag is not set and result is false, set flag to true
             // If result is true, set flag to false
-            instances.insert(hostname, !result);
+            instances.insert(hostname, !is_delivered);
         };
     };
     for (hostname, is_unreachable) in instances {
@@ -190,10 +195,10 @@ async fn deliver_activity_worker(
 }
 
 pub struct OutgoingActivity {
-    pub instance: Instance,
-    pub sender: User,
+    instance: Instance,
+    sender: User,
     pub activity: Value,
-    pub recipients: Vec<Actor>,
+    inboxes: Vec<String>,
 }
 
 impl OutgoingActivity {
@@ -203,12 +208,14 @@ impl OutgoingActivity {
         activity: impl Serialize,
         recipients: Vec<Actor>,
     ) -> Self {
+        let inboxes = recipients.into_iter()
+            .map(|actor| actor.inbox).collect();
         Self {
             instance: instance.clone(),
             sender: sender.clone(),
             activity: serde_json::to_value(activity)
                 .expect("activity should be serializable"),
-            recipients,
+            inboxes,
         }
     }
 
@@ -217,7 +224,7 @@ impl OutgoingActivity {
             self.instance,
             self.sender,
             self.activity,
-            self.recipients,
+            self.inboxes,
         ).await
     }
 
