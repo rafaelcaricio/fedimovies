@@ -4,7 +4,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     identifiers::parse_local_actor_id,
-    receiver::find_object_id,
+    receiver::{deserialize_into_object_id, find_object_id},
     vocabulary::{ANNOUNCE, FOLLOW, LIKE},
 };
 use crate::config::Config;
@@ -23,12 +23,15 @@ use crate::models::{
         delete_reaction,
         get_reaction_by_remote_activity_id,
     },
-    relationships::queries::unfollow,
+    relationships::queries::{
+        get_follow_request_by_activity_id,
+        unfollow,
+    },
 };
 use super::HandlerResult;
 
 #[derive(Deserialize)]
-struct Undo {
+struct UndoFollow {
     actor: String,
     object: Value,
 }
@@ -36,8 +39,10 @@ struct Undo {
 async fn handle_undo_follow(
     config: &Config,
     db_client: &mut impl GenericClient,
-    activity: Undo,
+    activity: Value,
 ) -> HandlerResult {
+    let activity: UndoFollow = serde_json::from_value(activity)
+        .map_err(|_| ValidationError("unexpected activity structure"))?;
     let source_profile = get_profile_by_remote_actor_id(
         db_client,
         &activity.actor,
@@ -58,25 +63,45 @@ async fn handle_undo_follow(
     Ok(Some(FOLLOW))
 }
 
+#[derive(Deserialize)]
+struct Undo {
+    actor: String,
+    #[serde(deserialize_with = "deserialize_into_object_id")]
+    object: String,
+}
+
 pub async fn handle_undo(
     config: &Config,
     db_client: &mut impl GenericClient,
     activity: Value,
 ) -> HandlerResult {
-    let activity: Undo = serde_json::from_value(activity)
-        .map_err(|_| ValidationError("unexpected activity structure"))?;
-    if let Some(FOLLOW) = activity.object["type"].as_str() {
-        // Object type is currently required for processing Undo(Follow)
-        // because activity IDs of remote follow requests are not stored.
-        return handle_undo_follow(config, db_client, activity).await
+    if let Some(FOLLOW) = activity["object"]["type"].as_str() {
+        // Undo() with nested follow activity
+        return handle_undo_follow(config, db_client, activity).await;
     };
 
+    let activity: Undo = serde_json::from_value(activity)
+        .map_err(|_| ValidationError("unexpected activity structure"))?;
     let actor_profile = get_profile_by_remote_actor_id(
         db_client,
         &activity.actor,
     ).await?;
-    let object_id = find_object_id(&activity.object)?;
-    match get_reaction_by_remote_activity_id(db_client, &object_id).await {
+
+    match get_follow_request_by_activity_id(db_client, &activity.object).await {
+        Ok(follow_request) => {
+            // Undo(Follow)
+            unfollow(
+                db_client,
+                &follow_request.source_id,
+                &follow_request.target_id,
+            ).await?;
+            return Ok(Some(FOLLOW));
+        },
+        Err(DatabaseError::NotFound(_)) => (), // try other object types
+        Err(other_error) => return Err(other_error.into()),
+    };
+
+    match get_reaction_by_remote_activity_id(db_client, &activity.object).await {
         Ok(reaction) => {
             // Undo(Like)
             if reaction.author_id != actor_profile.id {
@@ -93,7 +118,7 @@ pub async fn handle_undo(
             // Undo(Announce)
             let post = match get_post_by_remote_object_id(
                 db_client,
-                &object_id,
+                &activity.object,
             ).await {
                 Ok(post) => post,
                 // Ignore undo if neither reaction nor repost is found

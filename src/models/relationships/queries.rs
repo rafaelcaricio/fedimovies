@@ -272,6 +272,23 @@ pub async fn get_follow_request_by_id(
     Ok(request)
 }
 
+pub async fn get_follow_request_by_activity_id(
+    db_client: &impl GenericClient,
+    activity_id: &str,
+) -> Result<DbFollowRequest, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT follow_request
+        FROM follow_request
+        WHERE activity_id = $1
+        ",
+        &[&activity_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("follow request"))?;
+    let request = row.try_get("follow_request")?;
+    Ok(request)
+}
+
 pub async fn get_followers(
     db_client: &impl GenericClient,
     profile_id: &Uuid,
