@@ -954,7 +954,7 @@ pub async fn get_token_waitlist(
 
 /// Finds all contexts (identified by top-level post)
 /// created before the specified date
-/// that do not contain local posts, reposts, mentions or reactions.
+/// that do not contain local posts, reposts, mentions, links or reactions.
 pub async fn find_extraneous_posts(
     db_client: &impl GenericClient,
     created_before: &DateTime<Utc>,
@@ -1003,6 +1003,15 @@ pub async fn find_extraneous_posts(
                 JOIN actor_profile ON post_reaction.author_id = actor_profile.id
                 WHERE
                     post_reaction.post_id = ANY(context_agg.posts)
+                    AND actor_profile.actor_json IS NULL
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM post_link
+                JOIN post ON post_link.target_id = post.id
+                JOIN actor_profile ON post.author_id = actor_profile.id
+                WHERE
+                    post_link.source_id = ANY(context_agg.posts)
                     AND actor_profile.actor_json IS NULL
             )
         ",
