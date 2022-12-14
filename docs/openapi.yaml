@@ -1156,6 +1156,10 @@ components:
           description: The location of the user's profile page.
           type: string
           example: https://example.com/@user
+        locked:
+          description: Whether the actor manually approves follow requests.
+          type: boolean
+          example: false
         identity_proofs:
           description: Identity proofs.
           type: array

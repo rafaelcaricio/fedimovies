@@ -58,6 +58,7 @@ pub struct Account {
     pub note: Option<String>,
     pub avatar: Option<String>,
     pub header: Option<String>,
+    pub locked: bool,
     pub identity_proofs: Vec<AccountField>,
     pub payment_options: Vec<AccountPaymentOption>,
     pub fields: Vec<AccountField>,
@@ -76,6 +77,9 @@ impl Account {
             .map(|name| get_file_url(instance_url, name));
         let header_url = profile.banner_file_name.as_ref()
             .map(|name| get_file_url(instance_url, name));
+        let is_locked = profile.actor_json
+            .map(|actor| actor.manually_approves_followers)
+            .unwrap_or(false);
 
         let mut identity_proofs = vec![];
         for proof in profile.identity_proofs.clone().into_inner() {
@@ -141,6 +145,7 @@ impl Account {
             note: profile.bio,
             avatar: avatar_url,
             header: header_url,
+            locked: is_locked,
             identity_proofs,
             payment_options,
             fields: extra_fields,

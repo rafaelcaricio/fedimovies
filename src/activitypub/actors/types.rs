@@ -148,6 +148,9 @@ pub struct Actor {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attachment: Option<Vec<ActorAttachment>>,
 
+    #[serde(default)]
+    pub manually_approves_followers: bool,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
 }
@@ -329,6 +332,7 @@ pub fn get_local_actor(
         summary: user.profile.bio.clone(),
         also_known_as: None,
         attachment: Some(attachments),
+        manually_approves_followers: false,
         url: Some(actor_id),
     };
     Ok(actor)
@@ -366,6 +370,7 @@ pub fn get_instance_actor(
         summary: None,
         also_known_as: None,
         attachment: None,
+        manually_approves_followers: false,
         url: None,
     };
     Ok(actor)
