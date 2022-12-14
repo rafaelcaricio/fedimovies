@@ -49,9 +49,10 @@ pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> 
 }
 
 /// Validates extra fields and removes fields with empty labels
-pub fn clean_extra_fields(extra_fields: &[ExtraField])
-    -> Result<Vec<ExtraField>, ValidationError>
-{
+pub fn clean_extra_fields(
+    extra_fields: &[ExtraField],
+    is_remote: bool,
+) -> Result<Vec<ExtraField>, ValidationError> {
     let mut cleaned_extra_fields = vec![];
     for mut field in extra_fields.iter().cloned() {
         field.name = field.name.trim().to_string();
@@ -67,8 +68,14 @@ pub fn clean_extra_fields(extra_fields: &[ExtraField])
         };
         cleaned_extra_fields.push(field);
     };
-    if cleaned_extra_fields.len() > 20 {
-        return Err(ValidationError("at most 20 fields are allowed"));
+    if is_remote {
+        if cleaned_extra_fields.len() > 100 {
+            return Err(ValidationError("at most 100 fields are allowed"));
+        };
+    } else {
+        if cleaned_extra_fields.len() > 10 {
+            return Err(ValidationError("at most 10 fields are allowed"));
+        };
     };
     Ok(cleaned_extra_fields)
 }
@@ -118,7 +125,8 @@ mod tests {
             value: "<p>0x1234</p>".to_string(),
             value_source: None,
         }];
-        let result = clean_extra_fields(&extra_fields).unwrap().pop().unwrap();
+        let result = clean_extra_fields(&extra_fields, false)
+            .unwrap().pop().unwrap();
         assert_eq!(result.name, "$ETH");
         assert_eq!(result.value, "0x1234");
     }

@@ -409,11 +409,12 @@ impl ProfileCreateData {
         if let Some(display_name) = &self.display_name {
             validate_display_name(display_name)?;
         };
+        let is_remote = self.actor_json.is_some();
         if let Some(bio) = &self.bio {
-            let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
+            let cleaned_bio = clean_bio(bio, is_remote)?;
             self.bio = Some(cleaned_bio);
         };
-        self.extra_fields = clean_extra_fields(&self.extra_fields)?;
+        self.extra_fields = clean_extra_fields(&self.extra_fields, is_remote)?;
         Ok(())
     }
 }
@@ -451,12 +452,13 @@ impl ProfileUpdateData {
         if let Some(display_name) = &self.display_name {
             validate_display_name(display_name)?;
         };
+        let is_remote = self.actor_json.is_some();
         // Validate and clean bio
         if let Some(bio) = &self.bio {
-            let cleaned_bio = clean_bio(bio, self.actor_json.is_some())?;
+            let cleaned_bio = clean_bio(bio, is_remote)?;
             self.bio = Some(cleaned_bio);
         };
-        self.extra_fields = clean_extra_fields(&self.extra_fields)?;
+        self.extra_fields = clean_extra_fields(&self.extra_fields, is_remote)?;
         Ok(())
     }
 }
