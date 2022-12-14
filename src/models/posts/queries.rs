@@ -1207,6 +1207,25 @@ mod tests {
 
     #[tokio::test]
     #[serial]
+    async fn test_delete_post() {
+         let db_client = &mut create_test_database().await;
+        let user_data = UserCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let user = create_user(db_client, user_data).await.unwrap();
+        let post_data = PostCreateData {
+            content: "test post".to_string(),
+            ..Default::default()
+        };
+        let post = create_post(db_client, &user.id, post_data).await.unwrap();
+        let deletion_queue = delete_post(db_client, &post.id).await.unwrap();
+        assert_eq!(deletion_queue.files.len(), 0);
+        assert_eq!(deletion_queue.ipfs_objects.len(), 0);
+    }
+
+    #[tokio::test]
+    #[serial]
     async fn test_home_timeline() {
         let db_client = &mut create_test_database().await;
         let current_user_data = UserCreateData {
