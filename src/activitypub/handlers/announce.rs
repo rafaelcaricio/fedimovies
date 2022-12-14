@@ -6,7 +6,7 @@ use crate::activitypub::{
     fetcher::helpers::{get_or_import_profile_by_actor_id, import_post},
     identifiers::parse_local_object_id,
     receiver::deserialize_into_object_id,
-    vocabulary::{CREATE, LIKE, NOTE, UNDO, UPDATE},
+    vocabulary::{CREATE, DISLIKE, LIKE, NOTE, UNDO, UPDATE},
 };
 use crate::config::Config;
 use crate::database::DatabaseError;
@@ -31,7 +31,9 @@ pub async fn handle_announce(
     db_client: &mut impl GenericClient,
     activity: Value,
 ) -> HandlerResult {
-    if let Some(CREATE | LIKE | UNDO | UPDATE) = activity["object"]["type"].as_str() {
+    if let Some(CREATE | DISLIKE | LIKE | UNDO | UPDATE) =
+        activity["object"]["type"].as_str()
+    {
         // Ignore wrapped activities from Lemmy
         // https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-1b12.md
         return Ok(None);
