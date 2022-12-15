@@ -62,12 +62,12 @@ reqwest = { version = "0.11.10", features = ["json", "multipart", "socks"] }
 rsa = "0.5.0"
 pem = "1.0.2"
 # Used for hashing passwords
-rust-argon2 = "0.8.3"
+rust-argon2 = "1.0.0"
 # Used for working with ethereum keys
 secp256k1 = { version = "0.21.3", features = ["rand", "rand-std"] }
 # Used for serialization/deserialization
 serde = { version = "1.0.136", features = ["derive"] }
-serde_json = "1.0"
+serde_json = "1.0.89"
 # Used to create JCS representations
 serde_jcs = "0.1.0"
 # Used to parse config file
@@ -98,7 +98,7 @@ web3 = { version = "0.18.0", default-features = false, features = ["http", "http
 
 [dev-dependencies]
 rand = { version = "*", features = ["small_rng"] }
-serial_test = "0.5.1"
+serial_test = "0.7.0"
 
 [features]
 production = []
