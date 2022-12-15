@@ -127,12 +127,13 @@ pub fn run(
     db_pool: DbPool,
 ) -> () {
     tokio::spawn(async move {
-        let mut scheduler_state = HashMap::new();
-        scheduler_state.insert(Task::NftMonitor, None);
-        scheduler_state.insert(Task::EthereumSubscriptionMonitor, None);
-        scheduler_state.insert(Task::SubscriptionExpirationMonitor, None);
-        scheduler_state.insert(Task::MoneroPaymentMonitor, None);
-        scheduler_state.insert(Task::IncomingActivityQueue, None);
+        let mut scheduler_state = HashMap::from([
+            (Task::NftMonitor, None),
+            (Task::EthereumSubscriptionMonitor, None),
+            (Task::SubscriptionExpirationMonitor, None),
+            (Task::MoneroPaymentMonitor, None),
+            (Task::IncomingActivityQueue, None),
+        ]);
 
         let mut interval = tokio::time::interval(Duration::from_secs(5));
         let mut token_waitlist_map: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
