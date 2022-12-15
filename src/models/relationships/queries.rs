@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 

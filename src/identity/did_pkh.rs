@@ -1,5 +1,4 @@
 /// https://github.com/w3c-ccg/did-pkh/blob/main/did-pkh-method-draft.md
-use std::convert::TryInto;
 use std::fmt;
 use std::str::FromStr;
 

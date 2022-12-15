@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use postgres_types::FromSql;

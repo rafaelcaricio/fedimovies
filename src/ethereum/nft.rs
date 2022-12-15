@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::TryInto;
 
 use chrono::{DateTime, Utc};
 use uuid::Uuid;

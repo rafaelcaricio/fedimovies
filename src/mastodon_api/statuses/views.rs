@@ -1,6 +1,4 @@
 /// https://docs.joinmastodon.org/methods/statuses/
-use std::convert::TryFrom;
-
 use actix_web::{delete, get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;

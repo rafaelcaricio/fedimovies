@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use postgres_types::FromSql;
 use tokio_postgres::Row;
 use uuid::Uuid;

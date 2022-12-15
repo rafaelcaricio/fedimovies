@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use chrono::{DateTime, Utc};
 use postgres_types::FromSql;
 use tokio_postgres::Row;

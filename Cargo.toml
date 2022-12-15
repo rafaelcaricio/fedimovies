@@ -4,8 +4,8 @@ version = "1.7.0"
 description = "Federated micro-blogging platform and content subscription service"
 license = "AGPL-3.0"
 
-edition = "2018"
-rust-version = "1.54"
+edition = "2021"
+rust-version = "1.56"
 publish = false
 default-run = "mitra"
 
@@ -97,6 +97,7 @@ uuid = { version = "1.1.2", features = ["serde", "v4"] }
 web3 = { version = "0.18.0", default-features = false, features = ["http", "http-tls", "signing"] }
 
 [dev-dependencies]
+rand = { version = "*", features = ["small_rng"] }
 serial_test = "0.5.1"
 
 [features]

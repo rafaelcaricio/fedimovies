@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use regex::Regex;
 
 use crate::errors::{ConversionError, ValidationError};

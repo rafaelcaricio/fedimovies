@@ -1,6 +1,4 @@
 /// https://jedisct1.github.io/minisign/
-use std::convert::TryInto;
-
 use blake2::{Blake2b512, Digest};
 use ed25519_dalek::{
     PublicKey,
