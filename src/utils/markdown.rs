@@ -73,6 +73,7 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
     );
 
     // Re-render blockquotes, headings, HRs, images and lists
+    // Headings: poorly degrade on Pleroma
     // TODO: disable parser rules https://github.com/kivikakk/comrak/issues/244
     iter_nodes(root, &|node| {
         let node_value = node.data.borrow().value.clone();
