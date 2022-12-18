@@ -2,6 +2,7 @@ use regex::{Captures, Regex};
 
 use crate::errors::ValidationError;
 use crate::frontend::get_tag_page_url;
+use super::links::is_inside_code_block;
 
 const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])#(?P<tag>[^\s<]+)";
 const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?\)]?)$";
@@ -13,6 +14,11 @@ pub fn find_hashtags(text: &str) -> Vec<String> {
     let hashtag_secondary_re = Regex::new(HASHTAG_SECONDARY_RE).unwrap();
     let mut tags = vec![];
     for caps in hashtag_re.captures_iter(text) {
+        let tag_match = caps.name("tag").expect("should have tag group");
+        if is_inside_code_block(&tag_match, text) {
+            // Ignore hashtags inside code blocks
+            continue;
+        };
         if let Some(secondary_caps) = hashtag_secondary_re.captures(&caps["tag"]) {
             let tag_name = secondary_caps["tag"].to_string().to_lowercase();
             if !tags.contains(&tag_name) {
@@ -28,6 +34,11 @@ pub fn replace_hashtags(instance_url: &str, text: &str, tags: &[String]) -> Stri
     let hashtag_re = Regex::new(HASHTAG_RE).unwrap();
     let hashtag_secondary_re = Regex::new(HASHTAG_SECONDARY_RE).unwrap();
     let result = hashtag_re.replace_all(text, |caps: &Captures| {
+        let tag_match = caps.name("tag").expect("should have tag group");
+        if is_inside_code_block(&tag_match, text) {
+            // Don't replace hashtags inside code blocks
+            return caps[0].to_string();
+        };
         if let Some(secondary_caps) = hashtag_secondary_re.captures(&caps["tag"]) {
             let before = caps["before"].to_string();
             let tag = secondary_caps["tag"].to_string();

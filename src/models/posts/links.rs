@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use regex::{Captures, Regex};
+use regex::{Captures, Match, Regex};
 use tokio_postgres::GenericClient;
 
 use crate::database::DatabaseError;
@@ -10,10 +10,10 @@ use super::types::Post;
 // MediaWiki-like syntax: [[url|text]]
 const OBJECT_LINK_SEARCH_RE: &str = r"(?m)\[\[(?P<url>[^\s\|]+)(\|(?P<text>.+?))?\]\]";
 
-fn is_inside_code_block(caps: &Captures, text: &str) -> bool {
+pub fn is_inside_code_block(match_: &Match, text: &str) -> bool {
     // TODO: remove workaround.
     // Perform replacement only inside text nodes during markdown parsing
-    let text_before = &text[0..caps.name("url").unwrap().start()];
+    let text_before = &text[0..match_.start()];
     let code_open = text_before.matches("<code>").count();
     let code_closed = text_before.matches("</code>").count();
     code_open > code_closed
@@ -24,10 +24,12 @@ fn find_object_links(text: &str) -> Vec<String> {
     let link_re = Regex::new(OBJECT_LINK_SEARCH_RE).unwrap();
     let mut links = vec![];
     for caps in link_re.captures_iter(text) {
-        let url = caps["url"].to_string();
-        if is_inside_code_block(&caps, text) {
+        let url_match = caps.name("url").expect("should have url group");
+        if is_inside_code_block(&url_match, text) {
+            // Ignore links inside code blocks
             continue;
         };
+        let url = caps["url"].to_string();
         if !links.contains(&url) {
             links.push(url);
         };
@@ -60,12 +62,17 @@ pub fn replace_object_links(
 ) -> String {
     let mention_re = Regex::new(OBJECT_LINK_SEARCH_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
+        let url_match = caps.name("url").expect("should have url group");
+        if is_inside_code_block(&url_match, text) {
+            // Don't replace inside code blocks
+            return caps[0].to_string();
+        };
         let url = caps["url"].to_string();
         let link_text = caps.name("text")
             .map(|match_| match_.as_str())
             .unwrap_or(&url)
             .to_string();
-        if link_map.contains_key(&url) && !is_inside_code_block(caps, text) {
+        if link_map.contains_key(&url) {
             return format!(r#"<a href="{0}">{1}</a>"#, url, link_text);
         };
         // Leave unchanged if post does not exist
@@ -83,6 +90,16 @@ mod tests {
         "test link with [[https://example.org/1|text]] ",
         "test ([[https://example.org/2]])",
     );
+
+    #[test]
+    fn test_is_inside_code_block() {
+        let text = "abc<code>&&</code>xyz";
+        let regexp = Regex::new("&&").unwrap();
+        let mat = regexp.find(text).unwrap();
+        assert_eq!(mat.start(), 9);
+        let result = is_inside_code_block(&mat, text);
+        assert_eq!(result, true);
+    }
 
     #[test]
     fn test_find_object_links() {

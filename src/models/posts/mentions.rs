@@ -8,6 +8,7 @@ use crate::database::DatabaseError;
 use crate::errors::ValidationError;
 use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
+use super::links::is_inside_code_block;
 
 // See also: ACTOR_ADDRESS_RE in activitypub::actors::types
 const MENTION_RE: &str = r"@?(?P<username>[\w\.-]+)@(?P<hostname>.+)";
@@ -23,6 +24,11 @@ fn find_mentions(
     let mention_secondary_re = Regex::new(MENTION_SEARCH_SECONDARY_RE).unwrap();
     let mut mentions = vec![];
     for caps in mention_re.captures_iter(text) {
+        let mention_match = caps.name("mention").expect("should have mention group");
+        if is_inside_code_block(&mention_match, text) {
+            // No mentions inside code blocks
+            continue;
+        };
         if let Some(secondary_caps) = mention_secondary_re.captures(&caps["mention"]) {
             let username = secondary_caps["username"].to_string();
             let hostname = secondary_caps.name("hostname")
@@ -62,6 +68,11 @@ pub fn replace_mentions(
     let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
     let mention_secondary_re = Regex::new(MENTION_SEARCH_SECONDARY_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
+        let mention_match = caps.name("mention").expect("should have mention group");
+        if is_inside_code_block(&mention_match, text) {
+            // Don't replace mentions inside code blocks
+            return caps[0].to_string();
+        };
         if let Some(secondary_caps) = mention_secondary_re.captures(&caps["mention"]) {
             let username = secondary_caps["username"].to_string();
             let hostname = secondary_caps.name("hostname")
