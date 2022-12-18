@@ -134,9 +134,6 @@ async fn create_status(
             if post.visibility != Visibility::Public {
                 return Err(ValidationError("can't reference non-public post").into());
             };
-            if post.author.id != current_user.id {
-                post_data.mentions.push(post.author.id);
-            };
             post_data.links.push(post.id);
             linked.push(post);
         };
