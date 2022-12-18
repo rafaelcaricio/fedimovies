@@ -62,7 +62,7 @@ pub fn get_file_url(instance_url: &str, file_name: &str) -> String {
 
 pub fn remove_files(files: Vec<String>, from_dir: &Path) -> () {
     for file_name in files {
-        let file_path = from_dir.join(&file_name);
+        let file_path = from_dir.join(file_name);
         let file_path_str = file_path.to_string_lossy();
         match remove_file(&file_path) {
             Ok(_) => log::info!("removed file {}", file_path_str),

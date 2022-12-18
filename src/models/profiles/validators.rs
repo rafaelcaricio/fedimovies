@@ -68,6 +68,7 @@ pub fn clean_extra_fields(
         };
         cleaned_extra_fields.push(field);
     };
+    #[allow(clippy::collapsible_else_if)]
     if is_remote {
         if cleaned_extra_fields.len() > 100 {
             return Err(ValidationError("at most 100 fields are allowed"));
