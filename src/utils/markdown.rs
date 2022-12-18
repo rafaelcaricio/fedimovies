@@ -59,6 +59,46 @@ fn node_to_markdown<'a>(
     Ok(markdown)
 }
 
+fn replace_with_markdown<'a>(
+    node: &'a AstNode<'a>,
+    options: &ComrakOptions,
+) -> Result<(), MarkdownError> {
+    // Replace node with text node containing markdown
+    let markdown = node_to_markdown(node, options)?;
+    for child in node.children() {
+        child.detach();
+    };
+    let text = NodeValue::Text(markdown.as_bytes().to_vec());
+    let mut borrowed_node = node.data.borrow_mut();
+    *borrowed_node = Ast::new(text);
+    Ok(())
+}
+
+fn fix_microsyntaxes<'a>(
+    node: &'a AstNode<'a>,
+) -> Result<(), MarkdownError> {
+    if let Some(prev) = node.previous_sibling() {
+        if let NodeValue::Text(ref prev_text) = prev.data.borrow().value {
+            let prev_text = String::from_utf8(prev_text.to_vec())?;
+            // Remove autolink if mention or object link syntax is found
+            if prev_text.ends_with('@') || prev_text.ends_with("[[") {
+                let mut link_text = vec![];
+                for child in node.children() {
+                    child.detach();
+                    let child_value = &child.data.borrow().value;
+                    if let NodeValue::Text(child_text) = child_value {
+                        link_text.extend(child_text);
+                    };
+                };
+                let text = NodeValue::Text(link_text);
+                let mut borrowed_node = node.data.borrow_mut();
+                *borrowed_node = Ast::new(text);
+            };
+        };
+    };
+    Ok(())
+}
+
 fn document_to_html<'a>(
     document: &'a AstNode<'a>,
     options: &ComrakOptions,
@@ -117,17 +157,7 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                 let mut borrowed_node = node.data.borrow_mut();
                 *borrowed_node = Ast::new(NodeValue::Paragraph);
             },
-            // Inlines
-            NodeValue::Image(_) => {
-                // Replace node with text node containing markdown
-                let markdown = node_to_markdown(node, &options)?;
-                for child in node.children() {
-                    child.detach();
-                };
-                let text = NodeValue::Text(markdown.as_bytes().to_vec());
-                let mut borrowed_node = node.data.borrow_mut();
-                *borrowed_node = Ast::new(text);
-            },
+            NodeValue::Image(_) => replace_with_markdown(node, &options)?,
             NodeValue::List(_) => {
                 // Replace list and list item nodes
                 // while preserving their contents
@@ -169,27 +199,7 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                 let mut borrowed_node = node.data.borrow_mut();
                 *borrowed_node = Ast::new(NodeValue::Paragraph);
             },
-            NodeValue::Link(_) => {
-                if let Some(prev) = node.previous_sibling() {
-                    if let NodeValue::Text(ref prev_text) = prev.data.borrow().value {
-                        let prev_text = String::from_utf8(prev_text.to_vec())?;
-                        // Remove autolink if mention or object link syntax is found
-                        if prev_text.ends_with('@') || prev_text.ends_with("[[") {
-                            let mut link_text = vec![];
-                            for child in node.children() {
-                                child.detach();
-                                let child_value = &child.data.borrow().value;
-                                if let NodeValue::Text(child_text) = child_value {
-                                    link_text.extend(child_text);
-                                };
-                            };
-                            let text = NodeValue::Text(link_text);
-                            let mut borrowed_node = node.data.borrow_mut();
-                            *borrowed_node = Ast::new(text);
-                        };
-                    };
-                };
-            },
+            NodeValue::Link(_) => fix_microsyntaxes(node)?,
             _ => (),
         };
         Ok(())
@@ -216,10 +226,10 @@ pub fn markdown_basic_to_html(text: &str) -> Result<String, MarkdownError> {
         match node_value {
             NodeValue::Document |
             NodeValue::Text(_) |
-            NodeValue::Link(_) |
             NodeValue::SoftBreak |
             NodeValue::LineBreak
                 => (),
+            NodeValue::Link(_) => fix_microsyntaxes(node)?,
             NodeValue::Paragraph => {
                 if node.next_sibling().is_some() {
                     // If this is not the last paragraph,
@@ -234,16 +244,7 @@ pub fn markdown_basic_to_html(text: &str) -> Result<String, MarkdownError> {
                     };
                 };
             },
-            _ => {
-                // Replace node with text node containing markdown
-                let markdown = node_to_markdown(node, &options)?;
-                for child in node.children() {
-                    child.detach();
-                };
-                let text = NodeValue::Text(markdown.as_bytes().to_vec());
-                let mut borrowed_node = node.data.borrow_mut();
-                *borrowed_node = Ast::new(text);
-            },
+            _ => replace_with_markdown(node, &options)?,
         };
         Ok(())
     })?;
@@ -315,6 +316,13 @@ mod tests {
             "<p>another line</p>",
         );
         assert_eq!(html, expected_html);
+    }
+
+    #[test]
+    fn test_markdown_basic_to_html_mention() {
+        let text = "@user@example.org test";
+        let html = markdown_basic_to_html(text).unwrap();
+        assert_eq!(html, format!("<p>{}</p>", text));
     }
 
     #[test]
