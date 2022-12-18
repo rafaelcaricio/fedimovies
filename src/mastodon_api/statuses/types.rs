@@ -146,7 +146,6 @@ pub struct StatusData {
 
     // Not supported by Mastodon
     pub mentions: Option<Vec<Uuid>>,
-    pub links: Option<Vec<Uuid>>,
 
     #[serde(default = "default_post_content_type")]
     pub content_type: String,
@@ -181,7 +180,7 @@ impl TryFrom<StatusData> for PostCreateData {
             attachments: status_data.media_ids.unwrap_or(vec![]),
             mentions: status_data.mentions.unwrap_or(vec![]),
             tags: vec![],
-            links: status_data.links.unwrap_or(vec![]),
+            links: vec![],
             object_id: None,
             created_at: Utc::now(),
         };
@@ -207,7 +206,6 @@ mod tests {
             in_reply_to_id: None,
             visibility: Some("public".to_string()),
             mentions: None,
-            links: None,
             content_type: "text/html".to_string(),
         };
         let post_data = PostCreateData::try_from(status_data).unwrap();

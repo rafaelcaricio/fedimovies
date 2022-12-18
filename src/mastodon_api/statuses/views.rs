@@ -87,30 +87,7 @@ async fn create_status(
         &post_data.tags,
     );
     // Links
-    post_data.links.sort();
-    post_data.links.dedup();
     let mut linked = vec![];
-    for linked_id in &post_data.links {
-        let post = match get_post_by_id(db_client, linked_id).await {
-            Ok(post) => post,
-            Err(DatabaseError::NotFound(_)) => {
-                return Err(ValidationError("referenced post does't exist").into());
-            },
-            Err(other_error) => return Err(other_error.into()),
-        };
-        if post.repost_of_id.is_some() {
-            return Err(ValidationError("can't reference repost").into());
-        };
-        if post.visibility != Visibility::Public {
-            return Err(ValidationError("can't reference non-public post").into());
-        };
-        // Append inline quote
-        post_data.content += &format!(
-            r#"<p class="inline-quote">RE: <a href="{0}">{0}</a></p>"#,
-            post.object_id(&instance.url()),
-        );
-        linked.push(post);
-    };
     let link_map = match find_linked_posts(
         db_client,
         &instance.url(),
