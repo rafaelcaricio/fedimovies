@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::errors::ValidationError;
+use crate::errors::{HttpError, ValidationError};
 use crate::identity::did::Did;
 use crate::mastodon_api::pagination::PageSize;
 use crate::mastodon_api::uploads::{UploadError, save_validated_b64_file};
@@ -21,7 +21,10 @@ use crate::models::users::types::{
     validate_local_username,
     User,
 };
-use crate::utils::files::get_file_url;
+use crate::utils::{
+    files::get_file_url,
+    markdown::markdown_basic_to_html,
+};
 
 /// https://docs.joinmastodon.org/entities/field/
 #[derive(Serialize)]
@@ -242,7 +245,14 @@ impl AccountUpdateData {
         current_identity_proofs: &[IdentityProof],
         current_payment_options: &[PaymentOption],
         media_dir: &Path,
-    ) -> Result<ProfileUpdateData, UploadError> {
+    ) -> Result<ProfileUpdateData, HttpError> {
+        let maybe_bio = if let Some(ref note_source) = self.note_source {
+            let bio = markdown_basic_to_html(note_source)
+                .map_err(|_| ValidationError("invalid markdown"))?;
+            Some(bio)
+        } else {
+            None
+        };
         let avatar = process_b64_image_field_value(
             self.avatar, current_avatar.clone(), media_dir,
         )?;
@@ -251,10 +261,16 @@ impl AccountUpdateData {
         )?;
         let identity_proofs = current_identity_proofs.to_vec();
         let payment_options = current_payment_options.to_vec();
-        let extra_fields = self.fields_attributes.unwrap_or(vec![]);
+        let mut extra_fields = self.fields_attributes.unwrap_or(vec![]);
+        for extra_field in extra_fields.iter_mut() {
+            let value_source = extra_field.value_source.as_ref()
+                .ok_or(ValidationError("missing value source"))?;
+            extra_field.value = markdown_basic_to_html(value_source)
+                .map_err(|_| ValidationError("invalid markdown"))?;
+        };
         let profile_data = ProfileUpdateData {
             display_name: self.display_name,
-            bio: self.note,
+            bio: maybe_bio,
             bio_source: self.note_source,
             avatar,
             banner,
