@@ -44,7 +44,13 @@ pub async fn find_linked_posts(
 ) -> Result<HashMap<String, Post>, DatabaseError> {
     let links = find_object_links(text);
     let mut link_map: HashMap<String, Post> = HashMap::new();
+    let mut counter = 0;
     for url in links {
+        if counter > 10 {
+            // Limit the number of queries
+            break;
+            // TODO: single database query
+        };
         match get_post_by_object_id(
             db_client,
             instance_url,
@@ -65,6 +71,7 @@ pub async fn find_linked_posts(
             Err(DatabaseError::NotFound(_)) => continue,
             Err(other_error) => return Err(other_error),
         };
+        counter += 1;
     };
     Ok(link_map)
 }

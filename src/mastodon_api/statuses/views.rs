@@ -102,9 +102,6 @@ async fn create_status(
     if post_data.links.len() > 0 && post_data.visibility != Visibility::Public {
         return Err(ValidationError("can't add links to non-public posts").into());
     };
-    if post_data.links.len() > 3 {
-        return Err(ValidationError("too many links").into());
-    };
     // Reply validation
     let maybe_in_reply_to = if let Some(in_reply_to_id) = post_data.in_reply_to_id.as_ref() {
         let in_reply_to = match get_post_by_id(db_client, in_reply_to_id).await {
