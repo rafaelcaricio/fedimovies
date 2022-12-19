@@ -1,13 +1,67 @@
 use tokio_postgres::GenericClient;
+use uuid::Uuid;
 
+use crate::config::Instance;
 use crate::database::DatabaseError;
-use crate::models::posts::helpers::{
-    add_user_actions,
-    add_related_posts,
+use crate::models::{
+    posts::{
+        hashtags::{find_hashtags, replace_hashtags},
+        helpers::{add_related_posts, add_user_actions},
+        links::{replace_object_links, find_linked_posts},
+        mentions::{find_mentioned_profiles, replace_mentions},
+        types::Post,
+    },
+    users::types::User,
 };
-use crate::models::posts::types::Post;
-use crate::models::users::types::User;
 use super::types::Status;
+
+pub struct PostContent {
+    pub content: String,
+    pub mentions: Vec<Uuid>,
+    pub tags: Vec<String>,
+    pub links: Vec<Uuid>,
+    pub linked: Vec<Post>,
+}
+
+pub async fn parse_microsyntaxes(
+    db_client: &impl GenericClient,
+    instance: &Instance,
+    mut content: String,
+) -> Result<PostContent, DatabaseError> {
+    // Mentions
+    let mention_map = find_mentioned_profiles(
+        db_client,
+        &instance.hostname(),
+        &content,
+    ).await?;
+    content = replace_mentions(
+        &mention_map,
+        &instance.hostname(),
+        &instance.url(),
+        &content,
+    );
+    let mentions = mention_map.values().map(|profile| profile.id).collect();
+    // Hashtags
+    let tags = find_hashtags(&content);
+    content = replace_hashtags(
+        &instance.url(),
+        &content,
+        &tags,
+    );
+    // Links
+    let link_map = find_linked_posts(
+        db_client,
+        &instance.url(),
+        &content,
+    ).await?;
+    content = replace_object_links(
+        &link_map,
+        &content,
+    );
+    let links = link_map.values().map(|post| post.id).collect();
+    let linked = link_map.into_values().collect();
+    Ok(PostContent { content, mentions, tags, links, linked })
+}
 
 /// Load related objects and build status for API response
 pub async fn build_status(

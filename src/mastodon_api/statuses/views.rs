@@ -20,10 +20,7 @@ use crate::ipfs::store as ipfs_store;
 use crate::ipfs::posts::PostMetadata;
 use crate::ipfs::utils::get_ipfs_url;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::models::posts::hashtags::{find_hashtags, replace_hashtags};
 use crate::models::posts::helpers::can_view_post;
-use crate::models::posts::links::{replace_object_links, find_linked_posts};
-use crate::models::posts::mentions::{find_mentioned_profiles, replace_mentions};
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
@@ -47,6 +44,8 @@ use crate::utils::{
 use super::helpers::{
     build_status,
     build_status_list,
+    parse_microsyntaxes,
+    PostContent,
 };
 use super::types::{Status, StatusData, TransactionData};
 
@@ -69,7 +68,7 @@ async fn create_status(
         Some(_) => return Err(ValidationError("invalid visibility parameter").into()),
         None => Visibility::Public,
     };
-    let mut content = match status_data.content_type.as_str() {
+    let content = match status_data.content_type.as_str() {
         "text/html" => status_data.status,
         "text/markdown" => {
             markdown_lite_to_html(&status_data.status)
@@ -77,42 +76,18 @@ async fn create_status(
         },
         _ => return Err(ValidationError("unsupported content type").into()),
     };
-    let mut mentions = status_data.mentions.unwrap_or(vec![]);
-    // Mentions
-    let mention_map = find_mentioned_profiles(
-        db_client,
-        &instance.hostname(),
-        &content,
-    ).await?;
-    content = replace_mentions(
-        &mention_map,
-        &instance.hostname(),
-        &instance.url(),
-        &content,
-    );
-    mentions.extend(mention_map.values().map(|profile| profile.id));
-    // Hashtags
-    let tags = find_hashtags(&content);
-    content = replace_hashtags(
-        &instance.url(),
-        &content,
-        &tags,
-    );
-    // Links
-    let link_map = find_linked_posts(
-        db_client,
-        &instance.url(),
-        &content,
-    ).await?;
-    content = replace_object_links(
-        &link_map,
-        &content,
-    );
-    let links: Vec<_> = link_map.values().map(|post| post.id).collect();
-    let linked = link_map.into_values().collect();
+    // Parse content
+    let PostContent { mut content, mut mentions, tags, links, linked } =
+        parse_microsyntaxes(
+            db_client,
+            &instance,
+            content,
+        ).await?;
     // Clean content
     content = clean_content(&content)?;
 
+    // Extend mentions
+    mentions.extend(status_data.mentions.unwrap_or(vec![]));
     if visibility == Visibility::Subscribers {
         // Mention all subscribers.
         // This makes post accessible only to active subscribers
