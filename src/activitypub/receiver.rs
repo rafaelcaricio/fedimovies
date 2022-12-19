@@ -229,6 +229,18 @@ pub async fn receive_activity(
     let activity_actor = activity["actor"].as_str()
         .ok_or(ValidationError("actor property is missing"))?;
 
+    let actor_hostname = url::Url::parse(activity_actor)
+        .map_err(|_| ValidationError("invalid actor ID"))?
+        .host_str()
+        .ok_or(ValidationError("invalid actor ID"))?
+        .to_string();
+    if config.blocked_instances.iter()
+        .any(|instance_hostname| &actor_hostname == instance_hostname)
+    {
+        log::warn!("ignoring activity from blocked instance: {}", activity);
+        return Ok(());
+    };
+
     let is_self_delete = if activity_type == DELETE {
         let object_id = find_object_id(&activity["object"])?;
         object_id == activity_actor
