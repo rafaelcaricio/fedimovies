@@ -208,8 +208,10 @@ impl OutgoingActivity {
         activity: impl Serialize,
         recipients: Vec<Actor>,
     ) -> Self {
-        let inboxes = recipients.into_iter()
+        let mut inboxes: Vec<String> = recipients.into_iter()
             .map(|actor| actor.inbox).collect();
+        inboxes.sort();
+        inboxes.dedup();
         Self {
             instance: instance.clone(),
             sender: sender.clone(),
