@@ -5,7 +5,7 @@ use tokio_postgres::GenericClient;
 
 use crate::database::DatabaseError;
 use super::helpers::get_post_by_object_id;
-use super::types::Post;
+use super::types::{Post, Visibility};
 
 // MediaWiki-like syntax: [[url|text]]
 const OBJECT_LINK_SEARCH_RE: &str = r"(?m)\[\[(?P<url>[^\s\|]+)(\|(?P<text>.+?))?\]\]";
@@ -45,13 +45,26 @@ pub async fn find_linked_posts(
     let links = find_object_links(text);
     let mut link_map: HashMap<String, Post> = HashMap::new();
     for url in links {
-        // Return error if post doesn't exist
-        let post = get_post_by_object_id(
+        match get_post_by_object_id(
             db_client,
             instance_url,
             &url,
-        ).await?;
-        link_map.insert(url, post);
+        ).await {
+            Ok(post) => {
+                if post.repost_of_id.is_some() {
+                    // Can't reference reposts
+                    continue;
+                };
+                if post.visibility != Visibility::Public {
+                    // Can't reference non-public posts
+                    continue;
+                };
+                link_map.insert(url, post);
+            },
+            // If post doesn't exist in database, link is ignored
+            Err(DatabaseError::NotFound(_)) => continue,
+            Err(other_error) => return Err(other_error),
+        };
     };
     Ok(link_map)
 }

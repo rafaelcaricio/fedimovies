@@ -51,6 +51,7 @@ pub async fn find_mentioned_profiles(
     text: &str,
 ) -> Result<HashMap<String, DbActorProfile>, DatabaseError> {
     let mentions = find_mentions(instance_hostname, text);
+    // If acct doesn't exist in database, mention is ignored
     let profiles = get_profiles_by_accts(db_client, mentions).await?;
     let mut mention_map: HashMap<String, DbActorProfile> = HashMap::new();
     for profile in profiles {

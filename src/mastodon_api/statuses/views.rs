@@ -87,34 +87,18 @@ async fn create_status(
         &post_data.tags,
     );
     // Links
-    let mut linked = vec![];
-    let link_map = match find_linked_posts(
+    let link_map = find_linked_posts(
         db_client,
         &instance.url(),
         &post_data.content,
-    ).await {
-        Ok(link_map) => link_map,
-        Err(DatabaseError::NotFound(_)) => {
-            return Err(ValidationError("referenced post does't exist").into());
-        },
-        Err(other_error) => return Err(other_error.into()),
-    };
+    ).await?;
     post_data.content = replace_object_links(
         &link_map,
         &post_data.content,
     );
-    for post in link_map.into_values() {
-        if !post_data.links.contains(&post.id) {
-            if post.repost_of_id.is_some() {
-                return Err(ValidationError("can't reference repost").into());
-            };
-            if post.visibility != Visibility::Public {
-                return Err(ValidationError("can't reference non-public post").into());
-            };
-            post_data.links.push(post.id);
-            linked.push(post);
-        };
-    };
+    post_data.links.extend(link_map.values().map(|post| post.id));
+    let linked = link_map.into_values().collect();
+
     if post_data.links.len() > 0 && post_data.visibility != Visibility::Public {
         return Err(ValidationError("can't add links to non-public posts").into());
     };
