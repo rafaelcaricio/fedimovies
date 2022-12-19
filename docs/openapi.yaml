@@ -710,9 +710,7 @@ paths:
               type: object
               properties:
                 status:
-                  description: |
-                    Text content of the post.
-                    Allowed HTML tags: a, br, pre, code, strong, em, p.
+                  description: Text content of the post.
                   type: string
                 content_type:
                   description: Media type of the post content.
@@ -751,6 +749,42 @@ paths:
                 $ref: '#/components/schemas/Status'
         400:
           description: Invalid post data
+  /api/v1/statuses/preview:
+    post:
+      summary: Preview new post.
+      security:
+        - tokenAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  description: Text content of the post.
+                  type: string
+                content_type:
+                  description: Media type of the post content.
+                  type: string
+                  default: text/html
+                  enum:
+                    - text/html
+                    - text/markdown
+              required:
+                - status
+      responses:
+        200:
+          description: Preview generated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    description: HTML-encoded post content.
+                    type: string
+        400:
+          description: Invalid post data.
   /api/v1/statuses/{status_id}:
     delete:
       summary: Delete post

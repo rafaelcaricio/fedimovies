@@ -150,6 +150,19 @@ pub struct StatusData {
 }
 
 #[derive(Deserialize)]
+pub struct StatusPreviewData {
+    pub status: String,
+
+    #[serde(default = "default_post_content_type")]
+    pub content_type: String,
+}
+
+#[derive(Serialize)]
+pub struct StatusPreview {
+    pub content: String,
+}
+
+#[derive(Deserialize)]
 pub struct TransactionData {
     pub transaction_id: String,
 }

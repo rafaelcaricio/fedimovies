@@ -47,7 +47,13 @@ use super::helpers::{
     parse_microsyntaxes,
     PostContent,
 };
-use super::types::{Status, StatusData, TransactionData};
+use super::types::{
+    Status,
+    StatusData,
+    StatusPreview,
+    StatusPreviewData,
+    TransactionData,
+};
 
 #[post("")]
 async fn create_status(
@@ -159,6 +165,36 @@ async fn create_status(
 
     let status = Status::from_post(post, &instance.url());
     Ok(HttpResponse::Created().json(status))
+}
+
+#[post("/preview")]
+async fn preview_status(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<DbPool>,
+    status_data: web::Json<StatusPreviewData>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    get_current_user(db_client, auth.token()).await?;
+    let status_data = status_data.into_inner();
+    let content = match status_data.content_type.as_str() {
+        "text/html" => status_data.status,
+        "text/markdown" => {
+            markdown_lite_to_html(&status_data.status)
+                .map_err(|_| ValidationError("invalid markdown"))?
+        },
+        _ => return Err(ValidationError("unsupported content type").into()),
+    };
+    let PostContent { mut content, .. } = parse_microsyntaxes(
+        db_client,
+        &config.instance(),
+        content,
+    ).await?;
+    // Clean content
+    content = clean_content(&content)?;
+    // Return preview
+    let preview = StatusPreview { content };
+    Ok(HttpResponse::Ok().json(preview))
 }
 
 #[get("/{status_id}")]
@@ -524,6 +560,7 @@ pub fn status_api_scope() -> Scope {
     web::scope("/api/v1/statuses")
         // Routes without status ID
         .service(create_status)
+        .service(preview_status)
         // Routes with status ID
         .service(get_status)
         .service(delete_status)
