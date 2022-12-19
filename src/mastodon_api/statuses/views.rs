@@ -1,6 +1,7 @@
 /// https://docs.joinmastodon.org/methods/statuses/
 use actix_web::{delete, get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
+use chrono::Utc;
 use uuid::Uuid;
 
 use crate::activitypub::builders::{
@@ -39,7 +40,10 @@ use crate::models::reactions::queries::{
     delete_reaction,
 };
 use crate::models::relationships::queries::get_subscribers;
-use crate::utils::currencies::Currency;
+use crate::utils::{
+    currencies::Currency,
+    markdown::markdown_lite_to_html,
+};
 use super::helpers::{
     build_status,
     build_status_list,
@@ -56,58 +60,78 @@ async fn create_status(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let instance = config.instance();
-    let mut post_data = PostCreateData::try_from(status_data.into_inner())?;
+    let status_data = status_data.into_inner();
+    let visibility = match status_data.visibility.as_deref() {
+        Some("public") => Visibility::Public,
+        Some("direct") => Visibility::Direct,
+        Some("private") => Visibility::Followers,
+        Some("subscribers") => Visibility::Subscribers,
+        Some(_) => return Err(ValidationError("invalid visibility parameter").into()),
+        None => Visibility::Public,
+    };
+    let mut content = match status_data.content_type.as_str() {
+        "text/html" => status_data.status,
+        "text/markdown" => {
+            markdown_lite_to_html(&status_data.status)
+                .map_err(|_| ValidationError("invalid markdown"))?
+        },
+        _ => return Err(ValidationError("unsupported content type").into()),
+    };
+    let mut mentions = status_data.mentions.unwrap_or(vec![]);
     // Mentions
     let mention_map = find_mentioned_profiles(
         db_client,
         &instance.hostname(),
-        &post_data.content,
+        &content,
     ).await?;
-    post_data.content = replace_mentions(
+    content = replace_mentions(
         &mention_map,
         &instance.hostname(),
         &instance.url(),
-        &post_data.content,
+        &content,
     );
-    post_data.mentions.extend(mention_map.values()
-        .map(|profile| profile.id));
-    if post_data.visibility == Visibility::Subscribers {
+    mentions.extend(mention_map.values().map(|profile| profile.id));
+    // Hashtags
+    let tags = find_hashtags(&content);
+    content = replace_hashtags(
+        &instance.url(),
+        &content,
+        &tags,
+    );
+    // Links
+    let link_map = find_linked_posts(
+        db_client,
+        &instance.url(),
+        &content,
+    ).await?;
+    content = replace_object_links(
+        &link_map,
+        &content,
+    );
+    let links: Vec<_> = link_map.values().map(|post| post.id).collect();
+    let linked = link_map.into_values().collect();
+    // Clean content
+    content = clean_content(&content)?;
+
+    if visibility == Visibility::Subscribers {
         // Mention all subscribers.
         // This makes post accessible only to active subscribers
         // and is required for sending activities to subscribers
         // on other instances.
         let subscribers = get_subscribers(db_client, &current_user.id).await?
             .into_iter().map(|profile| profile.id);
-        post_data.mentions.extend(subscribers);
+        mentions.extend(subscribers);
     };
-    // Hashtags
-    post_data.tags = find_hashtags(&post_data.content);
-    post_data.content = replace_hashtags(
-        &instance.url(),
-        &post_data.content,
-        &post_data.tags,
-    );
-    // Links
-    let link_map = find_linked_posts(
-        db_client,
-        &instance.url(),
-        &post_data.content,
-    ).await?;
-    post_data.content = replace_object_links(
-        &link_map,
-        &post_data.content,
-    );
-    post_data.links.extend(link_map.values().map(|post| post.id));
-    let linked = link_map.into_values().collect();
-    // Clean content
-    post_data.content = clean_content(&post_data.content)?;
+    // Remove duplicate mentions
+    mentions.sort();
+    mentions.dedup();
 
     // Links validation
-    if post_data.links.len() > 0 && post_data.visibility != Visibility::Public {
+    if links.len() > 0 && visibility != Visibility::Public {
         return Err(ValidationError("can't add links to non-public posts").into());
     };
     // Reply validation
-    let maybe_in_reply_to = if let Some(in_reply_to_id) = post_data.in_reply_to_id.as_ref() {
+    let maybe_in_reply_to = if let Some(in_reply_to_id) = status_data.in_reply_to_id.as_ref() {
         let in_reply_to = match get_post_by_id(db_client, in_reply_to_id).await {
             Ok(post) => post,
             Err(DatabaseError::NotFound(_)) => {
@@ -119,14 +143,14 @@ async fn create_status(
             return Err(ValidationError("can't reply to repost").into());
         };
         if in_reply_to.visibility != Visibility::Public &&
-                post_data.visibility != Visibility::Direct {
+                visibility != Visibility::Direct {
             return Err(ValidationError("reply must have direct visibility").into());
         };
-        if post_data.visibility != Visibility::Public {
+        if visibility != Visibility::Public {
             let mut in_reply_to_audience: Vec<_> = in_reply_to.mentions.iter()
                 .map(|profile| profile.id).collect();
             in_reply_to_audience.push(in_reply_to.author.id);
-            if !post_data.mentions.iter().all(|id| in_reply_to_audience.contains(id)) {
+            if !mentions.iter().all(|id| in_reply_to_audience.contains(id)) {
                 return Err(ValidationError("audience can't be expanded").into());
             };
         };
@@ -134,11 +158,20 @@ async fn create_status(
     } else {
         None
     };
-    // Remove duplicate mentions
-    post_data.mentions.sort();
-    post_data.mentions.dedup();
 
     // Create post
+    let post_data = PostCreateData {
+        content: content,
+        in_reply_to_id: status_data.in_reply_to_id,
+        repost_of_id: None,
+        visibility: visibility,
+        attachments: status_data.media_ids.unwrap_or(vec![]),
+        mentions: mentions,
+        tags: tags,
+        links: links,
+        object_id: None,
+        created_at: Utc::now(),
+    };
     let mut post = create_post(db_client, &current_user.id, post_data).await?;
     post.in_reply_to = maybe_in_reply_to.map(|mut in_reply_to| {
         in_reply_to.reply_count += 1;

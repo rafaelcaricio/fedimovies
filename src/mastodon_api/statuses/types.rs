@@ -2,12 +2,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::errors::ValidationError;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::media::types::Attachment;
-use crate::models::posts::types::{Post, PostCreateData, Visibility};
+use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
-use crate::utils::markdown::markdown_lite_to_html;
 
 /// https://docs.joinmastodon.org/entities/mention/
 #[derive(Serialize)]
@@ -151,68 +149,7 @@ pub struct StatusData {
     pub content_type: String,
 }
 
-impl TryFrom<StatusData> for PostCreateData {
-
-    type Error = ValidationError;
-
-    fn try_from(status_data: StatusData) -> Result<Self, Self::Error> {
-        let visibility = match status_data.visibility.as_deref() {
-            Some("public") => Visibility::Public,
-            Some("direct") => Visibility::Direct,
-            Some("private") => Visibility::Followers,
-            Some("subscribers") => Visibility::Subscribers,
-            Some(_) => return Err(ValidationError("invalid visibility parameter")),
-            None => Visibility::Public,
-        };
-        let content = match status_data.content_type.as_str() {
-            "text/html" => status_data.status,
-            "text/markdown" => {
-                markdown_lite_to_html(&status_data.status)
-                    .map_err(|_| ValidationError("invalid markdown"))?
-            },
-            _ => return Err(ValidationError("unsupported content type")),
-        };
-        let post_data = Self {
-            content: content,
-            in_reply_to_id: status_data.in_reply_to_id,
-            repost_of_id: None,
-            visibility: visibility,
-            attachments: status_data.media_ids.unwrap_or(vec![]),
-            mentions: status_data.mentions.unwrap_or(vec![]),
-            tags: vec![],
-            links: vec![],
-            object_id: None,
-            created_at: Utc::now(),
-        };
-        Ok(post_data)
-    }
-}
-
 #[derive(Deserialize)]
 pub struct TransactionData {
     pub transaction_id: String,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_status_data_into_post_data() {
-        let status_content = "<p>test</p>";
-        let status_data = StatusData {
-            status: status_content.to_string(),
-            media_ids: None,
-            in_reply_to_id: None,
-            visibility: Some("public".to_string()),
-            mentions: None,
-            content_type: "text/html".to_string(),
-        };
-        let post_data = PostCreateData::try_from(status_data).unwrap();
-        assert_eq!(post_data.content, status_content);
-        assert_eq!(post_data.visibility, Visibility::Public);
-        assert_eq!(post_data.attachments, vec![]);
-        assert_eq!(post_data.mentions, vec![]);
-        assert_eq!(post_data.links, vec![]);
-    }
 }
