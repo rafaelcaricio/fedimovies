@@ -33,6 +33,7 @@ use crate::models::posts::queries::{
     delete_post,
 };
 use crate::models::posts::types::{PostCreateData, Visibility};
+use crate::models::posts::validators::clean_content;
 use crate::models::reactions::queries::{
     create_reaction,
     delete_reaction,
@@ -98,7 +99,10 @@ async fn create_status(
     );
     post_data.links.extend(link_map.values().map(|post| post.id));
     let linked = link_map.into_values().collect();
+    // Clean content
+    post_data.content = clean_content(&post_data.content)?;
 
+    // Links validation
     if post_data.links.len() > 0 && post_data.visibility != Visibility::Public {
         return Err(ValidationError("can't add links to non-public posts").into());
     };
@@ -133,8 +137,7 @@ async fn create_status(
     // Remove duplicate mentions
     post_data.mentions.sort();
     post_data.mentions.dedup();
-    // Clean content
-    post_data.clean()?;
+
     // Create post
     let mut post = create_post(db_client, &current_user.id, post_data).await?;
     post.in_reply_to = maybe_in_reply_to.map(|mut in_reply_to| {

@@ -9,10 +9,8 @@ use crate::database::{
     DatabaseError,
     DatabaseTypeError,
 };
-use crate::errors::ValidationError;
 use crate::models::attachments::types::DbMediaAttachment;
 use crate::models::profiles::types::DbActorProfile;
-use super::validators::clean_content;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Visibility {
@@ -265,31 +263,9 @@ impl PostCreateData {
             ..Default::default()
         }
     }
-
-    /// Validate and clean post data (only for local posts).
-    pub fn clean(&mut self) -> Result<(), ValidationError> {
-        assert!(self.object_id.is_none());
-        self.content = clean_content(&self.content)?;
-        Ok(())
-    }
 }
 
 pub struct PostUpdateData {
     pub content: String,
     pub updated_at: DateTime<Utc>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_post_data_clean() {
-        let mut post_data_2 = PostCreateData {
-            content: "test ".to_string(),
-            ..Default::default()
-        };
-        assert_eq!(post_data_2.clean().is_ok(), true);
-        assert_eq!(post_data_2.content.as_str(), "test");
-    }
 }
