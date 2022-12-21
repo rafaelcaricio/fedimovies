@@ -204,13 +204,18 @@ impl AccountCreateData {
 }
 
 #[derive(Deserialize)]
+struct AccountFieldSource {
+    name: String,
+    value: String,
+}
+
+#[derive(Deserialize)]
 pub struct AccountUpdateData {
-    pub display_name: Option<String>,
-    pub note: Option<String>,
-    pub note_source: Option<String>,
-    pub avatar: Option<String>,
-    pub header: Option<String>,
-    pub fields_attributes: Option<Vec<ExtraField>>,
+    display_name: Option<String>,
+    note: Option<String>,
+    avatar: Option<String>,
+    header: Option<String>,
+    fields_attributes: Option<Vec<AccountFieldSource>>,
 }
 
 fn process_b64_image_field_value(
@@ -246,8 +251,8 @@ impl AccountUpdateData {
         current_payment_options: &[PaymentOption],
         media_dir: &Path,
     ) -> Result<ProfileUpdateData, HttpError> {
-        let maybe_bio = if let Some(ref note_source) = self.note_source {
-            let bio = markdown_basic_to_html(note_source)
+        let maybe_bio = if let Some(ref bio_source) = self.note {
+            let bio = markdown_basic_to_html(bio_source)
                 .map_err(|_| ValidationError("invalid markdown"))?;
             Some(bio)
         } else {
@@ -261,17 +266,21 @@ impl AccountUpdateData {
         )?;
         let identity_proofs = current_identity_proofs.to_vec();
         let payment_options = current_payment_options.to_vec();
-        let mut extra_fields = self.fields_attributes.unwrap_or(vec![]);
-        for extra_field in extra_fields.iter_mut() {
-            let value_source = extra_field.value_source.as_ref()
-                .ok_or(ValidationError("missing value source"))?;
-            extra_field.value = markdown_basic_to_html(value_source)
+        let mut extra_fields = vec![];
+        for field_source in self.fields_attributes.unwrap_or(vec![]) {
+            let value = markdown_basic_to_html(&field_source.value)
                 .map_err(|_| ValidationError("invalid markdown"))?;
+            let extra_field = ExtraField {
+                name: field_source.name,
+                value: value,
+                value_source: Some(field_source.value),
+            };
+            extra_fields.push(extra_field);
         };
         let profile_data = ProfileUpdateData {
             display_name: self.display_name,
             bio: maybe_bio,
-            bio_source: self.note_source,
+            bio_source: self.note,
             avatar,
             banner,
             identity_proofs,

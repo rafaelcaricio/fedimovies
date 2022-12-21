@@ -145,9 +145,30 @@ paths:
                   type: string
                   nullable: true
                 note:
-                  description: The account bio.
+                  description: The account bio (markdown).
                   type: string
                   nullable: true
+                avatar:
+                  description: Avatar image encoded as base64.
+                  type: string
+                  nullable: true
+                header:
+                  description: Header image encoded as base64.
+                  type: string
+                  nullable: true
+                fields_attributes:
+                  description: The profile fields to be set.
+                  type: array
+                  nullable: true
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        description: Name of the field.
+                        type: string
+                      value:
+                        description: Value of the field (markdown).
+                        type: string
       responses:
         200:
           description: Successful operation.
