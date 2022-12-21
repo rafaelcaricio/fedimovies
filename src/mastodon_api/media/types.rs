@@ -2,16 +2,16 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::models::attachments::types::{
-    DbMediaAttachment,
     AttachmentType,
+    DbMediaAttachment,
 };
 use crate::utils::files::get_file_url;
 
-/// https://docs.joinmastodon.org/methods/statuses/media/
 #[derive(Deserialize)]
 pub struct AttachmentCreateData {
-    // base64-encoded file
+    // base64-encoded file (not comtaible with Mastodon)
     pub file: String,
+    pub media_type: Option<String>,
 }
 
 /// https://docs.joinmastodon.org/entities/attachment/

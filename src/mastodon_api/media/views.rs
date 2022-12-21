@@ -1,3 +1,4 @@
+/// https://docs.joinmastodon.org/methods/media/#v1
 use actix_web::{post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
@@ -20,6 +21,7 @@ async fn create_attachment_view(
     let current_user = get_current_user(db_client, auth.token()).await?;
     let (file_name, media_type) = save_b64_file(
         &attachment_data.file,
+        attachment_data.media_type.clone(),
         &config.media_dir(),
     )?;
     let db_attachment = create_attachment(

@@ -639,6 +639,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Instance'
+  /api/v1/media:
+    post:
+      summary: Create an attachment to be used with a new post.
+      security:
+        - tokenAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                file:
+                  description: File encoded as base64.
+                  type: string
+                media_type:
+                  description: Media type.
+                  type: string
+                  nullable: true
+                  example: image/jpeg
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attachment'
   /api/v1/notifications:
     get:
       summary: Notifications concerning the user.

@@ -33,13 +33,14 @@ impl From<UploadError> for HttpError {
 
 pub fn save_b64_file(
     b64data: &str,
+    maybe_media_type: Option<String>,
     output_dir: &Path,
 ) -> Result<(String, Option<String>), UploadError> {
     let data = base64::decode(b64data)?;
     if data.len() > UPLOAD_MAX_SIZE {
         return Err(UploadError::TooLarge);
     };
-    Ok(save_file(data, output_dir, None)?)
+    Ok(save_file(data, output_dir, maybe_media_type)?)
 }
 
 pub fn save_validated_b64_file(
