@@ -69,6 +69,7 @@ pub struct Config {
     // Core settings
     pub database_url: String,
     pub storage_dir: PathBuf,
+    pub web_client_dir: Option<PathBuf>,
 
     pub http_host: String,
     pub http_port: u32,

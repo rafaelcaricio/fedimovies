@@ -2,6 +2,8 @@
 
 database_url: postgres://mitra:mitra@127.0.0.1:5432/mitra
 storage_dir: /var/lib/mitra
+# Path to web client static files
+#web_client_dir: /usr/share/mitra/www
 
 http_host: '127.0.0.1'
 http_port: 8383

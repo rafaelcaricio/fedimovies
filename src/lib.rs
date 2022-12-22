@@ -18,4 +18,4 @@ mod monero;
 pub mod nodeinfo;
 mod utils;
 pub mod webfinger;
-mod web_client;
+pub mod web_client;

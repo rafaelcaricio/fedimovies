@@ -33,6 +33,7 @@ use mitra::mastodon_api::timelines::views::timeline_api_scope;
 use mitra::mastodon_api::UPLOAD_MAX_SIZE;
 use mitra::nodeinfo::views as nodeinfo;
 use mitra::webfinger::views as webfinger;
+use mitra::web_client::views::web_client_service;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -155,8 +156,6 @@ async fn main() -> std::io::Result<()> {
             .service(activitypub::actor_scope())
             .service(activitypub::instance_actor_scope())
             .service(activitypub::object_view)
-            .service(activitypub::frontend_profile_redirect)
-            .service(activitypub::frontend_post_redirect)
             .service(atom::get_atom_feed)
             .service(nodeinfo::get_nodeinfo)
             .service(nodeinfo::get_nodeinfo_2_0);
@@ -168,6 +167,14 @@ async fn main() -> std::io::Result<()> {
                     &ethereum_config.contract_dir,
                 ));
             };
+        };
+        if let Some(ref web_client_dir) = config.web_client_dir {
+            app = app.service(web_client_service(web_client_dir));
+        } else {
+            // Enable redirects only when serving of web client is disabled
+            app = app
+                .service(activitypub::frontend_profile_redirect)
+                .service(activitypub::frontend_post_redirect)
         };
         app
     })

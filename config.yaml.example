@@ -1,5 +1,6 @@
 database_url: postgres://mitra:mitra@127.0.0.1:55432/mitra
 storage_dir: files
+web_client_dir: null
 
 http_host: '127.0.0.1'
 http_port: 8380
