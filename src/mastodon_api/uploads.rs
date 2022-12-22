@@ -33,12 +33,16 @@ impl From<UploadError> for HttpError {
 
 pub fn save_b64_file(
     b64data: &str,
-    maybe_media_type: Option<String>,
+    mut maybe_media_type: Option<String>,
     output_dir: &Path,
 ) -> Result<(String, Option<String>), UploadError> {
     let data = base64::decode(b64data)?;
     if data.len() > UPLOAD_MAX_SIZE {
         return Err(UploadError::TooLarge);
+    };
+    if maybe_media_type.as_deref() == Some("image/svg+xml") {
+        // Don't treat SVG files as images
+        maybe_media_type = None;
     };
     Ok(save_file(data, output_dir, maybe_media_type)?)
 }
