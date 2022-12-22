@@ -33,9 +33,8 @@ pub struct InstanceInfo {
     uri: String,
     title: String,
     short_description: String,
-    // TODO: HTML by default
     description: String,
-    description_html: String,
+    description_source: String,
     version: String,
     registrations: bool,
     stats: InstanceStats,
@@ -108,8 +107,8 @@ impl InstanceInfo {
             uri: config.instance().hostname(),
             title: config.instance_title.clone(),
             short_description: config.instance_short_description.clone(),
-            description: config.instance_description.clone(),
-            description_html: markdown_to_html(&config.instance_description),
+            description: markdown_to_html(&config.instance_description),
+            description_source: config.instance_description.clone(),
             version: get_full_api_version(&config.version),
             registrations: config.registrations_open,
             stats: InstanceStats {

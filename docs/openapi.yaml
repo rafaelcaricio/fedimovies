@@ -1350,7 +1350,10 @@ components:
           description: A short description defined by the admin.
           type: string
         description:
-          description: Admin-defined description of the site.
+          description: Admin-defined description of the site (HTML).
+          type: string
+        description_source:
+          description: Admin-defined description of the site (Markdown source).
           type: string
         version:
           description: Mastodon API compatibility version and the version of Mitra server.
