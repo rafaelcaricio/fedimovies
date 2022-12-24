@@ -12,10 +12,10 @@ use uuid::Uuid;
 use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
-use crate::frontend::{get_post_page_url, get_profile_page_url};
 use crate::models::posts::helpers::{add_related_posts, can_view_post};
 use crate::models::posts::queries::{get_post_by_id, get_posts_by_author};
 use crate::models::users::queries::{get_user_by_id, get_user_by_name};
+use crate::web_client::urls::{get_post_page_url, get_profile_page_url};
 use super::actors::types::{get_local_actor, get_instance_actor};
 use super::builders::create_note::{build_note, build_create_note};
 use super::collections::{

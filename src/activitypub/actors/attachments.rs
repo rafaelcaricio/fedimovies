@@ -7,7 +7,6 @@ use crate::activitypub::vocabulary::{
 };
 use crate::errors::ValidationError;
 use crate::ethereum::identity::verify_eip191_identity_proof;
-use crate::frontend::get_subscription_page_url;
 use crate::identity::{
     claims::create_identity_claim,
     did::Did,
@@ -20,6 +19,7 @@ use crate::models::profiles::types::{
     PaymentOption,
     ProofType,
 };
+use crate::web_client::urls::get_subscription_page_url;
 use super::types::ActorAttachment;
 
 pub fn attach_identity_proof(

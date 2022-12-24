@@ -17,12 +17,12 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::database::DatabaseError;
-use crate::frontend::get_tag_page_url;
 use crate::models::posts::queries::get_post_author;
 use crate::models::posts::types::{Post, Visibility};
 use crate::models::relationships::queries::{get_followers, get_subscribers};
 use crate::models::users::types::User;
 use crate::utils::files::get_file_url;
+use crate::web_client::urls::get_tag_page_url;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

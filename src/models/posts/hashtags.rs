@@ -1,7 +1,7 @@
 use regex::{Captures, Regex};
 
 use crate::errors::ValidationError;
-use crate::frontend::get_tag_page_url;
+use crate::web_client::urls::get_tag_page_url;
 use super::links::is_inside_code_block;
 
 const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])#(?P<tag>[^\s<]+)";
