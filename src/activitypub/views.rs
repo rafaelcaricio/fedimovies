@@ -14,7 +14,7 @@ use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::models::posts::helpers::{add_related_posts, can_view_post};
 use crate::models::posts::queries::{get_post_by_id, get_posts_by_author};
-use crate::models::users::queries::{get_user_by_id, get_user_by_name};
+use crate::models::users::queries::get_user_by_name;
 use crate::web_client::urls::{get_post_page_url, get_profile_page_url};
 use super::actors::types::{get_local_actor, get_instance_actor};
 use super::builders::create_note::{build_note, build_create_note};
@@ -27,10 +27,8 @@ use super::constants::{AP_MEDIA_TYPE, AS_MEDIA_TYPE};
 use super::identifiers::{
     local_actor_followers,
     local_actor_following,
-    local_actor_id,
     local_actor_subscribers,
     local_actor_outbox,
-    local_object_id,
 };
 use super::receiver::receive_activity;
 
@@ -327,39 +325,6 @@ pub async fn object_view(
     let response = HttpResponse::Ok()
         .content_type(AP_MEDIA_TYPE)
         .json(object);
-    Ok(response)
-}
-
-#[get("/profile/{profile_id}")]
-pub async fn frontend_profile_redirect(
-    config: web::Data<Config>,
-    db_pool: web::Data<DbPool>,
-    profile_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
-    let db_client = &**get_database_client(&db_pool).await?;
-    let user = get_user_by_id(db_client, &profile_id).await?;
-    let actor_id = local_actor_id(
-        &config.instance_url(),
-        &user.profile.username,
-    );
-    let response = HttpResponse::Found()
-        .append_header(("Location", actor_id))
-        .finish();
-    Ok(response)
-}
-
-#[get("/post/{object_id}")]
-pub async fn frontend_post_redirect(
-    config: web::Data<Config>,
-    internal_object_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
-    let object_id = local_object_id(
-        &config.instance_url(),
-        &internal_object_id,
-    );
-    let response = HttpResponse::Found()
-        .append_header(("Location", object_id))
-        .finish();
     Ok(response)
 }
 

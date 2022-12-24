@@ -33,7 +33,7 @@ use mitra::mastodon_api::timelines::views::timeline_api_scope;
 use mitra::mastodon_api::UPLOAD_MAX_SIZE;
 use mitra::nodeinfo::views as nodeinfo;
 use mitra::webfinger::views as webfinger;
-use mitra::web_client::views::web_client_service;
+use mitra::web_client::views as web_client;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -158,7 +158,9 @@ async fn main() -> std::io::Result<()> {
             .service(activitypub::object_view)
             .service(atom::get_atom_feed)
             .service(nodeinfo::get_nodeinfo)
-            .service(nodeinfo::get_nodeinfo_2_0);
+            .service(nodeinfo::get_nodeinfo_2_0)
+            .service(web_client::profile_page_redirect())
+            .service(web_client::post_page_redirect());
         if let Some(blockchain_config) = config.blockchain() {
             if let Some(ethereum_config) = blockchain_config.ethereum_config() {
                 // Serve artifacts if available
@@ -169,12 +171,7 @@ async fn main() -> std::io::Result<()> {
             };
         };
         if let Some(ref web_client_dir) = config.web_client_dir {
-            app = app.service(web_client_service(web_client_dir));
-        } else {
-            // Enable redirects only when serving of web client is disabled
-            app = app
-                .service(activitypub::frontend_profile_redirect)
-                .service(activitypub::frontend_post_redirect)
+            app = app.service(web_client::static_service(web_client_dir));
         };
         app
     })
