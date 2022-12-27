@@ -63,15 +63,15 @@ CREATE DATABASE mitra OWNER mitra;
 
 Create configuration file by copying `contrib/mitra_config.yaml` and configure the instance. Default config file path is `/etc/mitra/config.yaml`, but it can be changed using `CONFIG_PATH` environment variable.
 
+Put any static files into the directory specified in configuration file. Building instructions for `mitra-web` frontend can be found at https://codeberg.org/silverpill/mitra-web#project-setup.
+
 Start Mitra:
 
 ```shell
 ./mitra
 ```
 
-An HTTP server will be needed to handle HTTPS requests and serve the frontend. See the example of [nginx configuration file](./contrib/mitra.nginx).
-
-Building instructions for `mitra-web` frontend can be found at https://codeberg.org/silverpill/mitra-web#project-setup.
+An HTTP server will be needed to handle HTTPS requests. See the example of [nginx configuration file](./contrib/mitra.nginx).
 
 To run Mitra as a systemd service, check out the [systemd unit file example](./contrib/mitra.service).
 
@@ -98,7 +98,7 @@ Start Mitra:
 systemctl start mitra
 ```
 
-An HTTP server will be needed to handle HTTPS requests and serve the frontend. See the example of [nginx configuration file](./contrib/mitra.nginx).
+An HTTP server will be needed to handle HTTPS requests. See the example of [nginx configuration file](./contrib/mitra.nginx).
 
 ### Monero
 
