@@ -214,6 +214,9 @@ impl Actor {
     }
 }
 
+// See also: USERNAME_RE in models::profiles::validators
+const ACTOR_ADDRESS_RE: &str = r"(?P<username>[\w\.-]+)@(?P<hostname>[\w\.-]+)";
+
 pub struct ActorAddress {
     pub username: String,
     pub hostname: String,
@@ -229,9 +232,6 @@ impl ActorAddress {
         }
     }
 }
-
-// See also: USERNAME_RE in models::profiles::validators
-pub const ACTOR_ADDRESS_RE: &str = r"(?P<username>[\w\.-]+)@(?P<hostname>[\w\.-]+)";
 
 impl FromStr for ActorAddress {
     type Err = ValidationError;
@@ -390,9 +390,9 @@ mod tests {
     const INSTANCE_URL: &str = "https://example.com";
 
     #[test]
-    fn test_actor_address_parsing() {
+    fn test_actor_address_parse_address() {
         let value = "user_1@example.com";
-        let actor_address = value.parse::<ActorAddress>().unwrap();
+        let actor_address: ActorAddress = value.parse().unwrap();
         assert_eq!(actor_address.username, "user_1");
         assert_eq!(actor_address.hostname, "example.com");
         assert_eq!(actor_address.to_string(), value);

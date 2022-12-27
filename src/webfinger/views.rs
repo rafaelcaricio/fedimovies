@@ -1,8 +1,7 @@
 use actix_web::{get, web, HttpResponse};
-use regex::Regex;
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::actors::types::{ActorAddress, ACTOR_ADDRESS_RE};
+use crate::activitypub::actors::types::ActorAddress;
 use crate::activitypub::constants::AP_MEDIA_TYPE;
 use crate::activitypub::identifiers::{
     local_actor_id,
@@ -21,13 +20,9 @@ use super::types::{
 
 // https://datatracker.ietf.org/doc/html/rfc7565#section-7
 fn parse_acct_uri(uri: &str) -> Result<ActorAddress, ValidationError> {
-    let uri_regexp = Regex::new(&format!("acct:{}", ACTOR_ADDRESS_RE)).unwrap();
-    let uri_caps = uri_regexp.captures(uri)
-        .ok_or(ValidationError("invalid query target"))?;
-    let actor_address = ActorAddress {
-        username: uri_caps["username"].to_string(),
-        hostname: uri_caps["hostname"].to_string(),
-    };
+    let actor_address = uri.strip_prefix("acct:")
+        .ok_or(ValidationError("invalid query target"))?
+        .parse()?;
     Ok(actor_address)
 }
 

@@ -11,7 +11,6 @@ use crate::models::profiles::types::DbActorProfile;
 use super::links::is_inside_code_block;
 
 // See also: ACTOR_ADDRESS_RE in activitypub::actors::types
-const MENTION_RE: &str = r"@?(?P<username>[\w\.-]+)@(?P<hostname>.+)";
 const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])@(?P<mention>[^\s<]+)";
 const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+\w))?(?P<after>[\.,:?\)]?)$";
 
@@ -106,13 +105,10 @@ pub fn replace_mentions(
 pub fn mention_to_address(
     mention: &str,
 ) -> Result<ActorAddress, ValidationError> {
-    let mention_re = Regex::new(MENTION_RE).unwrap();
-    let mention_caps = mention_re.captures(mention)
-        .ok_or(ValidationError("invalid mention tag"))?;
-    let actor_address = ActorAddress {
-        username: mention_caps["username"].to_string(),
-        hostname: mention_caps["hostname"].to_string(),
-    };
+    // @ prefix is optional
+    let actor_address = mention.strip_prefix('@')
+        .unwrap_or(mention)
+        .parse()?;
     Ok(actor_address)
 }
 
@@ -208,6 +204,10 @@ mod tests {
 
         let address_2 = mention_to_address(mention).unwrap();
         assert_eq!(address_2.acct("server.info"), "user@example.com");
+
+        let mention_without_prefix = "user@test.com";
+        let address_3 = mention_to_address(mention_without_prefix).unwrap();
+        assert_eq!(address_3.to_string(), mention_without_prefix);
 
         let short_mention = "@user";
         let result = mention_to_address(short_mention);
