@@ -36,3 +36,5 @@ Run `cargo clippy` to check code automatically. Try to follow the existing style
 ### Commits
 
 Commits should be atomic (the tests should pass) and not too big. Commit messages should be informative.
+
+For any notable change there should be an entry in [CHANGELOG.md](./CHANGELOG.md).

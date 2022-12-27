@@ -89,7 +89,7 @@ After registering an account its owner can upload the list of followers and star
 }
 ```
 
-Where `object` is an ID of old account and `target` is an ID of new account. Actors identifed by `object` and `target` properties must have at least one identity key in common to be considered aliases. Upon receipt of such activity, actors that follow `object` should un-follow it and follow `target` instead.
+Where `object` is an ID of old account and `target` is an ID of new account. Actors identified by `object` and `target` properties must have at least one identity key in common to be considered aliases. Upon receipt of such activity, actors that follow `object` should un-follow it and follow `target` instead.
 
 ## Subscription events
 
