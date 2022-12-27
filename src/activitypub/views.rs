@@ -32,7 +32,7 @@ use super::identifiers::{
 };
 use super::receiver::receive_activity;
 
-fn is_activitypub_request(headers: &HeaderMap) -> bool {
+pub fn is_activitypub_request(headers: &HeaderMap) -> bool {
     const CONTENT_TYPES: [&str; 4] = [
         AP_MEDIA_TYPE,
         AS_MEDIA_TYPE,

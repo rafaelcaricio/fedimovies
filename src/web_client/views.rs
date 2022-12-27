@@ -12,8 +12,8 @@ use actix_web::{
 use uuid::Uuid;
 
 use crate::activitypub::{
-    constants::{AP_MEDIA_TYPE, AS_MEDIA_TYPE},
     identifiers::{local_actor_id, local_object_id},
+    views::is_activitypub_request,
 };
 use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
@@ -59,10 +59,9 @@ async fn profile_page_redirect_view(
 
 pub fn profile_page_redirect() -> Resource {
     web::resource("/profile/{profile_id}")
-        .guard(
-            guard::Any(guard::Header("Accept", AP_MEDIA_TYPE))
-                .or(guard::Header("Accept", AS_MEDIA_TYPE))
-        )
+        .guard(guard::fn_guard(|ctx| {
+            is_activitypub_request(ctx.head().headers())
+        }))
         .route(web::get().to(profile_page_redirect_view))
 }
 
@@ -82,9 +81,8 @@ async fn post_page_redirect_view(
 
 pub fn post_page_redirect() -> Resource {
     web::resource("/post/{object_id}")
-        .guard(
-            guard::Any(guard::Header("Accept", AP_MEDIA_TYPE))
-                .or(guard::Header("Accept", AS_MEDIA_TYPE))
-        )
+        .guard(guard::fn_guard(|ctx| {
+            is_activitypub_request(ctx.head().headers())
+        }))
         .route(web::get().to(post_page_redirect_view))
 }
