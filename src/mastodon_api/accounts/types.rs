@@ -379,6 +379,11 @@ impl Default for RelationshipMap {
     }
 }
 
+#[derive(Deserialize)]
+pub struct LookupAcctQueryParams {
+    pub acct: String,
+}
+
 fn default_search_page_size() -> PageSize { PageSize::new(40) }
 
 #[derive(Deserialize)]

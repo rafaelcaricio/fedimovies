@@ -345,6 +345,25 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Relationship'
+  /api/v1/accounts/lookup:
+    get:
+      summary: Lookup webfinger address.
+      parameters:
+        - name: acct
+          in: query
+          description: The username or Webfinger address to lookup.
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        404:
+          description: Profile not found
   /api/v1/accounts/search:
     get:
       summary: Search for matching profiles by username.

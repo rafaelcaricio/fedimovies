@@ -105,6 +105,7 @@ use super::types::{
     IdentityClaim,
     IdentityClaimQueryParams,
     IdentityProofData,
+    LookupAcctQueryParams,
     MoveFollowersRequest,
     RelationshipQueryParams,
     SearchAcctQueryParams,
@@ -552,6 +553,18 @@ async fn get_relationships_view(
     Ok(HttpResponse::Ok().json(vec![relationship]))
 }
 
+#[get("/lookup")]
+async fn lookup_acct(
+    config: web::Data<Config>,
+    db_pool: web::Data<DbPool>,
+    query_params: web::Query<LookupAcctQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let profile = get_profile_by_acct(db_client, &query_params.acct).await?;
+    let account = Account::from_profile(profile, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
+}
+
 #[get("/search")]
 async fn search_by_acct(
     config: web::Data<Config>,
@@ -839,6 +852,7 @@ pub fn account_api_scope() -> Scope {
         .service(get_identity_claim)
         .service(create_identity_proof)
         .service(get_relationships_view)
+        .service(lookup_acct)
         .service(search_by_acct)
         .service(search_by_did)
         // Routes with account ID

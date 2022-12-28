@@ -13,5 +13,5 @@ pub mod subscriptions;
 pub mod timelines;
 mod uploads;
 
-const MASTODON_API_VERSION: &str = "3.0.0";
+const MASTODON_API_VERSION: &str = "4.0.0";
 pub use uploads::UPLOAD_MAX_SIZE;
