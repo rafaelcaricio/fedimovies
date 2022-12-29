@@ -157,15 +157,17 @@ pub fn build_note(
     assert_eq!(post.links.len(), post.linked.len());
     for linked in &post.linked {
         // Build FEP-e232 object link
+        // https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-e232.md
         let link_href = linked.object_id(instance_url);
-        let _tag = LinkTag {
+        let tag = LinkTag {
             name: None,  // no microsyntax
             tag_type: LINK.to_string(),
             href: link_href,
             media_type: AP_MEDIA_TYPE.to_string(),
         };
-        // TODO: fix tag processing bug in Pleroma
-        // tags.push(Tag::LinkTag(tag));
+        if cfg!(feature = "fep-e232") {
+            tags.push(Tag::LinkTag(tag));
+        };
     };
     let maybe_quote_url = post.linked.get(0)
         .map(|linked| linked.object_id(instance_url));

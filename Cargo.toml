@@ -97,5 +97,6 @@ serial_test = "0.7.0"
 
 [features]
 ethereum-extras = []
+fep-e232 = []
 
 production = ["mitra-config/production"]
