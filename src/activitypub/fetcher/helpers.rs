@@ -149,6 +149,7 @@ pub async fn import_post(
     };
 
     let mut queue = vec![object_id]; // LIFO queue
+    let mut fetch_count = 0;
     let mut maybe_object = object_received;
     let mut objects: Vec<Object> = vec![];
     let mut redirects: HashMap<String, String> = HashMap::new();
@@ -157,7 +158,6 @@ pub async fn import_post(
     // Fetch ancestors by going through inReplyTo references
     // TODO: fetch replies too
     #[allow(clippy::while_let_loop)]
-    #[allow(clippy::manual_map)]
     loop {
         let object_id = match queue.pop() {
             Some(object_id) => {
@@ -196,12 +196,17 @@ pub async fn import_post(
         let object = match maybe_object {
             Some(object) => object,
             None => {
+                if fetch_count >= 50 {
+                    // TODO: create tombstone
+                    return Err(ValidationError("too many objects").into());
+                };
                 let object = fetch_object(&instance, &object_id).await
                     .map_err(|err| {
                         log::warn!("{}", err);
                         ValidationError("failed to fetch object")
                     })?;
                 log::info!("fetched object {}", object.id);
+                fetch_count +=  1;
                 object
             },
         };

@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Updated installation instructions, default mitra config and recommended nginx config.
+- Limited the number of requests made during the processing of a thread.
 
 ### Fixed
 
