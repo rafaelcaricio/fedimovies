@@ -107,11 +107,17 @@ fn backoff(retry_count: u32) -> Duration {
     Duration::from_secs(3 * 10_u64.pow(retry_count))
 }
 
+#[allow(dead_code)]
+struct Recipient {
+    id: String,
+    inbox: String,
+}
+
 async fn deliver_activity_worker(
     instance: Instance,
     sender: User,
     activity: Value,
-    inboxes: Vec<String>,
+    recipients: Vec<Recipient>,
 ) -> Result<(), DelivererError> {
     let actor_key = deserialize_private_key(&sender.private_key)?;
     let actor_key_id = format!(
@@ -128,29 +134,32 @@ async fn deliver_activity_worker(
     } else {
         sign_object(&activity, &actor_key, &actor_key_id)?
     };
-
     let activity_json = serde_json::to_string(&activity_signed)?;
-    if inboxes.is_empty() {
+
+    if recipients.is_empty() {
         return Ok(());
     };
-    log::info!("sending activity to {} inboxes: {}", inboxes.len(), activity_json);
-
-    let mut queue: BTreeMap<String, bool> = BTreeMap::new();
-    for inbox in inboxes {
+    let mut queue: Vec<_> = recipients.into_iter()
         // is_delivered: false
-        queue.insert(inbox, false);
-    };
+        .map(|recipient| (recipient, false))
+        .collect();
+    log::info!(
+        "sending activity to {} inboxes: {}",
+        queue.len(),
+        activity_json,
+    );
+
     let mut retry_count = 0;
     let max_retries = 2;
 
-    while queue.values().any(|is_delivered| !is_delivered) &&
+    while queue.iter().any(|(_, is_delivered)| !is_delivered) &&
         retry_count <= max_retries
     {
         if retry_count > 0 {
             // Wait before next attempt
             sleep(backoff(retry_count)).await;
         };
-        for (inbox_url, is_delivered) in queue.iter_mut() {
+        for (recipient, is_delivered) in queue.iter_mut() {
             if *is_delivered {
                 continue;
             };
@@ -159,11 +168,11 @@ async fn deliver_activity_worker(
                 &actor_key,
                 &actor_key_id,
                 &activity_json,
-                inbox_url,
+                &recipient.inbox,
             ).await {
                 log::error!(
                     "failed to deliver activity to {} (attempt #{}): {}",
-                    inbox_url,
+                    recipient.inbox,
                     retry_count + 1,
                     error,
                 );
@@ -180,7 +189,7 @@ pub struct OutgoingActivity {
     instance: Instance,
     sender: User,
     pub activity: Value,
-    inboxes: Vec<String>,
+    recipients: Vec<Recipient>,
 }
 
 impl OutgoingActivity {
@@ -190,16 +199,23 @@ impl OutgoingActivity {
         activity: impl Serialize,
         recipients: Vec<Actor>,
     ) -> Self {
-        let mut inboxes: Vec<String> = recipients.into_iter()
-            .map(|actor| actor.inbox).collect();
-        inboxes.sort();
-        inboxes.dedup();
+        // Sort and de-duplicate recipients
+        let mut recipient_map = BTreeMap::new();
+        for actor in recipients {
+            if !recipient_map.contains_key(&actor.id) {
+                let recipient = Recipient {
+                    id: actor.id.clone(),
+                    inbox: actor.inbox,
+                };
+                recipient_map.insert(actor.id, recipient);
+            };
+        };
         Self {
             instance: instance.clone(),
             sender: sender.clone(),
             activity: serde_json::to_value(activity)
                 .expect("activity should be serializable"),
-            inboxes,
+            recipients: recipient_map.into_values().collect(),
         }
     }
 
@@ -208,7 +224,7 @@ impl OutgoingActivity {
             self.instance,
             self.sender,
             self.activity,
-            self.inboxes,
+            self.recipients,
         ).await
     }
 
