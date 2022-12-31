@@ -160,8 +160,8 @@ async fn create_status(
     });
     post.linked = linked;
     // Federate
-    prepare_create_note(db_client, &instance, &current_user, &post).await?
-        .spawn_deliver();
+    prepare_create_note(db_client, &instance, &current_user, &post)
+        .await?.enqueue(db_client).await?;
 
     let status = Status::from_post(post, &instance.url());
     Ok(HttpResponse::Created().json(status))
@@ -308,7 +308,7 @@ async fn favourite(
             &current_user,
             &post,
             &reaction.id,
-        ).await?.spawn_deliver();
+        ).await?.enqueue(db_client).await?;
     };
 
     let status = build_status(
@@ -385,7 +385,7 @@ async fn reblog(
         &config.instance(),
         &current_user,
         &repost,
-    ).await?.spawn_deliver();
+    ).await?.enqueue(db_client).await?;
 
     let status = build_status(
         db_client,
