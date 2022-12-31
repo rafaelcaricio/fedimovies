@@ -5,7 +5,7 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::activitypub::receiver::process_queued_activities;
+use crate::activitypub::queues::process_queued_activities;
 use crate::config::{Config, Instance};
 use crate::database::{get_database_client, DbPool};
 use crate::ethereum::contracts::Blockchain;
