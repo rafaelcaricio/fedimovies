@@ -16,13 +16,13 @@ use crate::models::{
 use super::receiver::handle_activity;
 
 #[derive(Deserialize, Serialize)]
-pub struct IncomingActivity {
+pub struct IncomingActivityJobData {
     activity: Value,
     is_authenticated: bool,
     failure_count: i32,
 }
 
-impl IncomingActivity {
+impl IncomingActivityJobData {
     pub fn new(activity: &Value, is_authenticated: bool) -> Self {
         Self {
             activity: activity.clone(),
@@ -31,7 +31,7 @@ impl IncomingActivity {
         }
     }
 
-    pub async fn enqueue(
+    pub async fn into_job(
         self,
         db_client: &impl GenericClient,
         delay: i64,
@@ -62,31 +62,31 @@ pub async fn process_queued_activities(
         batch_size,
     ).await?;
     for job in batch {
-        let mut incoming_activity: IncomingActivity =
+        let mut job_data: IncomingActivityJobData =
             serde_json::from_value(job.job_data)
                 .map_err(|_| DatabaseTypeError)?;
         let is_error = match handle_activity(
             config,
             db_client,
-            &incoming_activity.activity,
-            incoming_activity.is_authenticated,
+            &job_data.activity,
+            job_data.is_authenticated,
         ).await {
             Ok(_) => false,
             Err(error) => {
-                incoming_activity.failure_count += 1;
+                job_data.failure_count += 1;
                 log::warn!(
                     "failed to process activity ({}) (attempt #{}): {}",
                     error,
-                    incoming_activity.failure_count,
-                    incoming_activity.activity,
+                    job_data.failure_count,
+                    job_data.activity,
                 );
                 true
             },
         };
-        if is_error && incoming_activity.failure_count <= max_retries {
+        if is_error && job_data.failure_count <= max_retries {
             // Re-queue
             log::info!("activity re-queued");
-            incoming_activity.enqueue(db_client, retry_after).await?;
+            job_data.into_job(db_client, retry_after).await?;
         };
         delete_job_from_queue(db_client, &job.id).await?;
     };
