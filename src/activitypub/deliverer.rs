@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 use actix_web::http::Method;
@@ -20,7 +20,6 @@ use crate::json_signatures::create::{
 };
 use crate::models::users::types::User;
 use crate::utils::crypto_rsa::deserialize_private_key;
-use crate::utils::urls::get_hostname;
 use super::actors::types::Actor;
 use super::constants::{AP_MEDIA_TYPE, ACTOR_KEY_SUFFIX};
 use super::identifiers::local_actor_id;
@@ -174,23 +173,6 @@ async fn deliver_activity_worker(
         };
         retry_count += 1;
     };
-
-    // Generate report
-    let mut instances: HashMap<String, bool> = HashMap::new();
-    for (inbox_url, is_delivered) in queue {
-        let hostname = get_hostname(&inbox_url).unwrap_or(inbox_url);
-        if !instances.contains_key(&hostname) || is_delivered {
-            // If flag is not set and result is false, set flag to true
-            // If result is true, set flag to false
-            instances.insert(hostname, !is_delivered);
-        };
-    };
-    for (hostname, is_unreachable) in instances {
-        if is_unreachable {
-            log::info!("unreachable instance: {}", hostname);
-        };
-    };
-
     Ok(())
 }
 
