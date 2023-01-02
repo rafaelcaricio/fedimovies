@@ -209,18 +209,20 @@ pub async fn handle_note(
     };
 
     let mut mentions: Vec<Uuid> = Vec::new();
-    let mut tags = vec![];
+    let mut hashtags = vec![];
     let mut links = vec![];
     if let Some(value) = object.tag {
-        let list: Vec<Tag> = parse_property_value(&value)
+        let list: Vec<JsonValue> = parse_property_value(&value)
             .map_err(|_| ValidationError("invalid tag property"))?;
-        for tag in list {
+        for tag_value in list {
+            let tag: Tag = serde_json::from_value(tag_value.clone())
+                .map_err(|_| ValidationError("invalid tag"))?;
             if tag.tag_type == HASHTAG {
                 if let Some(tag_name) = tag.name {
                     // Ignore invalid tags
                     if let Ok(tag_name) = normalize_hashtag(&tag_name) {
-                        if !tags.contains(&tag_name) {
-                            tags.push(tag_name);
+                        if !hashtags.contains(&tag_name) {
+                            hashtags.push(tag_name);
                         };
                     };
                 };
@@ -320,6 +322,13 @@ pub async fn handle_note(
                         links.push(linked.id);
                     };
                 };
+            } else if tag.tag_type == EMOJI {
+                log::info!("found emoji tag: {}", tag_value);
+            } else {
+                log::warn!(
+                    "skipping tag of type {}",
+                    tag.tag_type,
+                );
             };
         };
     };
@@ -380,7 +389,7 @@ pub async fn handle_note(
         visibility,
         attachments: attachments,
         mentions: mentions,
-        tags: tags,
+        tags: hashtags,
         links: links,
         object_id: Some(object.id),
         created_at,

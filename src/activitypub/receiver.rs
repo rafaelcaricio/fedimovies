@@ -368,6 +368,13 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_property_value_tag_list() {
+        let value = json!({"type": "Mention"});
+        let value_list: Vec<Value> = parse_property_value(&value).unwrap();
+        assert_eq!(value_list, vec![value]);
+    }
+
+    #[test]
     fn test_find_object_id_from_string() {
         let value = json!("test_id");
         assert_eq!(find_object_id(&value).unwrap(), "test_id");
