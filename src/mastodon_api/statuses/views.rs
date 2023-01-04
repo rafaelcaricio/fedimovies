@@ -245,7 +245,7 @@ async fn delete_status(
     tokio::spawn(async move {
         deletion_queue.process(&config).await;
     });
-    delete_note.spawn_deliver();
+    delete_note.enqueue(db_client).await?;
 
     Ok(HttpResponse::NoContent().finish())
 }
@@ -349,7 +349,7 @@ async fn unfavourite(
             &current_user,
             &post,
             &reaction_id,
-        ).await?.spawn_deliver();
+        ).await?.enqueue(db_client).await?;
     };
 
     let status = build_status(
@@ -422,7 +422,7 @@ async fn unreblog(
         &current_user,
         &post,
         repost_id,
-    ).await?.spawn_deliver();
+    ).await?.enqueue(db_client).await?;
 
     let status = build_status(
         db_client,

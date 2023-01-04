@@ -80,7 +80,7 @@ pub async fn send_subscription_notifications(
             recipient,
             remote_sender,
             LocalActorCollection::Subscribers,
-        ).spawn_deliver();
+        ).enqueue(db_client).await?;
     };
     Ok(())
 }
@@ -277,7 +277,7 @@ pub async fn update_expired_subscriptions(
                 &recipient,
                 remote_sender,
                 LocalActorCollection::Subscribers,
-            ).spawn_deliver();
+            ).enqueue(db_client).await?;
         } else {
             create_subscription_expiration_notification(
                 db_client,

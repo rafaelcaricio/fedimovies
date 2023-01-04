@@ -236,8 +236,11 @@ async fn update_credentials(
     ).await?;
 
     // Federate
-    prepare_update_person(db_client, &config.instance(), &current_user).await?
-        .spawn_deliver();
+    prepare_update_person(
+        db_client,
+        &config.instance(),
+        &current_user,
+    ).await?.enqueue(db_client).await?;
 
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
@@ -313,13 +316,12 @@ async fn move_followers(
                             .expect("actor data must be present");
                         let follow_request_id = maybe_follow_request_id
                             .expect("follow request must exist");
-                        // TODO: send in a batch
                         prepare_undo_follow(
                             &config.instance(),
                             &current_user,
                             remote_actor,
                             &follow_request_id,
-                        ).spawn_deliver();
+                        ).enqueue(db_client).await?;
                     },
                     // Not a follower, ignore
                     Err(DatabaseError::NotFound(_)) => continue,
@@ -420,7 +422,7 @@ async fn send_signed_activity(
     add_integrity_proof(&mut outgoing_activity.activity, proof)
         .map_err(|_| HttpError::InternalError)?;
 
-    outgoing_activity.spawn_deliver();
+    outgoing_activity.enqueue(db_client).await?;
 
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
@@ -530,8 +532,11 @@ async fn create_identity_proof(
     ).await?;
 
     // Federate
-    prepare_update_person(db_client, &config.instance(), &current_user).await?
-        .spawn_deliver();
+    prepare_update_person(
+        db_client,
+        &config.instance(),
+        &current_user,
+    ).await?.enqueue(db_client).await?;
 
     let account = Account::from_user(current_user, &config.instance_url());
     Ok(HttpResponse::Ok().json(account))
@@ -633,7 +638,7 @@ async fn follow_account(
                     &current_user,
                     &remote_actor,
                     &follow_request.id,
-                ).spawn_deliver();
+                ).enqueue(db_client).await?;
             },
             Err(DatabaseError::AlreadyExists(_)) => (), // already following
             Err(other_error) => return Err(other_error.into()),
@@ -683,7 +688,7 @@ async fn unfollow_account(
                 &current_user,
                 &remote_actor,
                 &follow_request_id,
-            ).spawn_deliver();
+            ).enqueue(db_client).await?;
         },
         Ok(None) => (), // local follow
         Err(DatabaseError::NotFound(_)) => (), // not following

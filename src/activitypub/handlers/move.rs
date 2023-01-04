@@ -90,7 +90,6 @@ pub async fn handle_move(
     };
 
     let followers = get_followers(db_client, &old_profile.id).await?;
-    let mut activities = vec![];
     for follower in followers {
         let follower = get_user_by_id(db_client, &follower.id).await?;
         // Unfollow old profile
@@ -103,12 +102,12 @@ pub async fn handle_move(
         if let Some(ref old_actor) = old_profile.actor_json {
             let follow_request_id = maybe_follow_request_id
                 .expect("follow request must exist");
-            activities.push(prepare_undo_follow(
+            prepare_undo_follow(
                 &instance,
                 &follower,
                 old_actor,
                 &follow_request_id,
-            ));
+            ).enqueue(db_client).await?;
         };
         // Follow new profile
         match create_follow_request(
@@ -117,12 +116,12 @@ pub async fn handle_move(
             &new_profile.id,
         ).await {
             Ok(follow_request) => {
-                activities.push(prepare_follow(
+                prepare_follow(
                     &instance,
                     &follower,
                     new_actor,
                     &follow_request.id,
-                ));
+                ).enqueue(db_client).await?;
             },
             Err(DatabaseError::AlreadyExists(_)) => (), // already following
             Err(other_error) => return Err(other_error.into()),
@@ -133,11 +132,6 @@ pub async fn handle_move(
             &follower.id,
         ).await?;
     };
-    tokio::spawn(async move {
-        for activity in activities {
-            activity.deliver_or_log().await;
-        };
-    });
 
     Ok(Some(PERSON))
 }

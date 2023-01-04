@@ -208,6 +208,7 @@ async fn deliver_activity_worker(
 }
 
 pub struct OutgoingActivity {
+    pub db_pool: Option<DbPool>, // needed to track unreachable actors (optional)
     pub instance: Instance,
     pub sender: User,
     pub activity: Value,
@@ -233,6 +234,7 @@ impl OutgoingActivity {
             };
         };
         Self {
+            db_pool: None,
             instance: instance.clone(),
             sender: sender.clone(),
             activity: serde_json::to_value(activity)
@@ -241,9 +243,11 @@ impl OutgoingActivity {
         }
     }
 
-    pub async fn deliver(self) -> Result<(), DelivererError> {
+    pub async fn deliver(
+        self,
+    ) -> Result<(), DelivererError> {
         deliver_activity_worker(
-            None,
+            self.db_pool,
             self.instance,
             self.sender,
             self.activity,
@@ -251,30 +255,9 @@ impl OutgoingActivity {
         ).await
     }
 
-    pub async fn deliver_or_log(self) -> () {
-        self.deliver().await.unwrap_or_else(|err| {
-            log::error!("{}", err);
-        });
-    }
-
     pub fn spawn_deliver(self) -> () {
         tokio::spawn(async move {
-            self.deliver_or_log().await;
-        });
-    }
-
-    pub fn spawn_deliver_with_tracking(
-        self,
-        db_pool: DbPool,
-    ) -> () {
-        tokio::spawn(async move {
-            deliver_activity_worker(
-                Some(db_pool),
-                self.instance,
-                self.sender,
-                self.activity,
-                self.recipients,
-            ).await.unwrap_or_else(|err| {
+            self.deliver().await.unwrap_or_else(|err| {
                 log::error!("{}", err);
             });
         });

@@ -142,12 +142,13 @@ pub async fn process_queued_outgoing_activities(
                 .map_err(|_| DatabaseTypeError)?;
         let sender = get_user_by_id(db_client, &job_data.sender_id).await?;
         let outgoing_activity = OutgoingActivity {
+            db_pool: Some(db_pool.clone()),
             instance: config.instance(),
             sender,
             activity: job_data.activity,
             recipients: job_data.recipients,
         };
-        outgoing_activity.spawn_deliver_with_tracking(db_pool.clone());
+        outgoing_activity.spawn_deliver();
         delete_job_from_queue(db_client, &job.id).await?;
     };
     Ok(())

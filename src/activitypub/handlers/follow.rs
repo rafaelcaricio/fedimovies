@@ -69,7 +69,7 @@ pub async fn handle_follow(
         &target_user,
         &source_actor,
         &activity.id,
-    ).spawn_deliver();
+    ).enqueue(db_client).await?;
 
     Ok(Some(PERSON))
 }

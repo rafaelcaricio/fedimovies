@@ -142,8 +142,11 @@ pub async fn register_subscription_option(
         ).await?;
 
         // Federate
-        prepare_update_person(db_client, &config.instance(), &current_user)
-            .await?.spawn_deliver();
+        prepare_update_person(
+            db_client,
+            &config.instance(),
+            &current_user,
+        ).await?.enqueue(db_client).await?;
     };
 
     let account = Account::from_user(current_user, &config.instance_url());
