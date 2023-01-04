@@ -178,6 +178,7 @@ pub async fn handle_note(
             let (file_name, maybe_media_type) = fetch_file(
                 instance,
                 &attachment_url,
+                attachment.media_type.as_deref(),
                 media_dir,
             ).await
                 .map_err(|err| {

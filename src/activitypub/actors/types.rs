@@ -49,6 +49,7 @@ pub struct ActorImage {
     #[serde(rename = "type")]
     object_type: String,
     pub url: String,
+    pub media_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -240,6 +241,7 @@ pub fn get_local_actor(
             let actor_image = ActorImage {
                 object_type: IMAGE.to_string(),
                 url: get_file_url(instance_url, &image.file_name),
+                media_type: None,
             };
             Some(actor_image)
         },
@@ -250,6 +252,7 @@ pub fn get_local_actor(
             let actor_image = ActorImage {
                 object_type: IMAGE.to_string(),
                 url: get_file_url(instance_url, &image.file_name),
+                media_type: None,
             };
             Some(actor_image)
         },

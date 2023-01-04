@@ -107,6 +107,7 @@ const FILE_MAX_SIZE: u64 = 1024 * 1024 * 20;
 pub async fn fetch_file(
     instance: &Instance,
     url: &str,
+    maybe_media_type: Option<&str>,
     output_dir: &Path,
 ) -> Result<(String, Option<String>), FetchError> {
     let client = build_client(instance)?;
@@ -122,7 +123,10 @@ pub async fn fetch_file(
     if file_data.len() > FILE_MAX_SIZE as usize {
         return Err(FetchError::OtherError("file is too large"));
     };
-    let maybe_media_type = sniff_media_type(&file_data)
+    let maybe_media_type = maybe_media_type
+        .map(|media_type| media_type.to_string())
+        // Sniff media type if not provided
+        .or(sniff_media_type(&file_data))
         // Remove media type if it is not supported to prevent XSS
         .filter(|media_type| {
             if SUPPORTED_MEDIA_TYPES.contains(&media_type.as_str()) {
