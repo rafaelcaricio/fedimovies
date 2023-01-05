@@ -5,6 +5,7 @@ use crate::activitypub::constants::AP_MEDIA_TYPE;
 use crate::activitypub::identifiers::{
     local_actor_id,
     local_instance_actor_id,
+    parse_local_actor_id,
 };
 use crate::config::{Config, Instance};
 use crate::database::{get_database_client, DbPool};
@@ -31,12 +32,21 @@ async fn get_jrd(
     instance: Instance,
     resource: &str,
 ) -> Result<JsonResourceDescriptor, HttpError> {
-    let actor_address = parse_acct_uri(resource)?;
+    let actor_address = if resource.starts_with("acct:") {
+        parse_acct_uri(resource)?
+    } else {
+        // Actor ID? (reverse webfinger)
+        let username = parse_local_actor_id(
+            &instance.url(),
+            resource,
+        )?;
+        ActorAddress { username, hostname: instance.hostname() }
+    };
     if actor_address.hostname != instance.hostname() {
         // Wrong instance
         return Err(HttpError::NotFoundError("user"));
     };
-    let actor_url = if actor_address.username == instance.hostname() {
+    let actor_id = if actor_address.username == instance.hostname() {
         local_instance_actor_id(&instance.url())
     } else {
         if !is_registered_user(db_client, &actor_address.username).await? {
@@ -47,10 +57,10 @@ async fn get_jrd(
     let link = Link {
         rel: "self".to_string(),
         link_type: Some(AP_MEDIA_TYPE.to_string()),
-        href: Some(actor_url),
+        href: Some(actor_id),
     };
     let jrd = JsonResourceDescriptor {
-        subject: resource.to_string(),
+        subject: format!("acct:{}", actor_address),
         links: vec![link],
     };
     Ok(jrd)

@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `/api/v1/settings/move_followers` API endpoint (replaces `/api/v1/accounts/move_followers`).
 - Added `/api/v1/settings/import_follows` API endpoint.
 - Validation of Monero subscription payout address.
+- Accept webfinger requests where `resource` is actor ID.
 
 ### Removed
 
