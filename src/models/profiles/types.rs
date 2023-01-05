@@ -33,6 +33,7 @@ use super::validators::{
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProfileImage {
     pub file_name: String,
+    pub media_type: Option<String>,
 }
 
 json_from_sql!(ProfileImage);

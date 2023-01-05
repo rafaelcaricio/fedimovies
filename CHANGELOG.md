@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Implemented activity delivery queue.
 - Started to keep track of unreachable actors.
 - Added `configuration` object to response of `/api/v1/instance` endpoint.
+- Save media types of uploaded avatar and banner images.
 
 ### Changed
 
@@ -22,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 
 - Deprecated `post_character_limit` property in `/api/v1/instance` response.
+- Avatar and banner uploads without media type via `/api/v1/accounts/update_credentials`.
 
 ### Removed
 

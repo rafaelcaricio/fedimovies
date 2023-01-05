@@ -152,8 +152,16 @@ paths:
                   description: Avatar image encoded as base64.
                   type: string
                   nullable: true
+                avatar_media_type:
+                  description: The media type of avatar image.
+                  type: string
+                  nullable: true
                 header:
                   description: Header image encoded as base64.
+                  type: string
+                  nullable: true
+                header_media_type:
+                  description: The media type of header image.
                   type: string
                   nullable: true
                 fields_attributes:

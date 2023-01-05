@@ -28,7 +28,7 @@ async fn fetch_actor_images(
     let maybe_avatar = if let Some(icon) = &actor.icon {
         match fetch_file(instance, &icon.url, media_dir).await {
             Ok((file_name, _)) => {
-                let image = ProfileImage { file_name };
+                let image = ProfileImage { file_name, media_type: None };
                 Some(image)
             },
             Err(error) => {
@@ -42,7 +42,7 @@ async fn fetch_actor_images(
     let maybe_banner = if let Some(image) = &actor.image {
         match fetch_file(instance, &image.url, media_dir).await {
             Ok((file_name, _)) => {
-                let image = ProfileImage { file_name };
+                let image = ProfileImage { file_name, media_type: None };
                 Some(image)
             },
             Err(error) => {

@@ -214,12 +214,15 @@ pub struct AccountUpdateData {
     display_name: Option<String>,
     note: Option<String>,
     avatar: Option<String>,
+    avatar_media_type: Option<String>,
     header: Option<String>,
+    header_media_type: Option<String>,
     fields_attributes: Option<Vec<AccountFieldSource>>,
 }
 
 fn process_b64_image_field_value(
     form_value: Option<String>,
+    form_media_type: Option<String>,
     db_value: Option<ProfileImage>,
     output_dir: &Path,
 ) -> Result<Option<ProfileImage>, UploadError> {
@@ -230,13 +233,16 @@ fn process_b64_image_field_value(
                 None
             } else {
                 // Decode and save file
-                let (file_name, _) = save_b64_file(
+                let (file_name, media_type) = save_b64_file(
                     &b64_data,
-                    None,
+                    form_media_type,
                     output_dir,
                     Some("image/"),
                 )?;
-                let image = ProfileImage { file_name };
+                let image = ProfileImage {
+                    file_name,
+                    media_type: Some(media_type),
+                };
                 Some(image)
             }
         },
@@ -261,11 +267,13 @@ impl AccountUpdateData {
         };
         let avatar = process_b64_image_field_value(
             self.avatar,
+            self.avatar_media_type,
             profile.avatar.clone(),
             media_dir,
         )?;
         let banner = process_b64_image_field_value(
             self.header,
+            self.header_media_type,
             profile.banner.clone(),
             media_dir,
         )?;
@@ -488,6 +496,7 @@ mod tests {
         let profile = DbActorProfile {
             avatar: Some(ProfileImage {
                 file_name: "test".to_string(),
+                media_type: None,
             }),
             ..Default::default()
         };
