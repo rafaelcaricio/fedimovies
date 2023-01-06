@@ -63,21 +63,3 @@ pub fn save_b64_file(
     )?;
     Ok((file_name, media_type))
 }
-
-pub fn save_validated_b64_file(
-    b64data: &str,
-    output_dir: &Path,
-    media_type_prefix: &str,
-) -> Result<(String, String), UploadError> {
-    let data = base64::decode(b64data)?;
-    if data.len() > UPLOAD_MAX_SIZE {
-        return Err(UploadError::TooLarge);
-    };
-    let media_type = sniff_media_type(&data)
-        .ok_or(UploadError::InvalidMediaType)?;
-    if !media_type.starts_with(media_type_prefix) {
-        return Err(UploadError::InvalidMediaType);
-    };
-    let file_name = save_file(data, output_dir, Some(&media_type))?;
-    Ok((file_name, media_type))
-}

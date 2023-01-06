@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::errors::{HttpError, ValidationError};
 use crate::identity::did::Did;
 use crate::mastodon_api::pagination::PageSize;
-use crate::mastodon_api::uploads::{UploadError, save_validated_b64_file};
+use crate::mastodon_api::uploads::{save_b64_file, UploadError};
 use crate::models::profiles::types::{
     DbActorProfile,
     ExtraField,
@@ -230,8 +230,11 @@ fn process_b64_image_field_value(
                 None
             } else {
                 // Decode and save file
-                let (file_name, _) = save_validated_b64_file(
-                    &b64_data, output_dir, "image/",
+                let (file_name, _) = save_b64_file(
+                    &b64_data,
+                    None,
+                    output_dir,
+                    Some("image/"),
                 )?;
                 Some(file_name)
             }
