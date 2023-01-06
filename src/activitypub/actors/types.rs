@@ -48,7 +48,7 @@ pub struct PublicKey {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Image {
+pub struct ActorImage {
     #[serde(rename = "type")]
     object_type: String,
     pub url: String,
@@ -78,7 +78,7 @@ pub struct ActorAttachment {
 // Some implementations use empty object instead of null
 pub fn deserialize_image_opt<'de, D>(
     deserializer: D,
-) -> Result<Option<Image>, D::Error>
+) -> Result<Option<ActorImage>, D::Error>
     where D: Deserializer<'de>
 {
     let maybe_value: Option<Value> = Option::deserialize(deserializer)?;
@@ -89,7 +89,7 @@ pub fn deserialize_image_opt<'de, D>(
         if is_empty_object {
             None
         } else {
-            let image = Image::deserialize(value)
+            let image = ActorImage::deserialize(value)
                 .map_err(DeserializerError::custom)?;
             Some(image)
         }
@@ -134,10 +134,10 @@ pub struct Actor {
         deserialize_with = "deserialize_image_opt",
         skip_serializing_if = "Option::is_none",
     )]
-    pub icon: Option<Image>,
+    pub icon: Option<ActorImage>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub image: Option<Image>,
+    pub image: Option<ActorImage>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
@@ -277,21 +277,21 @@ pub fn get_local_actor(
     };
     let avatar = match &user.profile.avatar_file_name {
         Some(file_name) => {
-            let image = Image {
+            let actor_image = ActorImage {
                 object_type: IMAGE.to_string(),
                 url: get_file_url(instance_url, file_name),
             };
-            Some(image)
+            Some(actor_image)
         },
         None => None,
     };
     let banner = match &user.profile.banner_file_name {
         Some(file_name) => {
-            let image = Image {
+            let actor_image = ActorImage {
                 object_type: IMAGE.to_string(),
                 url: get_file_url(instance_url, file_name),
             };
-            Some(image)
+            Some(actor_image)
         },
         None => None,
     };
