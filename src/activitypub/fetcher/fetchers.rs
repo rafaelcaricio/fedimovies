@@ -12,7 +12,7 @@ use crate::http_signatures::create::{
     create_http_signature,
     HttpSignatureError,
 };
-use crate::utils::files::save_file;
+use crate::utils::files::{save_file, sniff_media_type};
 use crate::utils::urls::guess_protocol;
 use crate::webfinger::types::JsonResourceDescriptor;
 
@@ -118,8 +118,13 @@ pub async fn fetch_file(
     if file_data.len() > FILE_MAX_SIZE as usize {
         return Err(FetchError::OtherError("file is too large"));
     };
-    let (file_name, media_type) = save_file(file_data.to_vec(), output_dir, None)?;
-    Ok((file_name, media_type))
+    let maybe_media_type = sniff_media_type(&file_data);
+    let file_name = save_file(
+        file_data.to_vec(),
+        output_dir,
+        maybe_media_type.as_deref(),
+    )?;
+    Ok((file_name, maybe_media_type))
 }
 
 pub async fn perform_webfinger_query(

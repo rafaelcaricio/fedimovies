@@ -43,17 +43,16 @@ pub fn set_file_permissions(file_path: &Path, mode: u32) -> Result<(), Error> {
     Ok(())
 }
 
+/// Save validated file to specified directory
 pub fn save_file(
     data: Vec<u8>,
     output_dir: &Path,
-    media_type: Option<String>,
-) -> Result<(String, Option<String>), Error> {
-    // Sniff media type if not provided
-    let media_type = media_type.or(sniff_media_type(&data));
-    let file_name = get_file_name(&data, media_type.as_deref());
+    media_type: Option<&str>,
+) -> Result<String, Error> {
+    let file_name = get_file_name(&data, media_type);
     let file_path = output_dir.join(&file_name);
     write_file(&data, &file_path)?;
-    Ok((file_name, media_type))
+    Ok(file_name)
 }
 
 pub fn get_file_url(instance_url: &str, file_name: &str) -> String {

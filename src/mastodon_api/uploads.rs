@@ -40,11 +40,18 @@ pub fn save_b64_file(
     if data.len() > UPLOAD_MAX_SIZE {
         return Err(UploadError::TooLarge);
     };
+    // Sniff media type if not provided
+    maybe_media_type = maybe_media_type.or(sniff_media_type(&data));
     if maybe_media_type.as_deref() == Some("image/svg+xml") {
         // Don't treat SVG files as images
         maybe_media_type = None;
     };
-    Ok(save_file(data, output_dir, maybe_media_type)?)
+    let file_name = save_file(
+        data,
+        output_dir,
+        maybe_media_type.as_deref(),
+    )?;
+    Ok((file_name, maybe_media_type))
 }
 
 pub fn save_validated_b64_file(
@@ -61,7 +68,6 @@ pub fn save_validated_b64_file(
     if !media_type.starts_with(media_type_prefix) {
         return Err(UploadError::InvalidMediaType);
     };
-    let (file_name, _) =
-        save_file(data, output_dir, Some(media_type.clone()))?;
+    let file_name = save_file(data, output_dir, Some(&media_type))?;
     Ok((file_name, media_type))
 }
