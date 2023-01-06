@@ -236,6 +236,11 @@ impl Serialize for PaymentOption {
 pub struct PaymentOptions(pub Vec<PaymentOption>);
 
 impl PaymentOptions {
+    pub fn inner(&self) -> &[PaymentOption] {
+        let Self(payment_options) = self;
+        payment_options
+    }
+
     pub fn into_inner(self) -> Vec<PaymentOption> {
         let Self(payment_options) = self;
         payment_options

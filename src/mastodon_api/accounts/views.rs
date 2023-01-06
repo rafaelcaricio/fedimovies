@@ -222,10 +222,7 @@ async fn update_credentials(
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     let mut profile_data = account_data.into_inner()
         .into_profile_data(
-            &current_user.profile.avatar_file_name,
-            &current_user.profile.banner_file_name,
-            &current_user.profile.identity_proofs.into_inner(),
-            &current_user.profile.payment_options.into_inner(),
+            &current_user.profile,
             &config.media_dir(),
         )?;
     profile_data.clean()?;

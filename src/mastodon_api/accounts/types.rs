@@ -11,7 +11,6 @@ use crate::mastodon_api::uploads::{save_b64_file, UploadError};
 use crate::models::profiles::types::{
     DbActorProfile,
     ExtraField,
-    IdentityProof,
     PaymentOption,
     ProfileUpdateData,
 };
@@ -248,10 +247,7 @@ fn process_b64_image_field_value(
 impl AccountUpdateData {
     pub fn into_profile_data(
         self,
-        current_avatar: &Option<String>,
-        current_banner: &Option<String>,
-        current_identity_proofs: &[IdentityProof],
-        current_payment_options: &[PaymentOption],
+        profile: &DbActorProfile,
         media_dir: &Path,
     ) -> Result<ProfileUpdateData, HttpError> {
         let maybe_bio = if let Some(ref bio_source) = self.note {
@@ -262,13 +258,17 @@ impl AccountUpdateData {
             None
         };
         let avatar = process_b64_image_field_value(
-            self.avatar, current_avatar.clone(), media_dir,
+            self.avatar,
+            profile.avatar_file_name.clone(),
+            media_dir,
         )?;
         let banner = process_b64_image_field_value(
-            self.header, current_banner.clone(), media_dir,
+            self.header,
+            profile.banner_file_name.clone(),
+            media_dir,
         )?;
-        let identity_proofs = current_identity_proofs.to_vec();
-        let payment_options = current_payment_options.to_vec();
+        let identity_proofs = profile.identity_proofs.inner().to_vec();
+        let payment_options = profile.payment_options.inner().to_vec();
         let mut extra_fields = vec![];
         for field_source in self.fields_attributes.unwrap_or(vec![]) {
             let value = markdown_basic_to_html(&field_source.value)
