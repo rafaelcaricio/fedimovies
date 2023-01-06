@@ -31,7 +31,7 @@ use crate::models::posts::queries::{
     delete_post,
 };
 use crate::models::posts::types::{PostCreateData, Visibility};
-use crate::models::posts::validators::clean_content;
+use crate::models::posts::validators::{clean_content, ATTACHMENTS_MAX_NUM};
 use crate::models::reactions::queries::{
     create_reaction,
     delete_reaction,
@@ -139,6 +139,11 @@ async fn create_status(
     } else {
         None
     };
+    // Validate attachments
+    let attachments = status_data.media_ids.unwrap_or(vec![]);
+    if attachments.len() > ATTACHMENTS_MAX_NUM {
+        return Err(ValidationError("too many attachments").into());
+    };
 
     // Create post
     let post_data = PostCreateData {
@@ -146,7 +151,7 @@ async fn create_status(
         in_reply_to_id: status_data.in_reply_to_id,
         repost_of_id: None,
         visibility: visibility,
-        attachments: status_data.media_ids.unwrap_or(vec![]),
+        attachments: attachments,
         mentions: mentions,
         tags: tags,
         links: links,

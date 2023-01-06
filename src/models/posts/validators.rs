@@ -1,6 +1,7 @@
 use crate::errors::ValidationError;
 use crate::utils::html::clean_html_strict;
 
+pub const ATTACHMENTS_MAX_NUM: usize = 15;
 pub const CONTENT_MAX_SIZE: usize = 100000;
 const CONTENT_ALLOWED_TAGS: [&str; 8] = [
     "a",

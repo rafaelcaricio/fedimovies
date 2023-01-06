@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Updated installation instructions, default mitra config and recommended nginx config.
 - Limited the number of requests made during the processing of a thread.
+- Limited the number of media files that can be attached to a post.
 
 ### Removed
 

@@ -29,7 +29,11 @@ use crate::models::posts::{
     mentions::mention_to_address,
     queries::create_post,
     types::{Post, PostCreateData, Visibility},
-    validators::{content_allowed_classes, CONTENT_MAX_SIZE},
+    validators::{
+        content_allowed_classes,
+        ATTACHMENTS_MAX_NUM,
+        CONTENT_MAX_SIZE,
+    },
 };
 use crate::models::profiles::queries::get_profile_by_acct;
 use crate::models::profiles::types::DbActorProfile;
@@ -47,8 +51,6 @@ fn get_note_author_id(object: &Object) -> Result<String, ValidationError> {
         .to_string();
     Ok(author_id)
 }
-
-const ATTACHMENTS_MAX_NUM: usize = 15;
 
 fn parse_object_url(value: &JsonValue) -> Result<String, ConversionError> {
     let object_url = match value {
