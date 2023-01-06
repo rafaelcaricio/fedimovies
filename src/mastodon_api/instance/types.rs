@@ -3,14 +3,39 @@ use serde_json::{to_value, Value};
 
 use crate::config::{BlockchainConfig, Config};
 use crate::ethereum::contracts::ContractSet;
-use crate::mastodon_api::MASTODON_API_VERSION;
-use crate::utils::markdown::markdown_to_html;
+use crate::mastodon_api::{
+    MASTODON_API_VERSION,
+    uploads::UPLOAD_MAX_SIZE,
+};
+use crate::models::posts::validators::ATTACHMENTS_MAX_NUM;
+use crate::utils::{
+    files::SUPPORTED_MEDIA_TYPES,
+    markdown::markdown_to_html,
+};
 
 #[derive(Serialize)]
 struct InstanceStats {
     user_count: i64,
     status_count: i64,
     domain_count: i64,
+}
+
+#[derive(Serialize)]
+struct InstanceStatusLimits {
+    max_characters: usize,
+    max_media_attachments: usize,
+}
+
+#[derive(Serialize)]
+struct InstanceMediaLimits {
+    supported_mime_types: [&'static str; 4],
+    image_size_limit: usize,
+}
+
+#[derive(Serialize)]
+struct InstanceConfiguration {
+    statuses: InstanceStatusLimits,
+    media_attachments: InstanceMediaLimits,
 }
 
 #[derive(Serialize)]
@@ -28,6 +53,7 @@ struct BlockchainInfo {
     features: BlockchainFeatures,
 }
 
+/// https://docs.joinmastodon.org/entities/V1_Instance/
 #[derive(Serialize)]
 pub struct InstanceInfo {
     uri: String,
@@ -38,6 +64,7 @@ pub struct InstanceInfo {
     version: String,
     registrations: bool,
     stats: InstanceStats,
+    configuration: InstanceConfiguration,
 
     login_message: String,
     post_character_limit: usize,
@@ -115,6 +142,16 @@ impl InstanceInfo {
                 user_count,
                 status_count: post_count,
                 domain_count: peer_count,
+            },
+            configuration: InstanceConfiguration {
+                statuses: InstanceStatusLimits {
+                    max_characters: config.post_character_limit,
+                    max_media_attachments: ATTACHMENTS_MAX_NUM,
+                },
+                media_attachments: InstanceMediaLimits {
+                    supported_mime_types: SUPPORTED_MEDIA_TYPES,
+                    image_size_limit: UPLOAD_MAX_SIZE,
+                },
             },
             login_message: config.login_message.clone(),
             post_character_limit: config.post_character_limit,

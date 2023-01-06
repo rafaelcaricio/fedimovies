@@ -11,6 +11,7 @@ use crate::models::{
 };
 use super::types::InstanceInfo;
 
+/// https://docs.joinmastodon.org/methods/instance/#v1
 #[get("")]
 async fn instance_view(
     config: web::Data<Config>,

@@ -1394,6 +1394,36 @@ components:
             domain_count:
               description: Domains federated with this instance.
               type: integer
+        configuration:
+          description: Configured values and limits for this instance.
+          type: object
+          properties:
+            statuses:
+              description: Limits related to authoring posts.
+              type: object
+              properties:
+                max_characters:
+                  description: The maximum number of allowed characters per post.
+                  type: integer
+                  example: 5000
+                max_media_attachments:
+                  description: The maximum number of media attachments that can be added to a post.
+                  type: integer
+                  example: 15
+            media_attachments:
+              description: Limits realted to uploading attachments.
+              type: object
+              properties:
+                supported_mime_types:
+                  description: Contains MIME types that can be uploaded.
+                  type: array
+                  items:
+                    type: string
+                    example: 'image/png'
+                image_size_limit:
+                  description: The maximum size of any uploaded image, in bytes.
+                  type: integer
+                  example: 5242880
         login_message:
           description: Login message for signer.
           type: string
