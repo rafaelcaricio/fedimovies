@@ -19,16 +19,17 @@ async fn create_attachment_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let (file_name, maybe_media_type) = save_b64_file(
+    let (file_name, media_type) = save_b64_file(
         &attachment_data.file,
         attachment_data.media_type.clone(),
         &config.media_dir(),
+        Some("image/"),
     )?;
     let db_attachment = create_attachment(
         db_client,
         &current_user.id,
         file_name,
-        maybe_media_type,
+        Some(media_type),
     ).await?;
     let attachment = Attachment::from_db(
         db_attachment,

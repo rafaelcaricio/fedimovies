@@ -1,7 +1,11 @@
 use std::path::Path;
 
 use crate::errors::HttpError;
-use crate::utils::files::{save_file, sniff_media_type};
+use crate::utils::files::{
+    save_file,
+    sniff_media_type,
+    SUPPORTED_MEDIA_TYPES,
+};
 
 pub const UPLOAD_MAX_SIZE: usize = 1024 * 1024 * 5;
 
@@ -33,25 +37,31 @@ impl From<UploadError> for HttpError {
 
 pub fn save_b64_file(
     b64data: &str,
-    mut maybe_media_type: Option<String>,
+    maybe_media_type: Option<String>,
     output_dir: &Path,
-) -> Result<(String, Option<String>), UploadError> {
+    maybe_expected_prefix: Option<&str>,
+) -> Result<(String, String), UploadError> {
     let data = base64::decode(b64data)?;
     if data.len() > UPLOAD_MAX_SIZE {
         return Err(UploadError::TooLarge);
     };
     // Sniff media type if not provided
-    maybe_media_type = maybe_media_type.or(sniff_media_type(&data));
-    if maybe_media_type.as_deref() == Some("image/svg+xml") {
-        // Don't treat SVG files as images
-        maybe_media_type = None;
+    let media_type = maybe_media_type.or(sniff_media_type(&data))
+        .ok_or(UploadError::InvalidMediaType)?;
+    if !SUPPORTED_MEDIA_TYPES.contains(&media_type.as_str()) {
+        return Err(UploadError::InvalidMediaType);
+    };
+    if let Some(expected_prefix) = maybe_expected_prefix {
+        if !media_type.starts_with(expected_prefix) {
+            return Err(UploadError::InvalidMediaType);
+        };
     };
     let file_name = save_file(
         data,
         output_dir,
-        maybe_media_type.as_deref(),
+        Some(&media_type),
     )?;
-    Ok((file_name, maybe_media_type))
+    Ok((file_name, media_type))
 }
 
 pub fn save_validated_b64_file(

@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Updated installation instructions, default mitra config and recommended nginx config.
 - Limited the number of requests made during the processing of a thread.
 
+### Removed
+
+- Removed ability to upload non-images using `/api/v1/media` endpoint.
+
 ### Fixed
 
 - Fixed post and profile page redirections.
