@@ -30,6 +30,14 @@ use super::validators::{
     clean_extra_fields,
 };
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ProfileImage {
+    pub file_name: String,
+}
+
+json_from_sql!(ProfileImage);
+json_to_sql!(ProfileImage);
+
 #[derive(Clone, Debug)]
 pub enum ProofType {
     LegacyEip191IdentityProof,
@@ -295,8 +303,8 @@ pub struct DbActorProfile {
     pub display_name: Option<String>,
     pub bio: Option<String>, // html
     pub bio_source: Option<String>, // plaintext or markdown
-    pub avatar_file_name: Option<String>,
-    pub banner_file_name: Option<String>,
+    pub avatar: Option<ProfileImage>,
+    pub banner: Option<ProfileImage>,
     pub identity_proofs: IdentityProofs,
     pub payment_options: PaymentOptions,
     pub extra_fields: ExtraFields,
@@ -374,8 +382,8 @@ impl Default for DbActorProfile {
             display_name: None,
             bio: None,
             bio_source: None,
-            avatar_file_name: None,
-            banner_file_name: None,
+            avatar: None,
+            banner: None,
             identity_proofs: IdentityProofs(vec![]),
             payment_options: PaymentOptions(vec![]),
             extra_fields: ExtraFields(vec![]),
@@ -398,8 +406,8 @@ pub struct ProfileCreateData {
     pub hostname: Option<String>,
     pub display_name: Option<String>,
     pub bio: Option<String>,
-    pub avatar: Option<String>,
-    pub banner: Option<String>,
+    pub avatar: Option<ProfileImage>,
+    pub banner: Option<ProfileImage>,
     pub identity_proofs: Vec<IdentityProof>,
     pub payment_options: Vec<PaymentOption>,
     pub extra_fields: Vec<ExtraField>,
@@ -429,8 +437,8 @@ pub struct ProfileUpdateData {
     pub display_name: Option<String>,
     pub bio: Option<String>,
     pub bio_source: Option<String>,
-    pub avatar: Option<String>,
-    pub banner: Option<String>,
+    pub avatar: Option<ProfileImage>,
+    pub banner: Option<ProfileImage>,
     pub identity_proofs: Vec<IdentityProof>,
     pub payment_options: Vec<PaymentOption>,
     pub extra_fields: Vec<ExtraField>,
@@ -476,8 +484,8 @@ impl From<&DbActorProfile> for ProfileUpdateData {
             display_name: profile.display_name,
             bio: profile.bio,
             bio_source: profile.bio_source,
-            avatar: profile.avatar_file_name,
-            banner: profile.banner_file_name,
+            avatar: profile.avatar,
+            banner: profile.banner,
             identity_proofs: profile.identity_proofs.into_inner(),
             payment_options: profile.payment_options.into_inner(),
             extra_fields: profile.extra_fields.into_inner(),

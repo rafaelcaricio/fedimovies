@@ -39,7 +39,7 @@ pub async fn create_profile(
         "
         INSERT INTO actor_profile (
             id, username, hostname, display_name, bio, bio_source,
-            avatar_file_name, banner_file_name,
+            avatar, banner,
             identity_proofs, payment_options, extra_fields,
             actor_json
         )
@@ -77,8 +77,8 @@ pub async fn update_profile(
             display_name = $1,
             bio = $2,
             bio_source = $3,
-            avatar_file_name = $4,
-            banner_file_name = $5,
+            avatar = $4,
+            banner = $5,
             identity_proofs = $6,
             payment_options = $7,
             extra_fields = $8,
@@ -239,7 +239,13 @@ pub async fn delete_profile(
     // Get list of media files
     let files_rows = transaction.query(
         "
-        SELECT unnest(array_remove(ARRAY[avatar_file_name, banner_file_name], NULL)) AS file_name
+        SELECT unnest(array_remove(
+            ARRAY[
+                avatar ->> 'file_name',
+                banner ->> 'file_name'
+            ],
+            NULL
+        )) AS file_name
         FROM actor_profile WHERE id = $1
         UNION ALL
         SELECT file_name

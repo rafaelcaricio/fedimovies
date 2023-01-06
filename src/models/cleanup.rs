@@ -44,7 +44,8 @@ pub async fn find_orphaned_files(
             )
             AND NOT EXISTS (
                 SELECT 1 FROM actor_profile
-                WHERE avatar_file_name = fname OR banner_file_name = fname
+                WHERE avatar ->> 'file_name' = fname
+                    OR banner ->> 'file_name' = fname
             )
         ",
         &[&files],

@@ -10,19 +10,27 @@ use crate::activitypub::{
 use crate::config::Instance;
 use crate::models::profiles::{
     queries::{create_profile, update_profile},
-    types::{DbActorProfile, ProfileCreateData, ProfileUpdateData},
+    types::{
+        DbActorProfile,
+        ProfileImage,
+        ProfileCreateData,
+        ProfileUpdateData,
+    },
 };
 
 async fn fetch_actor_images(
     instance: &Instance,
     actor: &Actor,
     media_dir: &Path,
-    default_avatar: Option<String>,
-    default_banner: Option<String>,
-) -> (Option<String>, Option<String>) {
+    default_avatar: Option<ProfileImage>,
+    default_banner: Option<ProfileImage>,
+) -> (Option<ProfileImage>, Option<ProfileImage>) {
     let maybe_avatar = if let Some(icon) = &actor.icon {
         match fetch_file(instance, &icon.url, media_dir).await {
-            Ok((file_name, _)) => Some(file_name),
+            Ok((file_name, _)) => {
+                let image = ProfileImage { file_name };
+                Some(image)
+            },
             Err(error) => {
                 log::warn!("failed to fetch avatar ({})", error);
                 default_avatar
@@ -33,7 +41,10 @@ async fn fetch_actor_images(
     };
     let maybe_banner = if let Some(image) = &actor.image {
         match fetch_file(instance, &image.url, media_dir).await {
-            Ok((file_name, _)) => Some(file_name),
+            Ok((file_name, _)) => {
+                let image = ProfileImage { file_name };
+                Some(image)
+            },
             Err(error) => {
                 log::warn!("failed to fetch banner ({})", error);
                 default_banner
@@ -108,8 +119,8 @@ pub async fn update_remote_profile(
         instance,
         &actor,
         media_dir,
-        profile.avatar_file_name,
-        profile.banner_file_name,
+        profile.avatar,
+        profile.banner,
     ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();

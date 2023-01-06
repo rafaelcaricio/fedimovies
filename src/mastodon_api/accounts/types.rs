@@ -12,6 +12,7 @@ use crate::models::profiles::types::{
     DbActorProfile,
     ExtraField,
     PaymentOption,
+    ProfileImage,
     ProfileUpdateData,
 };
 use crate::models::profiles::validators::validate_username;
@@ -75,16 +76,16 @@ pub struct Account {
 impl Account {
     pub fn from_profile(profile: DbActorProfile, instance_url: &str) -> Self {
         let profile_url = profile.actor_url(instance_url);
-        let avatar_url = profile.avatar_file_name.as_ref()
-            .map(|name| get_file_url(instance_url, name));
-        let header_url = profile.banner_file_name.as_ref()
-            .map(|name| get_file_url(instance_url, name));
+        let avatar_url = profile.avatar
+            .map(|image| get_file_url(instance_url, &image.file_name));
+        let header_url = profile.banner
+            .map(|image| get_file_url(instance_url, &image.file_name));
         let is_locked = profile.actor_json
             .map(|actor| actor.manually_approves_followers)
             .unwrap_or(false);
 
         let mut identity_proofs = vec![];
-        for proof in profile.identity_proofs.clone().into_inner() {
+        for proof in profile.identity_proofs.into_inner() {
             let (field_name, field_value) = match proof.issuer {
                 Did::Key(did_key) => {
                     ("Key".to_string(), did_key.key_multibase())
@@ -106,7 +107,7 @@ impl Account {
         };
 
         let mut extra_fields = vec![];
-        for extra_field in profile.extra_fields.clone().into_inner() {
+        for extra_field in profile.extra_fields.into_inner() {
             let field = AccountField {
                 name: extra_field.name,
                 value: extra_field.value,
@@ -115,8 +116,8 @@ impl Account {
             extra_fields.push(field);
         };
 
-        let payment_options = profile.payment_options.clone()
-            .into_inner().into_iter()
+        let payment_options = profile.payment_options.into_inner()
+            .into_iter()
             .map(|option| {
                 match option {
                     PaymentOption::Link(link) => {
@@ -219,9 +220,9 @@ pub struct AccountUpdateData {
 
 fn process_b64_image_field_value(
     form_value: Option<String>,
-    db_value: Option<String>,
+    db_value: Option<ProfileImage>,
     output_dir: &Path,
-) -> Result<Option<String>, UploadError> {
+) -> Result<Option<ProfileImage>, UploadError> {
     let maybe_file_name = match form_value {
         Some(b64_data) => {
             if b64_data.is_empty() {
@@ -235,7 +236,8 @@ fn process_b64_image_field_value(
                     output_dir,
                     Some("image/"),
                 )?;
-                Some(file_name)
+                let image = ProfileImage { file_name };
+                Some(image)
             }
         },
         // Keep current value
@@ -259,12 +261,12 @@ impl AccountUpdateData {
         };
         let avatar = process_b64_image_field_value(
             self.avatar,
-            profile.avatar_file_name.clone(),
+            profile.avatar.clone(),
             media_dir,
         )?;
         let banner = process_b64_image_field_value(
             self.header,
-            profile.banner_file_name.clone(),
+            profile.banner.clone(),
             media_dir,
         )?;
         let identity_proofs = profile.identity_proofs.inner().to_vec();
@@ -463,6 +465,7 @@ impl ApiSubscription {
 
 #[cfg(test)]
 mod tests {
+    use crate::models::profiles::types::ProfileImage;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
@@ -483,7 +486,9 @@ mod tests {
     #[test]
     fn test_create_account_from_profile() {
         let profile = DbActorProfile {
-            avatar_file_name: Some("test".to_string()),
+            avatar: Some(ProfileImage {
+                file_name: "test".to_string(),
+            }),
             ..Default::default()
         };
         let account = Account::from_profile(profile, INSTANCE_URL);

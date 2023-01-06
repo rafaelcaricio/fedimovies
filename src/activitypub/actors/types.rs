@@ -275,21 +275,21 @@ pub fn get_local_actor(
         owner: actor_id.clone(),
         public_key_pem: public_key_pem,
     };
-    let avatar = match &user.profile.avatar_file_name {
-        Some(file_name) => {
+    let avatar = match &user.profile.avatar {
+        Some(image) => {
             let actor_image = ActorImage {
                 object_type: IMAGE.to_string(),
-                url: get_file_url(instance_url, file_name),
+                url: get_file_url(instance_url, &image.file_name),
             };
             Some(actor_image)
         },
         None => None,
     };
-    let banner = match &user.profile.banner_file_name {
-        Some(file_name) => {
+    let banner = match &user.profile.banner {
+        Some(image) => {
             let actor_image = ActorImage {
                 object_type: IMAGE.to_string(),
-                url: get_file_url(instance_url, file_name),
+                url: get_file_url(instance_url, &image.file_name),
             };
             Some(actor_image)
         },
