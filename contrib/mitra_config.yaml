@@ -36,6 +36,11 @@ registrations_open: false
 # Chain metadata for EVM chains can be found at https://github.com/ethereum-lists/chains
 # Signing key for ethereum integration can be generated with `mitractl generate-ethereum-address`
 #blockchains:
+#  - chain_id: monero:mainnet
+#    node_url: 'http://opennode.xmr-tw.org:18089'
+#    wallet_url: 'http://127.0.0.1:18083'
+#    wallet_name: null
+#    wallet_password: null
 #  - chain_id: eip155:31337
 #    chain_metadata:
 #      chain_name: localhost
@@ -50,12 +55,6 @@ registrations_open: false
 #    signing_key: null
 #    chain_sync_step: 1000
 #    chain_reorg_max_depth: 10
-#  - chain_id: monero:mainnet
-#    node_url: 'http://opennode.xmr-tw.org:18089'
-#    wallet_url: 'http://127.0.0.1:18083'
-#    wallet_name: null
-#    wallet_password: null
-
 
 # IPFS integration
 #ipfs_api_url: 'http://127.0.0.1:5001'
