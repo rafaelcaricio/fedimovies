@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Started to keep track of unreachable actors.
 - Added `configuration` object to response of `/api/v1/instance` endpoint.
 - Save media types of uploaded avatar and banner images.
+- Support for `MitraJcsRsaSignature2022` and `MitraJcsEip191Signature2022` signature suites.
 
 ### Changed
 
@@ -24,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `post_character_limit` property in `/api/v1/instance` response.
 - Avatar and banner uploads without media type via `/api/v1/accounts/update_credentials`.
+- `JcsRsaSignature2022` and `JcsEip191Signature2022` signature suites.
 
 ### Removed
 

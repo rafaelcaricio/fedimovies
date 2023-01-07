@@ -8,8 +8,8 @@ use crate::identity::{
     did_pkh::DidPkh,
     signatures::{
         PROOF_TYPE_JCS_ED25519,
-        PROOF_TYPE_JCS_EIP191,
-        PROOF_TYPE_JCS_RSA,
+        PROOF_TYPE_JCS_EIP191_LEGACY,
+        PROOF_TYPE_JCS_RSA_LEGACY,
     },
 };
 use crate::utils::{
@@ -43,7 +43,7 @@ impl IntegrityProof {
         signature: &[u8],
     ) -> Self {
         Self {
-            proof_type: PROOF_TYPE_JCS_RSA.to_string(),
+            proof_type: PROOF_TYPE_JCS_RSA_LEGACY.to_string(),
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer_key_id.to_string(),
             created: Utc::now(),
@@ -56,7 +56,7 @@ impl IntegrityProof {
         signature: &[u8],
     ) -> Self {
         Self {
-            proof_type: PROOF_TYPE_JCS_EIP191.to_string(),
+            proof_type: PROOF_TYPE_JCS_EIP191_LEGACY.to_string(),
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer.to_string(),
             created: Utc::now(),
