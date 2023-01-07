@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2023-01-08
+
 ### Added
 
 - Added `/api/v1/accounts/lookup` Mastodon API endpoint.
