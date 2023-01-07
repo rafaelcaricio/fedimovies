@@ -4,7 +4,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     actors::types::Actor,
-    fetcher::fetchers::fetch_actor_images,
+    fetcher::fetchers::fetch_file,
     receiver::HandlerError,
 };
 use crate::config::Instance;
@@ -12,6 +12,38 @@ use crate::models::profiles::{
     queries::{create_profile, update_profile},
     types::{DbActorProfile, ProfileCreateData, ProfileUpdateData},
 };
+
+async fn fetch_actor_images(
+    instance: &Instance,
+    actor: &Actor,
+    media_dir: &Path,
+    default_avatar: Option<String>,
+    default_banner: Option<String>,
+) -> (Option<String>, Option<String>) {
+    let maybe_avatar = if let Some(icon) = &actor.icon {
+        match fetch_file(instance, &icon.url, media_dir).await {
+            Ok((file_name, _)) => Some(file_name),
+            Err(error) => {
+                log::warn!("failed to fetch avatar ({})", error);
+                default_avatar
+            },
+        }
+    } else {
+        None
+    };
+    let maybe_banner = if let Some(image) = &actor.image {
+        match fetch_file(instance, &image.url, media_dir).await {
+            Ok((file_name, _)) => Some(file_name),
+            Err(error) => {
+                log::warn!("failed to fetch banner ({})", error);
+                default_banner
+            },
+        }
+    } else {
+        None
+    };
+    (maybe_avatar, maybe_banner)
+}
 
 pub async fn create_remote_profile(
     db_client: &impl GenericClient,
