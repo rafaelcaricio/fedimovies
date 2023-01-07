@@ -1,11 +1,12 @@
 use std::path::Path;
 
+use serde_json::{Value as JsonValue};
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     actors::types::Actor,
     fetcher::fetchers::fetch_file,
-    receiver::HandlerError,
+    receiver::{parse_property_value, HandlerError},
 };
 use crate::config::Instance;
 use crate::models::profiles::{
@@ -56,6 +57,18 @@ async fn fetch_actor_images(
     (maybe_avatar, maybe_banner)
 }
 
+fn parse_tags(actor: &Actor) -> () {
+    if let Some(ref tag_list_value) = actor.tag {
+        let maybe_tag_list: Option<Vec<JsonValue>> =
+            parse_property_value(tag_list_value).ok();
+        if let Some(tag_list) = maybe_tag_list {
+            for tag_value in tag_list {
+                log::info!("found actor tag: {}", tag_value);
+            };
+        };
+    };
+}
+
 pub async fn create_remote_profile(
     db_client: &impl GenericClient,
     instance: &Instance,
@@ -75,6 +88,7 @@ pub async fn create_remote_profile(
     ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
+    parse_tags(&actor);
     let mut profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
         hostname: Some(actor_address.hostname),
@@ -124,6 +138,7 @@ pub async fn update_remote_profile(
     ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
+    parse_tags(&actor);
     let mut profile_data = ProfileUpdateData {
         display_name: actor.name.clone(),
         bio: actor.summary.clone(),

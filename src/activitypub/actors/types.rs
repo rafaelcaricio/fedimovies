@@ -152,6 +152,9 @@ pub struct Actor {
     pub manually_approves_followers: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub tag: Option<Value>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
 }
 
@@ -333,6 +336,7 @@ pub fn get_local_actor(
         also_known_as: None,
         attachment: Some(attachments),
         manually_approves_followers: false,
+        tag: None,
         url: Some(actor_id),
     };
     Ok(actor)
@@ -371,6 +375,7 @@ pub fn get_instance_actor(
         also_known_as: None,
         attachment: None,
         manually_approves_followers: false,
+        tag: None,
         url: None,
     };
     Ok(actor)
