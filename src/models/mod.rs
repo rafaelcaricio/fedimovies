@@ -1,6 +1,7 @@
 pub mod attachments;
 pub mod background_jobs;
 pub mod cleanup;
+pub mod emojis;
 pub mod instances;
 pub mod invoices;
 pub mod markers;

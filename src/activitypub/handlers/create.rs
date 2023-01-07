@@ -23,6 +23,11 @@ use crate::config::{Config, Instance};
 use crate::database::DatabaseError;
 use crate::errors::{ConversionError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
+use crate::models::emojis::queries::{
+    create_emoji,
+    get_emoji_by_remote_object_id,
+    update_emoji,
+};
 use crate::models::posts::{
     hashtags::normalize_hashtag,
     helpers::get_post_by_object_id,
@@ -33,11 +38,17 @@ use crate::models::posts::{
         content_allowed_classes,
         ATTACHMENTS_MAX_NUM,
         CONTENT_MAX_SIZE,
+        EMOJI_MAX_SIZE,
+        EMOJI_MEDIA_TYPE,
+        EMOJIS_MAX_NUM,
     },
 };
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::queries::get_user_by_name;
-use crate::utils::html::clean_html;
+use crate::utils::{
+    html::clean_html,
+    urls::get_hostname,
+};
 use super::HandlerResult;
 
 fn get_note_author_id(object: &Object) -> Result<String, ValidationError> {
@@ -221,6 +232,7 @@ pub async fn handle_note(
     let mut mentions: Vec<Uuid> = Vec::new();
     let mut hashtags = vec![];
     let mut links = vec![];
+    let mut emojis = vec![];
     if let Some(value) = object.tag {
         let list: Vec<JsonValue> = parse_property_value(&value)
             .map_err(|_| ValidationError("invalid tag property"))?;
@@ -343,12 +355,83 @@ pub async fn handle_note(
                     links.push(linked.id);
                 };
             } else if tag_type == EMOJI {
-                let _tag: EmojiTag = match serde_json::from_value(tag_value.clone()) {
+                let tag: EmojiTag = match serde_json::from_value(tag_value) {
                     Ok(tag) => tag,
                     Err(_) => {
                         log::warn!("invalid emoji tag");
                         continue;
                     },
+                };
+                if emojis.len() >= EMOJIS_MAX_NUM {
+                    log::warn!("too many emojis");
+                    continue;
+                };
+                let tag_name = tag.name.trim_matches(':');
+                let maybe_emoji_id = match get_emoji_by_remote_object_id(
+                    db_client,
+                    &tag.id,
+                ).await {
+                    Ok(emoji) => {
+                        if emoji.updated_at >= tag.updated {
+                            // Emoji already exists and is up to date
+                            if !emojis.contains(&emoji.id) {
+                                emojis.push(emoji.id);
+                            };
+                            continue;
+                        };
+                        if emoji.emoji_name != tag_name {
+                            log::warn!("emoji name can't be changed");
+                            continue;
+                        };
+                        Some(emoji.id)
+                    },
+                    Err(DatabaseError::NotFound("emoji")) => None,
+                    Err(other_error) => return Err(other_error.into()),
+                };
+                let (file_name, maybe_media_type) = match fetch_file(
+                    instance,
+                    &tag.icon.url,
+                    tag.icon.media_type.as_deref(),
+                    EMOJI_MAX_SIZE,
+                    media_dir,
+                ).await {
+                    Ok(file) => file,
+                    Err(error) => {
+                        log::warn!("failed to fetch emoji: {}", error);
+                        continue;
+                    },
+                };
+                let media_type = match maybe_media_type.as_deref() {
+                    Some(media_type @ EMOJI_MEDIA_TYPE) => media_type,
+                    _ => {
+                        log::warn!("unexpected emoji media type: {:?}", maybe_media_type);
+                        continue;
+                    },
+                };
+                log::info!("downloaded emoji {}", tag.icon.url);
+                let emoji = if let Some(emoji_id) = maybe_emoji_id {
+                    update_emoji(
+                        db_client,
+                        &emoji_id,
+                        &file_name,
+                        media_type,
+                        &tag.updated,
+                    ).await?
+                } else {
+                    let hostname = get_hostname(&tag.id)
+                        .map_err(|_| ValidationError("invalid emoji ID"))?;
+                    create_emoji(
+                        db_client,
+                        tag_name,
+                        Some(&hostname),
+                        &file_name,
+                        media_type,
+                        Some(&tag.id),
+                        &tag.updated,
+                    ).await?
+                };
+                if !emojis.contains(&emoji.id) {
+                    emojis.push(emoji.id);
                 };
             } else {
                 log::warn!(
@@ -417,6 +500,7 @@ pub async fn handle_note(
         mentions: mentions,
         tags: hashtags,
         links: links,
+        emojis: emojis,
         object_id: Some(object.id),
         created_at,
     };

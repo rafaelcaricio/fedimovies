@@ -155,6 +155,7 @@ async fn create_status(
         mentions: mentions,
         tags: tags,
         links: links,
+        emojis: vec![],
         object_id: None,
         created_at: Utc::now(),
     };

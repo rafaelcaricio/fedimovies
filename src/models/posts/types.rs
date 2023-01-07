@@ -9,8 +9,11 @@ use crate::database::{
     DatabaseError,
     DatabaseTypeError,
 };
-use crate::models::attachments::types::DbMediaAttachment;
-use crate::models::profiles::types::DbActorProfile;
+use crate::models::{
+    attachments::types::DbMediaAttachment,
+    emojis::types::DbEmoji,
+    profiles::types::DbActorProfile,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Visibility {
@@ -95,6 +98,7 @@ pub struct Post {
     pub mentions: Vec<DbActorProfile>,
     pub tags: Vec<String>,
     pub links: Vec<Uuid>,
+    pub emojis: Vec<DbEmoji>,
     pub object_id: Option<String>,
     pub ipfs_cid: Option<String>,
     pub token_id: Option<i32>,
@@ -118,6 +122,7 @@ impl Post {
         db_mentions: Vec<DbActorProfile>,
         db_tags: Vec<String>,
         db_links: Vec<Uuid>,
+        db_emojis: Vec<DbEmoji>,
     ) -> Result<Self, DatabaseTypeError> {
         // Consistency checks
         if db_post.author_id != db_author.id {
@@ -135,7 +140,8 @@ impl Post {
             !db_attachments.is_empty() ||
             !db_mentions.is_empty() ||
             !db_tags.is_empty() ||
-            !db_links.is_empty()
+            !db_links.is_empty() ||
+            !db_emojis.is_empty()
         ) {
             return Err(DatabaseTypeError);
         };
@@ -153,6 +159,7 @@ impl Post {
             mentions: db_mentions,
             tags: db_tags,
             links: db_links,
+            emojis: db_emojis,
             object_id: db_post.object_id,
             ipfs_cid: db_post.ipfs_cid,
             token_id: db_post.token_id,
@@ -200,6 +207,7 @@ impl Default for Post {
             mentions: vec![],
             tags: vec![],
             links: vec![],
+            emojis: vec![],
             object_id: None,
             ipfs_cid: None,
             token_id: None,
@@ -225,6 +233,7 @@ impl TryFrom<&Row> for Post {
         let db_mentions: Vec<DbActorProfile> = row.try_get("mentions")?;
         let db_tags: Vec<String> = row.try_get("tags")?;
         let db_links: Vec<Uuid> = row.try_get("links")?;
+        let db_emojis: Vec<DbEmoji> = row.try_get("emojis")?;
         let post = Self::new(
             db_post,
             db_profile,
@@ -232,6 +241,7 @@ impl TryFrom<&Row> for Post {
             db_mentions,
             db_tags,
             db_links,
+            db_emojis,
         )?;
         Ok(post)
     }
@@ -247,6 +257,7 @@ pub struct PostCreateData {
     pub mentions: Vec<Uuid>,
     pub tags: Vec<String>,
     pub links: Vec<Uuid>,
+    pub emojis: Vec<Uuid>,
     pub object_id: Option<String>,
     pub created_at: DateTime<Utc>,
 }

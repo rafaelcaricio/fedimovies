@@ -8,9 +8,12 @@ use crate::database::{
     DatabaseError,
     DatabaseTypeError,
 };
-use crate::models::attachments::types::DbMediaAttachment;
-use crate::models::posts::types::{DbPost, Post};
-use crate::models::profiles::types::DbActorProfile;
+use crate::models::{
+    attachments::types::DbMediaAttachment,
+    emojis::types::DbEmoji,
+    posts::types::{DbPost, Post},
+    profiles::types::DbActorProfile,
+};
 
 #[derive(Debug)]
 pub enum EventType {
@@ -102,6 +105,7 @@ impl TryFrom<&Row> for Notification {
                 let db_mentions: Vec<DbActorProfile> = row.try_get("mentions")?;
                 let db_tags: Vec<String> = row.try_get("tags")?;
                 let db_links: Vec<Uuid> = row.try_get("links")?;
+                let db_emojis: Vec<DbEmoji> = row.try_get("emojis")?;
                 let post = Post::new(
                     db_post,
                     db_post_author,
@@ -109,6 +113,7 @@ impl TryFrom<&Row> for Notification {
                     db_mentions,
                     db_tags,
                     db_links,
+                    db_emojis,
                 )?;
                 Some(post)
             },

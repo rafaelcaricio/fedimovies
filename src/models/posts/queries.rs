@@ -14,6 +14,7 @@ use crate::models::cleanup::{
     find_orphaned_ipfs_objects,
     DeletionQueue,
 };
+use crate::models::emojis::types::DbEmoji;
 use crate::models::notifications::queries::{
     create_mention_notification,
     create_reply_notification,
@@ -157,6 +158,24 @@ pub async fn create_post(
     let db_links: Vec<Uuid> = links_rows.iter()
         .map(|row| row.try_get("target_id"))
         .collect::<Result<_, _>>()?;
+    // Create emojis
+    let emojis_rows = transaction.query(
+        "
+        INSERT INTO post_emoji (post_id, emoji_id)
+        SELECT $1, emoji.id FROM emoji WHERE id = ANY($2)
+        RETURNING (
+            SELECT emoji FROM emoji
+            WHERE emoji.id = emoji_id
+        )
+        ",
+        &[&db_post.id, &data.emojis],
+    ).await?;
+    if emojis_rows.len() != data.emojis.len() {
+        return Err(DatabaseError::NotFound("emoji"));
+    };
+    let db_emojis: Vec<DbEmoji> = emojis_rows.iter()
+        .map(|row| row.try_get("emoji"))
+        .collect::<Result<_, _>>()?;
     // Update counters
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
     let mut notified_users = vec![];
@@ -216,6 +235,7 @@ pub async fn create_post(
         db_mentions,
         db_tags,
         db_links,
+        db_emojis,
     )?;
     Ok(post)
 }
@@ -246,6 +266,14 @@ pub const RELATED_LINKS: &str =
         SELECT post_link.target_id FROM post_link
         WHERE post_link.source_id = post.id
     ) AS links";
+
+pub const RELATED_EMOJIS: &str =
+    "ARRAY(
+        SELECT emoji
+        FROM post_emoji
+        JOIN emoji ON post_emoji.emoji_id = emoji.id
+        WHERE post_emoji.post_id = post.id
+    ) AS emojis";
 
 fn build_visibility_filter() -> String {
     format!(
@@ -287,7 +315,8 @@ pub async fn get_home_timeline(
             {related_attachments},
             {related_mentions},
             {related_tags},
-            {related_links}
+            {related_links},
+            {related_emojis}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
@@ -353,6 +382,7 @@ pub async fn get_home_timeline(
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         related_links=RELATED_LINKS,
+        related_emojis=RELATED_EMOJIS,
         relationship_follow=i16::from(&RelationshipType::Follow),
         relationship_subscription=i16::from(&RelationshipType::Subscription),
         relationship_hide_reposts=i16::from(&RelationshipType::HideReposts),
@@ -386,7 +416,8 @@ pub async fn get_local_timeline(
             {related_attachments},
             {related_mentions},
             {related_tags},
-            {related_links}
+            {related_links},
+            {related_emojis}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
@@ -400,6 +431,7 @@ pub async fn get_local_timeline(
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         related_links=RELATED_LINKS,
+        related_emojis=RELATED_EMOJIS,
         visibility_public=i16::from(&Visibility::Public),
     );
     let limit: i64 = limit.into();
@@ -427,7 +459,8 @@ pub async fn get_related_posts(
             {related_attachments},
             {related_mentions},
             {related_tags},
-            {related_links}
+            {related_links},
+            {related_emojis}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id IN (
@@ -449,6 +482,7 @@ pub async fn get_related_posts(
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         related_links=RELATED_LINKS,
+        related_emojis=RELATED_EMOJIS,
     );
     let rows = db_client.query(
         &statement,
@@ -488,7 +522,8 @@ pub async fn get_posts_by_author(
             {related_attachments},
             {related_mentions},
             {related_tags},
-            {related_links}
+            {related_links},
+            {related_emojis}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE {condition}
@@ -499,6 +534,7 @@ pub async fn get_posts_by_author(
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         related_links=RELATED_LINKS,
+        related_emojis=RELATED_EMOJIS,
         condition=condition,
     );
     let limit: i64 = limit.into();
@@ -531,7 +567,8 @@ pub async fn get_posts_by_tag(
             {related_attachments},
             {related_mentions},
             {related_tags},
-            {related_links}
+            {related_links},
+            {related_emojis}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE
@@ -548,6 +585,7 @@ pub async fn get_posts_by_tag(
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         related_links=RELATED_LINKS,
+        related_emojis=RELATED_EMOJIS,
         visibility_filter=build_visibility_filter(),
     );
     let limit: i64 = limit.into();
@@ -576,7 +614,8 @@ pub async fn get_post_by_id(
             {related_attachments},
             {related_mentions},
             {related_tags},
-            {related_links}
+            {related_links},
+            {related_emojis}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id = $1
@@ -585,6 +624,7 @@ pub async fn get_post_by_id(
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         related_links=RELATED_LINKS,
+        related_emojis=RELATED_EMOJIS,
     );
     let maybe_row = db_client.query_opt(
         &statement,
@@ -629,7 +669,8 @@ pub async fn get_thread(
             {related_attachments},
             {related_mentions},
             {related_tags},
-            {related_links}
+            {related_links},
+            {related_emojis}
         FROM post
         JOIN thread ON post.id = thread.id
         JOIN actor_profile ON post.author_id = actor_profile.id
@@ -640,6 +681,7 @@ pub async fn get_thread(
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         related_links=RELATED_LINKS,
+        related_emojis=RELATED_EMOJIS,
         visibility_filter=build_visibility_filter(),
     );
     let query = query!(
@@ -668,7 +710,8 @@ pub async fn get_post_by_remote_object_id(
             {related_attachments},
             {related_mentions},
             {related_tags},
-            {related_links}
+            {related_links},
+            {related_emojis}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.object_id = $1
@@ -677,6 +720,7 @@ pub async fn get_post_by_remote_object_id(
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         related_links=RELATED_LINKS,
+        related_emojis=RELATED_EMOJIS,
     );
     let maybe_row = db_client.query_opt(
         &statement,
@@ -698,7 +742,8 @@ pub async fn get_post_by_ipfs_cid(
             {related_attachments},
             {related_mentions},
             {related_tags},
-            {related_links}
+            {related_links},
+            {related_emojis}
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.ipfs_cid = $1
@@ -707,6 +752,7 @@ pub async fn get_post_by_ipfs_cid(
         related_mentions=RELATED_MENTIONS,
         related_tags=RELATED_TAGS,
         related_links=RELATED_LINKS,
+        related_emojis=RELATED_EMOJIS,
     );
     let result = db_client.query_opt(
         &statement,
