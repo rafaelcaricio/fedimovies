@@ -10,6 +10,7 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::models::users::types::User;
+use crate::utils::id::new_uuid;
 
 #[derive(Serialize)]
 pub struct MovePerson {
@@ -32,9 +33,11 @@ pub fn build_move_person(
     sender: &User,
     from_actor_id: &str,
     followers: &[String],
-    internal_activity_id: &Uuid,
+    maybe_internal_activity_id: Option<&Uuid>,
 ) -> MovePerson {
-    let activity_id = local_object_id(instance_url, internal_activity_id);
+    let internal_activity_id = maybe_internal_activity_id.copied()
+        .unwrap_or(new_uuid());
+    let activity_id = local_object_id(instance_url, &internal_activity_id);
     let actor_id = local_actor_id(instance_url, &sender.profile.username);
     MovePerson {
         context: AP_CONTEXT.to_string(),
@@ -47,12 +50,12 @@ pub fn build_move_person(
     }
 }
 
-pub fn prepare_signed_move_person(
+pub fn prepare_move_person(
     instance: &Instance,
     sender: &User,
     from_actor_id: &str,
     followers: Vec<Actor>,
-    internal_activity_id: &Uuid,
+    maybe_internal_activity_id: Option<&Uuid>,
 ) -> OutgoingActivity {
     let followers_ids: Vec<String> = followers.iter()
         .map(|actor| actor.id.clone())
@@ -62,7 +65,7 @@ pub fn prepare_signed_move_person(
         sender,
         from_actor_id,
         &followers_ids,
-        internal_activity_id,
+        maybe_internal_activity_id,
     );
     OutgoingActivity::new(
         instance,
@@ -100,7 +103,7 @@ mod tests {
             &sender,
             from_actor_id,
             &followers,
-            &internal_activity_id,
+            Some(&internal_activity_id),
         );
 
         assert_eq!(

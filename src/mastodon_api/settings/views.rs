@@ -6,7 +6,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use crate::activitypub::{
     actors::types::ActorAddress,
     builders::{
-        move_person::build_move_person,
+        move_person::prepare_move_person,
         undo_follow::prepare_undo_follow,
     },
 };
@@ -14,7 +14,7 @@ use crate::config::Config;
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::mastodon_api::{
-    accounts::types::{Account, ActivityParams, UnsignedActivity},
+    accounts::types::Account,
     oauth::auth::get_current_user,
 };
 use crate::models::{
@@ -23,11 +23,7 @@ use crate::models::{
     relationships::queries::{follow, unfollow},
     users::queries::set_user_password,
 };
-use crate::utils::{
-    canonicalization::canonicalize_object,
-    id::new_uuid,
-    passwords::hash_password,
-};
+use crate::utils::passwords::hash_password;
 use super::helpers::{export_followers, export_follows};
 use super::types::{MoveFollowersRequest, PasswordChangeRequest};
 
@@ -121,7 +117,7 @@ async fn move_followers(
         let follower = get_profile_by_acct(db_client, &follower_acct).await?;
         if let Some(remote_actor) = follower.actor_json {
             // Add remote actor to activity recipients list
-            followers.push(remote_actor.id);
+            followers.push(remote_actor);
         } else {
             // Immediately move local followers (only if alias can be verified)
             if let Some(ref from_profile) = maybe_from_profile {
@@ -152,25 +148,16 @@ async fn move_followers(
             };
         };
     };
-    let internal_activity_id = new_uuid();
-    let activity = build_move_person(
-        &config.instance_url(),
+    prepare_move_person(
+        &config.instance(),
         &current_user,
         &request_data.from_actor_id,
-        &followers,
-        &internal_activity_id,
-    );
-    let canonical_json = canonicalize_object(&activity)
-        .map_err(|_| HttpError::InternalError)?;
-    let data = UnsignedActivity {
-        params: ActivityParams::Move {
-            internal_activity_id,
-            from_actor_id: request_data.from_actor_id.clone(),
-            followers,
-        },
-        message: canonical_json,
-    };
-    Ok(HttpResponse::Ok().json(data))
+        followers,
+        None,
+    ).enqueue(db_client).await?;
+
+    let account = Account::from_user(current_user, &config.instance_url());
+    Ok(HttpResponse::Ok().json(account))
 }
 
 pub fn settings_api_scope() -> Scope {

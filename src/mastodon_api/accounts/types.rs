@@ -308,11 +308,6 @@ impl AccountUpdateData {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum ActivityParams {
-    Move {
-        internal_activity_id: Uuid,
-        from_actor_id: String,
-        followers: Vec<String>,
-    },
     Update { internal_activity_id: Uuid },
 }
 

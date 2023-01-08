@@ -7,9 +7,6 @@ use uuid::Uuid;
 
 use crate::activitypub::builders::{
     follow::prepare_follow,
-    move_person::{
-        prepare_signed_move_person,
-    },
     undo_follow::prepare_undo_follow,
     update_person::{
         build_update_person,
@@ -49,7 +46,6 @@ use crate::models::posts::queries::get_posts_by_author;
 use crate::models::profiles::queries::{
     get_profile_by_acct,
     get_profile_by_id,
-    get_profile_by_remote_actor_id,
     search_profiles_by_did,
     update_profile,
 };
@@ -275,26 +271,6 @@ async fn send_signed_activity(
         return Err(ValidationError("unknown signer").into());
     };
     let mut outgoing_activity = match &data.params {
-        ActivityParams::Move {
-            internal_activity_id,
-            from_actor_id,
-            followers: followers_ids,
-        } => {
-            let mut followers = vec![];
-            for actor_id in followers_ids {
-                let remote_actor = get_profile_by_remote_actor_id(db_client, actor_id)
-                    .await?
-                    .actor_json.ok_or(HttpError::InternalError)?;
-                followers.push(remote_actor);
-            };
-            prepare_signed_move_person(
-                &config.instance(),
-                &current_user,
-                from_actor_id,
-                followers,
-                internal_activity_id,
-            )
-        },
         ActivityParams::Update { internal_activity_id } => {
             prepare_update_person(
                 db_client,
