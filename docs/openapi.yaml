@@ -204,42 +204,6 @@ paths:
                     description: Canonical representation of activity.
                     type: string
                     example: '{"type":"Update"}'
-  /api/v1/accounts/move_followers:
-    post:
-      summary: Build Move(Person) activity for signing (experimental).
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                from_actor_id:
-                  description: The actor ID to move from.
-                  type: string
-                  example: 'https://xyz.com/users/test'
-                followers_csv:
-                  description: The list of followers in CSV format.
-                  type: string
-                  example: |
-                    user1@example.org
-                    user2@test.com
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  params:
-                    description: Activity parameters
-                    $ref: '#/components/schemas/ActivityParameters'
-                  message:
-                    description: Canonical representation of activity.
-                    type: string
-                    example: '{"type":"Move"}'
-        400:
-          description: Invalid data.
   /api/v1/accounts/send_activity:
     post:
       summary: Send signed activity (experimental).
@@ -772,6 +736,42 @@ paths:
               example: |
                 user1@example.org
                 user2@example.org
+  /api/v1/settings/move_followers:
+    post:
+      summary: Build Move(Person) activity for signing (experimental).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                from_actor_id:
+                  description: The actor ID to move from.
+                  type: string
+                  example: 'https://xyz.com/users/test'
+                followers_csv:
+                  description: The list of followers in CSV format.
+                  type: string
+                  example: |
+                    user1@example.org
+                    user2@test.com
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  params:
+                    description: Activity parameters
+                    $ref: '#/components/schemas/ActivityParameters'
+                  message:
+                    description: Canonical representation of activity.
+                    type: string
+                    example: '{"type":"Move"}'
+        400:
+          description: Invalid data.
   /api/v1/statuses:
     post:
       summary: Create new post.

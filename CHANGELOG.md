@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Added `/api/v1/settings/move_followers` API endpoint (replaces `/api/v1/accounts/move_followers`).
+
+### Removed
+
+- `/api/v1/accounts/move_followers` API endpoint.
+
 ## [1.9.0] - 2023-01-08
 
 ### Added
