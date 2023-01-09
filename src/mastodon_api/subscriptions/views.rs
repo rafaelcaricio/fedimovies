@@ -146,6 +146,7 @@ pub async fn register_subscription_option(
             db_client,
             &config.instance(),
             &current_user,
+            None,
         ).await?.enqueue(db_client).await?;
     };
 

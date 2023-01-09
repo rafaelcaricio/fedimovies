@@ -72,28 +72,12 @@ pub async fn prepare_update_person(
     db_client: &impl GenericClient,
     instance: &Instance,
     user: &User,
-) -> Result<OutgoingActivity, DatabaseError> {
-    let activity = build_update_person(&instance.url(), user, None)
-        .map_err(|_| DatabaseTypeError)?;
-    let recipients = get_update_person_recipients(db_client, &user.id).await?;
-    Ok(OutgoingActivity::new(
-        instance,
-        user,
-        activity,
-        recipients,
-    ))
-}
-
-pub async fn prepare_signed_update_person(
-    db_client: &impl GenericClient,
-    instance: &Instance,
-    user: &User,
-    internal_activity_id: Uuid,
+    maybe_internal_activity_id: Option<Uuid>,
 ) -> Result<OutgoingActivity, DatabaseError> {
     let activity = build_update_person(
         &instance.url(),
         user,
-        Some(internal_activity_id),
+        maybe_internal_activity_id,
     ).map_err(|_| DatabaseTypeError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
     Ok(OutgoingActivity::new(

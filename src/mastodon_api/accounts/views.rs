@@ -18,7 +18,6 @@ use crate::activitypub::builders::{
     update_person::{
         build_update_person,
         prepare_update_person,
-        prepare_signed_update_person,
     },
 };
 use crate::config::Config;
@@ -237,6 +236,7 @@ async fn update_credentials(
         db_client,
         &config.instance(),
         &current_user,
+        None,
     ).await?.enqueue(db_client).await?;
 
     let account = Account::from_user(current_user, &config.instance_url());
@@ -390,11 +390,11 @@ async fn send_signed_activity(
             )
         },
         ActivityParams::Update { internal_activity_id } => {
-            prepare_signed_update_person(
+            prepare_update_person(
                 db_client,
                 &config.instance(),
                 &current_user,
-                *internal_activity_id,
+                Some(*internal_activity_id),
             ).await.map_err(|_| HttpError::InternalError)?
         },
     };
@@ -533,6 +533,7 @@ async fn create_identity_proof(
         db_client,
         &config.instance(),
         &current_user,
+        None,
     ).await?.enqueue(db_client).await?;
 
     let account = Account::from_user(current_user, &config.instance_url());
