@@ -5,10 +5,7 @@ use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     activity::Object,
-    actors::{
-        helpers::{create_remote_profile, update_remote_profile},
-        types::ActorAddress,
-    },
+    actors::helpers::{create_remote_profile, update_remote_profile},
     handlers::create::handle_note,
     identifiers::parse_local_object_id,
     receiver::HandlerError,
@@ -24,6 +21,7 @@ use crate::models::profiles::queries::{
     get_profile_by_remote_actor_id,
 };
 use crate::models::profiles::types::DbActorProfile;
+use crate::webfinger::types::ActorAddress;
 use super::fetchers::{
     fetch_actor,
     fetch_object,

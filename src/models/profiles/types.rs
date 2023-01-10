@@ -11,7 +11,7 @@ use serde::{
 };
 use uuid::Uuid;
 
-use crate::activitypub::actors::types::{Actor, ActorAddress};
+use crate::activitypub::actors::types::Actor;
 use crate::activitypub::identifiers::local_actor_id;
 use crate::database::{
     json_macro::{json_from_sql, json_to_sql},
@@ -23,6 +23,7 @@ use crate::identity::{
     signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
 use crate::utils::caip2::ChainId;
+use crate::webfinger::types::ActorAddress;
 use super::validators::{
     validate_username,
     validate_display_name,

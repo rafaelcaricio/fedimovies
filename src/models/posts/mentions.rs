@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use regex::{Captures, Regex};
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::actors::types::ActorAddress;
 use crate::database::DatabaseError;
 use crate::errors::ValidationError;
 use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
+use crate::webfinger::types::ActorAddress;
 use super::links::is_inside_code_block;
 
-// See also: ACTOR_ADDRESS_RE in activitypub::actors::types
+// See also: ACTOR_ADDRESS_RE in webfinger::types
 const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])@(?P<mention>[^\s<]+)";
 const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+\w))?(?P<after>[\.,:?\)]?)$";
 

@@ -1,7 +1,6 @@
 use actix_web::{get, web, HttpResponse};
 use tokio_postgres::GenericClient;
 
-use crate::activitypub::actors::types::ActorAddress;
 use crate::activitypub::constants::AP_MEDIA_TYPE;
 use crate::activitypub::identifiers::{
     local_actor_id,
@@ -12,10 +11,11 @@ use crate::database::{get_database_client, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::models::users::queries::is_registered_user;
 use super::types::{
-    JRD_CONTENT_TYPE,
-    WebfingerQueryParams,
+    ActorAddress,
     Link,
     JsonResourceDescriptor,
+    WebfingerQueryParams,
+    JRD_CONTENT_TYPE,
 };
 
 // https://datatracker.ietf.org/doc/html/rfc7565#section-7

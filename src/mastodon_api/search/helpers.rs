@@ -5,7 +5,6 @@ use tokio_postgres::GenericClient;
 use url::Url;
 
 use crate::activitypub::{
-    actors::types::ActorAddress,
     fetcher::helpers::{
         get_or_import_profile_by_actor_id,
         import_post,
@@ -36,6 +35,7 @@ use crate::models::users::{
     types::User,
 };
 use crate::utils::currencies::{validate_wallet_address, Currency};
+use crate::webfinger::types::ActorAddress;
 use super::types::SearchResults;
 
 enum SearchQuery {
@@ -50,7 +50,7 @@ enum SearchQuery {
 fn parse_profile_query(query: &str) ->
     Result<(String, Option<String>), ValidationError>
 {
-    // See also: ACTOR_ADDRESS_RE in activitypub::actors::types
+    // See also: ACTOR_ADDRESS_RE in webfinger::types
     let acct_query_re =
         Regex::new(r"^(@|!)?(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+))?$").unwrap();
     let acct_query_caps = acct_query_re.captures(query)

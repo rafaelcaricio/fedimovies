@@ -5,7 +5,7 @@ use reqwest::{Client, Method, Proxy, RequestBuilder};
 use serde_json::Value;
 
 use crate::activitypub::activity::Object;
-use crate::activitypub::actors::types::{Actor, ActorAddress};
+use crate::activitypub::actors::types::Actor;
 use crate::activitypub::constants::AP_MEDIA_TYPE;
 use crate::config::Instance;
 use crate::http_signatures::create::{
@@ -14,7 +14,7 @@ use crate::http_signatures::create::{
 };
 use crate::utils::files::{save_file, sniff_media_type};
 use crate::utils::urls::guess_protocol;
-use crate::webfinger::types::JsonResourceDescriptor;
+use crate::webfinger::types::{ActorAddress, JsonResourceDescriptor};
 
 const FETCHER_CONNECTION_TIMEOUT: u64 = 30;
 

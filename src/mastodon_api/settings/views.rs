@@ -4,7 +4,6 @@ use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use crate::activitypub::{
-    actors::types::ActorAddress,
     builders::{
         move_person::prepare_move_person,
         undo_follow::prepare_undo_follow,
@@ -24,6 +23,7 @@ use crate::models::{
     users::queries::set_user_password,
 };
 use crate::utils::passwords::hash_password;
+use crate::webfinger::types::ActorAddress;
 use super::helpers::{export_followers, export_follows};
 use super::types::{MoveFollowersRequest, PasswordChangeRequest};
 
