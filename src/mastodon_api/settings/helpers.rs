@@ -2,8 +2,13 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::database::DatabaseError;
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::relationships::queries::{get_followers, get_following};
+use crate::errors::ValidationError;
+use crate::models::{
+    profiles::types::DbActorProfile,
+    posts::mentions::mention_to_address,
+    relationships::queries::{get_followers, get_following},
+};
+use crate::webfinger::types::ActorAddress;
 
 fn export_profiles_to_csv(
     local_hostname: &str,
@@ -37,6 +42,22 @@ pub async fn export_follows(
     Ok(csv)
 }
 
+pub fn parse_address_list(csv: &str)
+    -> Result<Vec<ActorAddress>, ValidationError>
+{
+    let mut addresses: Vec<_> = csv.lines()
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty())
+        .map(|line| mention_to_address(&line))
+        .collect::<Result<_, _>>()?;
+    addresses.sort();
+    addresses.dedup();
+    if addresses.len() > 50 {
+        return Err(ValidationError("can't process more than 50 items at once"));
+    };
+    Ok(addresses)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::activitypub::actors::types::Actor;
@@ -59,5 +80,23 @@ mod tests {
             vec![profile_1, profile_2],
         );
         assert_eq!(csv, "user1@example.org\nuser2@test.net\n");
+    }
+
+    #[test]
+    fn test_parse_address_list() {
+        let csv = concat!(
+            "\nuser1@example.net\n",
+            "user2@example.com  \n",
+            "@user1@example.net",
+        );
+        let addresses = parse_address_list(csv).unwrap();
+        assert_eq!(addresses.len(), 2);
+        let addresses: Vec<_> = addresses.into_iter()
+            .map(|address| address.to_string())
+            .collect();
+        assert_eq!(addresses, vec![
+            "user1@example.net",
+            "user2@example.com",
+        ]);
     }
 }

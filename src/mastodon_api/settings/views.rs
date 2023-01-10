@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
@@ -23,8 +21,11 @@ use crate::models::{
     users::queries::set_user_password,
 };
 use crate::utils::passwords::hash_password;
-use crate::webfinger::types::ActorAddress;
-use super::helpers::{export_followers, export_follows};
+use super::helpers::{
+    export_followers,
+    export_follows,
+    parse_address_list,
+};
 use super::types::{MoveFollowersRequest, PasswordChangeRequest};
 
 #[post("/change_password")]
@@ -114,9 +115,9 @@ async fn move_followers(
         };
     };
     let mut followers = vec![];
-    for follower_address in request_data.followers_csv.lines() {
-        let follower_acct = ActorAddress::from_str(follower_address)?
-            .acct(&instance.hostname());
+    let address_list = parse_address_list(&request_data.followers_csv)?;
+    for follower_address in address_list {
+        let follower_acct = follower_address.acct(&instance.hostname());
         // TODO: fetch unknown profiles
         let follower = get_profile_by_acct(db_client, &follower_acct).await?;
         if let Some(remote_actor) = follower.actor_json {

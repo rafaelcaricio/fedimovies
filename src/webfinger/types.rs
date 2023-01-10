@@ -17,6 +17,7 @@ pub struct WebfingerQueryParams {
     pub resource: String,
 }
 
+#[derive(Eq, Ord, PartialEq, PartialOrd)]
 pub struct ActorAddress {
     pub username: String,
     pub hostname: String,
