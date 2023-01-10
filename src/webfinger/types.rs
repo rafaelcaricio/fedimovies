@@ -8,7 +8,7 @@ use serde::{Serialize, Deserialize};
 use crate::errors::ValidationError;
 
 // See also: USERNAME_RE in models::profiles::validators
-const ACTOR_ADDRESS_RE: &str = r"(?P<username>[\w\.-]+)@(?P<hostname>[\w\.-]+)";
+const ACTOR_ADDRESS_RE: &str = r"^(?P<username>[\w\.-]+)@(?P<hostname>[\w\.-]+)$";
 
 pub const JRD_CONTENT_TYPE: &str = "application/jrd+json";
 
@@ -82,5 +82,12 @@ mod tests {
         assert_eq!(actor_address.username, "user_1");
         assert_eq!(actor_address.hostname, "example.com");
         assert_eq!(actor_address.to_string(), value);
+    }
+
+    #[test]
+    fn test_actor_address_parse_mention() {
+        let value = "@user_1@example.com";
+        let result = value.parse::<ActorAddress>();
+        assert_eq!(result.is_err(), true);
     }
 }
