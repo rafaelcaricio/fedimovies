@@ -24,9 +24,14 @@ use crate::utils::passwords::hash_password;
 use super::helpers::{
     export_followers,
     export_follows,
+    import_follows_task,
     parse_address_list,
 };
-use super::types::{MoveFollowersRequest, PasswordChangeRequest};
+use super::types::{
+    ImportFollowsRequest,
+    MoveFollowersRequest,
+    PasswordChangeRequest,
+};
 
 #[post("/change_password")]
 async fn change_password_view(
@@ -80,6 +85,29 @@ async fn export_follows_view(
         .content_type("text/csv")
         .body(csv);
     Ok(response)
+}
+
+#[post("/import_follows")]
+async fn import_follows_view(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    db_pool: web::Data<DbPool>,
+    request_data: web::Json<ImportFollowsRequest>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
+    let address_list = parse_address_list(&request_data.follows_csv)?;
+    tokio::spawn(async move {
+        import_follows_task(
+            &config,
+            current_user,
+            &db_pool,
+            address_list,
+        ).await.unwrap_or_else(|error| {
+            log::error!("import follows: {}", error);
+        });
+    });
+    Ok(HttpResponse::NoContent().finish())
 }
 
 #[post("/move_followers")]
@@ -170,5 +198,6 @@ pub fn settings_api_scope() -> Scope {
         .service(change_password_view)
         .service(export_followers_view)
         .service(export_follows_view)
+        .service(import_follows_view)
         .service(move_followers)
 }

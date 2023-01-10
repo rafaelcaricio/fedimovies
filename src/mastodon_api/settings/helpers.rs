@@ -1,12 +1,19 @@
 use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::DatabaseError;
+use crate::activitypub::{
+    fetcher::helpers::get_or_import_profile_by_actor_address,
+    HandlerError,
+};
+use crate::config::Config;
+use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::ValidationError;
+use crate::mastodon_api::accounts::helpers::follow_or_create_request;
 use crate::models::{
     profiles::types::DbActorProfile,
     posts::mentions::mention_to_address,
     relationships::queries::{get_followers, get_following},
+    users::types::User,
 };
 use crate::webfinger::types::ActorAddress;
 
@@ -56,6 +63,44 @@ pub fn parse_address_list(csv: &str)
         return Err(ValidationError("can't process more than 50 items at once"));
     };
     Ok(addresses)
+}
+
+pub async fn import_follows_task(
+    config: &Config,
+    current_user: User,
+    db_pool: &DbPool,
+    address_list: Vec<ActorAddress>,
+) -> Result<(), anyhow::Error> {
+    let db_client = &mut **get_database_client(db_pool).await?;
+    for actor_address in address_list {
+        let profile = match get_or_import_profile_by_actor_address(
+            db_client,
+            &config.instance(),
+            &config.media_dir(),
+            &actor_address,
+        ).await {
+            Ok(profile) => profile,
+            Err(error @ (
+                HandlerError::FetchError(_) |
+                HandlerError::DatabaseError(DatabaseError::NotFound(_))
+            )) => {
+                log::warn!(
+                    "failed to import profile {}: {}",
+                    actor_address,
+                    error,
+                );
+                continue;
+            },
+            Err(other_error) => return Err(other_error.into()),
+        };
+        follow_or_create_request(
+            db_client,
+            &config.instance(),
+            &current_user,
+            &profile,
+        ).await?;
+    };
+    Ok(())
 }
 
 #[cfg(test)]

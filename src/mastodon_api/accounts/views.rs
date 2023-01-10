@@ -6,7 +6,6 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
 use crate::activitypub::builders::{
-    follow::prepare_follow,
     undo_follow::prepare_undo_follow,
     update_person::{
         build_update_person,
@@ -55,8 +54,6 @@ use crate::models::profiles::types::{
     ProofType,
 };
 use crate::models::relationships::queries::{
-    create_follow_request,
-    follow,
     get_followers_paginated,
     get_following_paginated,
     hide_replies,
@@ -83,7 +80,7 @@ use crate::utils::{
     id::new_uuid,
     passwords::hash_password,
 };
-use super::helpers::get_relationship;
+use super::helpers::{follow_or_create_request, get_relationship};
 use super::types::{
     Account,
     AccountCreateData,
@@ -505,31 +502,12 @@ async fn follow_account(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target = get_profile_by_id(db_client, &account_id).await?;
-    if let Some(remote_actor) = target.actor_json {
-        // Create follow request if target is remote
-        match create_follow_request(
-            db_client,
-            &current_user.id,
-            &target.id,
-        ).await {
-            Ok(follow_request) => {
-                prepare_follow(
-                    &config.instance(),
-                    &current_user,
-                    &remote_actor,
-                    &follow_request.id,
-                ).enqueue(db_client).await?;
-            },
-            Err(DatabaseError::AlreadyExists(_)) => (), // already following
-            Err(other_error) => return Err(other_error.into()),
-        };
-    } else {
-        match follow(db_client, &current_user.id, &target.id).await {
-            Ok(_) => (),
-            Err(DatabaseError::AlreadyExists(_)) => (), // already following
-            Err(other_error) => return Err(other_error.into()),
-        };
-    };
+    follow_or_create_request(
+        db_client,
+        &config.instance(),
+        &current_user,
+        &target,
+    ).await?;
     if follow_data.reblogs {
         show_reposts(db_client, &current_user.id, &target.id).await?;
     } else {

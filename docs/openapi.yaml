@@ -736,6 +736,25 @@ paths:
               example: |
                 user1@example.org
                 user2@example.org
+  /api/v1/settings/import_follows:
+    post:
+      summary: Import follows from CSV file.
+      security:
+        - tokenAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                follows_csv:
+                  description: The list of followers in CSV format.
+                  type: string
+      responses:
+        204:
+          description: Successful operation
+        400:
+          description: Invalid data.
   /api/v1/settings/move_followers:
     post:
       summary: Move followers from remote alias.
