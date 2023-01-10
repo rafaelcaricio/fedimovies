@@ -90,6 +90,10 @@ async fn move_followers(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    let instance = config.instance();
+    if request_data.from_actor_id.starts_with(&instance.url()) {
+        return Err(ValidationError("can't move from local actor").into());
+    };
     // Existence of actor is not verified because
     // the old profile could have been deleted
     let maybe_from_profile = match get_profile_by_remote_actor_id(
@@ -104,7 +108,7 @@ async fn move_followers(
         // Find known aliases of the current user
         let mut aliases = find_aliases(db_client, &current_user.profile).await?
             .into_iter()
-            .map(|profile| profile.actor_id(&config.instance_url()));
+            .map(|profile| profile.actor_id(&instance.url()));
         if !aliases.any(|actor_id| actor_id == request_data.from_actor_id) {
             return Err(ValidationError("old profile is not an alias").into());
         };
@@ -112,7 +116,7 @@ async fn move_followers(
     let mut followers = vec![];
     for follower_address in request_data.followers_csv.lines() {
         let follower_acct = ActorAddress::from_str(follower_address)?
-            .acct(&config.instance().hostname());
+            .acct(&instance.hostname());
         // TODO: fetch unknown profiles
         let follower = get_profile_by_acct(db_client, &follower_acct).await?;
         if let Some(remote_actor) = follower.actor_json {
@@ -129,7 +133,7 @@ async fn move_followers(
                         let follow_request_id = maybe_follow_request_id
                             .expect("follow request must exist");
                         prepare_undo_follow(
-                            &config.instance(),
+                            &instance,
                             &current_user,
                             remote_actor,
                             &follow_request_id,
@@ -149,14 +153,14 @@ async fn move_followers(
         };
     };
     prepare_move_person(
-        &config.instance(),
+        &instance,
         &current_user,
         &request_data.from_actor_id,
         followers,
         None,
     ).enqueue(db_client).await?;
 
-    let account = Account::from_user(current_user, &config.instance_url());
+    let account = Account::from_user(current_user, &instance.url());
     Ok(HttpResponse::Ok().json(account))
 }
 
