@@ -11,6 +11,7 @@ use crate::activitypub::{
         import_profile_by_actor_address,
     },
     identifiers::{parse_local_actor_id, parse_local_object_id},
+    HandlerError,
 };
 use crate::config::Config;
 use crate::database::DatabaseError;
@@ -117,25 +118,32 @@ async fn search_profiles_or_import(
         maybe_hostname.as_ref(),
         limit,
     ).await?;
-    if profiles.is_empty() && maybe_hostname.is_some() {
-        let actor_address = ActorAddress {
-            username: username,
-            hostname: maybe_hostname.unwrap(),
+    if profiles.is_empty() {
+        if let Some(hostname) = maybe_hostname {
+            let actor_address = ActorAddress { username, hostname };
+            match import_profile_by_actor_address(
+                db_client,
+                &config.instance(),
+                &config.media_dir(),
+                &actor_address,
+            ).await {
+                Ok(profile) => {
+                    profiles.push(profile);
+                },
+                Err(HandlerError::DatabaseError(db_error)) => {
+                    // Propagate database errors
+                    return Err(db_error);
+                },
+                Err(other_error) => {
+                    log::warn!(
+                        "failed to import profile {}: {}",
+                        actor_address,
+                        other_error,
+                    );
+                },
+            };
         };
-        match import_profile_by_actor_address(
-            db_client,
-            &config.instance(),
-            &config.media_dir(),
-            &actor_address,
-        ).await {
-            Ok(profile) => {
-                profiles.push(profile);
-            },
-            Err(err) => {
-                log::warn!("{}", err);
-            },
-        }
-    }
+    };
     Ok(profiles)
 }
 

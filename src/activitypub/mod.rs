@@ -12,3 +12,5 @@ pub mod queues;
 mod receiver;
 pub mod views;
 mod vocabulary;
+
+pub use receiver::HandlerError;
