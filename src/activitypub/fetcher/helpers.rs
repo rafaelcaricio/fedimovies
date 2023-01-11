@@ -134,6 +134,32 @@ pub async fn import_profile_by_actor_address(
     Ok(profile)
 }
 
+pub async fn get_or_import_profile_by_actor_address(
+    db_client: &impl GenericClient,
+    instance: &Instance,
+    media_dir: &Path,
+    actor_address: &ActorAddress,
+) -> Result<DbActorProfile, HandlerError> {
+    let acct = actor_address.acct(&instance.hostname());
+    let profile = match get_profile_by_acct(
+        db_client,
+        &acct,
+    ).await {
+        Ok(profile) => profile,
+        Err(DatabaseError::NotFound(_)) => {
+            // TODO: don't fetch if address is local
+            import_profile_by_actor_address(
+                db_client,
+                instance,
+                media_dir,
+                actor_address,
+            ).await?
+        },
+        Err(other_error) => return Err(other_error.into()),
+    };
+    Ok(profile)
+}
+
 pub async fn import_post(
     config: &Config,
     db_client: &mut impl GenericClient,

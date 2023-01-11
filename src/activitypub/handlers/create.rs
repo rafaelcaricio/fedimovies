@@ -11,16 +11,15 @@ use crate::activitypub::{
     constants::{AP_MEDIA_TYPE, AP_PUBLIC, AS_MEDIA_TYPE},
     fetcher::fetchers::fetch_file,
     fetcher::helpers::{
+        get_or_import_profile_by_actor_address,
         get_or_import_profile_by_actor_id,
         import_post,
-        import_profile_by_actor_address,
     },
     identifiers::parse_local_actor_id,
     receiver::{parse_array, parse_property_value, HandlerError},
     vocabulary::*,
 };
 use crate::config::{Config, Instance};
-use crate::database::DatabaseError;
 use crate::errors::{ConversionError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
 use crate::models::posts::{
@@ -35,7 +34,6 @@ use crate::models::posts::{
         CONTENT_MAX_SIZE,
     },
 };
-use crate::models::profiles::queries::get_profile_by_acct;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::queries::get_user_by_name;
 use crate::utils::html::clean_html;
@@ -270,35 +268,23 @@ pub async fn handle_note(
                     },
                 };
                 if let Ok(actor_address) = mention_to_address(&tag_name) {
-                    let acct = actor_address.acct(&instance.hostname());
-                    let profile = match get_profile_by_acct(
+                    let profile = match get_or_import_profile_by_actor_address(
                         db_client,
-                        &acct,
+                        instance,
+                        media_dir,
+                        &actor_address,
                     ).await {
                         Ok(profile) => profile,
-                        Err(DatabaseError::NotFound(_)) => {
-                            match import_profile_by_actor_address(
-                                db_client,
-                                instance,
-                                media_dir,
-                                &actor_address,
-                            ).await {
-                                Ok(profile) => profile,
-                                Err(HandlerError::FetchError(error)) => {
-                                    // Ignore mention if fetcher fails
-                                    log::warn!(
-                                        "failed to find mentioned profile {}: {}",
-                                        acct,
-                                        error,
-                                    );
-                                    continue;
-                                },
-                                Err(other_error) => {
-                                    return Err(other_error);
-                                },
-                            }
+                        Err(HandlerError::FetchError(error)) => {
+                            // Ignore mention if fetcher fails
+                            log::warn!(
+                                "failed to find mentioned profile {}: {}",
+                                actor_address,
+                                error,
+                            );
+                            continue;
                         },
-                        Err(other_error) => return Err(other_error.into()),
+                        Err(other_error) => return Err(other_error),
                     };
                     if !mentions.contains(&profile.id) {
                         mentions.push(profile.id);
