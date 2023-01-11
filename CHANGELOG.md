@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - `/api/v1/accounts/move_followers` API endpoint.
 
+### Fixed
+
+- Don't ignore `Delete(Person)` verification errors if database error subtype is not `NotFound`.
+
 ## [1.9.0] - 2023-01-08
 
 ### Added
