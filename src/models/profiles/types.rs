@@ -332,6 +332,14 @@ pub struct DbActorProfile {
 // identity proofs: TBD (likely will do "Trust on first use" (TOFU))
 
 impl DbActorProfile {
+    pub fn check_remote(&self) -> Result<(), DatabaseTypeError> {
+        // Consistency checks
+        if self.hostname.is_none() || self.actor_json.is_none() {
+            return Err(DatabaseTypeError);
+        };
+        Ok(())
+    }
+
     pub fn is_local(&self) -> bool {
         self.actor_json.is_none()
     }

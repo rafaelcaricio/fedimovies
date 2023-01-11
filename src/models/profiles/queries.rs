@@ -130,7 +130,7 @@ pub async fn get_profile_by_remote_actor_id(
     db_client: &impl GenericClient,
     actor_id: &str,
 ) -> Result<DbActorProfile, DatabaseError> {
-    let result = db_client.query_opt(
+    let maybe_row = db_client.query_opt(
         "
         SELECT actor_profile
         FROM actor_profile
@@ -138,10 +138,9 @@ pub async fn get_profile_by_remote_actor_id(
         ",
         &[&actor_id],
     ).await?;
-    let profile = match result {
-        Some(row) => row.try_get("actor_profile")?,
-        None => return Err(DatabaseError::NotFound("profile")),
-    };
+    let row = maybe_row.ok_or(DatabaseError::NotFound("profile"))?;
+    let profile: DbActorProfile = row.try_get("actor_profile")?;
+    profile.check_remote()?;
     Ok(profile)
 }
 
