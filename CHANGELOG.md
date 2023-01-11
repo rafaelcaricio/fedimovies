@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Don't ignore `Delete(Person)` verification errors if database error subtype is not `NotFound`.
+- Don't stop activity processing on invalid local mentions.
 
 ## [1.9.0] - 2023-01-08
 

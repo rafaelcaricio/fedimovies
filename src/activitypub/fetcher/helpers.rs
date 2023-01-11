@@ -146,8 +146,10 @@ pub async fn get_or_import_profile_by_actor_address(
         &acct,
     ).await {
         Ok(profile) => profile,
-        Err(DatabaseError::NotFound(_)) => {
-            // TODO: don't fetch if address is local
+        Err(db_error @ DatabaseError::NotFound(_)) => {
+            if actor_address.hostname == instance.hostname() {
+                return Err(db_error.into());
+            };
             import_profile_by_actor_address(
                 db_client,
                 instance,

@@ -20,6 +20,7 @@ use crate::activitypub::{
     vocabulary::*,
 };
 use crate::config::{Config, Instance};
+use crate::database::DatabaseError;
 use crate::errors::{ConversionError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
 use crate::models::posts::{
@@ -275,8 +276,12 @@ pub async fn handle_note(
                         &actor_address,
                     ).await {
                         Ok(profile) => profile,
-                        Err(HandlerError::FetchError(error)) => {
+                        Err(error @ (
+                            HandlerError::FetchError(_) |
+                            HandlerError::DatabaseError(DatabaseError::NotFound(_))
+                        )) => {
                             // Ignore mention if fetcher fails
+                            // Ignore mention if local address is not valid
                             log::warn!(
                                 "failed to find mentioned profile {}: {}",
                                 actor_address,
