@@ -26,7 +26,10 @@ use crate::models::profiles::types::{
 };
 use crate::models::subscriptions::queries::get_subscription_by_participants;
 use crate::models::users::queries::get_user_by_id;
-use crate::monero::wallet::create_monero_address;
+use crate::monero::{
+    helpers::validate_monero_address,
+    wallet::create_monero_address,
+};
 use crate::utils::currencies::Currency;
 use super::types::{
     Invoice,
@@ -124,6 +127,7 @@ pub async fn register_subscription_option(
             if price == 0 {
                 return Err(ValidationError("price must be greater than 0").into());
             };
+            validate_monero_address(&payout_address)?;
             let payment_info = MoneroSubscription {
                 chain_id: monero_config.chain_id.clone(),
                 price,

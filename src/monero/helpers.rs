@@ -6,6 +6,7 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::config::MoneroConfig;
+use crate::errors::ValidationError;
 use crate::models::{
     invoices::queries::{
         get_invoice_by_id,
@@ -18,6 +19,14 @@ use super::wallet::{
     DEFAULT_ACCOUNT,
     MoneroError,
 };
+
+pub fn validate_monero_address(address: &str)
+    -> Result<(), ValidationError>
+{
+    Address::from_str(address)
+        .map_err(|_| ValidationError("invalid monero address"))?;
+    Ok(())
+}
 
 pub async fn check_expired_invoice(
     config: &MoneroConfig,
