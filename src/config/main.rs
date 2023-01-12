@@ -171,17 +171,6 @@ pub struct Instance {
 }
 
 impl Instance {
-    #[cfg(test)]
-    pub fn new(url: Url, actor_key: RsaPrivateKey) -> Self {
-        Self {
-            _url: url,
-            _version: "0.0.0".to_string(),
-            actor_key,
-            proxy_url: None,
-            is_private: true,
-        }
-    }
-
     pub fn url(&self) -> String {
         self._url.origin().ascii_serialization()
     }
@@ -204,6 +193,20 @@ impl Instance {
             version=self._version,
             instance_url=self.url(),
         )
+    }
+}
+
+#[cfg(test)]
+impl Instance {
+    pub fn for_test(url: &str) -> Self {
+        use crate::utils::crypto_rsa::generate_weak_rsa_key;
+        Self {
+            _url: Url::parse(url).unwrap(),
+            _version: "0.0.0".to_string(),
+            actor_key: generate_weak_rsa_key().unwrap(),
+            proxy_url: None,
+            is_private: true,
+        }
     }
 }
 

@@ -26,12 +26,12 @@ fn parse_acct_uri(uri: &str) -> Result<ActorAddress, ValidationError> {
     Ok(actor_address)
 }
 
-async fn get_user_info(
+async fn get_jrd(
     db_client: &impl GenericClient,
     instance: Instance,
-    query_params: WebfingerQueryParams,
+    resource: &str,
 ) -> Result<JsonResourceDescriptor, HttpError> {
-    let actor_address = parse_acct_uri(&query_params.resource)?;
+    let actor_address = parse_acct_uri(resource)?;
     if actor_address.hostname != instance.hostname() {
         // Wrong instance
         return Err(HttpError::NotFoundError("user"));
@@ -50,23 +50,23 @@ async fn get_user_info(
         href: Some(actor_url),
     };
     let jrd = JsonResourceDescriptor {
-        subject: query_params.resource,
+        subject: resource.to_string(),
         links: vec![link],
     };
     Ok(jrd)
 }
 
 #[get("/.well-known/webfinger")]
-pub async fn get_descriptor(
+pub async fn webfinger_view(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<WebfingerQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let jrd = get_user_info(
+    let jrd = get_jrd(
         db_client,
         config.instance(),
-        query_params.into_inner(),
+        &query_params.resource,
     ).await?;
     let response = HttpResponse::Ok()
         .content_type(JRD_CONTENT_TYPE)
@@ -76,6 +76,12 @@ pub async fn get_descriptor(
 
 #[cfg(test)]
 mod tests {
+    use serial_test::serial;
+    use crate::database::test_utils::create_test_database;
+    use crate::models::users::{
+        queries::create_user,
+        types::UserCreateData,
+    };
     use super::*;
 
     #[test]
@@ -84,5 +90,24 @@ mod tests {
         let actor_address = parse_acct_uri(uri).unwrap();
         assert_eq!(actor_address.username, "user_1");
         assert_eq!(actor_address.hostname, "example.com");
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_get_jrd() {
+        let db_client = &mut create_test_database().await;
+        let instance = Instance::for_test("https://example.com");
+        let user_data = UserCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        create_user(db_client, user_data).await.unwrap();
+        let resource = "acct:test@example.com";
+        let jrd = get_jrd(db_client, instance, resource).await.unwrap();
+        assert_eq!(jrd.subject, resource);
+        assert_eq!(
+            jrd.links[0].href.as_ref().unwrap(),
+            "https://example.com/users/test",
+        );
     }
 }

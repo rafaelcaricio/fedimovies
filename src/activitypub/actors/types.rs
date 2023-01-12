@@ -340,7 +340,6 @@ pub fn get_instance_actor(
 
 #[cfg(test)]
 mod tests {
-    use url::Url;
     use crate::models::profiles::types::DbActorProfile;
     use crate::utils::crypto_rsa::{
         generate_weak_rsa_key,
@@ -403,9 +402,8 @@ mod tests {
 
     #[test]
     fn test_instance_actor() {
-        let instance_url = Url::parse("https://example.com/").unwrap();
-        let instance_rsa_key = generate_weak_rsa_key().unwrap();
-        let instance = Instance::new(instance_url, instance_rsa_key);
+        let instance_url = "https://example.com/";
+        let instance = Instance::for_test(instance_url);
         let actor = get_instance_actor(&instance).unwrap();
         assert_eq!(actor.id, "https://example.com/actor");
         assert_eq!(actor.object_type, "Service");

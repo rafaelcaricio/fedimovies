@@ -152,7 +152,7 @@ async fn main() -> std::io::Result<()> {
             .service(status_api_scope())
             .service(subscription_api_scope())
             .service(timeline_api_scope())
-            .service(webfinger::get_descriptor)
+            .service(webfinger::webfinger_view)
             .service(activitypub::actor_scope())
             .service(activitypub::instance_actor_scope())
             .service(activitypub::object_view)
