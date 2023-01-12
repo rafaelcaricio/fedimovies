@@ -103,23 +103,23 @@ fn get_note_visibility(
     primary_audience: Vec<String>,
     secondary_audience: Vec<String>,
 ) -> Visibility {
-    if primary_audience.contains(&AP_PUBLIC.to_string()) ||
-            secondary_audience.contains(&AP_PUBLIC.to_string()) {
+    let audience = [primary_audience, secondary_audience].concat();
+    // Some servers (e.g. Takahe) use "as" namespace
+    const PUBLIC_VARIANTS: [&str; 2] = [AP_PUBLIC, "as:Public"];
+    if audience.iter().any(|item| PUBLIC_VARIANTS.contains(&item.as_str())) {
        return Visibility::Public;
     };
     let maybe_followers = author.actor_json.as_ref()
         .and_then(|actor| actor.followers.as_ref());
     if let Some(followers) = maybe_followers {
-        if primary_audience.contains(followers) ||
-                secondary_audience.contains(followers) {
+        if audience.contains(followers) {
             return Visibility::Followers;
         };
     };
     let maybe_subscribers = author.actor_json.as_ref()
         .and_then(|actor| actor.subscribers.as_ref());
     if let Some(subscribers) = maybe_subscribers {
-        if primary_audience.contains(subscribers) ||
-                secondary_audience.contains(subscribers) {
+        if audience.contains(subscribers) {
             return Visibility::Subscribers;
         };
     };
