@@ -18,7 +18,11 @@ use crate::models::{
     posts::queries::{get_post_by_id, get_posts_by_author},
     users::queries::get_user_by_name,
 };
-use crate::web_client::urls::{get_post_page_url, get_profile_page_url};
+use crate::web_client::urls::{
+    get_post_page_url,
+    get_profile_page_url,
+    get_tag_page_url,
+};
 use super::actors::types::{get_local_actor, get_instance_actor};
 use super::builders::create_note::{
     build_emoji_tag,
@@ -361,6 +365,18 @@ pub async fn emoji_view(
     let response = HttpResponse::Ok()
         .content_type(AP_MEDIA_TYPE)
         .json(object);
+    Ok(response)
+}
+
+#[get("/collections/tags/{tag_name}")]
+pub async fn tag_view(
+    config: web::Data<Config>,
+    tag_name: web::Path<String>,
+) -> Result<HttpResponse, HttpError> {
+    let page_url = get_tag_page_url(&config.instance_url(), &tag_name);
+    let response = HttpResponse::Found()
+        .append_header(("Location", page_url))
+        .finish();
     Ok(response)
 }
 

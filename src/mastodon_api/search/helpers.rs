@@ -285,7 +285,7 @@ pub async fn search(
         posts,
     ).await?;
     let hashtags = tags.into_iter()
-        .map(Tag::from_tag_name)
+        .map(|tag_name| Tag::from_tag_name(&config.instance_url(), tag_name))
         .collect();
     Ok(SearchResults { accounts, statuses, hashtags })
 }

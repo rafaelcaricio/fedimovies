@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::activitypub::identifiers::local_tag_collection;
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::media::types::Attachment;
 use crate::models::{
@@ -39,11 +40,11 @@ pub struct Tag {
 }
 
 impl Tag {
-    pub fn from_tag_name(tag_name: String) -> Self {
+    pub fn from_tag_name(instance_url: &str, tag_name: String) -> Self {
+        let tag_url = local_tag_collection(instance_url, &tag_name);
         Tag {
             name: tag_name,
-            // TODO: add link to tag page
-            url: "".to_string(),
+            url: tag_url,
         }
     }
 }
@@ -108,7 +109,7 @@ impl Status {
             .map(|item| Mention::from_profile(item, instance_url))
             .collect();
         let tags: Vec<Tag> = post.tags.into_iter()
-            .map(Tag::from_tag_name)
+            .map(|tag_name| Tag::from_tag_name(instance_url, tag_name))
             .collect();
         let emojis: Vec<CustomEmoji> = post.emojis.into_iter()
             .map(|emoji| CustomEmoji::from_db(instance_url, emoji))

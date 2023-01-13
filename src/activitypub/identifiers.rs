@@ -24,6 +24,7 @@ impl LocalActorCollection {
     }
 }
 
+// Mastodon and Pleroma use the same actor ID format
 pub fn local_actor_id(instance_url: &str, username: &str) -> String {
     format!("{}/users/{}", instance_url, username)
 }
@@ -63,6 +64,10 @@ pub fn local_object_id(instance_url: &str, internal_object_id: &Uuid) -> String 
 
 pub fn local_emoji_id(instance_url: &str, emoji_name: &str) -> String {
     format!("{}/objects/emojis/{}", instance_url, emoji_name)
+}
+
+pub fn local_tag_collection(instance_url: &str, tag_name: &str) -> String {
+    format!("{}/collections/tags/{}", instance_url, tag_name)
 }
 
 pub fn parse_local_actor_id(

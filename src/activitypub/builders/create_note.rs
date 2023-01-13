@@ -11,6 +11,7 @@ use crate::activitypub::{
         local_actor_subscribers,
         local_emoji_id,
         local_object_id,
+        local_tag_collection,
     },
     types::{Attachment, EmojiTag, EmojiTagImage, LinkTag, SimpleTag},
     vocabulary::*,
@@ -25,7 +26,6 @@ use crate::models::{
     users::types::User,
 };
 use crate::utils::files::get_file_url;
-use crate::web_client::urls::get_tag_page_url;
 
 #[allow(dead_code)]
 #[derive(Serialize)]
@@ -136,11 +136,11 @@ pub fn build_note(
         tags.push(Tag::SimpleTag(tag));
     };
     for tag_name in &post.tags {
-        let tag_page_url = get_tag_page_url(instance_url, tag_name);
+        let tag_href = local_tag_collection(instance_url, tag_name);
         let tag = SimpleTag {
             name: format!("#{}", tag_name),
             tag_type: HASHTAG.to_string(),
-            href: tag_page_url,
+            href: tag_href,
         };
         tags.push(Tag::SimpleTag(tag));
     };
@@ -327,7 +327,11 @@ mod tests {
             username: "author".to_string(),
             ..Default::default()
         };
-        let post = Post { author, ..Default::default() };
+        let post = Post {
+            author,
+            tags: vec!["test".to_string()],
+            ..Default::default()
+        };
         let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(
@@ -345,6 +349,13 @@ mod tests {
         assert_eq!(note.cc, vec![
             local_actor_followers(INSTANCE_URL, "author"),
         ]);
+        assert_eq!(note.tag.len(), 1);
+        let tag = match note.tag[0] {
+            Tag::SimpleTag(ref tag) => tag,
+            _ => panic!(),
+        };
+        assert_eq!(tag.name, "#test");
+        assert_eq!(tag.href, "https://example.com/collections/tags/test");
     }
 
     #[test]
