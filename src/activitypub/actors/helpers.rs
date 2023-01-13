@@ -63,7 +63,7 @@ fn parse_tags(actor: &Actor) -> () {
             parse_property_value(tag_list_value).ok();
         if let Some(tag_list) = maybe_tag_list {
             for tag_value in tag_list {
-                log::info!("found actor tag: {}", tag_value);
+                log::debug!("found actor tag: {}", tag_value);
             };
         };
     };
