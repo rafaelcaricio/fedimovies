@@ -422,6 +422,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_get_note_author_id() {
+       let object = Object {
+            object_type: NOTE.to_string(),
+            attributed_to: Some(json!(["https://example.org/1"])),
+            ..Default::default()
+        };
+        let author_id = get_note_author_id(&object).unwrap();
+        assert_eq!(author_id, "https://example.org/1");
+    }
+
+    #[test]
     fn test_get_note_content() {
         let object = Object {
             content: Some("test".to_string()),
