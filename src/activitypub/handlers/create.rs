@@ -16,7 +16,7 @@ use crate::activitypub::{
     },
     identifiers::parse_local_actor_id,
     receiver::{parse_array, parse_property_value, HandlerError},
-    types::{Attachment, Link, LinkTag, Object, Tag},
+    types::{Attachment, EmojiTag, Link, LinkTag, Object, Tag},
     vocabulary::*,
 };
 use crate::config::{Config, Instance};
@@ -336,7 +336,13 @@ pub async fn handle_note(
                     links.push(linked.id);
                 };
             } else if tag_type == EMOJI {
-                log::info!("found emoji tag: {}", tag_value);
+                let _tag: EmojiTag = match serde_json::from_value(tag_value.clone()) {
+                    Ok(tag) => tag,
+                    Err(_) => {
+                        log::warn!("invalid emoji tag");
+                        continue;
+                    },
+                };
             } else {
                 log::warn!(
                     "skipping tag of type {}",

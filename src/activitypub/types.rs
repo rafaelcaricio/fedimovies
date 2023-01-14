@@ -54,6 +54,28 @@ pub struct LinkTag {
     pub name: Option<String>,
 }
 
+#[allow(dead_code)]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EmojiImage {
+    #[serde(rename = "type")]
+    object_type: String,
+    url: String,
+    media_type: Option<String>,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EmojiTag {
+    #[serde(rename = "type")]
+    tag_type: String,
+    icon: EmojiImage,
+    id: String,
+    name: String,
+    updated: DateTime<Utc>,
+}
+
 #[derive(Deserialize)]
 #[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
