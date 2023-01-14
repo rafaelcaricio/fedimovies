@@ -4,12 +4,12 @@ use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::Object,
     actors::{
         helpers::update_remote_profile,
         types::Actor,
     },
     handlers::create::get_note_content,
+    types::Object,
     vocabulary::{NOTE, PERSON},
 };
 use crate::config::Config;

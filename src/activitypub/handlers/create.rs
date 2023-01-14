@@ -7,7 +7,6 @@ use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    activity::{Attachment, Link, Object, Tag},
     constants::{AP_MEDIA_TYPE, AP_PUBLIC, AS_MEDIA_TYPE},
     fetcher::fetchers::fetch_file,
     fetcher::helpers::{
@@ -17,6 +16,7 @@ use crate::activitypub::{
     },
     identifiers::parse_local_actor_id,
     receiver::{parse_array, parse_property_value, HandlerError},
+    types::{Attachment, Link, Object, Tag},
     vocabulary::*,
 };
 use crate::config::{Config, Instance};
@@ -417,8 +417,8 @@ pub async fn handle_create(
 mod tests {
     use serde_json::json;
     use crate::activitypub::{
-        activity::Object,
         actors::types::Actor,
+        types::Object,
         vocabulary::NOTE,
     };
     use super::*;

@@ -4,9 +4,11 @@ use std::time::Duration;
 use reqwest::{Client, Method, Proxy, RequestBuilder};
 use serde_json::Value;
 
-use crate::activitypub::activity::Object;
-use crate::activitypub::actors::types::Actor;
-use crate::activitypub::constants::AP_MEDIA_TYPE;
+use crate::activitypub::{
+    actors::types::Actor,
+    constants::AP_MEDIA_TYPE,
+    types::Object,
+};
 use crate::config::Instance;
 use crate::http_signatures::create::{
     create_http_signature,

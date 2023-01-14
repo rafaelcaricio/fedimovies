@@ -4,11 +4,11 @@ use std::path::Path;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::Object,
     actors::helpers::{create_remote_profile, update_remote_profile},
     handlers::create::handle_note,
     identifiers::parse_local_object_id,
     receiver::HandlerError,
+    types::Object,
 };
 use crate::config::{Config, Instance};
 use crate::database::DatabaseError;

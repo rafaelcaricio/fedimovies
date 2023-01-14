@@ -1,4 +1,3 @@
-mod activity;
 pub mod actors;
 mod authentication;
 pub mod builders;
@@ -10,6 +9,7 @@ mod handlers;
 pub mod identifiers;
 pub mod queues;
 mod receiver;
+mod types;
 pub mod views;
 mod vocabulary;
 

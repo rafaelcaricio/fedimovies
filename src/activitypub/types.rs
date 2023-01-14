@@ -41,6 +41,8 @@ pub struct Tag {
 #[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
 pub struct Object {
+    // https://www.w3.org/TR/activitypub/#obj-id
+    // "id" and "type" are required properties
     pub id: String,
 
     #[serde(rename = "type")]

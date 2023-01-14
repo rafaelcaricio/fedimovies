@@ -3,7 +3,6 @@ use serde::Serialize;
 use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
-    activity::{Attachment, Tag},
     actors::types::Actor,
     constants::{AP_MEDIA_TYPE, AP_CONTEXT, AP_PUBLIC},
     deliverer::OutgoingActivity,
@@ -13,6 +12,7 @@ use crate::activitypub::{
         local_actor_subscribers,
         local_object_id,
     },
+    types::{Attachment, Tag},
     vocabulary::{CREATE, DOCUMENT, HASHTAG, LINK, MENTION, NOTE},
 };
 use crate::config::Instance;
