@@ -173,6 +173,10 @@ pub async fn handle_note(
                     continue;
                 },
             };
+            if attachment.media_type.as_deref() == Some("text/html; charset=UTF-8") {
+                // Don't fetch HTML pages attached by GNU Social
+                continue;
+            };
             let attachment_url = attachment.url
                 .ok_or(ValidationError("attachment URL is missing"))?;
             let (file_name, maybe_media_type) = fetch_file(
