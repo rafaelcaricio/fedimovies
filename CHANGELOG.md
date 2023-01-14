@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Accept webfinger requests where `resource` is actor ID.
 - Adeed support for `as:Public` audience identifier.
 
+### Changed
+
+- Save downloaded media as "unknown" if its media type is not supported.
+
 ### Removed
 
 - `/api/v1/accounts/move_followers` API endpoint.

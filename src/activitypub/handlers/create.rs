@@ -175,7 +175,7 @@ pub async fn handle_note(
             };
             let attachment_url = attachment.url
                 .ok_or(ValidationError("attachment URL is missing"))?;
-            let (file_name, media_type) = fetch_file(
+            let (file_name, maybe_media_type) = fetch_file(
                 instance,
                 &attachment_url,
                 media_dir,
@@ -185,22 +185,19 @@ pub async fn handle_note(
                     ValidationError("failed to fetch attachment")
                 })?;
             log::info!("downloaded attachment {}", attachment_url);
-            downloaded.push((
-                file_name,
-                attachment.media_type.or(media_type),
-            ));
+            downloaded.push((file_name, maybe_media_type));
             // Stop downloading if limit is reached
             if downloaded.len() >= ATTACHMENTS_MAX_NUM {
                 log::warn!("too many attachments");
                 break;
             };
         };
-        for (file_name, media_type) in downloaded {
+        for (file_name, maybe_media_type) in downloaded {
             let db_attachment = create_attachment(
                 db_client,
                 &author.id,
                 file_name,
-                media_type,
+                maybe_media_type,
             ).await?;
             attachments.push(db_attachment.id);
         };

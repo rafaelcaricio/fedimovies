@@ -12,7 +12,11 @@ use crate::http_signatures::create::{
     create_http_signature,
     HttpSignatureError,
 };
-use crate::utils::files::{save_file, sniff_media_type};
+use crate::utils::files::{
+    save_file,
+    sniff_media_type,
+    SUPPORTED_MEDIA_TYPES,
+};
 use crate::utils::urls::guess_protocol;
 use crate::webfinger::types::{ActorAddress, JsonResourceDescriptor};
 
@@ -118,7 +122,20 @@ pub async fn fetch_file(
     if file_data.len() > FILE_MAX_SIZE as usize {
         return Err(FetchError::OtherError("file is too large"));
     };
-    let maybe_media_type = sniff_media_type(&file_data);
+    let maybe_media_type = sniff_media_type(&file_data)
+        // Remove media type if it is not supported to prevent XSS
+        .filter(|media_type| {
+            if SUPPORTED_MEDIA_TYPES.contains(&media_type.as_str()) {
+                true
+            } else {
+                log::info!(
+                    "unsupported media type {}: {}",
+                    media_type,
+                    url,
+                );
+                false
+            }
+        });
     let file_name = save_file(
         file_data.to_vec(),
         output_dir,
