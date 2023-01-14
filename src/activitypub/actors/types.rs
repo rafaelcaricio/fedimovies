@@ -241,7 +241,7 @@ pub fn get_local_actor(
             let actor_image = ActorImage {
                 object_type: IMAGE.to_string(),
                 url: get_file_url(instance_url, &image.file_name),
-                media_type: None,
+                media_type: image.media_type.clone(),
             };
             Some(actor_image)
         },
@@ -252,7 +252,7 @@ pub fn get_local_actor(
             let actor_image = ActorImage {
                 object_type: IMAGE.to_string(),
                 url: get_file_url(instance_url, &image.file_name),
-                media_type: None,
+                media_type: image.media_type.clone(),
             };
             Some(actor_image)
         },
