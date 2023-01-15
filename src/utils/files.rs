@@ -13,11 +13,14 @@ use mime_guess::get_mime_extensions_str;
 use mime_sniffer::MimeTypeSniffer;
 use sha2::{Digest, Sha256};
 
-pub const SUPPORTED_MEDIA_TYPES: [&str; 4] = [
+pub const SUPPORTED_MEDIA_TYPES: [&str; 7] = [
+    "audio/mpeg",
+    "image/gif",
     "image/jpeg",
     "image/png",
-    "image/gif",
+    "image/webp",
     "video/mp4",
+    "video/webm",
 ];
 
 pub fn sniff_media_type(data: &[u8]) -> Option<String> {

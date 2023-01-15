@@ -28,7 +28,7 @@ struct InstanceStatusLimits {
 
 #[derive(Serialize)]
 struct InstanceMediaLimits {
-    supported_mime_types: [&'static str; 4],
+    supported_mime_types: [&'static str; 7],
     image_size_limit: usize,
 }
 
