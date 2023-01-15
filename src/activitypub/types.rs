@@ -37,6 +37,26 @@ pub struct Tag {
     pub media_type: Option<String>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SimpleTag {
+    #[serde(rename = "type")]
+    pub tag_type: String,
+    pub href: String,
+    pub name: String,
+}
+
+/// https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-e232.md
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkTag {
+    #[serde(rename = "type")]
+    pub tag_type: String,
+    pub href: String,
+    pub media_type: String,
+    pub name: Option<String>,
+}
+
 #[derive(Deserialize)]
 #[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]

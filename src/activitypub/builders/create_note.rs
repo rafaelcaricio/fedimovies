@@ -12,7 +12,7 @@ use crate::activitypub::{
         local_actor_subscribers,
         local_object_id,
     },
-    types::{Attachment, Tag},
+    types::{Attachment, LinkTag, SimpleTag},
     vocabulary::{CREATE, DOCUMENT, HASHTAG, LINK, MENTION, NOTE},
 };
 use crate::config::Instance;
@@ -23,6 +23,14 @@ use crate::models::relationships::queries::{get_followers, get_subscribers};
 use crate::models::users::types::User;
 use crate::utils::files::get_file_url;
 use crate::web_client::urls::get_tag_page_url;
+
+#[allow(dead_code)]
+#[derive(Serialize)]
+#[serde(untagged)]
+enum Tag {
+    SimpleTag(SimpleTag),
+    LinkTag(LinkTag),
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -102,36 +110,34 @@ pub fn build_note(
         if !primary_audience.contains(&actor_id) {
             primary_audience.push(actor_id.clone());
         };
-        let tag = Tag {
-            name: Some(tag_name),
+        let tag = SimpleTag {
+            name: tag_name,
             tag_type: MENTION.to_string(),
-            href: Some(actor_id),
-            media_type: None,
+            href: actor_id,
         };
-        tags.push(tag);
+        tags.push(Tag::SimpleTag(tag));
     };
     for tag_name in &post.tags {
         let tag_page_url = get_tag_page_url(instance_url, tag_name);
-        let tag = Tag {
-            name: Some(format!("#{}", tag_name)),
+        let tag = SimpleTag {
+            name: format!("#{}", tag_name),
             tag_type: HASHTAG.to_string(),
-            href: Some(tag_page_url),
-            media_type: None,
+            href: tag_page_url,
         };
-        tags.push(tag);
+        tags.push(Tag::SimpleTag(tag));
     };
     assert_eq!(post.links.len(), post.linked.len());
     for linked in &post.linked {
         // Build FEP-e232 object link
         let link_href = linked.object_id(instance_url);
-        let _tag = Tag {
+        let _tag = LinkTag {
             name: None,  // no microsyntax
             tag_type: LINK.to_string(),
-            href: Some(link_href),
-            media_type: Some(AP_MEDIA_TYPE.to_string()),
+            href: link_href,
+            media_type: AP_MEDIA_TYPE.to_string(),
         };
         // TODO: fix tag processing bug in Pleroma
-        // tags.push(tag);
+        // tags.push(Tag::LinkTag(tag));
     };
     let maybe_quote_url = post.linked.get(0)
         .map(|linked| linked.object_id(instance_url));
@@ -255,11 +261,28 @@ pub async fn prepare_create_note(
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_HOSTNAME: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";
+
+    #[test]
+    fn test_build_tag() {
+        let simple_tag = SimpleTag {
+            tag_type: HASHTAG.to_string(),
+            href: "https://example.org/tags/test".to_string(),
+            name: "#test".to_string(),
+        };
+        let tag = Tag::SimpleTag(simple_tag);
+        let value = serde_json::to_value(tag).unwrap();
+        assert_eq!(value, json!({
+            "type": "Hashtag",
+            "href": "https://example.org/tags/test",
+            "name": "#test",
+        }));
+    }
 
     #[test]
     fn test_build_note() {
@@ -408,8 +431,12 @@ mod tests {
         );
         let tags = note.tag;
         assert_eq!(tags.len(), 1);
-        assert_eq!(tags[0].name.as_deref().unwrap(), format!("@{}", parent_author_acct));
-        assert_eq!(tags[0].href.as_ref().unwrap(), parent_author_actor_id);
+        let tag = match tags[0] {
+            Tag::SimpleTag(ref tag) => tag,
+            _ => panic!(),
+        };
+        assert_eq!(tag.name, format!("@{}", parent_author_acct));
+        assert_eq!(tag.href, parent_author_actor_id);
         assert_eq!(note.to, vec![AP_PUBLIC, parent_author_actor_id]);
     }
 
