@@ -16,7 +16,7 @@ use crate::activitypub::{
     },
     identifiers::parse_local_actor_id,
     receiver::{parse_array, parse_property_value, HandlerError},
-    types::{Attachment, Link, Object, Tag},
+    types::{Attachment, Link, LinkTag, Object, Tag},
     vocabulary::*,
 };
 use crate::config::{Config, Instance};
@@ -218,9 +218,15 @@ pub async fn handle_note(
         let list: Vec<JsonValue> = parse_property_value(&value)
             .map_err(|_| ValidationError("invalid tag property"))?;
         for tag_value in list {
-            let tag: Tag = serde_json::from_value(tag_value.clone())
-                .map_err(|_| ValidationError("invalid tag"))?;
-            if tag.tag_type == HASHTAG {
+            let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
+            if tag_type == HASHTAG {
+                let tag: Tag = match serde_json::from_value(tag_value) {
+                    Ok(tag) => tag,
+                    Err(_) => {
+                        log::warn!("invalid hashtag");
+                        continue;
+                    },
+                };
                 if let Some(tag_name) = tag.name {
                     // Ignore invalid tags
                     if let Ok(tag_name) = normalize_hashtag(&tag_name) {
@@ -229,7 +235,14 @@ pub async fn handle_note(
                         };
                     };
                 };
-            } else if tag.tag_type == MENTION {
+            } else if tag_type == MENTION {
+                let tag: Tag = match serde_json::from_value(tag_value) {
+                    Ok(tag) => tag,
+                    Err(_) => {
+                        log::warn!("invalid mention");
+                        continue;
+                    },
+                };
                 // Try to find profile by actor ID.
                 if let Some(href) = tag.href {
                     if let Ok(username) = parse_local_actor_id(&instance.url(), &href) {
@@ -299,30 +312,35 @@ pub async fn handle_note(
                 } else {
                     log::warn!("failed to parse mention {}", tag_name);
                 };
-            } else if tag.tag_type == LINK {
-                if tag.media_type != Some(AP_MEDIA_TYPE.to_string()) &&
-                    tag.media_type != Some(AS_MEDIA_TYPE.to_string())
+            } else if tag_type == LINK {
+                let tag: LinkTag = match serde_json::from_value(tag_value) {
+                    Ok(tag) => tag,
+                    Err(_) => {
+                        log::warn!("invalid link tag");
+                        continue;
+                    },
+                };
+                if tag.media_type != AP_MEDIA_TYPE &&
+                    tag.media_type != AS_MEDIA_TYPE
                 {
                     // Unknown media type
                     continue;
                 };
-                if let Some(ref href) = tag.href {
-                    let href = redirects.get(href).unwrap_or(href);
-                    let linked = get_post_by_object_id(
-                        db_client,
-                        &instance.url(),
-                        href,
-                    ).await?;
-                    if !links.contains(&linked.id) {
-                        links.push(linked.id);
-                    };
+                let href = redirects.get(&tag.href).unwrap_or(&tag.href);
+                let linked = get_post_by_object_id(
+                    db_client,
+                    &instance.url(),
+                    href,
+                ).await?;
+                if !links.contains(&linked.id) {
+                    links.push(linked.id);
                 };
-            } else if tag.tag_type == EMOJI {
+            } else if tag_type == EMOJI {
                 log::info!("found emoji tag: {}", tag_value);
             } else {
                 log::warn!(
                     "skipping tag of type {}",
-                    tag.tag_type,
+                    tag_type,
                 );
             };
         };

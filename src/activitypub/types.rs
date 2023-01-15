@@ -32,9 +32,6 @@ pub struct Tag {
     pub tag_type: String,
 
     pub href: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub media_type: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -47,7 +44,7 @@ pub struct SimpleTag {
 }
 
 /// https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-e232.md
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkTag {
     #[serde(rename = "type")]
