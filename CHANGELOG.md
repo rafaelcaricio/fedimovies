@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Validation of Monero subscription payout address.
 - Accept webfinger requests where `resource` is actor ID.
 - Adeed support for `as:Public` and `Public` audience identifiers.
+- Displaying custom emojis.
 
 ### Changed
 

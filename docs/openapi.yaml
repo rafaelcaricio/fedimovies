@@ -1361,6 +1361,18 @@ components:
         url:
           description: The location of the original full-size attachment.
           type: string
+    CustomEmoji:
+      type: object
+      properties:
+        shortcode:
+          description: The name of the custom emoji.
+          type: string
+        url:
+          description: A link to the custom emoji.
+          type: string
+        visible_in_picker:
+          description: Whether this Emoji should be visible in the picker or unlisted.
+          type: boolean
     Field:
       type: object
       properties:
@@ -1654,6 +1666,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+        emojis:
+          description: Custom emoji to be used when rendering post content.
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomEmoji'
         reblog:
           description: The post being reposted.
           type: object

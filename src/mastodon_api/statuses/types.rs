@@ -4,8 +4,12 @@ use uuid::Uuid;
 
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::media::types::Attachment;
-use crate::models::posts::types::{Post, Visibility};
-use crate::models::profiles::types::DbActorProfile;
+use crate::models::{
+    emojis::types::DbEmoji,
+    posts::types::{Post, Visibility},
+    profiles::types::DbActorProfile,
+};
+use crate::utils::files::get_file_url;
 
 /// https://docs.joinmastodon.org/entities/mention/
 #[derive(Serialize)]
@@ -44,6 +48,24 @@ impl Tag {
     }
 }
 
+/// https://docs.joinmastodon.org/entities/CustomEmoji/
+#[derive(Serialize)]
+pub struct CustomEmoji {
+    shortcode: String,
+    url: String,
+    visible_in_picker: bool,
+}
+
+impl CustomEmoji {
+    fn from_db(instance_url: &str, emoji: DbEmoji) -> Self {
+        Self {
+            shortcode: emoji.emoji_name,
+            url: get_file_url(instance_url, &emoji.image.file_name),
+            visible_in_picker: true,
+        }
+    }
+}
+
 /// https://docs.joinmastodon.org/entities/status/
 #[derive(Serialize)]
 pub struct Status {
@@ -63,6 +85,7 @@ pub struct Status {
     pub media_attachments: Vec<Attachment>,
     mentions: Vec<Mention>,
     tags: Vec<Tag>,
+    emojis: Vec<CustomEmoji>,
 
     // Authorized user attributes
     pub favourited: bool,
@@ -86,6 +109,9 @@ impl Status {
             .collect();
         let tags: Vec<Tag> = post.tags.into_iter()
             .map(Tag::from_tag_name)
+            .collect();
+        let emojis: Vec<CustomEmoji> = post.emojis.into_iter()
+            .map(|emoji| CustomEmoji::from_db(instance_url, emoji))
             .collect();
         let account = Account::from_profile(post.author, instance_url);
         let reblog = if let Some(repost_of) = post.repost_of {
@@ -119,6 +145,7 @@ impl Status {
             media_attachments: attachments,
             mentions: mentions,
             tags: tags,
+            emojis: emojis,
             favourited: post.actions.as_ref().map_or(false, |actions| actions.favourited),
             reblogged: post.actions.as_ref().map_or(false, |actions| actions.reposted),
             ipfs_cid: post.ipfs_cid,
