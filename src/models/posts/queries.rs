@@ -951,40 +951,46 @@ pub async fn get_token_waitlist(
 }
 
 /// Finds all contexts (identified by top-level post)
-/// created before the specified date
+/// updated before the specified date
 /// that do not contain local posts, reposts, mentions, links or reactions.
 pub async fn find_extraneous_posts(
     db_client: &impl GenericClient,
-    created_before: &DateTime<Utc>,
+    updated_before: &DateTime<Utc>,
 ) -> Result<Vec<Uuid>, DatabaseError> {
     let rows = db_client.query(
         "
-        WITH RECURSIVE context (id, post_id) AS (
-            SELECT post.id, post.id FROM post
+        WITH RECURSIVE context_post (id, post_id, created_at) AS (
+            SELECT post.id, post.id, post.created_at
+            FROM post
             WHERE
                 post.in_reply_to_id IS NULL
                 AND post.repost_of_id IS NULL
                 AND post.created_at < $1
             UNION
-            SELECT context.id, post.id FROM post
-            JOIN context ON (
-                post.in_reply_to_id = context.post_id
-                OR post.repost_of_id = context.post_id
+            SELECT context_post.id, post.id, post.created_at
+            FROM post
+            JOIN context_post ON (
+                post.in_reply_to_id = context_post.post_id
+                OR post.repost_of_id = context_post.post_id
             )
         )
-        SELECT context_agg.id
+        SELECT context.id
         FROM (
-            SELECT context.id, array_agg(context.post_id) AS posts
-            FROM context
-            GROUP BY context.id
-        ) AS context_agg
+            SELECT
+                context_post.id,
+                array_agg(context_post.post_id) AS posts,
+                max(context_post.created_at) AS updated_at
+            FROM context_post
+            GROUP BY context_post.id
+        ) AS context
         WHERE
-            NOT EXISTS (
+            context.updated_at < $1
+            AND NOT EXISTS (
                 SELECT 1
                 FROM post
                 JOIN actor_profile ON post.author_id = actor_profile.id
                 WHERE
-                    post.id = ANY(context_agg.posts)
+                    post.id = ANY(context.posts)
                     AND actor_profile.actor_json IS NULL
             )
             AND NOT EXISTS (
@@ -992,7 +998,7 @@ pub async fn find_extraneous_posts(
                 FROM mention
                 JOIN actor_profile ON mention.profile_id = actor_profile.id
                 WHERE
-                    mention.post_id = ANY(context_agg.posts)
+                    mention.post_id = ANY(context.posts)
                     AND actor_profile.actor_json IS NULL
             )
             AND NOT EXISTS (
@@ -1000,7 +1006,7 @@ pub async fn find_extraneous_posts(
                 FROM post_reaction
                 JOIN actor_profile ON post_reaction.author_id = actor_profile.id
                 WHERE
-                    post_reaction.post_id = ANY(context_agg.posts)
+                    post_reaction.post_id = ANY(context.posts)
                     AND actor_profile.actor_json IS NULL
             )
             AND NOT EXISTS (
@@ -1009,11 +1015,11 @@ pub async fn find_extraneous_posts(
                 JOIN post ON post_link.target_id = post.id
                 JOIN actor_profile ON post.author_id = actor_profile.id
                 WHERE
-                    post_link.source_id = ANY(context_agg.posts)
+                    post_link.source_id = ANY(context.posts)
                     AND actor_profile.actor_json IS NULL
             )
         ",
-        &[&created_before],
+        &[&updated_before],
     ).await?;
     let ids: Vec<Uuid> = rows.iter()
         .map(|row| row.try_get("id"))
@@ -1449,10 +1455,10 @@ mod tests {
             ..Default::default()
         };
         create_post(db_client, &author.id, post_data).await.unwrap();
-        let created_before = Utc::now() - Duration::days(1);
+        let updated_before = Utc::now() - Duration::days(1);
         let result = find_extraneous_posts(
             db_client,
-            &created_before,
+            &updated_before,
         ).await.unwrap();
         assert!(result.is_empty());
     }

@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Save downloaded media as "unknown" if its media type is not supported.
 - Use `mediaType` property value to determine file extension when saving downloaded media.
 - Added `mediaType` property to images in actor object.
+- Prevent `delete-extraneous-posts` command from deleting post if there's a recent reply or repost.
 
 ### Removed
 

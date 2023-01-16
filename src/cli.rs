@@ -263,8 +263,8 @@ impl DeleteExtraneousPosts {
         config: &Config,
         db_client: &mut impl GenericClient,
     ) -> Result<(), Error> {
-        let created_before = Utc::now() - Duration::days(self.days);
-        let posts = find_extraneous_posts(db_client, &created_before).await?;
+        let updated_before = Utc::now() - Duration::days(self.days);
+        let posts = find_extraneous_posts(db_client, &updated_before).await?;
         for post_id in posts {
             let deletion_queue = delete_post(db_client, &post_id).await?;
             deletion_queue.process(config).await;
