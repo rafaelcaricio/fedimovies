@@ -50,6 +50,12 @@ Delete post:
 mitractl delete-post 55a3005f-f293-4168-ab70-6ab09a879679
 ```
 
+Delete custom emoji:
+
+```shell
+mitractl delete-emoji 55a3005f-f293-4168-ab70-6ab09a879679
+```
+
 Remove remote posts and media older than 30 days:
 
 ```shell

@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::database::{catch_unique_violation, DatabaseError};
 use crate::models::{
+    cleanup::{find_orphaned_files, DeletionQueue},
     instances::queries::create_instance,
     profiles::types::ProfileImage,
 };
@@ -99,6 +100,29 @@ pub async fn get_emoji_by_remote_object_id(
     Ok(emoji)
 }
 
+pub async fn delete_emoji(
+    db_client: &impl GenericClient,
+    emoji_id: &Uuid,
+) -> Result<DeletionQueue, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        DELETE FROM emoji WHERE id = $1
+        RETURNING emoji
+        ",
+        &[&emoji_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("emoji"))?;
+    let emoji: DbEmoji = row.try_get("emoji")?;
+    let orphaned_files = find_orphaned_files(
+        db_client,
+        vec![emoji.image.file_name],
+    ).await?;
+    Ok(DeletionQueue {
+        files: orphaned_files,
+        ipfs_objects: vec![],
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
@@ -131,5 +155,23 @@ mod tests {
         assert_eq!(emoji.id, emoji_id);
         assert_eq!(emoji.emoji_name, emoji_name);
         assert_eq!(emoji.hostname, Some(hostname.to_string()));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_delete_emoji() {
+        let db_client = &create_test_database().await;
+        let emoji = create_emoji(
+            db_client,
+            "test",
+            None,
+            "test.png",
+            "image/png",
+            None,
+            &Utc::now(),
+        ).await.unwrap();
+        let deletion_queue = delete_emoji(db_client, &emoji.id).await.unwrap();
+        assert_eq!(deletion_queue.files.len(), 1);
+        assert_eq!(deletion_queue.ipfs_objects.len(), 0);
     }
 }

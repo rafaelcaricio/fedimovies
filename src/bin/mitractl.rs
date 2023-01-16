@@ -29,6 +29,7 @@ async fn main() {
                 SubCommand::RefetchActor(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteProfile(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeletePost(cmd) => cmd.execute(&config, db_client).await.unwrap(),
+                SubCommand::DeleteEmoji(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteExtraneousPosts(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteUnusedAttachments(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteOrphanedFiles(cmd) => cmd.execute(&config, db_client).await.unwrap(),

@@ -16,6 +16,7 @@ use crate::ethereum::sync::save_current_block_number;
 use crate::ethereum::utils::key_to_ethereum_address;
 use crate::models::attachments::queries::delete_unused_attachments;
 use crate::models::cleanup::find_orphaned_files;
+use crate::models::emojis::queries::delete_emoji;
 use crate::models::posts::queries::{delete_post, find_extraneous_posts, get_post_by_id};
 use crate::models::profiles::queries::{
     delete_profile,
@@ -62,6 +63,7 @@ pub enum SubCommand {
     RefetchActor(RefetchActor),
     DeleteProfile(DeleteProfile),
     DeletePost(DeletePost),
+    DeleteEmoji(DeleteEmoji),
     DeleteExtraneousPosts(DeleteExtraneousPosts),
     DeleteUnusedAttachments(DeleteUnusedAttachments),
     DeleteOrphanedFiles(DeleteOrphanedFiles),
@@ -247,6 +249,25 @@ impl DeletePost {
             activity.deliver().await?;
         };
         println!("post deleted");
+        Ok(())
+    }
+}
+
+/// Delete custom emoji
+#[derive(Parser)]
+pub struct DeleteEmoji {
+    id: Uuid,
+}
+
+impl DeleteEmoji {
+    pub async fn execute(
+        &self,
+        config: &Config,
+        db_client: &impl GenericClient,
+    ) -> Result<(), Error> {
+        let deletion_queue = delete_emoji(db_client, &self.id).await?;
+        deletion_queue.process(config).await;
+        println!("emoji deleted");
         Ok(())
     }
 }

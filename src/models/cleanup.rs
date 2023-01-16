@@ -47,6 +47,10 @@ pub async fn find_orphaned_files(
                 WHERE avatar ->> 'file_name' = fname
                     OR banner ->> 'file_name' = fname
             )
+            AND NOT EXISTS (
+                SELECT 1 FROM emoji
+                WHERE image ->> 'file_name' = fname
+            )
         ",
         &[&files],
     ).await?;
