@@ -104,12 +104,11 @@ async fn send_request(
     Ok(data)
 }
 
-const FILE_MAX_SIZE: u64 = 1024 * 1024 * 20;
-
 pub async fn fetch_file(
     instance: &Instance,
     url: &str,
     maybe_media_type: Option<&str>,
+    file_max_size: u64,
     output_dir: &Path,
 ) -> Result<(String, Option<String>), FetchError> {
     let client = build_client(instance)?;
@@ -117,12 +116,12 @@ pub async fn fetch_file(
         build_request(instance, client, Method::GET, url);
     let response = request_builder.send().await?.error_for_status()?;
     if let Some(file_size) = response.content_length() {
-        if file_size > FILE_MAX_SIZE {
+        if file_size > file_max_size {
             return Err(FetchError::OtherError("file is too large"));
         };
     };
     let file_data = response.bytes().await?;
-    if file_data.len() > FILE_MAX_SIZE as usize {
+    if file_data.len() > file_max_size as usize {
         return Err(FetchError::OtherError("file is too large"));
     };
     let maybe_media_type = maybe_media_type

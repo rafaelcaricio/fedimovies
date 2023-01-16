@@ -126,6 +126,8 @@ fn get_note_visibility(
     Visibility::Direct
 }
 
+const ATTACHMENT_MAX_SIZE: u64 = 20 * 1000 * 1000;
+
 pub async fn handle_note(
     db_client: &mut impl GenericClient,
     instance: &Instance,
@@ -183,6 +185,7 @@ pub async fn handle_note(
                 instance,
                 &attachment_url,
                 attachment.media_type.as_deref(),
+                ATTACHMENT_MAX_SIZE,
                 media_dir,
             ).await
                 .map_err(|err| {
