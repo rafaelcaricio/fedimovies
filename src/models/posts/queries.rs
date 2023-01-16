@@ -1133,6 +1133,7 @@ pub async fn get_local_post_count(
 
 #[cfg(test)]
 mod tests {
+    use chrono::Duration;
     use serial_test::serial;
     use crate::database::test_utils::create_test_database;
     use crate::models::profiles::queries::create_profile;
@@ -1432,5 +1433,27 @@ mod tests {
         assert_eq!(timeline.iter().any(|post| post.id == post_4.id), false);
         assert_eq!(timeline.iter().any(|post| post.id == reply.id), false);
         assert_eq!(timeline.iter().any(|post| post.id == repost.id), true);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_find_extraneous_posts() {
+        let db_client = &mut create_test_database().await;
+        let author_data = ProfileCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let author = create_profile(db_client, author_data).await.unwrap();
+        let post_data = PostCreateData {
+            content: "test post".to_string(),
+            ..Default::default()
+        };
+        create_post(db_client, &author.id, post_data).await.unwrap();
+        let created_before = Utc::now() - Duration::days(1);
+        let result = find_extraneous_posts(
+            db_client,
+            &created_before,
+        ).await.unwrap();
+        assert!(result.is_empty());
     }
 }
