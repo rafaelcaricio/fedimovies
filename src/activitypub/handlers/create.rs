@@ -143,6 +143,20 @@ fn get_note_visibility(
 
 const ATTACHMENT_MAX_SIZE: u64 = 20 * 1000 * 1000;
 
+fn is_gnu_social_link(author_id: &str, attachment: &Attachment) -> bool {
+    if !author_id.contains("/index.php/user/") {
+        return false;
+    };
+    if attachment.attachment_type != DOCUMENT {
+        return false;
+    };
+    match attachment.media_type.as_ref() {
+        None => true,
+        Some(media_type) if media_type.contains("text/html") => true,
+        _ => false,
+    }
+}
+
 pub async fn handle_note(
     db_client: &mut impl GenericClient,
     instance: &Instance,
@@ -190,7 +204,7 @@ pub async fn handle_note(
                     continue;
                 },
             };
-            if attachment.media_type.as_deref() == Some("text/html; charset=UTF-8") {
+            if is_gnu_social_link(&author_id, &attachment) {
                 // Don't fetch HTML pages attached by GNU Social
                 continue;
             };
