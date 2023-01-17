@@ -1,10 +1,12 @@
 use clap::Parser;
 
-use mitra::cli::{Opts, SubCommand};
 use mitra::config::parse_config;
 use mitra::database::create_database_client;
 use mitra::database::migrate::apply_migrations;
 use mitra::logger::configure_logger;
+
+mod cli;
+use cli::{Opts, SubCommand};
 
 #[tokio::main]
 async fn main() {

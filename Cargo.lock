@@ -1709,7 +1709,6 @@ dependencies = [
  "blake2",
  "bs58",
  "chrono",
- "clap",
  "comrak",
  "deadpool",
  "deadpool-postgres",
@@ -1749,6 +1748,18 @@ dependencies = [
  "url 2.2.2",
  "uuid",
  "web3",
+]
+
+[[package]]
+name = "mitra-cli"
+version = "1.10.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "log",
+ "mitra",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]

@@ -2,20 +2,20 @@ use anyhow::{anyhow, Error};
 use clap::Parser;
 use uuid::Uuid;
 
-use crate::activitypub::{
+use mitra::activitypub::{
     actors::helpers::update_remote_profile,
     builders::delete_note::prepare_delete_note,
     builders::delete_person::prepare_delete_person,
     fetcher::fetchers::fetch_actor,
 };
-use crate::config::Config;
-use crate::database::DatabaseClient;
-use crate::ethereum::{
+use mitra::config::Config;
+use mitra::database::DatabaseClient;
+use mitra::ethereum::{
     signatures::generate_ecdsa_key,
     sync::save_current_block_number,
     utils::key_to_ethereum_address,
 };
-use crate::models::{
+use mitra::models::{
     attachments::queries::delete_unused_attachments,
     cleanup::find_orphaned_files,
     emojis::helpers::get_emoji_by_name,
@@ -41,11 +41,11 @@ use crate::models::{
         set_user_password,
     },
 };
-use crate::monero::{
+use mitra::monero::{
     helpers::check_expired_invoice,
     wallet::create_monero_wallet,
 };
-use crate::utils::{
+use mitra::utils::{
     crypto_rsa::{
         generate_rsa_key,
         serialize_private_key,

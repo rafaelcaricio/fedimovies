@@ -9,6 +9,16 @@ rust-version = "1.56"
 publish = false
 default-run = "mitra"
 
+[workspace]
+members = [
+  ".",
+  "mitra-cli",
+]
+default-members = [
+    ".",
+    "mitra-cli",
+]
+
 [dependencies]
 # Used to handle incoming HTTP requests
 actix-cors = "0.6.2"
@@ -25,8 +35,6 @@ base64 = "0.13.0"
 bs58 = "0.4.0"
 # Used for working with dates
 chrono = { version = "0.4.23", default-features = false, features = ["std", "serde"] }
-# Used to build admin CLI tool
-clap = { version = "3.2.18", default-features = false, features = ["std", "derive"] }
 # Used for parsing markdown
 comrak = { version = "0.15.0", default-features = false }
 # Used for pooling database connections
