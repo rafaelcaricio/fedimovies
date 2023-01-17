@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 use crate::activitypub::{
     constants::{ACTOR_KEY_SUFFIX, AP_CONTEXT},
     identifiers::{local_actor_id, LocalActorCollection},
+    receiver::parse_property_value,
     vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
 };
 use crate::config::Instance;
@@ -74,7 +75,7 @@ pub struct ActorAttachment {
 }
 
 // Some implementations use empty object instead of null
-pub fn deserialize_image_opt<'de, D>(
+fn deserialize_image_opt<'de, D>(
     deserializer: D,
 ) -> Result<Option<ActorImage>, D::Error>
     where D: Deserializer<'de>
@@ -95,6 +96,23 @@ pub fn deserialize_image_opt<'de, D>(
         None
     };
     Ok(maybe_image)
+}
+
+// Some implementations use single object instead of array
+fn deserialize_attachments_opt<'de, D>(
+    deserializer: D,
+) -> Result<Option<Vec<ActorAttachment>>, D::Error>
+    where D: Deserializer<'de>
+{
+    let maybe_value: Option<Value> = Option::deserialize(deserializer)?;
+    let maybe_attachments = if let Some(value) = maybe_value {
+        let attachments: Vec<ActorAttachment> = parse_property_value(&value)
+            .map_err(DeserializerError::custom)?;
+        Some(attachments)
+    } else {
+        None
+    };
+    Ok(maybe_attachments)
 }
 
 // Clone and Debug traits are required by FromSql
@@ -143,7 +161,11 @@ pub struct Actor {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub also_known_as: Option<Value>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_attachments_opt",
+        skip_serializing_if = "Option::is_none",
+    )]
     pub attachment: Option<Vec<ActorAttachment>>,
 
     #[serde(default)]
