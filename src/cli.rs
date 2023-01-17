@@ -19,7 +19,12 @@ use crate::ethereum::{
 use crate::models::{
     attachments::queries::delete_unused_attachments,
     cleanup::find_orphaned_files,
-    emojis::queries::delete_emoji,
+    emojis::queries::{
+        create_emoji,
+        delete_emoji,
+        get_emoji_by_name_and_hostname,
+    },
+    emojis::validators::EMOJI_LOCAL_MAX_SIZE,
     oauth::queries::delete_oauth_tokens,
     posts::queries::{delete_post, find_extraneous_posts, get_post_by_id},
     profiles::queries::{
@@ -45,6 +50,7 @@ use crate::utils::{
         generate_rsa_key,
         serialize_private_key,
     },
+    datetime::get_min_datetime,
     files::remove_files,
     passwords::hash_password,
 };
@@ -72,6 +78,7 @@ pub enum SubCommand {
     DeleteUnusedAttachments(DeleteUnusedAttachments),
     DeleteOrphanedFiles(DeleteOrphanedFiles),
     DeleteEmptyProfiles(DeleteEmptyProfiles),
+    ImportEmoji(ImportEmoji),
     UpdateCurrentBlock(UpdateCurrentBlock),
     ResetSubscriptions(ResetSubscriptions),
     CreateMoneroWallet(CreateMoneroWallet),
@@ -369,6 +376,41 @@ impl DeleteEmptyProfiles {
             deletion_queue.process(config).await;
             println!("profile {} deleted", profile.acct);
         };
+        Ok(())
+    }
+}
+
+/// Import custom emoji from another instance
+#[derive(Parser)]
+pub struct ImportEmoji {
+    emoji_name: String,
+    hostname: String,
+}
+
+impl ImportEmoji {
+    pub async fn execute(
+        &self,
+        _config: &Config,
+        db_client: &impl DatabaseClient,
+    ) -> Result<(), Error> {
+        let emoji = get_emoji_by_name_and_hostname(
+            db_client,
+            &self.emoji_name,
+            &self.hostname,
+        ).await?;
+        if emoji.image.file_size > EMOJI_LOCAL_MAX_SIZE {
+            println!("emoji is too big");
+            return Ok(());
+        };
+        create_emoji(
+            db_client,
+            &emoji.emoji_name,
+            None,
+            emoji.image,
+            None,
+            &get_min_datetime(),
+        ).await?;
+        println!("added emoji to local collection");
         Ok(())
     }
 }

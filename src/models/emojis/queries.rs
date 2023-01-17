@@ -76,6 +76,23 @@ pub async fn update_emoji(
     Ok(emoji)
 }
 
+pub async fn get_emoji_by_name_and_hostname(
+    db_client: &impl DatabaseClient,
+    emoji_name: &str,
+    hostname: &str,
+) -> Result<DbEmoji, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT emoji
+        FROM emoji WHERE emoji_name = $1 AND hostname = $2
+        ",
+        &[&emoji_name, &hostname],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("emoji"))?;
+    let emoji = row.try_get("emoji")?;
+    Ok(emoji)
+}
+
 pub async fn get_emoji_by_remote_object_id(
     db_client: &impl DatabaseClient,
     object_id: &str,

@@ -74,6 +74,12 @@ Delete empty remote profiles:
 mitractl delete-empty-profiles 100
 ```
 
+Import custom emoji from another instance:
+
+```shell
+mitractl import-emoji emojiname example.org
+```
+
 Generate ethereum address:
 
 ```shell

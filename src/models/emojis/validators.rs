@@ -4,6 +4,7 @@ use crate::errors::ValidationError;
 
 const EMOJI_NAME_RE: &str = r"^[\w.]+$";
 pub const EMOJI_MAX_SIZE: usize = 250 * 1000; // 250 kB
+pub const EMOJI_LOCAL_MAX_SIZE: usize = 50 * 1000; // 50 kB
 pub const EMOJI_MEDIA_TYPES: [&str; 2] = [
     "image/gif",
     "image/png",

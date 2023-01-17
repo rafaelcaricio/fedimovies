@@ -2,6 +2,7 @@ pub mod caip2;
 pub mod canonicalization;
 pub mod crypto_rsa;
 pub mod currencies;
+pub mod datetime;
 pub mod files;
 pub mod html;
 pub mod id;
