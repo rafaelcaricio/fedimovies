@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     identifiers::parse_local_actor_id,
@@ -8,7 +7,7 @@ use crate::activitypub::{
     vocabulary::{ANNOUNCE, FOLLOW, LIKE},
 };
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{
     posts::queries::{
@@ -38,7 +37,7 @@ struct UndoFollow {
 
 async fn handle_undo_follow(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     let activity: UndoFollow = serde_json::from_value(activity)
@@ -72,7 +71,7 @@ struct Undo {
 
 pub async fn handle_undo(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     if let Some(FOLLOW) = activity["object"]["type"].as_str() {

@@ -1,9 +1,8 @@
 use actix_web::HttpRequest;
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::http_signatures::verify::{
     parse_http_signature,
     verify_http_signature,
@@ -71,7 +70,7 @@ fn key_id_to_actor_id(key_id: &str) -> Result<String, AuthenticationError> {
 
 async fn get_signer(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     signer_id: &str,
     no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {
@@ -98,7 +97,7 @@ async fn get_signer(
 /// Verifies HTTP signature and returns signer
 pub async fn verify_signed_request(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     request: &HttpRequest,
     no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {
@@ -129,7 +128,7 @@ pub async fn verify_signed_request(
 /// Verifies JSON signature and returns signer
 pub async fn verify_signed_activity(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     activity: &Value,
     no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {

@@ -1,8 +1,7 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::config::Instance;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     posts::{
         hashtags::{find_hashtags, replace_hashtags},
@@ -24,7 +23,7 @@ pub struct PostContent {
 }
 
 pub async fn parse_microsyntaxes(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     mut content: String,
 ) -> Result<PostContent, DatabaseError> {
@@ -65,7 +64,7 @@ pub async fn parse_microsyntaxes(
 
 /// Load related objects and build status for API response
 pub async fn build_status(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance_url: &str,
     user: Option<&User>,
     mut post: Post,
@@ -79,7 +78,7 @@ pub async fn build_status(
 }
 
 pub async fn build_status_list(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance_url: &str,
     user: Option<&User>,
     mut posts: Vec<Post>,

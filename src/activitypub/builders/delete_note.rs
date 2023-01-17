@@ -1,5 +1,4 @@
 use serde::Serialize;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     constants::AP_CONTEXT,
@@ -8,7 +7,7 @@ use crate::activitypub::{
     vocabulary::{DELETE, NOTE, TOMBSTONE},
 };
 use crate::config::Instance;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::posts::helpers::add_related_posts;
 use crate::models::posts::types::Post;
 use crate::models::users::types::User;
@@ -74,7 +73,7 @@ fn build_delete_note(
 }
 
 pub async fn prepare_delete_note(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     author: &User,
     post: &Post,

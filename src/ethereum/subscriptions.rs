@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 
 use chrono::{DateTime, TimeZone, Utc};
-use tokio_postgres::GenericClient;
 
 use web3::{
     api::Web3,
@@ -17,7 +16,12 @@ use crate::activitypub::builders::{
 };
 use crate::activitypub::identifiers::LocalActorCollection;
 use crate::config::{EthereumConfig, Instance};
-use crate::database::{get_database_client, DatabaseError, DbPool};
+use crate::database::{
+    get_database_client,
+    DatabaseClient,
+    DatabaseError,
+    DbPool,
+};
 use crate::errors::ConversionError;
 use crate::models::notifications::queries::{
     create_subscription_notification,
@@ -64,7 +68,7 @@ fn u256_to_date(value: U256) -> Result<DateTime<Utc>, ConversionError> {
 }
 
 pub async fn send_subscription_notifications(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     sender: &DbActorProfile,
     recipient: &User,

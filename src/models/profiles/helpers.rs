@@ -1,11 +1,9 @@
-use tokio_postgres::GenericClient;
-
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use super::queries::search_profiles_by_did_only;
 use super::types::DbActorProfile;
 
 pub async fn find_aliases(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile: &DbActorProfile,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let mut results = vec![];

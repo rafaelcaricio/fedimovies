@@ -1,12 +1,12 @@
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::config::Config;
 use crate::database::{
     get_database_client,
+    DatabaseClient,
     DatabaseError,
     DatabaseTypeError,
     DbPool,
@@ -41,7 +41,7 @@ impl IncomingActivityJobData {
 
     pub async fn into_job(
         self,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
         delay: i64,
     ) -> Result<(), DatabaseError> {
         let job_data = serde_json::to_value(self)
@@ -58,7 +58,7 @@ impl IncomingActivityJobData {
 
 pub async fn process_queued_incoming_activities(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
 ) -> Result<(), DatabaseError> {
     let batch_size = 10;
     let max_retries = 2;
@@ -111,7 +111,7 @@ pub struct OutgoingActivityJobData {
 impl OutgoingActivityJobData {
     pub async fn into_job(
         self,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), DatabaseError> {
         let job_data = serde_json::to_value(self)
             .expect("activity should be serializable");

@@ -2,10 +2,10 @@ use std::str::FromStr;
 
 use monero_rpc::TransferType;
 use monero_rpc::monero::Address;
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::config::MoneroConfig;
+use crate::database::DatabaseClient;
 use crate::errors::ValidationError;
 use crate::models::{
     invoices::queries::{
@@ -30,7 +30,7 @@ pub fn validate_monero_address(address: &str)
 
 pub async fn check_expired_invoice(
     config: &MoneroConfig,
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     invoice_id: &Uuid,
 ) -> Result<(), MoneroError> {
     let wallet_client = open_monero_wallet(config).await?;

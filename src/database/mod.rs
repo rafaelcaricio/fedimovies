@@ -1,4 +1,4 @@
-use tokio_postgres::config::{Config as DbConfig};
+use tokio_postgres::config::{Config as DatabaseConfig};
 use tokio_postgres::error::{Error as PgError, SqlState};
 
 pub mod int_enum;
@@ -10,6 +10,7 @@ pub mod query_macro;
 pub mod test_utils;
 
 pub type DbPool = deadpool_postgres::Pool;
+pub use tokio_postgres::{GenericClient as DatabaseClient};
 
 #[derive(thiserror::Error, Debug)]
 #[error("database type error")]
@@ -36,7 +37,9 @@ pub enum DatabaseError {
     AlreadyExists(&'static str), // object type
 }
 
-pub async fn create_database_client(db_config: &DbConfig) -> tokio_postgres::Client {
+pub async fn create_database_client(db_config: &DatabaseConfig)
+    -> tokio_postgres::Client
+{
     let (client, connection) = db_config.connect(tokio_postgres::NoTls)
         .await.unwrap();
     tokio::spawn(async move {
@@ -73,8 +76,8 @@ pub fn catch_unique_violation(
         if let Some(code) = err.code() {
             if code == &SqlState::UNIQUE_VIOLATION {
                 return DatabaseError::AlreadyExists(object_type);
-            }
-        }
+            };
+        };
         err.into()
     }
 }

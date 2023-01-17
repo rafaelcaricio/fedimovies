@@ -1,4 +1,3 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
@@ -6,7 +5,12 @@ use crate::activitypub::{
     HandlerError,
 };
 use crate::config::Config;
-use crate::database::{get_database_client, DatabaseError, DbPool};
+use crate::database::{
+    get_database_client,
+    DatabaseClient,
+    DatabaseError,
+    DbPool,
+};
 use crate::errors::ValidationError;
 use crate::mastodon_api::accounts::helpers::follow_or_create_request;
 use crate::models::{
@@ -30,7 +34,7 @@ fn export_profiles_to_csv(
 }
 
 pub async fn export_followers(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     local_hostname: &str,
     user_id: &Uuid,
 ) -> Result<String, DatabaseError> {
@@ -40,7 +44,7 @@ pub async fn export_followers(
 }
 
 pub async fn export_follows(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     local_hostname: &str,
     user_id: &Uuid,
 ) -> Result<String, DatabaseError> {

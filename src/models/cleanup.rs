@@ -1,7 +1,5 @@
-use tokio_postgres::GenericClient;
-
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::ipfs::store as ipfs_store;
 use crate::utils::files::remove_files;
 
@@ -31,7 +29,7 @@ impl DeletionQueue {
 }
 
 pub async fn find_orphaned_files(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     files: Vec<String>,
 ) -> Result<Vec<String>, DatabaseError> {
     let rows = db_client.query(
@@ -61,7 +59,7 @@ pub async fn find_orphaned_files(
 }
 
 pub async fn find_orphaned_ipfs_objects(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     ipfs_objects: Vec<String>,
 ) -> Result<Vec<String>, DatabaseError> {
     let rows = db_client.query(

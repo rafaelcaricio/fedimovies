@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 use regex::{Captures, Match, Regex};
-use tokio_postgres::GenericClient;
 
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use super::helpers::get_post_by_object_id;
 use super::types::{Post, Visibility};
 
@@ -38,7 +37,7 @@ fn find_object_links(text: &str) -> Vec<String> {
 }
 
 pub async fn find_linked_posts(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance_url: &str,
     text: &str,
 ) -> Result<HashMap<String, Post>, DatabaseError> {

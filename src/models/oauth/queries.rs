@@ -1,13 +1,12 @@
 use chrono::{DateTime, Utc};
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::{DbUser, User};
 
 pub async fn save_oauth_token(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     owner_id: &Uuid,
     token: &str,
     created_at: &DateTime<Utc>,
@@ -24,7 +23,7 @@ pub async fn save_oauth_token(
 }
 
 pub async fn delete_oauth_token(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     current_user_id: &Uuid,
     token: &str,
 ) -> Result<(), DatabaseError> {
@@ -54,7 +53,7 @@ pub async fn delete_oauth_token(
 }
 
 pub async fn delete_oauth_tokens(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     owner_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     db_client.execute(
@@ -65,7 +64,7 @@ pub async fn delete_oauth_tokens(
 }
 
 pub async fn get_user_by_oauth_token(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     access_token: &str,
 ) -> Result<User, DatabaseError> {
     let maybe_row = db_client.query_opt(

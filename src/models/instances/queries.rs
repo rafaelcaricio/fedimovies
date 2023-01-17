@@ -1,9 +1,7 @@
-use tokio_postgres::GenericClient;
-
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 
 pub async fn create_instance(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     hostname: &str,
 ) -> Result<(), DatabaseError> {
     db_client.execute(
@@ -17,7 +15,7 @@ pub async fn create_instance(
 }
 
 pub async fn get_peer_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
 ) -> Result<i64, DatabaseError> {
     let row = db_client.query_one(
         "SELECT count(instance) FROM instance",

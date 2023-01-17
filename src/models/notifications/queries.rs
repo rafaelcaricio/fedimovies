@@ -1,7 +1,6 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::posts::helpers::{add_related_posts, add_user_actions};
 use crate::models::posts::queries::{
     RELATED_ATTACHMENTS,
@@ -13,7 +12,7 @@ use crate::models::posts::queries::{
 use super::types::{EventType, Notification};
 
 async fn create_notification(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
     post_id: Option<&Uuid>,
@@ -35,7 +34,7 @@ async fn create_notification(
 }
 
 pub async fn create_follow_notification(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -46,7 +45,7 @@ pub async fn create_follow_notification(
 }
 
 pub async fn create_reply_notification(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
     post_id: &Uuid,
@@ -58,7 +57,7 @@ pub async fn create_reply_notification(
 }
 
 pub async fn create_reaction_notification(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
     post_id: &Uuid,
@@ -70,7 +69,7 @@ pub async fn create_reaction_notification(
 }
 
 pub async fn create_mention_notification(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
     post_id: &Uuid,
@@ -82,7 +81,7 @@ pub async fn create_mention_notification(
 }
 
 pub async fn create_repost_notification(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
     post_id: &Uuid,
@@ -94,7 +93,7 @@ pub async fn create_repost_notification(
 }
 
 pub async fn create_subscription_notification(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -105,7 +104,7 @@ pub async fn create_subscription_notification(
 }
 
 pub async fn create_subscription_expiration_notification(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -116,7 +115,7 @@ pub async fn create_subscription_expiration_notification(
 }
 
 pub async fn create_move_notification(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -127,7 +126,7 @@ pub async fn create_move_notification(
 }
 
 pub async fn get_notifications(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     recipient_id: &Uuid,
     max_id: Option<i32>,
     limit: u16,

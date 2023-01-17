@@ -1,8 +1,7 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::identifiers::parse_local_object_id;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::reactions::queries::find_favourited_by_user;
 use crate::models::relationships::queries::has_relationship;
 use crate::models::relationships::types::RelationshipType;
@@ -16,7 +15,7 @@ use super::queries::{
 use super::types::{Post, PostActions, Visibility};
 
 pub async fn add_related_posts(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     posts: Vec<&mut Post>,
 ) -> Result<(), DatabaseError> {
     let posts_ids = posts.iter().map(|post| post.id).collect();
@@ -50,7 +49,7 @@ pub async fn add_related_posts(
 }
 
 pub async fn add_user_actions(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
     posts: Vec<&mut Post>,
 ) -> Result<(), DatabaseError> {
@@ -82,7 +81,7 @@ pub async fn add_user_actions(
 }
 
 pub async fn can_view_post(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user: Option<&User>,
     post: &Post,
 ) -> Result<bool, DatabaseError> {
@@ -125,7 +124,7 @@ pub async fn can_view_post(
 }
 
 pub async fn get_local_post_by_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
 ) -> Result<Post, DatabaseError> {
     let post = get_post_by_id(db_client, post_id).await?;
@@ -136,7 +135,7 @@ pub async fn get_local_post_by_id(
 }
 
 pub async fn get_post_by_object_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance_url: &str,
     object_id: &str,
 ) -> Result<Post, DatabaseError> {

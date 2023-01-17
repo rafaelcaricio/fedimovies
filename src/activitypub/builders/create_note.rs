@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     actors::types::Actor,
@@ -16,7 +15,7 @@ use crate::activitypub::{
     vocabulary::{CREATE, DOCUMENT, HASHTAG, LINK, MENTION, NOTE},
 };
 use crate::config::Instance;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::posts::queries::get_post_author;
 use crate::models::posts::types::{Post, Visibility};
 use crate::models::relationships::queries::{get_followers, get_subscribers};
@@ -206,7 +205,7 @@ pub fn build_create_note(
 }
 
 pub async fn get_note_recipients(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     current_user: &User,
     post: &Post,
 ) -> Result<Vec<Actor>, DatabaseError> {
@@ -239,7 +238,7 @@ pub async fn get_note_recipients(
 }
 
 pub async fn prepare_create_note(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     author: &User,
     post: &Post,

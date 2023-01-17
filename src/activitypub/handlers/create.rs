@@ -3,7 +3,6 @@ use std::path::Path;
 
 use chrono::Utc;
 use serde_json::{Value as JsonValue};
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
@@ -20,7 +19,7 @@ use crate::activitypub::{
     vocabulary::*,
 };
 use crate::config::{Config, Instance};
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::{ConversionError, ValidationError};
 use crate::models::attachments::queries::create_attachment;
 use crate::models::emojis::queries::{
@@ -158,7 +157,7 @@ fn is_gnu_social_link(author_id: &str, attachment: &Attachment) -> bool {
 }
 
 pub async fn handle_note(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     object: Object,
@@ -524,7 +523,7 @@ pub async fn handle_note(
 
 pub async fn handle_create(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: JsonValue,
     is_authenticated: bool,
 ) -> HandlerResult {

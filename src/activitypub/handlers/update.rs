@@ -1,7 +1,6 @@
 use chrono::Utc;
 use serde::Deserialize;
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     actors::{
@@ -13,7 +12,7 @@ use crate::activitypub::{
     vocabulary::{NOTE, PERSON},
 };
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{
     posts::queries::{
@@ -26,7 +25,7 @@ use crate::models::{
 use super::HandlerResult;
 
 async fn handle_update_note(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     let object: Object = serde_json::from_value(activity["object"].to_owned())
@@ -55,7 +54,7 @@ struct UpdatePerson {
 
 async fn handle_update_person(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     let activity: UpdatePerson = serde_json::from_value(activity)
@@ -79,7 +78,7 @@ async fn handle_update_person(
 
 pub async fn handle_update(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     let object_type = activity["object"]["type"].as_str()

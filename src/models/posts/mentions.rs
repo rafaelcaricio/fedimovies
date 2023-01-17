@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 use regex::{Captures, Regex};
-use tokio_postgres::GenericClient;
 
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::profiles::queries::get_profiles_by_accts;
 use crate::models::profiles::types::DbActorProfile;
@@ -45,7 +44,7 @@ fn find_mentions(
 }
 
 pub async fn find_mentioned_profiles(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance_hostname: &str,
     text: &str,
 ) -> Result<HashMap<String, DbActorProfile>, DatabaseError> {

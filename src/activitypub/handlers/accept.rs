@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     identifiers::parse_local_object_id,
@@ -8,6 +7,7 @@ use crate::activitypub::{
     vocabulary::FOLLOW,
 };
 use crate::config::Config;
+use crate::database::DatabaseClient;
 use crate::errors::ValidationError;
 use crate::models::profiles::queries::get_profile_by_remote_actor_id;
 use crate::models::relationships::queries::{
@@ -26,7 +26,7 @@ struct Accept {
 
 pub async fn handle_accept(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     // Accept(Follow)

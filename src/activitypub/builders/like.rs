@@ -1,5 +1,4 @@
 use serde::Serialize;
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
@@ -10,7 +9,7 @@ use crate::activitypub::{
     vocabulary::LIKE,
 };
 use crate::config::Instance;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
@@ -67,7 +66,7 @@ fn build_like(
 }
 
 pub async fn get_like_recipients(
-    _db_client: &impl GenericClient,
+    _db_client: &impl DatabaseClient,
     _instance_url: &str,
     post: &Post,
 ) -> Result<Vec<Actor>, DatabaseError> {
@@ -79,7 +78,7 @@ pub async fn get_like_recipients(
 }
 
 pub async fn prepare_like(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     sender: &User,
     post: &Post,

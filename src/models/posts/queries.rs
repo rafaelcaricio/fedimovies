@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::database::{
     catch_unique_violation,
     query_macro::query,
+    DatabaseClient,
     DatabaseError,
 };
 use crate::models::attachments::queries::set_attachment_ipfs_cid;
@@ -33,7 +33,7 @@ use super::types::{
 };
 
 pub async fn create_post(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     author_id: &Uuid,
     data: PostCreateData,
 ) -> Result<Post, DatabaseError> {
@@ -300,7 +300,7 @@ fn build_visibility_filter() -> String {
 }
 
 pub async fn get_home_timeline(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     current_user_id: &Uuid,
     max_post_id: Option<Uuid>,
     limit: u16,
@@ -404,7 +404,7 @@ pub async fn get_home_timeline(
 }
 
 pub async fn get_local_timeline(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     current_user_id: &Uuid,
     max_post_id: Option<Uuid>,
     limit: u16,
@@ -449,7 +449,7 @@ pub async fn get_local_timeline(
 }
 
 pub async fn get_related_posts(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     posts_ids: Vec<Uuid>,
 ) -> Result<Vec<Post>, DatabaseError> {
     let statement = format!(
@@ -495,7 +495,7 @@ pub async fn get_related_posts(
 }
 
 pub async fn get_posts_by_author(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
     current_user_id: Option<&Uuid>,
     include_replies: bool,
@@ -553,7 +553,7 @@ pub async fn get_posts_by_author(
 }
 
 pub async fn get_posts_by_tag(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     tag_name: &str,
     current_user_id: Option<&Uuid>,
     max_post_id: Option<Uuid>,
@@ -604,7 +604,7 @@ pub async fn get_posts_by_tag(
 }
 
 pub async fn get_post_by_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
 ) -> Result<Post, DatabaseError> {
     let statement = format!(
@@ -640,7 +640,7 @@ pub async fn get_post_by_id(
 /// Given a post ID, finds all items in thread.
 /// Results are sorted by tree path.
 pub async fn get_thread(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
     current_user_id: Option<&Uuid>,
 ) -> Result<Vec<Post>, DatabaseError> {
@@ -700,7 +700,7 @@ pub async fn get_thread(
 }
 
 pub async fn get_post_by_remote_object_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     object_id: &str,
 ) -> Result<Post, DatabaseError> {
     let statement = format!(
@@ -732,7 +732,7 @@ pub async fn get_post_by_remote_object_id(
 }
 
 pub async fn get_post_by_ipfs_cid(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     ipfs_cid: &str,
 ) -> Result<Post, DatabaseError> {
     let statement = format!(
@@ -766,7 +766,7 @@ pub async fn get_post_by_ipfs_cid(
 }
 
 pub async fn update_post(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
     post_data: PostUpdateData,
 ) -> Result<(), DatabaseError> {
@@ -794,7 +794,7 @@ pub async fn update_post(
 }
 
 pub async fn update_reply_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
     change: i32,
 ) -> Result<(), DatabaseError> {
@@ -813,7 +813,7 @@ pub async fn update_reply_count(
 }
 
 pub async fn update_reaction_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
     change: i32,
 ) -> Result<(), DatabaseError> {
@@ -832,7 +832,7 @@ pub async fn update_reaction_count(
 }
 
 pub async fn update_repost_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
     change: i32,
 ) -> Result<(), DatabaseError> {
@@ -851,7 +851,7 @@ pub async fn update_repost_count(
 }
 
 pub async fn set_post_ipfs_cid(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     post_id: &Uuid,
     ipfs_cid: &str,
     attachments: Vec<(Uuid, String)>,
@@ -878,7 +878,7 @@ pub async fn set_post_ipfs_cid(
 }
 
 pub async fn set_post_token_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
     token_id: i32,
 ) -> Result<(), DatabaseError> {
@@ -899,7 +899,7 @@ pub async fn set_post_token_id(
 }
 
 pub async fn set_post_token_tx_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
     token_tx_id: &str,
 ) -> Result<(), DatabaseError> {
@@ -919,7 +919,7 @@ pub async fn set_post_token_tx_id(
 }
 
 pub async fn get_post_author(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     post_id: &Uuid,
 ) -> Result<DbActorProfile, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -938,7 +938,7 @@ pub async fn get_post_author(
 
 /// Finds reposts of given posts and returns their IDs
 pub async fn find_reposts_by_user(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
     posts_ids: &[Uuid],
 ) -> Result<Vec<Uuid>, DatabaseError> {
@@ -958,7 +958,7 @@ pub async fn find_reposts_by_user(
 
 /// Finds items reposted by user among given posts
 pub async fn find_reposted_by_user(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
     posts_ids: &[Uuid],
 ) -> Result<Vec<Uuid>, DatabaseError> {
@@ -980,7 +980,7 @@ pub async fn find_reposted_by_user(
 }
 
 pub async fn get_token_waitlist(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
 ) -> Result<Vec<Uuid>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -1000,7 +1000,7 @@ pub async fn get_token_waitlist(
 /// updated before the specified date
 /// that do not contain local posts, reposts, mentions, links or reactions.
 pub async fn find_extraneous_posts(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     updated_before: &DateTime<Utc>,
 ) -> Result<Vec<Uuid>, DatabaseError> {
     let rows = db_client.query(
@@ -1075,7 +1075,7 @@ pub async fn find_extraneous_posts(
 
 /// Deletes post from database and returns collection of orphaned objects.
 pub async fn delete_post(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     post_id: &Uuid,
 ) -> Result<DeletionQueue, DatabaseError> {
     let transaction = db_client.transaction().await?;
@@ -1168,7 +1168,7 @@ pub async fn delete_post(
 }
 
 pub async fn get_local_post_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
 ) -> Result<i64, DatabaseError> {
     let row = db_client.query_one(
         "

@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::database::{
     catch_unique_violation,
     query_macro::query,
+    DatabaseClient,
     DatabaseError,
 };
 use crate::identity::{did::Did, did_pkh::DidPkh};
@@ -28,7 +28,7 @@ use super::types::{
 
 /// Create new profile using given Client or Transaction.
 pub async fn create_profile(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_data: ProfileCreateData,
 ) -> Result<DbActorProfile, DatabaseError> {
     let profile_id = new_uuid();
@@ -66,7 +66,7 @@ pub async fn create_profile(
 }
 
 pub async fn update_profile(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
     data: ProfileUpdateData,
 ) -> Result<DbActorProfile, DatabaseError> {
@@ -108,7 +108,7 @@ pub async fn update_profile(
 }
 
 pub async fn get_profile_by_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
 ) -> Result<DbActorProfile, DatabaseError> {
     let result = db_client.query_opt(
@@ -127,7 +127,7 @@ pub async fn get_profile_by_id(
 }
 
 pub async fn get_profile_by_remote_actor_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     actor_id: &str,
 ) -> Result<DbActorProfile, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -145,7 +145,7 @@ pub async fn get_profile_by_remote_actor_id(
 }
 
 pub async fn get_profile_by_acct(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     acct: &str,
 ) -> Result<DbActorProfile, DatabaseError> {
     let result = db_client.query_opt(
@@ -164,7 +164,7 @@ pub async fn get_profile_by_acct(
 }
 
 pub async fn get_profiles(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     only_local: bool,
     offset: u16,
     limit: u16,
@@ -191,7 +191,7 @@ pub async fn get_profiles(
 }
 
 pub async fn get_profiles_by_accts(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     accts: Vec<String>,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let rows = db_client.query(
@@ -210,7 +210,7 @@ pub async fn get_profiles_by_accts(
 
 /// Deletes profile from database and returns collection of orphaned objects.
 pub async fn delete_profile(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     profile_id: &Uuid,
 ) -> Result<DeletionQueue, DatabaseError> {
     let transaction = db_client.transaction().await?;
@@ -378,7 +378,7 @@ pub async fn delete_profile(
 }
 
 pub async fn search_profiles(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     username: &str,
     maybe_hostname: Option<&String>,
     limit: u16,
@@ -409,7 +409,7 @@ pub async fn search_profiles(
 }
 
 pub async fn search_profiles_by_did_only(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     did: &Did,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
      let rows = db_client.query(
@@ -432,7 +432,7 @@ pub async fn search_profiles_by_did_only(
 }
 
 pub async fn search_profiles_by_did(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     did: &Did,
     prefer_verified: bool,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
@@ -495,7 +495,7 @@ pub async fn search_profiles_by_did(
 }
 
 pub async fn search_profiles_by_wallet_address(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     currency: &Currency,
     wallet_address: &str,
     prefer_verified: bool,
@@ -506,7 +506,7 @@ pub async fn search_profiles_by_wallet_address(
 }
 
 pub async fn update_follower_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
     change: i32,
 ) -> Result<DbActorProfile, DatabaseError> {
@@ -525,7 +525,7 @@ pub async fn update_follower_count(
 }
 
 pub async fn update_following_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
     change: i32,
 ) -> Result<DbActorProfile, DatabaseError> {
@@ -544,7 +544,7 @@ pub async fn update_following_count(
 }
 
 pub async fn update_subscriber_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
     change: i32,
 ) -> Result<DbActorProfile, DatabaseError> {
@@ -563,7 +563,7 @@ pub async fn update_subscriber_count(
 }
 
 pub async fn update_post_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
     change: i32,
 ) -> Result<DbActorProfile, DatabaseError> {
@@ -583,7 +583,7 @@ pub async fn update_post_count(
 
 // Doesn't return error if profile doesn't exist
 pub async fn set_reachability_status(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     actor_id: &str,
     is_reachable: bool,
 ) -> Result<(), DatabaseError> {
@@ -615,7 +615,7 @@ pub async fn set_reachability_status(
 /// (without any posts, reactions, relationships)
 /// updated before the specified date
 pub async fn find_empty_profiles(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     updated_before: &DateTime<Utc>,
 ) -> Result<Vec<Uuid>, DatabaseError> {
     let rows = db_client.query(

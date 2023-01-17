@@ -1,7 +1,10 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::{catch_unique_violation, DatabaseError};
+use crate::database::{
+    catch_unique_violation,
+    DatabaseClient,
+    DatabaseError,
+};
 use crate::models::notifications::queries::create_follow_notification;
 use crate::models::profiles::queries::{
     update_follower_count,
@@ -19,7 +22,7 @@ use super::types::{
 };
 
 pub async fn get_relationships(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<Vec<DbRelationship>, DatabaseError> {
@@ -52,7 +55,7 @@ pub async fn get_relationships(
 }
 
 pub async fn has_relationship(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
     relationship_type: RelationshipType,
@@ -75,7 +78,7 @@ pub async fn has_relationship(
 }
 
 pub async fn follow(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -97,7 +100,7 @@ pub async fn follow(
 }
 
 pub async fn unfollow(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<Option<Uuid>, DatabaseError> {
@@ -135,7 +138,7 @@ pub async fn unfollow(
 
 // Follow remote actor
 pub async fn create_follow_request(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<DbFollowRequest, DatabaseError> {
@@ -161,7 +164,7 @@ pub async fn create_follow_request(
 
 // Save follow request from remote actor
 pub async fn create_remote_follow_request_opt(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
     activity_id: &str,
@@ -194,7 +197,7 @@ pub async fn create_remote_follow_request_opt(
 }
 
 pub async fn follow_request_accepted(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     request_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     let mut transaction = db_client.transaction().await?;
@@ -216,7 +219,7 @@ pub async fn follow_request_accepted(
 }
 
 pub async fn follow_request_rejected(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     request_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     let updated_count = db_client.execute(
@@ -234,7 +237,7 @@ pub async fn follow_request_rejected(
 }
 
 async fn delete_follow_request_opt(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<Option<Uuid>, DatabaseError> {
@@ -254,7 +257,7 @@ async fn delete_follow_request_opt(
 }
 
 pub async fn get_follow_request_by_id(
-    db_client:  &impl GenericClient,
+    db_client:  &impl DatabaseClient,
     request_id: &Uuid,
 ) -> Result<DbFollowRequest, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -271,7 +274,7 @@ pub async fn get_follow_request_by_id(
 }
 
 pub async fn get_follow_request_by_activity_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     activity_id: &str,
 ) -> Result<DbFollowRequest, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -288,7 +291,7 @@ pub async fn get_follow_request_by_activity_id(
 }
 
 pub async fn get_followers(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let rows = db_client.query(
@@ -310,7 +313,7 @@ pub async fn get_followers(
 }
 
 pub async fn get_followers_paginated(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
     max_relationship_id: Option<i32>,
     limit: u16,
@@ -342,7 +345,7 @@ pub async fn get_followers_paginated(
 }
 
 pub async fn get_following(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let rows = db_client.query(
@@ -364,7 +367,7 @@ pub async fn get_following(
 }
 
 pub async fn get_following_paginated(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
     max_relationship_id: Option<i32>,
     limit: u16,
@@ -396,7 +399,7 @@ pub async fn get_following_paginated(
 }
 
 pub async fn subscribe(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -414,7 +417,7 @@ pub async fn subscribe(
 }
 
 pub async fn subscribe_opt(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -435,7 +438,7 @@ pub async fn subscribe_opt(
 }
 
 pub async fn unsubscribe(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -458,7 +461,7 @@ pub async fn unsubscribe(
 }
 
 pub async fn get_subscribers(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     profile_id: &Uuid,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let rows = db_client.query(
@@ -481,7 +484,7 @@ pub async fn get_subscribers(
 }
 
 pub async fn hide_reposts(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -497,7 +500,7 @@ pub async fn hide_reposts(
 }
 
 pub async fn show_reposts(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -515,7 +518,7 @@ pub async fn show_reposts(
 }
 
 pub async fn hide_replies(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {
@@ -531,7 +534,7 @@ pub async fn hide_replies(
 }
 
 pub async fn show_replies(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<(), DatabaseError> {

@@ -1,8 +1,7 @@
 use chrono::{DateTime, Utc};
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::cleanup::{
     find_orphaned_files,
     find_orphaned_ipfs_objects,
@@ -12,7 +11,7 @@ use crate::utils::id::new_uuid;
 use super::types::DbMediaAttachment;
 
 pub async fn create_attachment(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     owner_id: &Uuid,
     file_name: String,
     media_type: Option<String>,
@@ -31,7 +30,7 @@ pub async fn create_attachment(
 }
 
 pub async fn set_attachment_ipfs_cid(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     attachment_id: &Uuid,
     ipfs_cid: &str,
 ) -> Result<DbMediaAttachment, DatabaseError> {
@@ -50,7 +49,7 @@ pub async fn set_attachment_ipfs_cid(
 }
 
 pub async fn delete_unused_attachments(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     created_before: &DateTime<Utc>,
 ) -> Result<DeletionQueue, DatabaseError> {
     let rows = db_client.query(

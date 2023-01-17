@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     actors::types::Actor,
@@ -10,7 +9,7 @@ use crate::activitypub::{
     vocabulary::ANNOUNCE,
 };
 use crate::config::Instance;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::posts::types::Post;
 use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;
@@ -56,7 +55,7 @@ fn build_announce(
 }
 
 pub async fn get_announce_recipients(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance_url: &str,
     current_user: &User,
     post: &Post,
@@ -76,7 +75,7 @@ pub async fn get_announce_recipients(
 }
 
 pub async fn prepare_announce(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     sender: &User,
     repost: &Post,

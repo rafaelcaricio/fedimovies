@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     builders::accept_follow::prepare_accept_follow,
@@ -10,7 +9,7 @@ use crate::activitypub::{
     vocabulary::PERSON,
 };
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{
     relationships::queries::{
@@ -31,7 +30,7 @@ struct Follow {
 
 pub async fn handle_follow(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     // Follow(Person)

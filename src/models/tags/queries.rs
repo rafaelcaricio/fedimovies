@@ -1,9 +1,7 @@
-use tokio_postgres::GenericClient;
-
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 
 pub async fn search_tags(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     search_query: &str,
     limit: u16,
 ) -> Result<Vec<String>, DatabaseError> {

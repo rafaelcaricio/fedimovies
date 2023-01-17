@@ -1,8 +1,11 @@
 use chrono::{DateTime, Utc};
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::{catch_unique_violation, DatabaseError};
+use crate::database::{
+    catch_unique_violation,
+    DatabaseClient,
+    DatabaseError,
+};
 use crate::models::profiles::types::PaymentType;
 use crate::models::relationships::queries::{subscribe, subscribe_opt};
 use crate::models::relationships::types::RelationshipType;
@@ -10,7 +13,7 @@ use crate::utils::caip2::ChainId;
 use super::types::{DbSubscription, Subscription};
 
 pub async fn create_subscription(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     sender_id: &Uuid,
     sender_address: Option<&str>,
     recipient_id: &Uuid,
@@ -47,7 +50,7 @@ pub async fn create_subscription(
 }
 
 pub async fn update_subscription(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     subscription_id: i32,
     chain_id: &ChainId,
     expires_at: &DateTime<Utc>,
@@ -82,7 +85,7 @@ pub async fn update_subscription(
 }
 
 pub async fn get_subscription_by_participants(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
 ) -> Result<DbSubscription, DatabaseError> {
@@ -100,7 +103,7 @@ pub async fn get_subscription_by_participants(
 }
 
 pub async fn get_expired_subscriptions(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
 ) -> Result<Vec<DbSubscription>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -123,7 +126,7 @@ pub async fn get_expired_subscriptions(
 }
 
 pub async fn get_incoming_subscriptions(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     recipient_id: &Uuid,
     max_subscription_id: Option<i32>,
     limit: u16,
@@ -149,7 +152,7 @@ pub async fn get_incoming_subscriptions(
 }
 
 pub async fn reset_subscriptions(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     ethereum_contract_replaced: bool,
 ) -> Result<(), DatabaseError> {
     let transaction = db_client.transaction().await?;

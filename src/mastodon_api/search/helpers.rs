@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use regex::Regex;
-use tokio_postgres::GenericClient;
 use url::Url;
 
 use crate::activitypub::{
@@ -14,7 +13,7 @@ use crate::activitypub::{
     HandlerError,
 };
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::{HttpError, ValidationError};
 use crate::identity::did::Did;
 use crate::mastodon_api::accounts::types::Account;
@@ -101,7 +100,7 @@ fn parse_search_query(search_query: &str) -> SearchQuery {
 
 async fn search_profiles_or_import(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     username: String,
     mut maybe_hostname: Option<String>,
     limit: u16,
@@ -150,7 +149,7 @@ async fn search_profiles_or_import(
 /// Finds post by its object ID
 async fn find_post_by_url(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     url: &str,
 ) -> Result<Option<Post>, DatabaseError> {
     let maybe_post = match parse_local_object_id(
@@ -185,7 +184,7 @@ async fn find_post_by_url(
 
 async fn find_profile_by_url(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     url: &str,
 ) -> Result<Option<DbActorProfile>, DatabaseError> {
     let profile = match parse_local_actor_id(
@@ -217,7 +216,7 @@ async fn find_profile_by_url(
 pub async fn search(
     config: &Config,
     current_user: &User,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     search_query: &str,
     limit: u16,
 ) -> Result<SearchResults, HttpError> {
@@ -293,7 +292,7 @@ pub async fn search(
 
 pub async fn search_profiles_only(
     config: &Config,
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     search_query: &str,
     limit: u16,
 ) -> Result<Vec<Account>, HttpError> {

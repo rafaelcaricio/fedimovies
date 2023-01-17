@@ -1,5 +1,4 @@
 use serde::Serialize;
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
@@ -10,7 +9,7 @@ use crate::activitypub::{
     vocabulary::UPDATE,
 };
 use crate::config::Instance;
-use crate::database::{DatabaseError, DatabaseTypeError};
+use crate::database::{DatabaseClient, DatabaseError, DatabaseTypeError};
 use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;
 use crate::utils::id::new_uuid;
@@ -55,7 +54,7 @@ pub fn build_update_person(
 }
 
 async fn get_update_person_recipients(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
 ) -> Result<Vec<Actor>, DatabaseError> {
     let followers = get_followers(db_client, user_id).await?;
@@ -69,7 +68,7 @@ async fn get_update_person_recipients(
 }
 
 pub async fn prepare_update_person(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     user: &User,
     maybe_internal_activity_id: Option<Uuid>,

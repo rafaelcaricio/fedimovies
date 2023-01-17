@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Error};
 use chrono::{Duration, Utc};
 use clap::Parser;
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
@@ -11,6 +10,7 @@ use crate::activitypub::{
     fetcher::fetchers::fetch_actor,
 };
 use crate::config::Config;
+use crate::database::DatabaseClient;
 use crate::ethereum::signatures::generate_ecdsa_key;
 use crate::ethereum::sync::save_current_block_number;
 use crate::ethereum::utils::key_to_ethereum_address;
@@ -108,7 +108,7 @@ pub struct GenerateInviteCode;
 impl GenerateInviteCode {
     pub async fn execute(
         &self,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         let invite_code = create_invite_code(db_client).await?;
         println!("generated invite code: {}", invite_code);
@@ -123,7 +123,7 @@ pub struct ListInviteCodes;
 impl ListInviteCodes {
     pub async fn execute(
         &self,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         let invite_codes = get_invite_codes(db_client).await?;
         if invite_codes.is_empty() {
@@ -147,7 +147,7 @@ pub struct SetPassword {
 impl SetPassword {
     pub async fn execute(
         &self,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         let password_hash = hash_password(&self.password)?;
         set_user_password(db_client, &self.id, password_hash).await?;
@@ -168,7 +168,7 @@ impl RefetchActor {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         let profile = get_profile_by_remote_actor_id(
             db_client,
@@ -197,7 +197,7 @@ impl DeleteProfile {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &mut impl GenericClient,
+        db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
         let profile = get_profile_by_id(db_client, &self.id).await?;
         let mut maybe_delete_person = None;
@@ -228,7 +228,7 @@ impl DeletePost {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &mut impl GenericClient,
+        db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
         let post = get_post_by_id(db_client, &self.id).await?;
         let mut maybe_delete_note = None;
@@ -263,7 +263,7 @@ impl DeleteEmoji {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         let deletion_queue = delete_emoji(db_client, &self.id).await?;
         deletion_queue.process(config).await;
@@ -282,7 +282,7 @@ impl DeleteExtraneousPosts {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &mut impl GenericClient,
+        db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
         let updated_before = Utc::now() - Duration::days(self.days);
         let posts = find_extraneous_posts(db_client, &updated_before).await?;
@@ -305,7 +305,7 @@ impl DeleteUnusedAttachments {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         let created_before = Utc::now() - Duration::days(self.days);
         let deletion_queue = delete_unused_attachments(
@@ -326,7 +326,7 @@ impl DeleteOrphanedFiles {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         let media_dir = config.media_dir();
         let mut files = vec![];
@@ -355,7 +355,7 @@ impl DeleteEmptyProfiles {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &mut impl GenericClient,
+        db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
         let updated_before = Utc::now() - Duration::days(self.days);
         let profiles = find_empty_profiles(db_client, &updated_before).await?;
@@ -379,7 +379,7 @@ impl UpdateCurrentBlock {
     pub async fn execute(
         &self,
         config: &Config,
-        _db_client: &impl GenericClient,
+        _db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         save_current_block_number(&config.storage_dir, self.number)?;
         println!("current block updated");
@@ -399,7 +399,7 @@ impl ResetSubscriptions {
     pub async fn execute(
         &self,
         _config: &Config,
-        db_client: &mut impl GenericClient,
+        db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
         reset_subscriptions(db_client, self.ethereum_contract_replaced).await?;
         println!("subscriptions deleted");
@@ -443,7 +443,7 @@ impl CheckExpiredInvoice {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         let monero_config = config.blockchain()
             .and_then(|conf| conf.monero_config())

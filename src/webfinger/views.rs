@@ -1,5 +1,4 @@
 use actix_web::{get, web, HttpResponse};
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::constants::AP_MEDIA_TYPE;
 use crate::activitypub::identifiers::{
@@ -8,7 +7,7 @@ use crate::activitypub::identifiers::{
     parse_local_actor_id,
 };
 use crate::config::{Config, Instance};
-use crate::database::{get_database_client, DbPool};
+use crate::database::{get_database_client, DatabaseClient, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::models::users::queries::is_registered_user;
 use super::types::{
@@ -28,7 +27,7 @@ fn parse_acct_uri(uri: &str) -> Result<ActorAddress, ValidationError> {
 }
 
 async fn get_jrd(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: Instance,
     resource: &str,
 ) -> Result<JsonResourceDescriptor, HttpError> {

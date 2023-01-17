@@ -1,5 +1,4 @@
 use serde::Serialize;
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
@@ -9,7 +8,7 @@ use crate::activitypub::{
     vocabulary::DELETE,
 };
 use crate::config::Instance;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::relationships::queries::{get_followers, get_following};
 use crate::models::users::types::User;
 
@@ -45,7 +44,7 @@ fn build_delete_person(
 }
 
 async fn get_delete_person_recipients(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
 ) -> Result<Vec<Actor>, DatabaseError> {
     let followers = get_followers(db_client, user_id).await?;
@@ -60,7 +59,7 @@ async fn get_delete_person_recipients(
 }
 
 pub async fn prepare_delete_person(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     user: &User,
 ) -> Result<OutgoingActivity, DatabaseError> {

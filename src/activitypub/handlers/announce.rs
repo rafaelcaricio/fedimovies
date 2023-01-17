@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     fetcher::helpers::{get_or_import_profile_by_actor_id, import_post},
@@ -9,7 +8,7 @@ use crate::activitypub::{
     vocabulary::{CREATE, DISLIKE, LIKE, NOTE, UNDO, UPDATE},
 };
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::posts::queries::{
     create_post,
@@ -28,7 +27,7 @@ struct Announce {
 
 pub async fn handle_announce(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     if let Some(CREATE | DISLIKE | LIKE | UNDO | UPDATE) =

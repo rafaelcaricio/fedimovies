@@ -1,9 +1,8 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::builders::follow::prepare_follow;
 use crate::config::Instance;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     profiles::types::DbActorProfile,
     relationships::queries::{
@@ -17,7 +16,7 @@ use crate::models::{
 use super::types::RelationshipMap;
 
 pub async fn follow_or_create_request(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     instance: &Instance,
     current_user: &User,
     target_profile: &DbActorProfile,
@@ -51,7 +50,7 @@ pub async fn follow_or_create_request(
 }
 
 pub async fn get_relationship(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<RelationshipMap, DatabaseError> {
@@ -112,7 +111,7 @@ mod tests {
     use crate::models::users::types::{User, UserCreateData};
     use super::*;
 
-    async fn create_users(db_client: &mut impl GenericClient)
+    async fn create_users(db_client: &mut impl DatabaseClient)
         -> Result<(User, User), DatabaseError>
     {
         let user_data_1 = UserCreateData {

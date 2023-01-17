@@ -1,13 +1,12 @@
 use serde::Deserialize;
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     identifiers::parse_local_actor_id,
     vocabulary::PERSON,
 };
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::notifications::queries::{
     create_subscription_expiration_notification,
@@ -26,7 +25,7 @@ struct Remove {
 
 pub async fn handle_remove(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     let activity: Remove = serde_json::from_value(activity)

@@ -1,13 +1,16 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::{catch_unique_violation, DatabaseError};
+use crate::database::{
+    catch_unique_violation,
+    DatabaseClient,
+    DatabaseError,
+};
 use crate::utils::caip2::ChainId;
 use crate::utils::id::new_uuid;
 use super::types::{DbInvoice, InvoiceStatus};
 
 pub async fn create_invoice(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     sender_id: &Uuid,
     recipient_id: &Uuid,
     chain_id: &ChainId,
@@ -42,7 +45,7 @@ pub async fn create_invoice(
 }
 
 pub async fn get_invoice_by_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     invoice_id: &Uuid,
 ) -> Result<DbInvoice, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -58,7 +61,7 @@ pub async fn get_invoice_by_id(
 }
 
 pub async fn get_invoice_by_address(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     chain_id: &ChainId,
     payment_address: &str,
 ) -> Result<DbInvoice, DatabaseError> {
@@ -75,7 +78,7 @@ pub async fn get_invoice_by_address(
 }
 
 pub async fn get_invoices_by_status(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     chain_id: &ChainId,
     status: InvoiceStatus,
 ) -> Result<Vec<DbInvoice>, DatabaseError> {
@@ -93,7 +96,7 @@ pub async fn get_invoices_by_status(
 }
 
 pub async fn set_invoice_status(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     invoice_id: &Uuid,
     status: InvoiceStatus,
 ) -> Result<(), DatabaseError> {

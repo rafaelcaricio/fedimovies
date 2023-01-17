@@ -1,5 +1,4 @@
 use serde::Serialize;
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
 use crate::activitypub::{
@@ -9,7 +8,7 @@ use crate::activitypub::{
     vocabulary::UNDO,
 };
 use crate::config::Instance;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::posts::types::{Post, Visibility};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
@@ -58,7 +57,7 @@ fn build_undo_like(
 }
 
 pub async fn prepare_undo_like(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     sender: &User,
     post: &Post,

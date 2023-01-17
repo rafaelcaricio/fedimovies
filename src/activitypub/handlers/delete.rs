@@ -1,13 +1,12 @@
 use serde::Deserialize;
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     receiver::deserialize_into_object_id,
     vocabulary::{NOTE, PERSON},
 };
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::posts::queries::{
     delete_post,
@@ -28,7 +27,7 @@ struct Delete {
 
 pub async fn handle_delete(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     let activity: Delete = serde_json::from_value(activity)

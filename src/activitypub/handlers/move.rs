@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     builders::{
@@ -13,7 +12,7 @@ use crate::activitypub::{
     vocabulary::PERSON,
 };
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{
     notifications::queries::create_move_notification,
@@ -36,7 +35,7 @@ struct Move {
 
 pub async fn handle_move(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     // Move(Person)

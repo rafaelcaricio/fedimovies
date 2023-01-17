@@ -1,7 +1,10 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::{catch_unique_violation, DatabaseError};
+use crate::database::{
+    catch_unique_violation,
+    DatabaseClient,
+    DatabaseError,
+};
 use crate::identity::{did::Did, did_pkh::DidPkh};
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
@@ -10,7 +13,7 @@ use super::types::{DbUser, User, UserCreateData};
 use super::utils::generate_invite_code;
 
 pub async fn create_invite_code(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
 ) -> Result<String, DatabaseError> {
     let invite_code = generate_invite_code();
     db_client.execute(
@@ -24,7 +27,7 @@ pub async fn create_invite_code(
 }
 
 pub async fn get_invite_codes(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
 ) -> Result<Vec<String>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -41,7 +44,7 @@ pub async fn get_invite_codes(
 }
 
 pub async fn is_valid_invite_code(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     invite_code: &str,
 ) -> Result<bool, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -55,7 +58,7 @@ pub async fn is_valid_invite_code(
 }
 
 pub async fn create_user(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     user_data: UserCreateData,
 ) -> Result<User, DatabaseError> {
     let transaction = db_client.transaction().await?;
@@ -128,7 +131,7 @@ pub async fn create_user(
 }
 
 pub async fn set_user_password(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
     password_hash: String,
 ) -> Result<(), DatabaseError> {
@@ -146,7 +149,7 @@ pub async fn set_user_password(
 }
 
 pub async fn get_user_by_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
 ) -> Result<User, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -165,7 +168,7 @@ pub async fn get_user_by_id(
 }
 
 pub async fn get_user_by_name(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     username: &str,
 ) -> Result<User, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -184,7 +187,7 @@ pub async fn get_user_by_name(
 }
 
 pub async fn is_registered_user(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     username: &str,
 ) -> Result<bool, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -198,7 +201,7 @@ pub async fn is_registered_user(
 }
 
 pub async fn get_user_by_login_address(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     wallet_address: &str,
 ) -> Result<User, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -217,7 +220,7 @@ pub async fn get_user_by_login_address(
 }
 
 pub async fn get_user_by_did(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     did: &Did,
 ) -> Result<User, DatabaseError> {
     // DIDs must be locally unique
@@ -242,7 +245,7 @@ pub async fn get_user_by_did(
 }
 
 pub async fn get_user_by_public_wallet_address(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     currency: &Currency,
     wallet_address: &str,
 ) -> Result<User, DatabaseError> {
@@ -252,7 +255,7 @@ pub async fn get_user_by_public_wallet_address(
 }
 
 pub async fn get_user_count(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
 ) -> Result<i64, DatabaseError> {
     let row = db_client.query_one(
         "SELECT count(user_account) FROM user_account",

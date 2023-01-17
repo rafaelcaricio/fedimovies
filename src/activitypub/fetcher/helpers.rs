@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use tokio_postgres::GenericClient;
-
 use crate::activitypub::{
     actors::helpers::{create_remote_profile, update_remote_profile},
     handlers::create::handle_note,
@@ -11,7 +9,7 @@ use crate::activitypub::{
     types::Object,
 };
 use crate::config::{Config, Instance};
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::posts::helpers::get_local_post_by_id;
 use crate::models::posts::queries::get_post_by_remote_object_id;
@@ -29,7 +27,7 @@ use super::fetchers::{
 };
 
 pub async fn get_or_import_profile_by_actor_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     actor_id: &str,
@@ -105,7 +103,7 @@ pub async fn get_or_import_profile_by_actor_id(
 
 /// Fetches actor profile and saves it into database
 pub async fn import_profile_by_actor_address(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     actor_address: &ActorAddress,
@@ -135,7 +133,7 @@ pub async fn import_profile_by_actor_address(
 }
 
 pub async fn get_or_import_profile_by_actor_address(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     actor_address: &ActorAddress,
@@ -164,7 +162,7 @@ pub async fn get_or_import_profile_by_actor_address(
 
 pub async fn import_post(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     object_id: String,
     object_received: Option<Object>,
 ) -> Result<Post, HandlerError> {

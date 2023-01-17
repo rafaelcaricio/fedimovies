@@ -6,10 +6,9 @@ use serde::{
     de::Error as DeserializerError,
 };
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 
 use crate::config::Config;
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::{
     ConversionError,
     HttpError,
@@ -145,7 +144,7 @@ pub fn deserialize_into_object_id<'de, D>(
 
 pub async fn handle_activity(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     activity: &Value,
     is_authenticated: bool,
 ) -> Result<(), HandlerError> {
@@ -211,7 +210,7 @@ pub async fn handle_activity(
 
 pub async fn receive_activity(
     config: &Config,
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     request: &HttpRequest,
     activity: &Value,
 ) -> Result<(), HandlerError> {

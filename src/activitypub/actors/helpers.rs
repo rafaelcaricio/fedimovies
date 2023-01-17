@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use serde_json::{Value as JsonValue};
-use tokio_postgres::GenericClient;
 
 use crate::activitypub::{
     actors::types::Actor,
@@ -9,6 +8,7 @@ use crate::activitypub::{
     receiver::{parse_property_value, HandlerError},
 };
 use crate::config::Instance;
+use crate::database::DatabaseClient;
 use crate::models::profiles::{
     queries::{create_profile, update_profile},
     types::{
@@ -90,7 +90,7 @@ fn parse_tags(actor: &Actor) -> () {
 }
 
 pub async fn create_remote_profile(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     actor: Actor,
@@ -128,7 +128,7 @@ pub async fn create_remote_profile(
 
 /// Updates remote actor's profile
 pub async fn update_remote_profile(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     profile: DbActorProfile,

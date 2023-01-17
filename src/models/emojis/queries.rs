@@ -1,8 +1,11 @@
 use chrono::{DateTime, Utc};
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::{catch_unique_violation, DatabaseError};
+use crate::database::{
+    catch_unique_violation,
+    DatabaseClient,
+    DatabaseError,
+};
 use crate::models::{
     cleanup::{find_orphaned_files, DeletionQueue},
     instances::queries::create_instance,
@@ -12,7 +15,7 @@ use crate::utils::id::new_uuid;
 use super::types::DbEmoji;
 
 pub async fn create_emoji(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     emoji_name: &str,
     hostname: Option<&str>,
     file_name: &str,
@@ -55,7 +58,7 @@ pub async fn create_emoji(
 }
 
 pub async fn update_emoji(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     emoji_id: &Uuid,
     file_name: &str,
     media_type: &str,
@@ -85,7 +88,7 @@ pub async fn update_emoji(
 }
 
 pub async fn get_emoji_by_remote_object_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     object_id: &str,
 ) -> Result<DbEmoji, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -101,7 +104,7 @@ pub async fn get_emoji_by_remote_object_id(
 }
 
 pub async fn delete_emoji(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     emoji_id: &Uuid,
 ) -> Result<DeletionQueue, DatabaseError> {
     let maybe_row = db_client.query_opt(

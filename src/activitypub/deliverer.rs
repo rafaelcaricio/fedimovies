@@ -7,10 +7,14 @@ use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::time::sleep;
-use tokio_postgres::GenericClient;
 
 use crate::config::Instance;
-use crate::database::{get_database_client, DatabaseError, DbPool};
+use crate::database::{
+    get_database_client,
+    DatabaseClient,
+    DatabaseError,
+    DbPool,
+};
 use crate::http_signatures::create::{
     create_http_signature,
     HttpSignatureError,
@@ -265,7 +269,7 @@ impl OutgoingActivity {
 
     pub async fn enqueue(
         self,
-        db_client: &impl GenericClient,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), DatabaseError> {
         let job_data = OutgoingActivityJobData {
             activity: self.activity,

@@ -1,7 +1,10 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::{catch_unique_violation, DatabaseError};
+use crate::database::{
+    catch_unique_violation,
+    DatabaseClient,
+    DatabaseError,
+};
 use crate::models::notifications::queries::create_reaction_notification;
 use crate::models::posts::queries::{
     update_reaction_count,
@@ -11,7 +14,7 @@ use crate::utils::id::new_uuid;
 use super::types::DbReaction;
 
 pub async fn create_reaction(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     author_id: &Uuid,
     post_id: &Uuid,
     activity_id: Option<&String>,
@@ -48,7 +51,7 @@ pub async fn create_reaction(
 }
 
 pub async fn get_reaction_by_remote_activity_id(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     activity_id: &str,
 ) -> Result<DbReaction, DatabaseError> {
     let maybe_row = db_client.query_opt(
@@ -65,7 +68,7 @@ pub async fn get_reaction_by_remote_activity_id(
 }
 
 pub async fn delete_reaction(
-    db_client: &mut impl GenericClient,
+    db_client: &mut impl DatabaseClient,
     author_id: &Uuid,
     post_id: &Uuid,
 ) -> Result<Uuid, DatabaseError> {
@@ -87,7 +90,7 @@ pub async fn delete_reaction(
 
 /// Finds favourites among given posts and returns their IDs
 pub async fn find_favourited_by_user(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
     posts_ids: &[Uuid],
 ) -> Result<Vec<Uuid>, DatabaseError> {

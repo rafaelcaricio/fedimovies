@@ -1,13 +1,12 @@
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use super::types::{DbBackgroundJob, JobStatus, JobType};
 
 pub async fn enqueue_job(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     job_type: &JobType,
     job_data: &Value,
     scheduled_for: &DateTime<Utc>,
@@ -29,7 +28,7 @@ pub async fn enqueue_job(
 }
 
 pub async fn get_job_batch(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     job_type: &JobType,
     batch_size: i64,
 ) -> Result<Vec<DbBackgroundJob>, DatabaseError> {
@@ -65,7 +64,7 @@ pub async fn get_job_batch(
 }
 
 pub async fn delete_job_from_queue(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     job_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     let deleted_count = db_client.execute(

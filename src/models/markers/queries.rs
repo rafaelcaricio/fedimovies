@@ -1,11 +1,10 @@
-use tokio_postgres::GenericClient;
 use uuid::Uuid;
 
-use crate::database::DatabaseError;
+use crate::database::{DatabaseClient, DatabaseError};
 use super::types::{DbTimelineMarker, Timeline};
 
 pub async fn create_or_update_marker(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
     timeline: Timeline,
     last_read_id: String,
@@ -25,7 +24,7 @@ pub async fn create_or_update_marker(
 }
 
 pub async fn get_marker_opt(
-    db_client: &impl GenericClient,
+    db_client: &impl DatabaseClient,
     user_id: &Uuid,
     timeline: Timeline,
 ) -> Result<Option<DbTimelineMarker>, DatabaseError> {
