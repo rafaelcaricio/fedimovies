@@ -105,7 +105,11 @@ fn get_note_visibility(
 ) -> Visibility {
     let audience = [primary_audience, secondary_audience].concat();
     // Some servers (e.g. Takahe) use "as" namespace
-    const PUBLIC_VARIANTS: [&str; 2] = [AP_PUBLIC, "as:Public"];
+    const PUBLIC_VARIANTS: [&str; 3] = [
+        AP_PUBLIC,
+        "as:Public",
+        "Public",
+    ];
     if audience.iter().any(|item| PUBLIC_VARIANTS.contains(&item.as_str())) {
        return Visibility::Public;
     };

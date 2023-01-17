@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `/api/v1/settings/import_follows` API endpoint.
 - Validation of Monero subscription payout address.
 - Accept webfinger requests where `resource` is actor ID.
-- Adeed support for `as:Public` audience identifier.
+- Adeed support for `as:Public` and `Public` audience identifiers.
 
 ### Changed
 
