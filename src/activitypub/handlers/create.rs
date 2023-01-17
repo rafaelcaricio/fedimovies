@@ -371,8 +371,8 @@ pub async fn handle_note(
             } else if tag_type == EMOJI {
                 let tag: EmojiTag = match serde_json::from_value(tag_value) {
                     Ok(tag) => tag,
-                    Err(_) => {
-                        log::warn!("invalid emoji tag");
+                    Err(error) => {
+                        log::warn!("invalid emoji tag: {}", error);
                         continue;
                     },
                 };
