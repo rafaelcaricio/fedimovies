@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Don't stop activity processing on invalid local mentions.
 - Accept actor objects where `attachment` property value is not an array.
 - Don't download HTML pages attached by GNU Social.
+- Ignore `Like()` activity if local post doesn't exist.
 
 ## [1.9.0] - 2023-01-08
 
