@@ -4,7 +4,9 @@ use actix_web::{
     http::Method,
     middleware::Logger as ActixLogger,
     web,
-    App, HttpServer,
+    App,
+    HttpResponse,
+    HttpServer,
 };
 use tokio::sync::Mutex;
 
@@ -160,7 +162,12 @@ async fn main() -> std::io::Result<()> {
             .service(nodeinfo::get_nodeinfo)
             .service(nodeinfo::get_nodeinfo_2_0)
             .service(web_client::profile_page_redirect())
-            .service(web_client::post_page_redirect());
+            .service(web_client::post_page_redirect())
+            .service(
+                // Fallback for well-known paths
+                web::resource("/.well-known/{path}")
+                    .to(HttpResponse::NotFound)
+            );
         if let Some(blockchain_config) = config.blockchain() {
             if let Some(ethereum_config) = blockchain_config.ethereum_config() {
                 // Serve artifacts if available
