@@ -75,16 +75,16 @@ async fn main() -> std::io::Result<()> {
     scheduler::run(config.clone(), maybe_blockchain, db_pool.clone());
     log::info!("scheduler started");
 
+    let num_workers = std::cmp::max(num_cpus::get(), 4);
     let http_socket_addr = format!(
         "{}:{}",
         config.http_host,
         config.http_port,
     );
-    let num_workers = std::cmp::max(num_cpus::get(), 4);
     // Mutex is used to make server process incoming activities sequentially
     let inbox_mutex = web::Data::new(Mutex::new(()));
 
-    HttpServer::new(move || {
+    let http_server = HttpServer::new(move || {
         let cors_config = match config.environment {
             Environment::Development => {
                 Cors::permissive()
@@ -174,9 +174,12 @@ async fn main() -> std::io::Result<()> {
             app = app.service(web_client::static_service(web_client_dir));
         };
         app
-    })
-    .workers(num_workers)
-    .bind(http_socket_addr)?
-    .run()
-    .await
+    });
+
+    log::info!("listening on {}", http_socket_addr);
+    http_server
+        .workers(num_workers)
+        .bind(http_socket_addr)?
+        .run()
+        .await
 }
