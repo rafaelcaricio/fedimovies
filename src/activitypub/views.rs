@@ -33,6 +33,14 @@ use super::identifiers::{
 use super::receiver::receive_activity;
 
 pub fn is_activitypub_request(headers: &HeaderMap) -> bool {
+    let maybe_user_agent = headers.get("User-Agent")
+        .and_then(|value| value.to_str().ok());
+    if let Some(user_agent) = maybe_user_agent {
+        if user_agent.contains("THIS. IS. GNU social!!!!") {
+            // GNU Social doesn't send valid Accept headers
+            return true;
+        };
+    };
     const CONTENT_TYPES: [&str; 4] = [
         AP_MEDIA_TYPE,
         AS_MEDIA_TYPE,
@@ -45,16 +53,6 @@ pub fn is_activitypub_request(headers: &HeaderMap) -> bool {
             .and_then(|value| value.split(',').next())
             .unwrap_or("");
         return CONTENT_TYPES.contains(&content_type_str);
-    } else {
-        // No Accept header
-        let maybe_user_agent = headers.get("User-Agent")
-            .and_then(|value| value.to_str().ok());
-        if let Some(user_agent) = maybe_user_agent {
-            if user_agent.contains("THIS. IS. GNU social!!!!") {
-                // GNU Social doesn't add Accept header
-                return true;
-            };
-        };
     };
     false
 }
