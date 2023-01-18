@@ -38,7 +38,7 @@ use crate::models::posts::{
         ATTACHMENTS_MAX_NUM,
         CONTENT_MAX_SIZE,
         EMOJI_MAX_SIZE,
-        EMOJI_MEDIA_TYPE,
+        EMOJI_MEDIA_TYPES,
         EMOJIS_MAX_NUM,
     },
 };
@@ -415,9 +415,14 @@ pub async fn handle_note(
                     },
                 };
                 let media_type = match maybe_media_type.as_deref() {
-                    Some(media_type @ EMOJI_MEDIA_TYPE) => media_type,
+                    Some(media_type) if EMOJI_MEDIA_TYPES.contains(&media_type) => {
+                        media_type
+                    },
                     _ => {
-                        log::warn!("unexpected emoji media type: {:?}", maybe_media_type);
+                        log::warn!(
+                            "unexpected emoji media type: {:?}",
+                            maybe_media_type,
+                        );
                         continue;
                     },
                 };
