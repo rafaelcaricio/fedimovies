@@ -6,20 +6,24 @@ use uuid::Uuid;
 
 use crate::errors::{HttpError, ValidationError};
 use crate::identity::did::Did;
-use crate::mastodon_api::pagination::PageSize;
-use crate::mastodon_api::uploads::{save_b64_file, UploadError};
-use crate::models::profiles::types::{
-    DbActorProfile,
-    ExtraField,
-    PaymentOption,
-    ProfileImage,
-    ProfileUpdateData,
+use crate::mastodon_api::{
+    pagination::PageSize,
+    uploads::{save_b64_file, UploadError},
 };
-use crate::models::profiles::validators::validate_username;
-use crate::models::subscriptions::types::Subscription;
-use crate::models::users::types::{
-    validate_local_username,
-    User,
+use crate::models::{
+    profiles::types::{
+        DbActorProfile,
+        ExtraField,
+        PaymentOption,
+        ProfileImage,
+        ProfileUpdateData,
+    },
+    profiles::validators::validate_username,
+    subscriptions::types::Subscription,
+    users::types::{
+        validate_local_username,
+        User,
+    },
 };
 use crate::utils::{
     files::get_file_url,

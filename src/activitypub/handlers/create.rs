@@ -21,29 +21,31 @@ use crate::activitypub::{
 use crate::config::{Config, Instance};
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::{ConversionError, ValidationError};
-use crate::models::attachments::queries::create_attachment;
-use crate::models::emojis::queries::{
-    create_emoji,
-    get_emoji_by_remote_object_id,
-    update_emoji,
-};
-use crate::models::posts::{
-    hashtags::normalize_hashtag,
-    helpers::get_post_by_object_id,
-    mentions::mention_to_address,
-    queries::create_post,
-    types::{Post, PostCreateData, Visibility},
-    validators::{
-        content_allowed_classes,
-        ATTACHMENTS_MAX_NUM,
-        CONTENT_MAX_SIZE,
-        EMOJI_MAX_SIZE,
-        EMOJI_MEDIA_TYPES,
-        EMOJIS_MAX_NUM,
+use crate::models::{
+    attachments::queries::create_attachment,
+    emojis::queries::{
+        create_emoji,
+        get_emoji_by_remote_object_id,
+        update_emoji,
     },
+    posts::{
+        hashtags::normalize_hashtag,
+        helpers::get_post_by_object_id,
+        mentions::mention_to_address,
+        queries::create_post,
+        types::{Post, PostCreateData, Visibility},
+        validators::{
+            content_allowed_classes,
+            ATTACHMENTS_MAX_NUM,
+            CONTENT_MAX_SIZE,
+            EMOJI_MAX_SIZE,
+            EMOJI_MEDIA_TYPES,
+            EMOJIS_MAX_NUM,
+        },
+    },
+    profiles::types::DbActorProfile,
+    users::queries::get_user_by_name,
 };
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::users::queries::get_user_by_name;
 use crate::utils::{
     html::clean_html,
     urls::get_hostname,

@@ -8,9 +8,11 @@ use crate::activitypub::{
 use crate::config::Config;
 use crate::database::DatabaseClient;
 use crate::errors::ValidationError;
-use crate::models::profiles::queries::get_profile_by_remote_actor_id;
-use crate::models::relationships::queries::subscribe_opt;
-use crate::models::users::queries::get_user_by_name;
+use crate::models::{
+    profiles::queries::get_profile_by_remote_actor_id,
+    relationships::queries::subscribe_opt,
+    users::queries::get_user_by_name,
+};
 use super::{HandlerError, HandlerResult};
 
 #[derive(Deserialize)]

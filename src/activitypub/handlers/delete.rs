@@ -8,13 +8,15 @@ use crate::activitypub::{
 use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
-use crate::models::posts::queries::{
-    delete_post,
-    get_post_by_remote_object_id,
-};
-use crate::models::profiles::queries::{
-    delete_profile,
-    get_profile_by_remote_actor_id,
+use crate::models::{
+    posts::queries::{
+        delete_post,
+        get_post_by_remote_object_id,
+    },
+    profiles::queries::{
+        delete_profile,
+        get_profile_by_remote_actor_id,
+    },
 };
 use super::HandlerResult;
 

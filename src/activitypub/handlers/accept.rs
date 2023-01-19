@@ -9,12 +9,14 @@ use crate::activitypub::{
 use crate::config::Config;
 use crate::database::DatabaseClient;
 use crate::errors::ValidationError;
-use crate::models::profiles::queries::get_profile_by_remote_actor_id;
-use crate::models::relationships::queries::{
-    follow_request_accepted,
-    get_follow_request_by_id,
+use crate::models::{
+    profiles::queries::get_profile_by_remote_actor_id,
+    relationships::queries::{
+        follow_request_accepted,
+        get_follow_request_by_id,
+    },
+    relationships::types::FollowRequestStatus,
 };
-use crate::models::relationships::types::FollowRequestStatus;
 use super::HandlerResult;
 
 #[derive(Deserialize)]

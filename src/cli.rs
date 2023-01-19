@@ -11,26 +11,30 @@ use crate::activitypub::{
 };
 use crate::config::Config;
 use crate::database::DatabaseClient;
-use crate::ethereum::signatures::generate_ecdsa_key;
-use crate::ethereum::sync::save_current_block_number;
-use crate::ethereum::utils::key_to_ethereum_address;
-use crate::models::attachments::queries::delete_unused_attachments;
-use crate::models::cleanup::find_orphaned_files;
-use crate::models::emojis::queries::delete_emoji;
-use crate::models::posts::queries::{delete_post, find_extraneous_posts, get_post_by_id};
-use crate::models::profiles::queries::{
-    delete_profile,
-    find_empty_profiles,
-    get_profile_by_id,
-    get_profile_by_remote_actor_id,
+use crate::ethereum::{
+    signatures::generate_ecdsa_key,
+    sync::save_current_block_number,
+    utils::key_to_ethereum_address,
 };
-use crate::models::oauth::queries::delete_oauth_tokens;
-use crate::models::subscriptions::queries::reset_subscriptions;
-use crate::models::users::queries::{
-    create_invite_code,
-    get_invite_codes,
-    get_user_by_id,
-    set_user_password,
+use crate::models::{
+    attachments::queries::delete_unused_attachments,
+    cleanup::find_orphaned_files,
+    emojis::queries::delete_emoji,
+    oauth::queries::delete_oauth_tokens,
+    posts::queries::{delete_post, find_extraneous_posts, get_post_by_id},
+    profiles::queries::{
+        delete_profile,
+        find_empty_profiles,
+        get_profile_by_id,
+        get_profile_by_remote_actor_id,
+    },
+    subscriptions::queries::reset_subscriptions,
+    users::queries::{
+        create_invite_code,
+        get_invite_codes,
+        get_user_by_id,
+        set_user_password,
+    },
 };
 use crate::monero::{
     helpers::check_expired_invoice,

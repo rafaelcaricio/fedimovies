@@ -10,11 +10,13 @@ use crate::activitypub::{
 use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
-use crate::models::posts::queries::{
-    create_post,
-    get_post_by_remote_object_id,
+use crate::models::{
+    posts::queries::{
+        create_post,
+        get_post_by_remote_object_id,
+    },
+    posts::types::PostCreateData,
 };
-use crate::models::posts::types::PostCreateData;
 use super::HandlerResult;
 
 #[derive(Deserialize)]

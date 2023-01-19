@@ -8,12 +8,14 @@ use crate::activitypub::{
 use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
-use crate::models::notifications::queries::{
-    create_subscription_expiration_notification,
+use crate::models::{
+    notifications::queries::{
+        create_subscription_expiration_notification,
+    },
+    profiles::queries::get_profile_by_remote_actor_id,
+    relationships::queries::unsubscribe,
+    users::queries::get_user_by_name,
 };
-use crate::models::profiles::queries::get_profile_by_remote_actor_id;
-use crate::models::relationships::queries::unsubscribe;
-use crate::models::users::queries::get_user_by_name;
 use super::{HandlerError, HandlerResult};
 
 #[derive(Deserialize)]
