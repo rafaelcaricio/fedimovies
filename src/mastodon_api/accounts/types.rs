@@ -22,6 +22,8 @@ use crate::models::{
     subscriptions::types::Subscription,
     users::types::{
         validate_local_username,
+        Role,
+        Permission,
         User,
     },
 };
@@ -53,6 +55,39 @@ pub struct Source {
     pub fields: Vec<AccountField>,
 }
 
+/// https://docs.joinmastodon.org/entities/Role/
+#[derive(Serialize)]
+pub struct ApiRole {
+    pub id: i32,
+    pub name: String,
+    pub permissions: Vec<String>,
+}
+
+impl ApiRole {
+    fn from_db(role: Role) -> Self {
+        let role_name = match role {
+            Role::Guest => unimplemented!(),
+            Role::NormalUser => "user",
+            Role::Admin => "admin",
+            Role::ReadOnlyUser => "read_only_user",
+        };
+        // Mastodon 4.0 uses bitmask
+        let permissions = role.get_permissions().iter()
+            .map(|permission| {
+                match permission {
+                    Permission::CreateFollowRequest => "create_follow_request",
+                    Permission::CreatePost => "create_post",
+                }.to_string()
+            })
+            .collect();
+        Self {
+            id: i16::from(&role).into(),
+            name: role_name.to_string(),
+            permissions: permissions,
+        }
+    }
+}
+
 /// https://docs.joinmastodon.org/entities/account/
 #[derive(Serialize)]
 pub struct Account {
@@ -74,7 +109,9 @@ pub struct Account {
     pub subscribers_count: i32,
     pub statuses_count: i32,
 
+    // CredentialAccount attributes
     pub source: Option<Source>,
+    pub role: Option<ApiRole>,
 }
 
 impl Account {
@@ -161,6 +198,7 @@ impl Account {
             subscribers_count: profile.subscriber_count,
             statuses_count: profile.post_count,
             source: None,
+            role: None,
         }
     }
 
@@ -177,8 +215,10 @@ impl Account {
             note: user.profile.bio_source.clone(),
             fields: fields_sources,
         };
+        let role = ApiRole::from_db(user.role);
         let mut account = Self::from_profile(user.profile, instance_url);
         account.source = Some(source);
+        account.role = Some(role);
         account
     }
 }

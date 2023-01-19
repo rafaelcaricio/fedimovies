@@ -9,7 +9,7 @@ use crate::identity::{did::Did, did_pkh::DidPkh};
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
 use crate::utils::currencies::Currency;
-use super::types::{DbUser, User, UserCreateData};
+use super::types::{DbUser, Role, User, UserCreateData};
 use super::utils::generate_invite_code;
 
 pub async fn create_invite_code(
@@ -111,9 +111,14 @@ pub async fn create_user(
     let row = transaction.query_one(
         "
         INSERT INTO user_account (
-            id, wallet_address, password_hash, private_key, invite_code
+            id,
+            wallet_address,
+            password_hash,
+            private_key,
+            invite_code,
+            user_role
         )
-        VALUES ($1, $2, $3, $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING user_account
         ",
         &[
@@ -122,6 +127,7 @@ pub async fn create_user(
             &user_data.password_hash,
             &user_data.private_key_pem,
             &user_data.invite_code,
+            &Role::default(),
         ],
     ).await.map_err(catch_unique_violation("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
@@ -270,6 +276,19 @@ mod tests {
     use serial_test::serial;
     use crate::database::test_utils::create_test_database;
     use super::*;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_create_user() {
+        let db_client = &mut create_test_database().await;
+        let user_data = UserCreateData {
+            username: "myname".to_string(),
+            ..Default::default()
+        };
+        let user = create_user(db_client, user_data).await.unwrap();
+        assert_eq!(user.profile.username, "myname");
+        assert_eq!(user.role, Role::NormalUser);
+    }
 
     #[tokio::test]
     #[serial]

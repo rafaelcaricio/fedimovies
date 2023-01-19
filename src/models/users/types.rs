@@ -3,10 +3,80 @@ use postgres_types::FromSql;
 use regex::Regex;
 use uuid::Uuid;
 
+use crate::database::{
+    int_enum::{int_enum_from_sql, int_enum_to_sql},
+    DatabaseTypeError,
+};
 use crate::errors::ValidationError;
 use crate::identity::did::Did;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::currencies::Currency;
+
+#[derive(PartialEq)]
+pub enum Permission {
+    CreateFollowRequest,
+    CreatePost,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Role {
+    Guest,
+    NormalUser,
+    Admin,
+    ReadOnlyUser,
+}
+
+impl Default for Role {
+    fn default() -> Self { Self::NormalUser }
+}
+
+impl Role {
+    pub fn get_permissions(&self) -> Vec<Permission> {
+        match self {
+            Self::Guest => vec![],
+            Self::NormalUser => vec![
+                Permission::CreateFollowRequest,
+                Permission::CreatePost,
+            ],
+            Self::Admin => vec![
+                Permission::CreateFollowRequest,
+                Permission::CreatePost,
+            ],
+            Self::ReadOnlyUser => vec![
+                Permission::CreateFollowRequest,
+            ],
+        }
+    }
+}
+
+impl From<&Role> for i16 {
+    fn from(value: &Role) -> i16 {
+        match value {
+            Role::Guest => 0,
+            Role::NormalUser => 1,
+            Role::Admin => 2,
+            Role::ReadOnlyUser => 3,
+        }
+    }
+}
+
+impl TryFrom<i16> for Role {
+    type Error = DatabaseTypeError;
+
+    fn try_from(value: i16) -> Result<Self, Self::Error> {
+        let role = match value {
+            0 => Self::Guest,
+            1 => Self::NormalUser,
+            2 => Self::Admin,
+            3 => Self::ReadOnlyUser,
+            _ => return Err(DatabaseTypeError),
+        };
+        Ok(role)
+    }
+}
+
+int_enum_from_sql!(Role);
+int_enum_to_sql!(Role);
 
 #[allow(dead_code)]
 #[derive(FromSql)]
@@ -17,6 +87,7 @@ pub struct DbUser {
     password_hash: Option<String>,
     private_key: String,
     invite_code: Option<String>,
+    user_role: Role,
     created_at: DateTime<Utc>,
 }
 
@@ -28,6 +99,7 @@ pub struct User {
     pub wallet_address: Option<String>, // login address
     pub password_hash: Option<String>,
     pub private_key: String,
+    pub role: Role,
     pub profile: DbActorProfile,
 }
 
@@ -42,6 +114,7 @@ impl User {
             wallet_address: db_user.wallet_address,
             password_hash: db_user.password_hash,
             private_key: db_user.private_key,
+            role: db_user.user_role,
             profile: db_profile,
         }
     }

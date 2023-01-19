@@ -20,7 +20,7 @@ use crate::ipfs::store as ipfs_store;
 use crate::ipfs::posts::PostMetadata;
 use crate::ipfs::utils::get_ipfs_url;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::models::posts::helpers::can_view_post;
+use crate::models::posts::helpers::{can_create_post, can_view_post};
 use crate::models::posts::queries::{
     create_post,
     get_post_by_id,
@@ -68,6 +68,9 @@ async fn create_status(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    if !can_create_post(&current_user) {
+        return Err(HttpError::PermissionError);
+    };
     let instance = config.instance();
     let status_data = status_data.into_inner();
     let visibility = match status_data.visibility.as_deref() {
@@ -392,6 +395,9 @@ async fn reblog(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    if !can_create_post(&current_user) {
+        return Err(HttpError::PermissionError);
+    };
     let mut post = get_post_by_id(db_client, &status_id).await?;
     if !post.is_public() || post.repost_of_id.is_some() {
         return Err(HttpError::NotFoundError("post"));

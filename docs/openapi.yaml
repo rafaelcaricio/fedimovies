@@ -114,7 +114,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountWithSource'
+                $ref: '#/components/schemas/CredentialAccount'
         400:
           description: Invalid user data
   /api/v1/accounts/verify_credentials:
@@ -128,7 +128,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountWithSource'
+                $ref: '#/components/schemas/CredentialAccount'
   /api/v1/accounts/update_credentials:
     patch:
       summary: Update the user's display and preferences.
@@ -183,7 +183,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountWithSource'
+                $ref: '#/components/schemas/CredentialAccount'
         400:
           description: Invalid user data.
   /api/v1/accounts/signed_update:
@@ -703,7 +703,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountWithSource'
+                $ref: '#/components/schemas/CredentialAccount'
         400:
           description: Invalid request data.
   /api/v1/settings/export_followers:
@@ -780,7 +780,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountWithSource'
+                $ref: '#/components/schemas/CredentialAccount'
         400:
           description: Invalid data.
   /api/v1/statuses:
@@ -1324,7 +1324,7 @@ components:
         subscribers_count:
           description: The reported subscribers of this profile.
           type: number
-    AccountWithSource:
+    CredentialAccount:
       allOf:
         - $ref: '#/components/schemas/Account'
         - type: object
@@ -1336,6 +1336,9 @@ components:
                 note:
                   description: Profile bio.
                   type: string
+            role:
+              description: The role assigned to the currently authorized user.
+              $ref: '#/components/schemas/Role'
     ActivityParameters:
       type: object
       properties:
@@ -1617,6 +1620,28 @@ components:
           description: Are you receiving this user's replies in your home timeline?
           type: boolean
           default: true
+    Role:
+      type: object
+      properties:
+        id:
+          description: The ID of the role in the database.
+          type: integer
+          example: 1
+        name:
+          description: The name of the role.
+          type: string
+          enum:
+            - user
+            - admin
+            - read_only_user
+        permissions:
+          description: A list of all permissions granted to the role.
+          type: array
+          items:
+            type: string
+            enum:
+              - create_follow_request
+              - create_post
     Signature:
       type: object
       properties:

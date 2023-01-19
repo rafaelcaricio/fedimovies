@@ -5,7 +5,7 @@ use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::reactions::queries::find_favourited_by_user;
 use crate::models::relationships::queries::has_relationship;
 use crate::models::relationships::types::RelationshipType;
-use crate::models::users::types::User;
+use crate::models::users::types::{Permission, User};
 use super::queries::{
     get_post_by_id,
     get_post_by_remote_object_id,
@@ -123,6 +123,13 @@ pub async fn can_view_post(
     Ok(result)
 }
 
+pub fn can_create_post(
+    user: &User,
+) -> bool {
+    let permissions = user.role.get_permissions();
+    permissions.contains(&Permission::CreatePost)
+}
+
 pub async fn get_local_post_by_id(
     db_client: &impl DatabaseClient,
     post_id: &Uuid,
@@ -162,7 +169,7 @@ mod tests {
     use crate::models::posts::types::PostCreateData;
     use crate::models::relationships::queries::{follow, subscribe};
     use crate::models::users::queries::create_user;
-    use crate::models::users::types::UserCreateData;
+    use crate::models::users::types::{Role, User, UserCreateData};
     use super::*;
 
     #[tokio::test]
@@ -295,5 +302,16 @@ mod tests {
             can_view_post(db_client, Some(&subscriber), &post).await.unwrap(),
             true,
         );
+    }
+
+    #[test]
+    fn test_can_create_post() {
+        let mut user = User {
+            role: Role::NormalUser,
+            ..Default::default()
+        };
+        assert_eq!(can_create_post(&user), true);
+        user.role = Role::ReadOnlyUser;
+        assert_eq!(can_create_post(&user), false);
     }
 }
