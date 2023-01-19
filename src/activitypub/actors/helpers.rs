@@ -9,9 +9,9 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::database::DatabaseClient;
-use crate::models::profiles::{
-    queries::{create_profile, update_profile},
-    types::{
+use crate::models::{
+    profiles::queries::{create_profile, update_profile},
+    profiles::types::{
         DbActorProfile,
         ProfileImage,
         ProfileCreateData,
@@ -36,9 +36,10 @@ async fn fetch_actor_images(
             ACTOR_IMAGE_MAX_SIZE,
             media_dir,
         ).await {
-            Ok((file_name, maybe_media_type)) => {
+            Ok((file_name, file_size, maybe_media_type)) => {
                 let image = ProfileImage::new(
                     file_name,
+                    file_size,
                     maybe_media_type,
                 );
                 Some(image)
@@ -59,9 +60,10 @@ async fn fetch_actor_images(
             ACTOR_IMAGE_MAX_SIZE,
             media_dir,
         ).await {
-            Ok((file_name, maybe_media_type)) => {
+            Ok((file_name, file_size, maybe_media_type)) => {
                 let image = ProfileImage::new(
                     file_name,
+                    file_size,
                     maybe_media_type,
                 );
                 Some(image)

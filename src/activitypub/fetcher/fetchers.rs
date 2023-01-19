@@ -110,7 +110,7 @@ pub async fn fetch_file(
     maybe_media_type: Option<&str>,
     file_max_size: usize,
     output_dir: &Path,
-) -> Result<(String, Option<String>), FetchError> {
+) -> Result<(String, usize, Option<String>), FetchError> {
     let client = build_client(instance)?;
     let request_builder =
         build_request(instance, client, Method::GET, url);
@@ -123,7 +123,8 @@ pub async fn fetch_file(
         };
     };
     let file_data = response.bytes().await?;
-    if file_data.len() > file_max_size {
+    let file_size = file_data.len();
+    if file_size > file_max_size {
         return Err(FetchError::OtherError("file is too large"));
     };
     let maybe_media_type = maybe_media_type
@@ -148,7 +149,7 @@ pub async fn fetch_file(
         output_dir,
         maybe_media_type.as_deref(),
     )?;
-    Ok((file_name, maybe_media_type))
+    Ok((file_name, file_size, maybe_media_type))
 }
 
 pub async fn perform_webfinger_query(

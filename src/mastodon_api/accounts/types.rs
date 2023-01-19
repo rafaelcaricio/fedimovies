@@ -237,7 +237,7 @@ fn process_b64_image_field_value(
                 None
             } else {
                 // Decode and save file
-                let (file_name, media_type) = save_b64_file(
+                let (file_name, file_size, media_type) = save_b64_file(
                     &b64_data,
                     form_media_type,
                     output_dir,
@@ -245,6 +245,7 @@ fn process_b64_image_field_value(
                 )?;
                 let image = ProfileImage::new(
                     file_name,
+                    file_size,
                     Some(media_type),
                 );
                 Some(image)
@@ -487,7 +488,7 @@ mod tests {
     #[test]
     fn test_create_account_from_profile() {
         let profile = DbActorProfile {
-            avatar: Some(ProfileImage::new("test".to_string(), None)),
+            avatar: Some(ProfileImage::new("test".to_string(), 1000, None)),
             ..Default::default()
         };
         let account = Account::from_profile(profile, INSTANCE_URL);

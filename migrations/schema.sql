@@ -106,8 +106,9 @@ CREATE TABLE post_reaction (
 CREATE TABLE media_attachment (
     id UUID PRIMARY KEY,
     owner_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
-    media_type VARCHAR(50),
     file_name VARCHAR(200) NOT NULL,
+    file_size INTEGER,
+    media_type VARCHAR(50),
     ipfs_cid VARCHAR(200),
     post_id UUID REFERENCES post (id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()

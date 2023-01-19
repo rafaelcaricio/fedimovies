@@ -129,6 +129,7 @@ mod tests {
         let hostname = "example.org";
         let image = EmojiImage {
             file_name: "test.png".to_string(),
+            file_size: 10000,
             media_type: "image/png".to_string(),
         };
         let object_id = "https://example.org/emojis/test";
@@ -156,6 +157,7 @@ mod tests {
         let db_client = &create_test_database().await;
         let image = EmojiImage {
             file_name: "test.png".to_string(),
+            file_size: 10000,
             media_type: "image/png".to_string(),
         };
         let emoji = create_emoji(

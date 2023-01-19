@@ -40,13 +40,14 @@ pub fn save_b64_file(
     maybe_media_type: Option<String>,
     output_dir: &Path,
     maybe_expected_prefix: Option<&str>,
-) -> Result<(String, String), UploadError> {
-    let data = base64::decode(b64data)?;
-    if data.len() > UPLOAD_MAX_SIZE {
+) -> Result<(String, usize, String), UploadError> {
+    let file_data = base64::decode(b64data)?;
+    let file_size = file_data.len();
+    if file_size > UPLOAD_MAX_SIZE {
         return Err(UploadError::TooLarge);
     };
     // Sniff media type if not provided
-    let media_type = maybe_media_type.or(sniff_media_type(&data))
+    let media_type = maybe_media_type.or(sniff_media_type(&file_data))
         .ok_or(UploadError::InvalidMediaType)?;
     if !SUPPORTED_MEDIA_TYPES.contains(&media_type.as_str()) {
         return Err(UploadError::InvalidMediaType);
@@ -57,9 +58,9 @@ pub fn save_b64_file(
         };
     };
     let file_name = save_file(
-        data,
+        file_data,
         output_dir,
         Some(&media_type),
     )?;
-    Ok((file_name, media_type))
+    Ok((file_name, file_size, media_type))
 }

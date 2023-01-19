@@ -34,16 +34,19 @@ use super::validators::{
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProfileImage {
     pub file_name: String,
+    pub file_size: Option<usize>,
     pub media_type: Option<String>,
 }
 
 impl ProfileImage {
     pub fn new(
         file_name: String,
+        file_size: usize,
         media_type: Option<String>,
     ) -> Self {
         Self {
             file_name,
+            file_size: Some(file_size),
             media_type,
         }
     }

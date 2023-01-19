@@ -14,16 +14,31 @@ pub async fn create_attachment(
     db_client: &impl DatabaseClient,
     owner_id: &Uuid,
     file_name: String,
+    file_size: usize,
     media_type: Option<String>,
 ) -> Result<DbMediaAttachment, DatabaseError> {
     let attachment_id = new_uuid();
+    let file_size: i32 = file_size.try_into()
+        .expect("value should be within bounds");
     let inserted_row = db_client.query_one(
         "
-        INSERT INTO media_attachment (id, owner_id, media_type, file_name)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO media_attachment (
+            id,
+            owner_id,
+            file_name,
+            file_size,
+            media_type
+        )
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING media_attachment
         ",
-        &[&attachment_id, &owner_id, &media_type, &file_name],
+        &[
+            &attachment_id,
+            &owner_id,
+            &file_name,
+            &file_size,
+            &media_type,
+        ],
     ).await?;
     let db_attachment: DbMediaAttachment = inserted_row.try_get("media_attachment")?;
     Ok(db_attachment)
