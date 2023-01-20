@@ -29,6 +29,11 @@ use crate::models::{
         update_emoji,
     },
     emojis::types::EmojiImage,
+    emojis::validators::{
+        validate_emoji_name,
+        EMOJI_MAX_SIZE,
+        EMOJI_MEDIA_TYPES,
+    },
     posts::{
         hashtags::normalize_hashtag,
         helpers::get_post_by_object_id,
@@ -39,8 +44,6 @@ use crate::models::{
             content_allowed_classes,
             ATTACHMENTS_MAX_NUM,
             CONTENT_MAX_SIZE,
-            EMOJI_MAX_SIZE,
-            EMOJI_MEDIA_TYPES,
             EMOJIS_MAX_NUM,
         },
     },
@@ -383,6 +386,10 @@ pub async fn handle_note(
                     continue;
                 };
                 let tag_name = tag.name.trim_matches(':');
+                if validate_emoji_name(tag_name).is_err() {
+                    log::warn!("invalid emoji name");
+                    continue;
+                };
                 let maybe_emoji_id = match get_emoji_by_remote_object_id(
                     db_client,
                     &tag.id,
