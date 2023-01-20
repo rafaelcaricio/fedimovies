@@ -54,23 +54,21 @@ pub struct LinkTag {
     pub name: Option<String>,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EmojiImage {
+pub struct EmojiTagImage {
     #[serde(rename = "type")]
-    object_type: String,
+    pub object_type: String,
     pub url: String,
     pub media_type: Option<String>,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EmojiTag {
     #[serde(rename = "type")]
-    tag_type: String,
-    pub icon: EmojiImage,
+    pub tag_type: String,
+    pub icon: EmojiTagImage,
     pub id: String,
     pub name: String,
     pub updated: DateTime<Utc>,

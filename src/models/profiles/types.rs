@@ -37,6 +37,18 @@ pub struct ProfileImage {
     pub media_type: Option<String>,
 }
 
+impl ProfileImage {
+    pub fn new(
+        file_name: String,
+        media_type: Option<String>,
+    ) -> Self {
+        Self {
+            file_name,
+            media_type,
+        }
+    }
+}
+
 json_from_sql!(ProfileImage);
 json_to_sql!(ProfileImage);
 

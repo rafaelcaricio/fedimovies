@@ -37,10 +37,10 @@ async fn fetch_actor_images(
             media_dir,
         ).await {
             Ok((file_name, maybe_media_type)) => {
-                let image = ProfileImage {
+                let image = ProfileImage::new(
                     file_name,
-                    media_type: maybe_media_type,
-                };
+                    maybe_media_type,
+                );
                 Some(image)
             },
             Err(error) => {
@@ -60,10 +60,10 @@ async fn fetch_actor_images(
             media_dir,
         ).await {
             Ok((file_name, maybe_media_type)) => {
-                let image = ProfileImage {
+                let image = ProfileImage::new(
                     file_name,
-                    media_type: maybe_media_type,
-                };
+                    maybe_media_type,
+                );
                 Some(image)
             },
             Err(error) => {

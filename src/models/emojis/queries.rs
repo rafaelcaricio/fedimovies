@@ -9,27 +9,21 @@ use crate::database::{
 use crate::models::{
     cleanup::{find_orphaned_files, DeletionQueue},
     instances::queries::create_instance,
-    profiles::types::ProfileImage,
 };
 use crate::utils::id::new_uuid;
-use super::types::DbEmoji;
+use super::types::{DbEmoji, EmojiImage};
 
 pub async fn create_emoji(
     db_client: &impl DatabaseClient,
     emoji_name: &str,
     hostname: Option<&str>,
-    file_name: &str,
-    media_type: &str,
+    image: EmojiImage,
     object_id: Option<&str>,
     updated_at: &DateTime<Utc>,
 ) -> Result<DbEmoji, DatabaseError> {
     let emoji_id = new_uuid();
     if let Some(hostname) = hostname {
         create_instance(db_client, hostname).await?;
-    };
-    let image = ProfileImage {
-        file_name: file_name.to_string(),
-        media_type: Some(media_type.to_string()),
     };
     let row = db_client.query_one(
         "
@@ -60,14 +54,9 @@ pub async fn create_emoji(
 pub async fn update_emoji(
     db_client: &impl DatabaseClient,
     emoji_id: &Uuid,
-    file_name: &str,
-    media_type: &str,
+    image: EmojiImage,
     updated_at: &DateTime<Utc>,
 ) -> Result<DbEmoji, DatabaseError> {
-    let image = ProfileImage {
-        file_name: file_name.to_string(),
-        media_type: Some(media_type.to_string()),
-    };
     let row = db_client.query_one(
         "
         UPDATE emoji
@@ -138,16 +127,17 @@ mod tests {
         let db_client = &create_test_database().await;
         let emoji_name = "test";
         let hostname = "example.org";
-        let file_name = "test.png";
-        let media_type = "image/png";
+        let image = EmojiImage {
+            file_name: "test.png".to_string(),
+            media_type: "image/png".to_string(),
+        };
         let object_id = "https://example.org/emojis/test";
         let updated_at = Utc::now();
         let DbEmoji { id: emoji_id, .. } = create_emoji(
             db_client,
             emoji_name,
             Some(hostname),
-            file_name,
-            media_type,
+            image,
             Some(object_id),
             &updated_at,
         ).await.unwrap();
@@ -164,12 +154,15 @@ mod tests {
     #[serial]
     async fn test_delete_emoji() {
         let db_client = &create_test_database().await;
+        let image = EmojiImage {
+            file_name: "test.png".to_string(),
+            media_type: "image/png".to_string(),
+        };
         let emoji = create_emoji(
             db_client,
             "test",
             None,
-            "test.png",
-            "image/png",
+            image,
             None,
             &Utc::now(),
         ).await.unwrap();

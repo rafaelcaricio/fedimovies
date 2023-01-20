@@ -28,6 +28,7 @@ use crate::models::{
         get_emoji_by_remote_object_id,
         update_emoji,
     },
+    emojis::types::EmojiImage,
     posts::{
         hashtags::normalize_hashtag,
         helpers::get_post_by_object_id,
@@ -416,8 +417,8 @@ pub async fn handle_note(
                         continue;
                     },
                 };
-                let media_type = match maybe_media_type.as_deref() {
-                    Some(media_type) if EMOJI_MEDIA_TYPES.contains(&media_type) => {
+                let media_type = match maybe_media_type {
+                    Some(media_type) if EMOJI_MEDIA_TYPES.contains(&media_type.as_str()) => {
                         media_type
                     },
                     _ => {
@@ -429,12 +430,12 @@ pub async fn handle_note(
                     },
                 };
                 log::info!("downloaded emoji {}", tag.icon.url);
+                let image = EmojiImage { file_name, media_type };
                 let emoji = if let Some(emoji_id) = maybe_emoji_id {
                     update_emoji(
                         db_client,
                         &emoji_id,
-                        &file_name,
-                        media_type,
+                        image,
                         &tag.updated,
                     ).await?
                 } else {
@@ -444,8 +445,7 @@ pub async fn handle_note(
                         db_client,
                         tag_name,
                         Some(&hostname),
-                        &file_name,
-                        media_type,
+                        image,
                         Some(&tag.id),
                         &tag.updated,
                     ).await?
