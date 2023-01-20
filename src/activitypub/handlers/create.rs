@@ -142,7 +142,7 @@ fn get_note_visibility(
     Visibility::Direct
 }
 
-const ATTACHMENT_MAX_SIZE: u64 = 20 * 1000 * 1000;
+const ATTACHMENT_MAX_SIZE: usize = 20 * 1000 * 1000; // 20 MB
 
 fn is_gnu_social_link(author_id: &str, attachment: &Attachment) -> bool {
     if !author_id.contains("/index.php/user/") {

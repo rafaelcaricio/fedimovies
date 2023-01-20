@@ -19,7 +19,7 @@ use crate::models::profiles::{
     },
 };
 
-const ACTOR_IMAGE_MAX_SIZE: u64 = 5 * 1000 * 1000; // 5 MB
+const ACTOR_IMAGE_MAX_SIZE: usize = 5 * 1000 * 1000; // 5 MB
 
 async fn fetch_actor_images(
     instance: &Instance,

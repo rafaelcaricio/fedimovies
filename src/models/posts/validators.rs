@@ -2,7 +2,7 @@ use crate::errors::ValidationError;
 use crate::utils::html::clean_html_strict;
 
 pub const ATTACHMENTS_MAX_NUM: usize = 15;
-pub const EMOJI_MAX_SIZE: u64 = 250 * 1000; // 250 kB
+pub const EMOJI_MAX_SIZE: usize = 250 * 1000; // 250 kB
 pub const EMOJI_MEDIA_TYPES: [&str; 2] = [
     "image/gif",
     "image/png",

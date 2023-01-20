@@ -108,7 +108,7 @@ pub async fn fetch_file(
     instance: &Instance,
     url: &str,
     maybe_media_type: Option<&str>,
-    file_max_size: u64,
+    file_max_size: usize,
     output_dir: &Path,
 ) -> Result<(String, Option<String>), FetchError> {
     let client = build_client(instance)?;
@@ -116,12 +116,14 @@ pub async fn fetch_file(
         build_request(instance, client, Method::GET, url);
     let response = request_builder.send().await?.error_for_status()?;
     if let Some(file_size) = response.content_length() {
+        let file_size: usize = file_size.try_into()
+            .expect("value should be within bounds");
         if file_size > file_max_size {
             return Err(FetchError::OtherError("file is too large"));
         };
     };
     let file_data = response.bytes().await?;
-    if file_data.len() > file_max_size as usize {
+    if file_data.len() > file_max_size {
         return Err(FetchError::OtherError("file is too large"));
     };
     let maybe_media_type = maybe_media_type
