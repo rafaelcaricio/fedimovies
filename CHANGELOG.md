@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `import-emoji` command.
 - Added support for emoji shortcodes.
 
+### Changed
+
+- Make `delete-emoji` command accept emoji name and hostname instead of ID.
+
 ### Security
 
 - Validate emoji name before saving.

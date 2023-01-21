@@ -19,6 +19,7 @@ use crate::ethereum::{
 use crate::models::{
     attachments::queries::delete_unused_attachments,
     cleanup::find_orphaned_files,
+    emojis::helpers::get_emoji_by_name,
     emojis::queries::{
         create_emoji,
         delete_emoji,
@@ -267,7 +268,8 @@ impl DeletePost {
 /// Delete custom emoji
 #[derive(Parser)]
 pub struct DeleteEmoji {
-    id: Uuid,
+    emoji_name: String,
+    hostname: Option<String>,
 }
 
 impl DeleteEmoji {
@@ -276,7 +278,12 @@ impl DeleteEmoji {
         config: &Config,
         db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        let deletion_queue = delete_emoji(db_client, &self.id).await?;
+        let emoji = get_emoji_by_name(
+            db_client,
+            &self.emoji_name,
+            self.hostname.as_deref(),
+        ).await?;
+        let deletion_queue = delete_emoji(db_client, &emoji.id).await?;
         deletion_queue.process(config).await;
         println!("emoji deleted");
         Ok(())

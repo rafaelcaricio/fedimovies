@@ -53,7 +53,7 @@ mitractl delete-post 55a3005f-f293-4168-ab70-6ab09a879679
 Delete custom emoji:
 
 ```shell
-mitractl delete-emoji 55a3005f-f293-4168-ab70-6ab09a879679
+mitractl delete-emoji emoji_name example.org
 ```
 
 Remove remote posts and media older than 30 days:
@@ -77,7 +77,7 @@ mitractl delete-empty-profiles 100
 Import custom emoji from another instance:
 
 ```shell
-mitractl import-emoji emojiname example.org
+mitractl import-emoji emoji_name example.org
 ```
 
 Generate ethereum address:
