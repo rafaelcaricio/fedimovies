@@ -318,7 +318,7 @@ pub async fn handle_emoji(
 
 pub async fn get_object_tags(
     config: &Config,
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     object: &Object,
     redirects: &HashMap<String, String>,
 ) -> Result<(Vec<Uuid>, Vec<String>, Vec<Uuid>, Vec<Uuid>), HandlerError> {

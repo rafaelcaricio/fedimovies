@@ -73,7 +73,7 @@ fn key_id_to_actor_id(key_id: &str) -> Result<String, AuthenticationError> {
 
 async fn get_signer(
     config: &Config,
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     signer_id: &str,
     no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {
@@ -100,7 +100,7 @@ async fn get_signer(
 /// Verifies HTTP signature and returns signer
 pub async fn verify_signed_request(
     config: &Config,
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     request: &HttpRequest,
     no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {
@@ -131,7 +131,7 @@ pub async fn verify_signed_request(
 /// Verifies JSON signature and returns signer
 pub async fn verify_signed_activity(
     config: &Config,
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     activity: &Value,
     no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {

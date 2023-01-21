@@ -95,7 +95,7 @@ struct UpdatePerson {
 
 async fn handle_update_person(
     config: &Config,
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     let activity: UpdatePerson = serde_json::from_value(activity)

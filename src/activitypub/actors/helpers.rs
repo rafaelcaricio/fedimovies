@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use uuid::Uuid;
+
 use mitra_config::Instance;
 
 use crate::activitypub::{
@@ -86,7 +88,7 @@ async fn parse_tags(
     instance: &Instance,
     media_dir: &Path,
     actor: &Actor,
-) -> Result<(), HandlerError> {
+) -> Result<Vec<Uuid>, HandlerError> {
     let mut emojis = vec![];
     for tag_value in actor.tag.clone() {
         let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
@@ -112,11 +114,11 @@ async fn parse_tags(
             log::warn!("skipping actor tag of type {}", tag_type);
         };
     };
-    Ok(())
+    Ok(emojis)
 }
 
 pub async fn create_remote_profile(
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     actor: Actor,
@@ -134,7 +136,7 @@ pub async fn create_remote_profile(
     ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
-    parse_tags(
+    let emojis = parse_tags(
         db_client,
         instance,
         media_dir,
@@ -150,6 +152,7 @@ pub async fn create_remote_profile(
         identity_proofs,
         payment_options,
         extra_fields,
+        emojis,
         actor_json: Some(actor),
     };
     profile_data.clean()?;
@@ -159,7 +162,7 @@ pub async fn create_remote_profile(
 
 /// Updates remote actor's profile
 pub async fn update_remote_profile(
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     profile: DbActorProfile,
@@ -189,7 +192,7 @@ pub async fn update_remote_profile(
     ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
-    parse_tags(
+    let emojis = parse_tags(
         db_client,
         instance,
         media_dir,
@@ -204,6 +207,7 @@ pub async fn update_remote_profile(
         identity_proofs,
         payment_options,
         extra_fields,
+        emojis,
         actor_json: Some(actor),
     };
     profile_data.clean()?;

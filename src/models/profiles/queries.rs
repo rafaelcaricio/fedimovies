@@ -19,6 +19,7 @@ use crate::models::{
         find_orphaned_ipfs_objects,
         DeletionQueue,
     },
+    emojis::types::DbEmoji,
     instances::queries::create_instance,
     relationships::types::RelationshipType,
 };
@@ -31,16 +32,42 @@ use super::types::{
     ProfileUpdateData,
 };
 
+async fn create_profile_emojis(
+    db_client: &impl DatabaseClient,
+    profile_id: &Uuid,
+    emojis: Vec<Uuid>,
+) -> Result<Vec<DbEmoji>, DatabaseError> {
+    let emojis_rows = db_client.query(
+        "
+        INSERT INTO profile_emoji (profile_id, emoji_id)
+        SELECT $1, emoji.id FROM emoji WHERE id = ANY($2)
+        RETURNING (
+            SELECT emoji FROM emoji
+            WHERE emoji.id = emoji_id
+        )
+        ",
+        &[&profile_id, &emojis],
+    ).await?;
+    if emojis_rows.len() != emojis.len() {
+        return Err(DatabaseError::NotFound("emoji"));
+    };
+    let emojis = emojis_rows.iter()
+        .map(|row| row.try_get("emoji"))
+        .collect::<Result<_, _>>()?;
+    Ok(emojis)
+}
+
 /// Create new profile using given Client or Transaction.
 pub async fn create_profile(
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     profile_data: ProfileCreateData,
 ) -> Result<DbActorProfile, DatabaseError> {
+    let transaction = db_client.transaction().await?;
     let profile_id = generate_ulid();
     if let Some(ref hostname) = profile_data.hostname {
-        create_instance(db_client, hostname).await?;
+        create_instance(&transaction, hostname).await?;
     };
-    let row = db_client.query_one(
+    let row = transaction.query_one(
         "
         INSERT INTO actor_profile (
             id, username, hostname, display_name, bio, bio_source,
@@ -67,15 +94,25 @@ pub async fn create_profile(
         ],
     ).await.map_err(catch_unique_violation("profile"))?;
     let profile = row.try_get("actor_profile")?;
+
+    // Create related objects
+    create_profile_emojis(
+        &transaction,
+        &profile_id,
+        profile_data.emojis,
+    ).await?;
+
+    transaction.commit().await?;
     Ok(profile)
 }
 
 pub async fn update_profile(
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     profile_id: &Uuid,
-    data: ProfileUpdateData,
+    profile_data: ProfileUpdateData,
 ) -> Result<DbActorProfile, DatabaseError> {
-    let maybe_row = db_client.query_opt(
+    let transaction = db_client.transaction().await?;
+    let maybe_row = transaction.query_opt(
         "
         UPDATE actor_profile
         SET
@@ -93,22 +130,35 @@ pub async fn update_profile(
         RETURNING actor_profile
         ",
         &[
-            &data.display_name,
-            &data.bio,
-            &data.bio_source,
-            &data.avatar,
-            &data.banner,
-            &IdentityProofs(data.identity_proofs),
-            &PaymentOptions(data.payment_options),
-            &ExtraFields(data.extra_fields),
-            &data.actor_json,
+            &profile_data.display_name,
+            &profile_data.bio,
+            &profile_data.bio_source,
+            &profile_data.avatar,
+            &profile_data.banner,
+            &IdentityProofs(profile_data.identity_proofs),
+            &PaymentOptions(profile_data.payment_options),
+            &ExtraFields(profile_data.extra_fields),
+            &profile_data.actor_json,
             &profile_id,
         ],
     ).await?;
-    let profile = match maybe_row {
+    let profile: DbActorProfile = match maybe_row {
         Some(row) => row.try_get("actor_profile")?,
         None => return Err(DatabaseError::NotFound("profile")),
     };
+
+    // Delete and re-create related objects
+    transaction.execute(
+        "DELETE FROM profile_emoji WHERE profile_id = $1",
+        &[&profile.id],
+    ).await?;
+    create_profile_emojis(
+        &transaction,
+        &profile.id,
+        profile_data.emojis,
+    ).await?;
+
+    transaction.commit().await?;
     Ok(profile)
 }
 
@@ -706,8 +756,8 @@ mod tests {
             username: "test".to_string(),
             ..Default::default()
         };
-        let db_client = create_test_database().await;
-        let profile = create_profile(&db_client, profile_data).await.unwrap();
+        let db_client = &mut create_test_database().await;
+        let profile = create_profile(db_client, profile_data).await.unwrap();
         assert_eq!(profile.username, "test");
         assert_eq!(profile.hostname, None);
         assert_eq!(profile.acct, "test");
@@ -725,8 +775,8 @@ mod tests {
             actor_json: Some(create_test_actor("https://example.com/users/test")),
             ..Default::default()
         };
-        let db_client = create_test_database().await;
-        let profile = create_profile(&db_client, profile_data).await.unwrap();
+        let db_client = &mut create_test_database().await;
+        let profile = create_profile(db_client, profile_data).await.unwrap();
         assert_eq!(profile.username, "test");
         assert_eq!(profile.hostname.unwrap(), "example.com");
         assert_eq!(profile.acct, "test@example.com");
@@ -739,7 +789,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_actor_id_unique() {
-        let db_client = create_test_database().await;
+        let db_client = &mut create_test_database().await;
         let actor_id = "https://example.com/users/test";
         let profile_data_1 = ProfileCreateData {
             username: "test-1".to_string(),
@@ -747,31 +797,31 @@ mod tests {
             actor_json: Some(create_test_actor(actor_id)),
             ..Default::default()
         };
-        create_profile(&db_client, profile_data_1).await.unwrap();
+        create_profile(db_client, profile_data_1).await.unwrap();
         let profile_data_2 = ProfileCreateData {
             username: "test-2".to_string(),
             hostname: Some("example.com".to_string()),
             actor_json: Some(create_test_actor(actor_id)),
             ..Default::default()
         };
-        let error = create_profile(&db_client, profile_data_2).await.err().unwrap();
+        let error = create_profile(db_client, profile_data_2).await.err().unwrap();
         assert_eq!(error.to_string(), "profile already exists");
     }
 
     #[tokio::test]
     #[serial]
     async fn test_update_profile() {
-        let db_client = create_test_database().await;
+        let db_client = &mut create_test_database().await;
         let profile_data = ProfileCreateData {
             username: "test".to_string(),
             ..Default::default()
         };
-        let profile = create_profile(&db_client, profile_data).await.unwrap();
+        let profile = create_profile(db_client, profile_data).await.unwrap();
         let mut profile_data = ProfileUpdateData::from(&profile);
         let bio = "test bio";
         profile_data.bio = Some(bio.to_string());
         let profile_updated = update_profile(
-            &db_client,
+            db_client,
             &profile.id,
             profile_data,
         ).await.unwrap();
@@ -784,9 +834,9 @@ mod tests {
     #[serial]
     async fn test_delete_profile() {
         let profile_data = ProfileCreateData::default();
-        let mut db_client = create_test_database().await;
-        let profile = create_profile(&db_client, profile_data).await.unwrap();
-        let deletion_queue = delete_profile(&mut db_client, &profile.id).await.unwrap();
+        let db_client = &mut create_test_database().await;
+        let profile = create_profile(db_client, profile_data).await.unwrap();
+        let deletion_queue = delete_profile(db_client, &profile.id).await.unwrap();
         assert_eq!(deletion_queue.files.len(), 0);
         assert_eq!(deletion_queue.ipfs_objects.len(), 0);
     }
@@ -855,7 +905,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_set_reachability_status() {
-        let db_client = &create_test_database().await;
+        let db_client = &mut create_test_database().await;
         let actor_id = "https://example.com/users/test";
         let profile_data = ProfileCreateData {
             username: "test".to_string(),

@@ -31,7 +31,7 @@ use super::fetchers::{
 };
 
 pub async fn get_or_import_profile_by_actor_id(
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     actor_id: &str,
@@ -107,7 +107,7 @@ pub async fn get_or_import_profile_by_actor_id(
 
 /// Fetches actor profile and saves it into database
 pub async fn import_profile_by_actor_address(
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     actor_address: &ActorAddress,
@@ -138,7 +138,7 @@ pub async fn import_profile_by_actor_address(
 
 // Works with local profiles
 pub async fn get_or_import_profile_by_actor_address(
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     instance: &Instance,
     media_dir: &Path,
     actor_address: &ActorAddress,

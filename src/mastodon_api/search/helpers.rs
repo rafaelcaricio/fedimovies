@@ -99,7 +99,7 @@ fn parse_search_query(search_query: &str) -> SearchQuery {
 
 async fn search_profiles_or_import(
     config: &Config,
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     username: String,
     mut maybe_hostname: Option<String>,
     limit: u16,
@@ -183,7 +183,7 @@ async fn find_post_by_url(
 
 async fn find_profile_by_url(
     config: &Config,
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     url: &str,
 ) -> Result<Option<DbActorProfile>, DatabaseError> {
     let profile = match parse_local_actor_id(

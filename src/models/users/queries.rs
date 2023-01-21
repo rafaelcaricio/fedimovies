@@ -71,7 +71,7 @@ pub async fn create_user(
     db_client: &mut impl DatabaseClient,
     user_data: UserCreateData,
 ) -> Result<User, DatabaseError> {
-    let transaction = db_client.transaction().await?;
+    let mut transaction = db_client.transaction().await?;
     // Prevent changes to actor_profile table
     transaction.execute(
         "LOCK TABLE actor_profile IN EXCLUSIVE MODE",
@@ -114,9 +114,10 @@ pub async fn create_user(
         identity_proofs: vec![],
         payment_options: vec![],
         extra_fields: vec![],
+        emojis: vec![],
         actor_json: None,
     };
-    let profile = create_profile(&transaction, profile_data).await?;
+    let profile = create_profile(&mut transaction, profile_data).await?;
     // Create user
     let row = transaction.query_one(
         "

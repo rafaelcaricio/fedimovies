@@ -236,7 +236,7 @@ async fn update_credentials(
     db_pool: web::Data<DbPool>,
     account_data: web::Json<AccountUpdateData>,
 ) -> Result<HttpResponse, MastodonError> {
-    let db_client = &**get_database_client(&db_pool).await?;
+    let db_client = &mut **get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     let mut profile_data = account_data.into_inner()
         .into_profile_data(
@@ -384,7 +384,7 @@ async fn create_identity_proof(
     db_pool: web::Data<DbPool>,
     proof_data: web::Json<IdentityProofData>,
 ) -> Result<HttpResponse, MastodonError> {
-    let db_client = &**get_database_client(&db_pool).await?;
+    let db_client = &mut **get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     let did = proof_data.did.parse::<Did>()
         .map_err(|_| ValidationError("invalid DID"))?;

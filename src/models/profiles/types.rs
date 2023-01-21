@@ -439,6 +439,7 @@ pub struct ProfileCreateData {
     pub identity_proofs: Vec<IdentityProof>,
     pub payment_options: Vec<PaymentOption>,
     pub extra_fields: Vec<ExtraField>,
+    pub emojis: Vec<Uuid>,
     pub actor_json: Option<Actor>,
 }
 
@@ -470,6 +471,7 @@ pub struct ProfileUpdateData {
     pub identity_proofs: Vec<IdentityProof>,
     pub payment_options: Vec<PaymentOption>,
     pub extra_fields: Vec<ExtraField>,
+    pub emojis: Vec<Uuid>,
     pub actor_json: Option<Actor>,
 }
 
@@ -517,6 +519,7 @@ impl From<&DbActorProfile> for ProfileUpdateData {
             identity_proofs: profile.identity_proofs.into_inner(),
             payment_options: profile.payment_options.into_inner(),
             extra_fields: profile.extra_fields.into_inner(),
+            emojis: vec![],
             actor_json: profile.actor_json,
         }
     }

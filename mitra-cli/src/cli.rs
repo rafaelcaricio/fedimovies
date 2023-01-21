@@ -210,7 +210,7 @@ impl RefetchActor {
     pub async fn execute(
         &self,
         config: &Config,
-        db_client: &impl DatabaseClient,
+        db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
         let profile = get_profile_by_remote_actor_id(
             db_client,

@@ -358,6 +358,7 @@ impl AccountUpdateData {
             identity_proofs,
             payment_options,
             extra_fields,
+            emojis: vec![],
             actor_json: None, // always None for local profiles
         };
         Ok(profile_data)

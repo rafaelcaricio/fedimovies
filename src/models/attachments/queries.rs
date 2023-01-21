@@ -106,7 +106,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_create_attachment() {
-        let db_client = &create_test_database().await;
+        let db_client = &mut create_test_database().await;
         let profile_data = ProfileCreateData {
             username: "test".to_string(),
             ..Default::default()

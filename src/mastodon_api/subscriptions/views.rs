@@ -107,7 +107,7 @@ pub async fn register_subscription_option(
     maybe_blockchain: web::Data<Option<ContractSet>>,
     subscription_option: web::Json<SubscriptionOption>,
 ) -> Result<HttpResponse, MastodonError> {
-    let db_client = &**get_database_client(&db_pool).await?;
+    let db_client = &mut **get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     if !current_user.role.has_permission(Permission::ManageSubscriptionOptions) {
         return Err(MastodonError::PermissionError);
