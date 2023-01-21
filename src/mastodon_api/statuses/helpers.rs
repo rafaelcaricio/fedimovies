@@ -4,6 +4,7 @@ use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     posts::{
+        emojis::find_emojis,
         hashtags::{find_hashtags, replace_hashtags},
         helpers::{add_related_posts, add_user_actions},
         links::{replace_object_links, find_linked_posts},
@@ -20,6 +21,7 @@ pub struct PostContent {
     pub tags: Vec<String>,
     pub links: Vec<Uuid>,
     pub linked: Vec<Post>,
+    pub emojis: Vec<Uuid>,
 }
 
 pub async fn parse_microsyntaxes(
@@ -59,7 +61,13 @@ pub async fn parse_microsyntaxes(
     );
     let links = link_map.values().map(|post| post.id).collect();
     let linked = link_map.into_values().collect();
-    Ok(PostContent { content, mentions, tags, links, linked })
+    // Emojis
+    let emoji_map = find_emojis(
+        db_client,
+        &content,
+    ).await?;
+    let emojis = emoji_map.values().map(|emoji| emoji.id).collect();
+    Ok(PostContent { content, mentions, tags, links, linked, emojis })
 }
 
 /// Load related objects and build status for API response

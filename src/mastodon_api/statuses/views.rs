@@ -31,7 +31,11 @@ use crate::models::posts::queries::{
     delete_post,
 };
 use crate::models::posts::types::{PostCreateData, Visibility};
-use crate::models::posts::validators::{clean_content, ATTACHMENTS_MAX_NUM};
+use crate::models::posts::validators::{
+    clean_content,
+    ATTACHMENTS_MAX_NUM,
+    EMOJIS_MAX_NUM,
+};
 use crate::models::reactions::queries::{
     create_reaction,
     delete_reaction,
@@ -83,7 +87,7 @@ async fn create_status(
         _ => return Err(ValidationError("unsupported content type").into()),
     };
     // Parse content
-    let PostContent { mut content, mut mentions, tags, links, linked } =
+    let PostContent { mut content, mut mentions, tags, links, linked, emojis } =
         parse_microsyntaxes(
             db_client,
             &instance,
@@ -111,6 +115,12 @@ async fn create_status(
     if links.len() > 0 && visibility != Visibility::Public {
         return Err(ValidationError("can't add links to non-public posts").into());
     };
+
+    // Emoji validation
+    if emojis.len() > EMOJIS_MAX_NUM {
+        return Err(ValidationError("too many emojis").into());
+    };
+
     // Reply validation
     let maybe_in_reply_to = if let Some(in_reply_to_id) = status_data.in_reply_to_id.as_ref() {
         let in_reply_to = match get_post_by_id(db_client, in_reply_to_id).await {
@@ -155,7 +165,7 @@ async fn create_status(
         mentions: mentions,
         tags: tags,
         links: links,
-        emojis: vec![],
+        emojis: emojis,
         object_id: None,
         created_at: Utc::now(),
     };

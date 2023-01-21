@@ -12,12 +12,19 @@ use uuid::Uuid;
 use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
-use crate::models::posts::helpers::{add_related_posts, can_view_post};
-use crate::models::posts::queries::{get_post_by_id, get_posts_by_author};
-use crate::models::users::queries::get_user_by_name;
+use crate::models::{
+    emojis::queries::get_local_emoji_by_name,
+    posts::helpers::{add_related_posts, can_view_post},
+    posts::queries::{get_post_by_id, get_posts_by_author},
+    users::queries::get_user_by_name,
+};
 use crate::web_client::urls::{get_post_page_url, get_profile_page_url};
 use super::actors::types::{get_local_actor, get_instance_actor};
-use super::builders::create_note::{build_note, build_create_note};
+use super::builders::create_note::{
+    build_emoji_tag,
+    build_note,
+    build_create_note,
+};
 use super::collections::{
     COLLECTION_PAGE_SIZE,
     OrderedCollection,
@@ -329,6 +336,27 @@ pub async fn object_view(
         &config.instance().hostname(),
         &config.instance().url(),
         &post,
+    );
+    let response = HttpResponse::Ok()
+        .content_type(AP_MEDIA_TYPE)
+        .json(object);
+    Ok(response)
+}
+
+#[get("/objects/emojis/{emoji_name}")]
+pub async fn emoji_view(
+    config: web::Data<Config>,
+    db_pool: web::Data<DbPool>,
+    emoji_name: web::Path<String>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let emoji = get_local_emoji_by_name(
+        db_client,
+        &emoji_name,
+    ).await?;
+    let object = build_emoji_tag(
+        &config.instance().url(),
+        &emoji,
     );
     let response = HttpResponse::Ok()
         .content_type(AP_MEDIA_TYPE)

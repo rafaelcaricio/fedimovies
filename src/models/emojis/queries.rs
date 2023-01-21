@@ -76,6 +76,41 @@ pub async fn update_emoji(
     Ok(emoji)
 }
 
+pub async fn get_local_emoji_by_name(
+    db_client: &impl DatabaseClient,
+    emoji_name: &str,
+) -> Result<DbEmoji, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT emoji
+        FROM emoji
+        WHERE hostname IS NULL AND emoji_name = $1
+        ",
+        &[&emoji_name],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("emoji"))?;
+    let emoji = row.try_get("emoji")?;
+    Ok(emoji)
+}
+
+pub async fn get_local_emojis_by_names(
+    db_client: &impl DatabaseClient,
+    names: &[String],
+) -> Result<Vec<DbEmoji>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT emoji
+        FROM emoji
+        WHERE hostname IS NULL AND emoji_name = ANY($1)
+        ",
+        &[&names],
+    ).await?;
+    let emojis = rows.iter()
+        .map(|row| row.try_get("emoji"))
+        .collect::<Result<_, _>>()?;
+    Ok(emojis)
+}
+
 pub async fn get_emoji_by_name_and_hostname(
     db_client: &impl DatabaseClient,
     emoji_name: &str,
@@ -172,11 +207,7 @@ mod tests {
     #[serial]
     async fn test_delete_emoji() {
         let db_client = &create_test_database().await;
-        let image = EmojiImage {
-            file_name: "test.png".to_string(),
-            file_size: 10000,
-            media_type: "image/png".to_string(),
-        };
+        let image = EmojiImage::default();
         let emoji = create_emoji(
             db_client,
             "test",

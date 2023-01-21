@@ -158,6 +158,7 @@ async fn main() -> std::io::Result<()> {
             .service(activitypub::actor_scope())
             .service(activitypub::instance_actor_scope())
             .service(activitypub::object_view)
+            .service(activitypub::emoji_view)
             .service(atom::get_atom_feed)
             .service(nodeinfo::get_nodeinfo)
             .service(nodeinfo::get_nodeinfo_2_0)

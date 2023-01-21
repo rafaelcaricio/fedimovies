@@ -9,17 +9,21 @@ use crate::activitypub::{
         local_actor_id,
         local_actor_followers,
         local_actor_subscribers,
+        local_emoji_id,
         local_object_id,
     },
-    types::{Attachment, LinkTag, SimpleTag},
-    vocabulary::{CREATE, DOCUMENT, HASHTAG, LINK, MENTION, NOTE},
+    types::{Attachment, EmojiTag, EmojiTagImage, LinkTag, SimpleTag},
+    vocabulary::*,
 };
 use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::posts::queries::get_post_author;
-use crate::models::posts::types::{Post, Visibility};
-use crate::models::relationships::queries::{get_followers, get_subscribers};
-use crate::models::users::types::User;
+use crate::models::{
+    emojis::types::DbEmoji,
+    posts::queries::get_post_author,
+    posts::types::{Post, Visibility},
+    relationships::queries::{get_followers, get_subscribers},
+    users::types::User,
+};
 use crate::utils::files::get_file_url;
 use crate::web_client::urls::get_tag_page_url;
 
@@ -29,6 +33,7 @@ use crate::web_client::urls::get_tag_page_url;
 enum Tag {
     SimpleTag(SimpleTag),
     LinkTag(LinkTag),
+    EmojiTag(EmojiTag),
 }
 
 #[derive(Serialize)]
@@ -62,6 +67,20 @@ pub struct Note {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     quote_url: Option<String>,
+}
+
+pub fn build_emoji_tag(instance_url: &str, emoji: &DbEmoji) -> EmojiTag {
+    EmojiTag {
+        tag_type: EMOJI.to_string(),
+        icon: EmojiTagImage {
+            object_type: IMAGE.to_string(),
+            url: get_file_url(instance_url, &emoji.image.file_name),
+            media_type: Some(emoji.image.media_type.clone()),
+        },
+        id: local_emoji_id(instance_url, &emoji.emoji_name),
+        name: format!(":{}:", emoji.emoji_name),
+        updated: emoji.updated_at,
+    }
 }
 
 pub fn build_note(
@@ -125,6 +144,7 @@ pub fn build_note(
         };
         tags.push(Tag::SimpleTag(tag));
     };
+
     assert_eq!(post.links.len(), post.linked.len());
     for linked in &post.linked {
         // Build FEP-e232 object link
@@ -140,9 +160,16 @@ pub fn build_note(
     };
     let maybe_quote_url = post.linked.get(0)
         .map(|linked| linked.object_id(instance_url));
+
+    for emoji in &post.emojis {
+        let tag = build_emoji_tag(instance_url, emoji);
+        tags.push(Tag::EmojiTag(tag));
+    };
+
     let in_reply_to_object_id = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
-            let in_reply_to = post.in_reply_to.as_ref().unwrap();
+            let in_reply_to = post.in_reply_to.as_ref()
+                .expect("in_reply_to should be populated");
             assert_eq!(in_reply_to.id, in_reply_to_id);
             let in_reply_to_actor_id = in_reply_to.author.actor_id(instance_url);
             if !primary_audience.contains(&in_reply_to_actor_id) {
@@ -281,6 +308,17 @@ mod tests {
             "href": "https://example.org/tags/test",
             "name": "#test",
         }));
+    }
+
+    #[test]
+    fn test_build_emoji_tag() {
+        let emoji = DbEmoji {
+            emoji_name: "test".to_string(),
+            ..Default::default()
+        };
+        let emoji_tag = build_emoji_tag(INSTANCE_URL, &emoji);
+        assert_eq!(emoji_tag.id, "https://example.com/objects/emojis/test");
+        assert_eq!(emoji_tag.name, ":test:");
     }
 
     #[test]

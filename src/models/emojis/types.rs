@@ -9,6 +9,7 @@ use super::validators::EMOJI_MAX_SIZE;
 fn default_emoji_file_size() -> usize { EMOJI_MAX_SIZE }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(test, derive(Default))]
 pub struct EmojiImage {
     pub file_name: String,
     #[serde(default = "default_emoji_file_size")]
@@ -20,6 +21,7 @@ json_from_sql!(EmojiImage);
 json_to_sql!(EmojiImage);
 
 #[derive(Clone, FromSql)]
+#[cfg_attr(test, derive(Default))]
 #[postgres(name = "emoji")]
 pub struct DbEmoji {
     pub id: Uuid,

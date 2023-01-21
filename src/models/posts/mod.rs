@@ -1,3 +1,4 @@
+pub mod emojis;
 pub mod hashtags;
 pub mod helpers;
 pub mod links;
