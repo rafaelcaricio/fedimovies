@@ -11,6 +11,7 @@ use crate::database::{
 use crate::models::{
     cleanup::{find_orphaned_files, DeletionQueue},
     instances::queries::create_instance,
+    profiles::queries::update_emoji_caches,
 };
 use super::types::{DbEmoji, EmojiImage};
 
@@ -73,7 +74,8 @@ pub async fn update_emoji(
             &emoji_id,
         ],
     ).await?;
-    let emoji = row.try_get("emoji")?;
+    let emoji: DbEmoji = row.try_get("emoji")?;
+    update_emoji_caches(db_client, &emoji.id).await?;
     Ok(emoji)
 }
 
@@ -175,6 +177,7 @@ pub async fn delete_emoji(
     ).await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("emoji"))?;
     let emoji: DbEmoji = row.try_get("emoji")?;
+    update_emoji_caches(db_client, &emoji.id).await?;
     let orphaned_files = find_orphaned_files(
         db_client,
         vec![emoji.image.file_name],
