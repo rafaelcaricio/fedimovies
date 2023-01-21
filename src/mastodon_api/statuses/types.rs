@@ -187,6 +187,20 @@ pub struct StatusPreviewData {
 #[derive(Serialize)]
 pub struct StatusPreview {
     pub content: String,
+    pub emojis: Vec<CustomEmoji>
+}
+
+impl StatusPreview {
+    pub fn new(
+        instance_url: &str,
+        content: String,
+        emojis: Vec<DbEmoji>,
+    ) -> Self {
+        let emojis: Vec<CustomEmoji> = emojis.into_iter()
+            .map(|emoji| CustomEmoji::from_db(instance_url, emoji))
+            .collect();
+        Self { content, emojis }
+    }
 }
 
 #[derive(Deserialize)]

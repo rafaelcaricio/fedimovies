@@ -3,6 +3,7 @@ use uuid::Uuid;
 use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
+    emojis::types::DbEmoji,
     posts::{
         emojis::find_emojis,
         hashtags::{find_hashtags, replace_hashtags},
@@ -21,7 +22,7 @@ pub struct PostContent {
     pub tags: Vec<String>,
     pub links: Vec<Uuid>,
     pub linked: Vec<Post>,
-    pub emojis: Vec<Uuid>,
+    pub emojis: Vec<DbEmoji>,
 }
 
 pub async fn parse_microsyntaxes(
@@ -66,7 +67,7 @@ pub async fn parse_microsyntaxes(
         db_client,
         &content,
     ).await?;
-    let emojis = emoji_map.values().map(|emoji| emoji.id).collect();
+    let emojis = emoji_map.into_values().collect();
     Ok(PostContent { content, mentions, tags, links, linked, emojis })
 }
 

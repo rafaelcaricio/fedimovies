@@ -117,6 +117,7 @@ async fn create_status(
     };
 
     // Emoji validation
+    let emojis: Vec<_> = emojis.iter().map(|emoji| emoji.id).collect();
     if emojis.len() > EMOJIS_MAX_NUM {
         return Err(ValidationError("too many emojis").into());
     };
@@ -192,6 +193,7 @@ async fn preview_status(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     get_current_user(db_client, auth.token()).await?;
+    let instance = config.instance();
     let status_data = status_data.into_inner();
     let content = match status_data.content_type.as_str() {
         "text/html" => status_data.status,
@@ -201,15 +203,19 @@ async fn preview_status(
         },
         _ => return Err(ValidationError("unsupported content type").into()),
     };
-    let PostContent { mut content, .. } = parse_microsyntaxes(
+    let PostContent { mut content, emojis, .. } = parse_microsyntaxes(
         db_client,
-        &config.instance(),
+        &instance,
         content,
     ).await?;
     // Clean content
     content = clean_content(&content)?;
     // Return preview
-    let preview = StatusPreview { content };
+    let preview = StatusPreview::new(
+        &instance.url(),
+        content,
+        emojis,
+    );
     Ok(HttpResponse::Ok().json(preview))
 }
 
