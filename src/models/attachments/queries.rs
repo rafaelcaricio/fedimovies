@@ -91,3 +91,38 @@ pub async fn delete_unused_attachments(
         ipfs_objects: orphaned_ipfs_objects,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use serial_test::serial;
+    use crate::database::test_utils::create_test_database;
+    use crate::models::profiles::types::ProfileCreateData;
+    use crate::models::profiles::queries::create_profile;
+    use super::*;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_create_attachment() {
+        let db_client = &create_test_database().await;
+        let profile_data = ProfileCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let profile = create_profile(db_client, profile_data).await.unwrap();
+        let file_name = "test.jpg";
+        let file_size = 10000;
+        let media_type = "image/png";
+        let attachment = create_attachment(
+            db_client,
+            &profile.id,
+            file_name.to_string(),
+            file_size,
+            Some(media_type.to_string()),
+        ).await.unwrap();
+        assert_eq!(attachment.owner_id, profile.id);
+        assert_eq!(attachment.file_name, file_name);
+        assert_eq!(attachment.file_size.unwrap(), file_size as i32);
+        assert_eq!(attachment.media_type.unwrap(), media_type);
+        assert_eq!(attachment.post_id.is_none(), true);
+    }
+}
