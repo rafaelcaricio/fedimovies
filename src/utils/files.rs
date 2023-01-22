@@ -13,8 +13,9 @@ use mime_guess::get_mime_extensions_str;
 use mime_sniffer::MimeTypeSniffer;
 use sha2::{Digest, Sha256};
 
-pub const SUPPORTED_MEDIA_TYPES: [&str; 7] = [
+pub const SUPPORTED_MEDIA_TYPES: [&str; 8] = [
     "audio/mpeg",
+    "image/apng",
     "image/gif",
     "image/jpeg",
     "image/png",

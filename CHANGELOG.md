@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Save sizes of media attachments and other files to database.
 - Added `import-emoji` command.
 - Added support for emoji shortcodes.
+- Allowed custom emojis with `image/apng` media type.
 
 ### Changed
 

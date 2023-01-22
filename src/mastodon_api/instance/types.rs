@@ -28,7 +28,7 @@ struct InstanceStatusLimits {
 
 #[derive(Serialize)]
 struct InstanceMediaLimits {
-    supported_mime_types: [&'static str; 7],
+    supported_mime_types: Vec<String>,
     image_size_limit: usize,
 }
 
@@ -149,7 +149,8 @@ impl InstanceInfo {
                     max_media_attachments: ATTACHMENTS_MAX_NUM,
                 },
                 media_attachments: InstanceMediaLimits {
-                    supported_mime_types: SUPPORTED_MEDIA_TYPES,
+                    supported_mime_types: SUPPORTED_MEDIA_TYPES.iter()
+                        .map(|media_type| media_type.to_string()).collect(),
                     image_size_limit: UPLOAD_MAX_SIZE,
                 },
             },
