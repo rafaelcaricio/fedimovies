@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Error};
-use chrono::{Duration, Utc};
 use clap::Parser;
 use uuid::Uuid;
 
@@ -51,7 +50,7 @@ use crate::utils::{
         generate_rsa_key,
         serialize_private_key,
     },
-    datetime::get_min_datetime,
+    datetime::{days_before_now, get_min_datetime},
     files::remove_files,
     passwords::hash_password,
 };
@@ -293,7 +292,7 @@ impl DeleteEmoji {
 /// Delete old remote posts
 #[derive(Parser)]
 pub struct DeleteExtraneousPosts {
-    days: i64,
+    days: u32,
 }
 
 impl DeleteExtraneousPosts {
@@ -302,7 +301,7 @@ impl DeleteExtraneousPosts {
         config: &Config,
         db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
-        let updated_before = Utc::now() - Duration::days(self.days);
+        let updated_before = days_before_now(self.days);
         let posts = find_extraneous_posts(db_client, &updated_before).await?;
         for post_id in posts {
             let deletion_queue = delete_post(db_client, &post_id).await?;
@@ -316,7 +315,7 @@ impl DeleteExtraneousPosts {
 /// Delete attachments that don't belong to any post
 #[derive(Parser)]
 pub struct DeleteUnusedAttachments {
-    days: i64,
+    days: u32,
 }
 
 impl DeleteUnusedAttachments {
@@ -325,7 +324,7 @@ impl DeleteUnusedAttachments {
         config: &Config,
         db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        let created_before = Utc::now() - Duration::days(self.days);
+        let created_before = days_before_now(self.days);
         let deletion_queue = delete_unused_attachments(
             db_client,
             &created_before,
@@ -366,7 +365,7 @@ impl DeleteOrphanedFiles {
 /// Delete empty remote profiles
 #[derive(Parser)]
 pub struct DeleteEmptyProfiles {
-    days: i64,
+    days: u32,
 }
 
 impl DeleteEmptyProfiles {
@@ -375,7 +374,7 @@ impl DeleteEmptyProfiles {
         config: &Config,
         db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
-        let updated_before = Utc::now() - Duration::days(self.days);
+        let updated_before = days_before_now(self.days);
         let profiles = find_empty_profiles(db_client, &updated_before).await?;
         for profile_id in profiles {
             let profile = get_profile_by_id(db_client, &profile_id).await?;
