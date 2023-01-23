@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.11.0] - 2023-01-23
+
 ### Added
 
 - Save sizes of media attachments and other files to database.
