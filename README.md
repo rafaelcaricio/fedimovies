@@ -16,15 +16,14 @@ Other features:
 - [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
 - Account migrations (from one server to another).
 - Donation buttons.
-- Token-gated registration (can be used to verify membership in some group or to stop bots).
-- Converting posts into NFTs.
-- Saving posts to IPFS.
 
-Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about))
+Follow: [@mitra@mitra.social](https://mitra.social/@mitra)
+
+Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 
 Network stats: https://the-federation.info/mitra
 
-Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
+Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about))
 
 ## Code
 
@@ -38,9 +37,12 @@ Ethereum contracts: https://codeberg.org/silverpill/mitra-contracts
 
 - Rust 1.56+ (when building from source)
 - PostgreSQL 12+
-- IPFS node (optional, see [guide](./docs/ipfs.md))
-- Ethereum node (optional)
-- Monero node and Monero wallet (optional)
+
+Optional:
+
+- Monero node and Monero wallet service
+- Ethereum node
+- IPFS node (see [guide](./docs/ipfs.md))
 
 ## Installation
 
