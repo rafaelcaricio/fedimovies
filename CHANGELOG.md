@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `registration.type` configuration option (replaces `registrations_open`).
 - Implemented roles & permissions.
 - Added "read-only user" role.
+- Added configuration option for automatic assigning of "read-only user" role after registration.
 
 ### Deprecated
 

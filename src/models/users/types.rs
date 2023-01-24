@@ -145,6 +145,7 @@ pub struct UserCreateData {
     pub private_key_pem: String,
     pub wallet_address: Option<String>,
     pub invite_code: Option<String>,
+    pub role: Role,
 }
 
 pub fn validate_local_username(username: &str) -> Result<(), ValidationError> {

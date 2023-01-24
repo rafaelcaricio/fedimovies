@@ -68,7 +68,7 @@ use crate::models::users::queries::{
     get_user_by_did,
     is_valid_invite_code,
 };
-use crate::models::users::types::UserCreateData;
+use crate::models::users::types::{Role, UserCreateData};
 use crate::utils::{
     caip2::ChainId,
     canonicalization::canonicalize_object,
@@ -167,12 +167,18 @@ pub async fn create_account(
 
     let AccountCreateData { username, invite_code, .. } =
         account_data.into_inner();
+    let role = if config.registration.default_role_read_only_user {
+        Role::ReadOnlyUser
+    } else {
+        Role::NormalUser
+    };
     let user_data = UserCreateData {
         username,
         password_hash: maybe_password_hash,
         private_key_pem,
         wallet_address: maybe_wallet_address,
         invite_code,
+        role,
     };
     let user = match create_user(db_client, user_data).await {
         Ok(user) => user,

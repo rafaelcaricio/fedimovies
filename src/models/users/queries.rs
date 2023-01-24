@@ -9,7 +9,7 @@ use crate::identity::{did::Did, did_pkh::DidPkh};
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
 use crate::utils::currencies::Currency;
-use super::types::{DbUser, Role, User, UserCreateData};
+use super::types::{DbUser, User, UserCreateData};
 use super::utils::generate_invite_code;
 
 pub async fn create_invite_code(
@@ -127,7 +127,7 @@ pub async fn create_user(
             &user_data.password_hash,
             &user_data.private_key_pem,
             &user_data.invite_code,
-            &Role::default(),
+            &user_data.role,
         ],
     ).await.map_err(catch_unique_violation("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
@@ -275,6 +275,7 @@ pub async fn get_user_count(
 mod tests {
     use serial_test::serial;
     use crate::database::test_utils::create_test_database;
+    use crate::models::users::types::Role;
     use super::*;
 
     #[tokio::test]

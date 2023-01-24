@@ -46,6 +46,9 @@ impl<'de> Deserialize<'de> for RegistrationType {
 pub struct RegistrationConfig {
     #[serde(rename = "type")]
     pub registration_type: RegistrationType,
+
+    #[serde(default)]
+    pub default_role_read_only_user: bool, // default is false
 }
 
 fn default_log_level() -> LogLevel { LogLevel::Info }
