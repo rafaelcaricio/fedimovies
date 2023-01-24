@@ -101,10 +101,12 @@ async fn send_activity(
         let response = request.send().await?;
         let response_status = response.status();
         let response_text: String = response.text().await?
-            .chars().take(30).collect();
+            .chars().filter(|chr| *chr != '\n' && *chr != '\r').take(75)
+            .collect();
         log::info!(
-            "response from {}: {}",
+            "response from {}: [{}] {}",
             inbox_url,
+            response_status.as_str(),
             response_text,
         );
         if response_status.is_client_error() || response_status.is_server_error() {
