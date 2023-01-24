@@ -106,7 +106,7 @@ pub struct Config {
 
     // Blockchain integrations
     #[serde(rename = "blockchain")]
-    pub _blockchain: Option<BlockchainConfig>, // deprecated
+    _blockchain: Option<BlockchainConfig>, // deprecated
     #[serde(default)]
     blockchains: Vec<BlockchainConfig>,
 
@@ -146,8 +146,8 @@ impl Config {
     }
 
     pub fn blockchain(&self) -> Option<&BlockchainConfig> {
-        if let Some(ref blockchain_config) = self._blockchain {
-            Some(blockchain_config)
+        if let Some(ref _blockchain_config) = self._blockchain {
+            panic!("'blockchain' setting is not supported anymore, use 'blockchains' instead");
         } else {
             match &self.blockchains[..] {
                 [blockchain_config] => Some(blockchain_config),

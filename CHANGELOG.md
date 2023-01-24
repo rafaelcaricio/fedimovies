@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- Dropped support for `blockchain` configuration parameter.
+
 ## [1.11.0] - 2023-01-23
 
 ### Added

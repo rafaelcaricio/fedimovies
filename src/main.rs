@@ -57,9 +57,6 @@ async fn main() -> std::io::Result<()> {
         config.environment,
     );
 
-    if config._blockchain.is_some() {
-        log::warn!("'blockchain' property is deprecated, use 'blockchains' instead");
-    };
     let maybe_blockchain = if let Some(blockchain_config) = config.blockchain() {
         if let Some(ethereum_config) = blockchain_config.ethereum_config() {
             // Create blockchain interface
