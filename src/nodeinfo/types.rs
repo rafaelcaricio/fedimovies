@@ -2,7 +2,7 @@
 
 use serde::Serialize;
 
-use crate::config::{Config, MITRA_VERSION};
+use crate::config::{Config, RegistrationType, MITRA_VERSION};
 
 #[derive(Serialize)]
 struct Software {
@@ -66,7 +66,9 @@ impl NodeInfo20 {
             software,
             protocols: vec!["activitypub".to_string()],
             services,
-            open_registrations: config.registrations_open,
+            open_registrations:
+                config.registration.registration_type !=
+                RegistrationType::Invite,
             usage,
             metadata,
         }

@@ -12,7 +12,7 @@ use crate::utils::crypto_rsa::{
 use crate::utils::files::{set_file_permissions, write_file};
 
 use super::environment::Environment;
-use super::main::Config;
+use super::main::{Config, RegistrationType};
 
 struct EnvConfig {
     config_path: String,
@@ -78,12 +78,14 @@ fn read_instance_rsa_key(storage_dir: &Path) -> RsaPrivateKey {
     }
 }
 
-pub fn parse_config() -> Config {
+pub fn parse_config() -> (Config, Vec<&'static str>) {
     let env = parse_env();
     let config_yaml = std::fs::read_to_string(&env.config_path)
         .expect("failed to load config file");
     let mut config = serde_yaml::from_str::<Config>(&config_yaml)
         .expect("invalid yaml data");
+    let mut warnings = vec![];
+
     // Set parameters from environment
     config.config_path = env.config_path;
     if let Some(environment) = env.environment {
@@ -109,8 +111,18 @@ pub fn parse_config() -> Config {
         panic!("both ipfs_api_url and ipfs_gateway_url must be set");
     };
 
+    if let Some(registrations_open) = config.registrations_open {
+        // Change type if 'registrations_open' parameter is used
+        warnings.push("'registrations_open' setting is deprecated, use 'registration' instead");
+        if registrations_open {
+            config.registration.registration_type = RegistrationType::Open;
+        } else {
+            config.registration.registration_type = RegistrationType::Invite;
+        };
+    };
+
     // Insert instance RSA key
     config.instance_rsa_key = Some(read_instance_rsa_key(&config.storage_dir));
 
-    config
+    (config, warnings)
 }

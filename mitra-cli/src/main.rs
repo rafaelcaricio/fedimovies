@@ -17,9 +17,13 @@ async fn main() {
         SubCommand::GenerateEthereumAddress(cmd) => cmd.execute(),
         subcmd => {
             // Other commands require initialized app
-            let config = parse_config();
+            let (config, config_warnings) = parse_config();
             configure_logger(config.log_level);
             log::info!("config loaded from {}", config.config_path);
+            for warning in config_warnings {
+                log::warn!("{}", warning);
+            };
+
             let db_config = config.database_url.parse().unwrap();
             let db_client = &mut create_database_client(&db_config).await;
             apply_migrations(db_client).await;

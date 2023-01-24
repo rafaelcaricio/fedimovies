@@ -12,7 +12,7 @@ use crate::activitypub::builders::{
         prepare_update_person,
     },
 };
-use crate::config::Config;
+use crate::config::{Config, RegistrationType};
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::contracts::ContractSet;
@@ -111,7 +111,7 @@ pub async fn create_account(
     let db_client = &mut **get_database_client(&db_pool).await?;
     // Validate
     account_data.clean()?;
-    if !config.registrations_open {
+    if config.registration.registration_type == RegistrationType::Invite {
         let invite_code = account_data.invite_code.as_ref()
             .ok_or(ValidationError("invite code is required"))?;
         if !is_valid_invite_code(db_client, invite_code).await? {

@@ -18,7 +18,9 @@ instance_short_description: my instance
 # Long description can contain markdown syntax
 instance_description: my instance
 
-registrations_open: false
+registration:
+  # Possible values: open, invite
+  type: invite
 
 # EIP-4361 login message
 #login_message: 'Do not sign this message on other sites!'

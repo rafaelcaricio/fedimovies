@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Added `approval_required` and `invites_enabled` flags to `/api/v1/instance` endpoint response.
+- Added `registration.type` configuration option (replaces `registrations_open`).
+
+### Deprecated
+
+- `registrations_open` configuration option.
 
 ### Removed
 
