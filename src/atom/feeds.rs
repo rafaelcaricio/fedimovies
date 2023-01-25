@@ -27,13 +27,13 @@ fn make_entry(
         title += "...";
     };
     format!(
-        "<entry>\
-        <id>{url}</id>\
-        <title>{title}</title>\
-        <updated>{updated_at}</updated>\
-        <author><name>{author}</name></author>\
-        <content type=\"html\">{content}</content>\
-        </entry>",
+        r#"<entry>
+    <id>{url}</id>
+    <title>{title}</title>
+    <updated>{updated_at}</updated>
+    <author><name>{author}</name></author>
+    <content type="html">{content}</content>
+</entry>"#,
         url=object_id,
         title=title,
         updated_at=post.created_at.to_rfc3339(),
@@ -64,14 +64,14 @@ pub fn make_feed(
     format!(
         r#"<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-    <id>{url}</id>
-    <title>{title}</title>
-    <updated>{updated_at}</updated>
-    {entries}
+<id>{url}</id>
+<title>{title}</title>
+<updated>{updated_at}</updated>
+{entries}
 </feed>"#,
         url=actor_url,
         title=feed_title,
         updated_at=feed_updated_at.to_rfc3339(),
-        entries=entries.join(""),
+        entries=entries.join("\n"),
     )
 }
