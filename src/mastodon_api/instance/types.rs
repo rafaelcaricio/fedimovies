@@ -63,6 +63,8 @@ pub struct InstanceInfo {
     description_source: String,
     version: String,
     registrations: bool,
+    approval_required: bool,
+    invites_enabled: bool,
     stats: InstanceStats,
     configuration: InstanceConfiguration,
 
@@ -138,6 +140,8 @@ impl InstanceInfo {
             description_source: config.instance_description.clone(),
             version: get_full_api_version(MITRA_VERSION),
             registrations: config.registrations_open,
+            approval_required: false,
+            invites_enabled: !config.registrations_open,
             stats: InstanceStats {
                 user_count,
                 status_count: post_count,

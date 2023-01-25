@@ -1411,6 +1411,12 @@ components:
         registrations:
           description: Whether registrations are enabled.
           type: boolean
+        approval_required:
+          description: Whether registrations require moderator approval.
+          type: boolean
+        invites_enabled:
+          description: Whether invites are enabled.
+          type: boolean
         stats:
           description: Statistics about how much information the instance contains.
           type: object
