@@ -42,15 +42,20 @@ fn make_entry(
     )
 }
 
+pub fn get_feed_url(instance_url: &str, username: &str) -> String {
+    format!("{}/feeds/{}", instance_url, username)
+}
+
 pub fn make_feed(
     instance: &Instance,
     profile: &DbActorProfile,
     posts: Vec<Post>,
 ) -> String {
-    let actor_url = local_actor_id(&instance.url(), &profile.username);
+    let actor_id = local_actor_id(&instance.url(), &profile.username);
     let actor_name = profile.display_name.as_ref()
         .unwrap_or(&profile.username);
     let actor_address = profile.actor_address(&instance.hostname());
+    let feed_url = get_feed_url(&instance.url(), &profile.username);
     let feed_title = format!("{} (@{})", actor_name, actor_address);
     let mut entries = vec![];
     let mut feed_updated_at = get_min_datetime();
@@ -64,12 +69,14 @@ pub fn make_feed(
     format!(
         r#"<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-<id>{url}</id>
+<id>{id}</id>
+<link rel="self" href="{url}"/>
 <title>{title}</title>
 <updated>{updated_at}</updated>
 {entries}
 </feed>"#,
-        url=actor_url,
+        id=actor_id,
+        url=feed_url,
         title=feed_title,
         updated_at=feed_updated_at.to_rfc3339(),
         entries=entries.join("\n"),
