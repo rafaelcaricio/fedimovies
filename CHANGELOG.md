@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Implemented roles & permissions.
 - Added "read-only user" role.
 - Added configuration option for automatic assigning of "read-only user" role after registration.
+- Added `set-role` command.
 
 ### Deprecated
 

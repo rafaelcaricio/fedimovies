@@ -38,6 +38,12 @@ Set or change password:
 mitractl set-password <user-id> <password>
 ```
 
+Change user's role:
+
+```shell
+mitractl set-role <user-id> <role-name>
+```
+
 Delete profile:
 
 ```shell

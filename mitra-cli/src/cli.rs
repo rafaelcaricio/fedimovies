@@ -39,7 +39,9 @@ use mitra::models::{
         get_invite_codes,
         get_user_by_id,
         set_user_password,
+        set_user_role,
     },
+    users::types::Role,
 };
 use mitra::monero::{
     helpers::check_expired_invoice,
@@ -70,6 +72,7 @@ pub enum SubCommand {
     GenerateInviteCode(GenerateInviteCode),
     ListInviteCodes(ListInviteCodes),
     SetPassword(SetPassword),
+    SetRole(SetRole),
     RefetchActor(RefetchActor),
     DeleteProfile(DeleteProfile),
     DeletePost(DeletePost),
@@ -165,6 +168,25 @@ impl SetPassword {
         // Revoke all sessions
         delete_oauth_tokens(db_client, &self.id).await?;
         println!("password updated");
+        Ok(())
+    }
+}
+
+/// Change user's role
+#[derive(Parser)]
+pub struct SetRole {
+    id: Uuid,
+    role: String,
+}
+
+impl SetRole {
+    pub async fn execute(
+        &self,
+        db_client: &impl DatabaseClient,
+    ) -> Result<(), Error> {
+        let role = Role::from_name(&self.role)?;
+        set_user_role(db_client, &self.id, role).await?;
+        println!("role changed");
         Ok(())
     }
 }

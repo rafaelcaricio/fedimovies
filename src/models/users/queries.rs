@@ -9,7 +9,7 @@ use crate::identity::{did::Did, did_pkh::DidPkh};
 use crate::models::profiles::queries::create_profile;
 use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
 use crate::utils::currencies::Currency;
-use super::types::{DbUser, User, UserCreateData};
+use super::types::{DbUser, Role, User, UserCreateData};
 use super::utils::generate_invite_code;
 
 pub async fn create_invite_code(
@@ -147,6 +147,24 @@ pub async fn set_user_password(
         WHERE id = $2
         ",
         &[&password_hash, &user_id],
+    ).await?;
+    if updated_count == 0 {
+        return Err(DatabaseError::NotFound("user"));
+    };
+    Ok(())
+}
+
+pub async fn set_user_role(
+    db_client: &impl DatabaseClient,
+    user_id: &Uuid,
+    role: Role,
+) -> Result<(), DatabaseError> {
+    let updated_count = db_client.execute(
+        "
+        UPDATE user_account SET user_role = $1
+        WHERE id = $2
+        ",
+        &[&role, &user_id],
     ).await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("user"));
@@ -306,5 +324,17 @@ mod tests {
         };
         let result = create_user(db_client, another_user_data).await;
         assert!(matches!(result, Err(DatabaseError::AlreadyExists("user"))));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_set_user_role() {
+        let db_client = &mut create_test_database().await;
+        let user_data = UserCreateData::default();
+        let user = create_user(db_client, user_data).await.unwrap();
+        assert_eq!(user.role, Role::NormalUser);
+        set_user_role(db_client, &user.id, Role::ReadOnlyUser).await.unwrap();
+        let user = get_user_by_id(db_client, &user.id).await.unwrap();
+        assert_eq!(user.role, Role::ReadOnlyUser);
     }
 }
