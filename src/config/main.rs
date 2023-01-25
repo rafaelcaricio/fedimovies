@@ -23,8 +23,8 @@ use super::environment::Environment;
 use super::MITRA_VERSION;
 
 struct EnvConfig {
-    environment: Environment,
     config_path: String,
+    environment: Option<Environment>,
 }
 
 #[cfg(feature = "production")]
@@ -35,15 +35,13 @@ const DEFAULT_CONFIG_PATH: &str = "config.yaml";
 fn parse_env() -> EnvConfig {
     dotenv::from_filename(".env.local").ok();
     dotenv::dotenv().ok();
-    let environment_str = std::env::var("ENVIRONMENT").ok();
-    let environment = environment_str
-        .map(|val| Environment::from_str(&val).expect("invalid environment type"))
-        .unwrap_or_default();
     let config_path = std::env::var("CONFIG_PATH")
         .unwrap_or(DEFAULT_CONFIG_PATH.to_string());
+    let environment = std::env::var("ENVIRONMENT").ok()
+        .map(|val| Environment::from_str(&val).expect("invalid environment type"));
     EnvConfig {
-        environment,
         config_path,
+        environment,
     }
 }
 
@@ -55,6 +53,7 @@ fn default_post_character_limit() -> usize { 2000 }
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
+    // Properties auto-populated from the environment
     #[serde(skip)]
     pub environment: Environment,
 
@@ -250,8 +249,11 @@ pub fn parse_config() -> Config {
     let mut config = serde_yaml::from_str::<Config>(&config_yaml)
         .expect("invalid yaml data");
     // Set parameters from environment
-    config.environment = env.environment;
     config.config_path = env.config_path;
+    if let Some(environment) = env.environment {
+        // Overwrite default only if ENVIRONMENT variable is set
+        config.environment = environment;
+    };
 
     // Validate config
     if !config.storage_dir.exists() {
