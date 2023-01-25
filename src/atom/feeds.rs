@@ -33,6 +33,7 @@ fn make_entry(
     <updated>{updated_at}</updated>
     <author><name>{author}</name></author>
     <content type="html">{content}</content>
+    <link rel="alternate" href="{url}"/>
 </entry>"#,
         url=object_id,
         title=title,

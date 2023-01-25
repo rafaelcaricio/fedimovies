@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Added missing `<link rel="self">` element to Atom feeds.
+- Added missing `<link rel="alternate">` element to Atom feed entries.
 
 ## [1.11.0] - 2023-01-23
 
