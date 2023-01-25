@@ -12,7 +12,7 @@ use tokio::sync::Mutex;
 
 use mitra::activitypub::views as activitypub;
 use mitra::atom::views as atom;
-use mitra::config::{parse_config, Environment};
+use mitra::config::{parse_config, Environment, MITRA_VERSION};
 use mitra::database::{get_database_client, create_pool};
 use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::contracts::get_contracts;
@@ -53,7 +53,7 @@ async fn main() -> std::io::Result<()> {
     };
     log::info!(
         "app initialized; version {}, environment = '{:?}'",
-        config.version,
+        MITRA_VERSION,
         config.environment,
     );
 

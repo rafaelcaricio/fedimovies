@@ -20,11 +20,11 @@ use crate::utils::urls::guess_protocol;
 
 use super::blockchain::BlockchainConfig;
 use super::environment::Environment;
+use super::MITRA_VERSION;
 
 struct EnvConfig {
     environment: Environment,
     config_path: String,
-    crate_version: String,
 }
 
 #[cfg(feature = "production")]
@@ -41,11 +41,9 @@ fn parse_env() -> EnvConfig {
         .unwrap_or_default();
     let config_path = std::env::var("CONFIG_PATH")
         .unwrap_or(DEFAULT_CONFIG_PATH.to_string());
-    let crate_version = env!("CARGO_PKG_VERSION").to_string();
     EnvConfig {
         environment,
         config_path,
-        crate_version,
     }
 }
 
@@ -62,9 +60,6 @@ pub struct Config {
 
     #[serde(skip)]
     pub config_path: String,
-
-    #[serde(skip)]
-    pub version: String,
 
     // Core settings
     pub database_url: String,
@@ -130,7 +125,6 @@ impl Config {
     pub fn instance(&self) -> Instance {
         Instance {
             _url: self.try_instance_url().unwrap(),
-            _version: self.version.clone(),
             actor_key: self.instance_rsa_key.clone().unwrap(),
             proxy_url: self.proxy_url.clone(),
             is_private: matches!(self.environment, Environment::Development),
@@ -161,7 +155,6 @@ impl Config {
 #[derive(Clone)]
 pub struct Instance {
     _url: Url,
-    _version: String,
     // Instance actor
     pub actor_key: RsaPrivateKey,
     // Proxy for outgoing requests
@@ -190,7 +183,7 @@ impl Instance {
     pub fn agent(&self) -> String {
         format!(
             "Mitra {version}; {instance_url}",
-            version=self._version,
+            version=MITRA_VERSION,
             instance_url=self.url(),
         )
     }
@@ -202,7 +195,6 @@ impl Instance {
         use crate::utils::crypto_rsa::generate_weak_rsa_key;
         Self {
             _url: Url::parse(url).unwrap(),
-            _version: "0.0.0".to_string(),
             actor_key: generate_weak_rsa_key().unwrap(),
             proxy_url: None,
             is_private: true,
@@ -260,7 +252,6 @@ pub fn parse_config() -> Config {
     // Set parameters from environment
     config.environment = env.environment;
     config.config_path = env.config_path;
-    config.version = env.crate_version;
 
     // Validate config
     if !config.storage_dir.exists() {
@@ -297,7 +288,6 @@ mod tests {
         let instance_rsa_key = generate_weak_rsa_key().unwrap();
         let instance = Instance {
             _url: instance_url,
-            _version: "1.0.0".to_string(),
             actor_key: instance_rsa_key,
             proxy_url: None,
             is_private: true,
@@ -305,7 +295,10 @@ mod tests {
 
         assert_eq!(instance.url(), "https://example.com");
         assert_eq!(instance.hostname(), "example.com");
-        assert_eq!(instance.agent(), "Mitra 1.0.0; https://example.com");
+        assert_eq!(
+            instance.agent(),
+            format!("Mitra {}; https://example.com", MITRA_VERSION),
+        );
     }
 
     #[test]
@@ -314,7 +307,6 @@ mod tests {
         let instance_rsa_key = generate_weak_rsa_key().unwrap();
         let instance = Instance {
             _url: instance_url,
-            _version: "1.0.0".to_string(),
             actor_key: instance_rsa_key,
             proxy_url: None,
             is_private: true,

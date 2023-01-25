@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::{to_value, Value};
 
-use crate::config::{BlockchainConfig, Config};
+use crate::config::{BlockchainConfig, Config, MITRA_VERSION};
 use crate::ethereum::contracts::ContractSet;
 use crate::mastodon_api::{
     MASTODON_API_VERSION,
@@ -136,7 +136,7 @@ impl InstanceInfo {
             short_description: config.instance_short_description.clone(),
             description: markdown_to_html(&config.instance_description),
             description_source: config.instance_description.clone(),
-            version: get_full_api_version(&config.version),
+            version: get_full_api_version(MITRA_VERSION),
             registrations: config.registrations_open,
             stats: InstanceStats {
                 user_count,

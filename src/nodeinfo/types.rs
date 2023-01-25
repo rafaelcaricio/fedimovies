@@ -2,7 +2,7 @@
 
 use serde::Serialize;
 
-use crate::config::Config;
+use crate::config::{Config, MITRA_VERSION};
 
 #[derive(Serialize)]
 struct Software {
@@ -51,7 +51,7 @@ impl NodeInfo20 {
     pub fn new(config: &Config, usage: Usage) -> Self {
         let software = Software {
             name: "mitra".to_string(),
-            version: config.version.clone(),
+            version: MITRA_VERSION.to_string(),
         };
         let services = Services {
             inbound: vec![],
