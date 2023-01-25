@@ -1,5 +1,6 @@
 mod blockchain;
 mod environment;
+mod loader;
 mod main;
 
 pub use blockchain::{
@@ -8,6 +9,7 @@ pub use blockchain::{
     MoneroConfig,
 };
 pub use environment::Environment;
-pub use main::{parse_config, Config, Instance};
+pub use loader::parse_config;
+pub use main::{Config, Instance};
 
 pub const MITRA_VERSION: &str = env!("CARGO_PKG_VERSION");
