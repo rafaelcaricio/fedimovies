@@ -21,7 +21,8 @@ use crate::models::{
     users::queries::get_user_by_id,
 };
 use super::deliverer::{OutgoingActivity, Recipient};
-use super::receiver::handle_activity;
+use super::fetcher::fetchers::FetchError;
+use super::receiver::{handle_activity, HandlerError};
 
 #[derive(Deserialize, Serialize)]
 pub struct IncomingActivityJobData {
@@ -73,28 +74,27 @@ pub async fn process_queued_incoming_activities(
         let mut job_data: IncomingActivityJobData =
             serde_json::from_value(job.job_data)
                 .map_err(|_| DatabaseTypeError)?;
-        let is_error = match handle_activity(
+        if let Err(error) = handle_activity(
             config,
             db_client,
             &job_data.activity,
             job_data.is_authenticated,
         ).await {
-            Ok(_) => false,
-            Err(error) => {
-                job_data.failure_count += 1;
-                log::warn!(
-                    "failed to process activity ({}) (attempt #{}): {}",
-                    error,
-                    job_data.failure_count,
-                    job_data.activity,
-                );
-                true
-            },
-        };
-        if is_error && job_data.failure_count <= max_retries {
-            // Re-queue
-            log::info!("activity re-queued");
-            job_data.into_job(db_client, retry_after).await?;
+            job_data.failure_count += 1;
+            log::warn!(
+                "failed to process activity ({}) (attempt #{}): {}",
+                error,
+                job_data.failure_count,
+                job_data.activity,
+            );
+            if job_data.failure_count <= max_retries &&
+                // Don't retry after fetcher recursion error
+                !matches!(error, HandlerError::FetchError(FetchError::RecursionError))
+            {
+                // Re-queue
+                log::info!("activity re-queued");
+                job_data.into_job(db_client, retry_after).await?;
+            };
         };
         delete_job_from_queue(db_client, &job.id).await?;
     };

@@ -24,6 +24,7 @@ use super::fetchers::{
     fetch_actor,
     fetch_object,
     perform_webfinger_query,
+    FetchError,
 };
 
 pub async fn get_or_import_profile_by_actor_id(
@@ -160,6 +161,8 @@ pub async fn get_or_import_profile_by_actor_address(
     Ok(profile)
 }
 
+const RECURSION_DEPTH_MAX: usize = 50;
+
 pub async fn import_post(
     config: &Config,
     db_client: &mut impl DatabaseClient,
@@ -220,9 +223,9 @@ pub async fn import_post(
         let object = match maybe_object {
             Some(object) => object,
             None => {
-                if fetch_count >= 50 {
+                if fetch_count >= RECURSION_DEPTH_MAX {
                     // TODO: create tombstone
-                    return Err(ValidationError("too many objects").into());
+                    return Err(FetchError::RecursionError.into());
                 };
                 let object = fetch_object(&instance, &object_id).await
                     .map_err(|err| {

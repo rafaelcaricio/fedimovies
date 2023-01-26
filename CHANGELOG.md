@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added configuration option for automatic assigning of "read-only user" role after registration.
 - Added `set-role` command.
 
+### Changed
+
+- Don't retry activity if fetcher recursion limit has been reached.
+
 ### Deprecated
 
 - `registrations_open` configuration option.

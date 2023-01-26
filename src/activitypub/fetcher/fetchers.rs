@@ -38,6 +38,9 @@ pub enum FetchError {
     #[error(transparent)]
     FileError(#[from] std::io::Error),
 
+    #[error("too many objects")]
+    RecursionError,
+
     #[error("{0}")]
     OtherError(&'static str),
 }
