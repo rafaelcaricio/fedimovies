@@ -1,9 +1,9 @@
 use serde::Serialize;
 
 use crate::activitypub::{
-    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::local_actor_id,
+    types::{build_default_context, Context},
     vocabulary::{DELETE, NOTE, TOMBSTONE},
 };
 use crate::config::Instance;
@@ -31,7 +31,7 @@ struct Tombstone {
 #[derive(Serialize)]
 struct DeleteNote {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -58,7 +58,7 @@ fn build_delete_note(
         post,
     );
     DeleteNote {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: DELETE.to_string(),
         id: activity_id,
         actor: actor_id,

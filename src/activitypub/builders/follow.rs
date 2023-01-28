@@ -3,9 +3,9 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
+    types::{build_default_context, Context},
     vocabulary::FOLLOW,
 };
 use crate::config::Instance;
@@ -15,7 +15,7 @@ use crate::models::users::types::User;
 #[derive(Serialize)]
 pub(super) struct Follow {
     #[serde(rename = "@context")]
-    pub context: String,
+    pub context: Context,
 
     #[serde(rename = "type")]
     pub activity_type: String,
@@ -36,7 +36,7 @@ fn build_follow(
     let activity_id = local_object_id(instance_url, follow_request_id);
     let actor_id = local_actor_id(instance_url, &actor_profile.username);
     Follow {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: FOLLOW.to_string(),
         id: activity_id,
         actor: actor_id,

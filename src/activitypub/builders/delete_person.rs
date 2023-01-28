@@ -3,8 +3,9 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::{AP_CONTEXT, AP_PUBLIC},
+    constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
+    types::{build_default_context, Context},
     vocabulary::DELETE,
 };
 use crate::config::Instance;
@@ -15,7 +16,7 @@ use crate::models::users::types::User;
 #[derive(Serialize)]
 struct DeletePerson {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -34,7 +35,7 @@ fn build_delete_person(
     let actor_id = user.profile.actor_id(instance_url);
     let activity_id = format!("{}/delete", actor_id);
     DeletePerson {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: DELETE.to_string(),
         id: activity_id,
         actor: actor_id.clone(),

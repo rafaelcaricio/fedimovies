@@ -3,9 +3,10 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     actors::types::{get_local_actor, Actor, ActorKeyError},
-    constants::{AP_CONTEXT, AP_PUBLIC},
+    constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_followers, local_object_id},
+    types::{build_default_context, Context},
     vocabulary::UPDATE,
 };
 use crate::config::Instance;
@@ -17,7 +18,7 @@ use crate::utils::id::new_uuid;
 #[derive(Serialize)]
 pub struct UpdatePerson {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -40,7 +41,7 @@ pub fn build_update_person(
         maybe_internal_activity_id.unwrap_or(new_uuid());
     let activity_id = local_object_id(instance_url, &internal_activity_id);
     let activity = UpdatePerson {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: UPDATE.to_string(),
         id: activity_id,
         actor: actor.id.clone(),

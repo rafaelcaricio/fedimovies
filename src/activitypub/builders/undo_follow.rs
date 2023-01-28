@@ -3,9 +3,9 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
+    types::{build_default_context, Context},
     vocabulary::{FOLLOW, UNDO},
 };
 use crate::config::Instance;
@@ -16,7 +16,7 @@ use super::follow::Follow;
 #[derive(Serialize)]
 struct UndoFollow {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -43,7 +43,7 @@ fn build_undo_follow(
         &actor_profile.username,
     );
     let object = Follow {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: FOLLOW.to_string(),
         id: follow_activity_id,
         actor: follow_actor_id,
@@ -53,7 +53,7 @@ fn build_undo_follow(
     let activity_id = format!("{}/undo", object.id);
     let actor_id = local_actor_id(instance_url, &actor_profile.username);
     UndoFollow {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: UNDO.to_string(),
         id: activity_id,
         actor: actor_id,

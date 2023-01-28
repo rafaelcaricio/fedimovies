@@ -2,9 +2,9 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
+    types::{build_default_context, Context},
     vocabulary::UNDO,
 };
 use crate::config::Instance;
@@ -20,7 +20,7 @@ use super::like::{
 #[derive(Serialize)]
 struct UndoLike {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -46,7 +46,7 @@ fn build_undo_like(
     let (primary_audience, secondary_audience) =
         get_like_audience(post_author_id, post_visibility);
     UndoLike {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: UNDO.to_string(),
         id: activity_id,
         actor: actor_id,

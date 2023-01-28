@@ -2,7 +2,10 @@
 pub const AP_MEDIA_TYPE: &str = r#"application/ld+json; profile="https://www.w3.org/ns/activitystreams""#;
 pub const AS_MEDIA_TYPE: &str = "application/activity+json";
 
+// Contexts
 pub const AP_CONTEXT: &str = "https://www.w3.org/ns/activitystreams";
 pub const AP_PUBLIC: &str = "https://www.w3.org/ns/activitystreams#Public";
+pub const W3ID_SECURITY_CONTEXT: &str = "https://w3id.org/security/v1";
+pub const W3ID_DATA_INTEGRITY_CONTEXT: &str = "https://w3id.org/security/data-integrity/v1";
 
 pub const ACTOR_KEY_SUFFIX: &str = "#main-key";

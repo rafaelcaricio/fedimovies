@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Use proof suites with prefix `Mitra`.
+- Add `https://w3id.org/security/data-integrity/v1` to JSON-LD context.
 
 ## [1.12.0] - 2023-01-26
 

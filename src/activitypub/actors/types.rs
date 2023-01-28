@@ -7,7 +7,11 @@ use serde::{
 use serde_json::{json, Value};
 
 use crate::activitypub::{
-    constants::{ACTOR_KEY_SUFFIX, AP_CONTEXT},
+    constants::{
+        ACTOR_KEY_SUFFIX,
+        AP_CONTEXT,
+        W3ID_SECURITY_CONTEXT,
+    },
     identifiers::{local_actor_id, LocalActorCollection},
     receiver::parse_property_value,
     vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
@@ -32,8 +36,6 @@ use super::attachments::{
     parse_identity_proof,
     parse_payment_option,
 };
-
-const W3ID_CONTEXT: &str = "https://w3id.org/security/v1";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(test, derive(Default))]
@@ -300,7 +302,7 @@ pub fn get_local_actor(
     let actor = Actor {
         context: Some(json!([
             AP_CONTEXT.to_string(),
-            W3ID_CONTEXT.to_string(),
+            W3ID_SECURITY_CONTEXT.to_string(),
         ])),
         id: actor_id.clone(),
         object_type: PERSON.to_string(),
@@ -339,7 +341,7 @@ pub fn get_instance_actor(
     let actor = Actor {
         context: Some(json!([
             AP_CONTEXT.to_string(),
-            W3ID_CONTEXT.to_string(),
+            W3ID_SECURITY_CONTEXT.to_string(),
         ])),
         id: actor_id,
         object_type: SERVICE.to_string(),

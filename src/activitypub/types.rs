@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::constants::{AP_CONTEXT, W3ID_DATA_INTEGRITY_CONTEXT};
 use super::vocabulary::HASHTAG;
 
 #[derive(Deserialize, Serialize)]
@@ -98,4 +99,13 @@ pub struct Object {
     pub to: Option<Value>,
     pub updated: Option<DateTime<Utc>>,
     pub url: Option<Value>,
+}
+
+pub type Context = [&'static str; 2];
+
+pub const fn build_default_context() -> Context {
+    [
+        AP_CONTEXT,
+        W3ID_DATA_INTEGRITY_CONTEXT,
+    ]
 }

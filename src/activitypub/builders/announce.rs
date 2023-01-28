@@ -3,9 +3,10 @@ use serde::Serialize;
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::{AP_CONTEXT, AP_PUBLIC},
+    constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_followers, local_actor_id, local_object_id},
+    types::{build_default_context, Context},
     vocabulary::ANNOUNCE,
 };
 use crate::config::Instance;
@@ -17,7 +18,7 @@ use crate::models::users::types::User;
 #[derive(Serialize)]
 struct Announce {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -43,7 +44,7 @@ fn build_announce(
     let recipient_id = post.author.actor_id(instance_url);
     let followers = local_actor_followers(instance_url, sender_username);
     Announce {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: ANNOUNCE.to_string(),
         actor: actor_id,
         id: activity_id,

@@ -2,9 +2,9 @@ use serde::Serialize;
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id, LocalActorCollection},
+    types::{build_default_context, Context},
     vocabulary::{ADD, REMOVE},
 };
 use crate::config::Instance;
@@ -14,7 +14,7 @@ use crate::utils::id::new_uuid;
 #[derive(Serialize)]
 struct AddOrRemovePerson {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -39,7 +39,7 @@ fn build_update_collection(
     let activity_type = if remove { REMOVE } else { ADD };
     let collection_id = collection.of(&actor_id);
     AddOrRemovePerson {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         id: activity_id,
         activity_type: activity_type.to_string(),
         actor: actor_id,

@@ -43,7 +43,10 @@ Example:
 
 ```json
 {
-  "@context": "https://www.w3.org/ns/activitystreams",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/data-integrity/v1"
+  ],
   "actor": "https://example.com/users/alice",
   "cc": [],
   "id": "https://example.com/objects/0185f5f8-10b5-1b69-f45e-25f06792f411",

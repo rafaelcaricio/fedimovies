@@ -3,9 +3,9 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
+    types::{build_default_context, Context},
     vocabulary::MOVE,
 };
 use crate::config::Instance;
@@ -15,7 +15,7 @@ use crate::utils::id::new_uuid;
 #[derive(Serialize)]
 pub struct MovePerson {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -40,7 +40,7 @@ pub fn build_move_person(
     let activity_id = local_object_id(instance_url, &internal_activity_id);
     let actor_id = local_actor_id(instance_url, &sender.profile.username);
     MovePerson {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: MOVE.to_string(),
         id: activity_id,
         actor: actor_id.clone(),

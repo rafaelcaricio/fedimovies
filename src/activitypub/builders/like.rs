@@ -3,9 +3,10 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::{AP_CONTEXT, AP_PUBLIC},
+    constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
+    types::{build_default_context, Context},
     vocabulary::LIKE,
 };
 use crate::config::Instance;
@@ -17,7 +18,7 @@ use crate::models::users::types::User;
 #[derive(Serialize)]
 struct Like {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -55,7 +56,7 @@ fn build_like(
     let (primary_audience, secondary_audience) =
         get_like_audience(post_author_id, post_visibility);
     Like {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: LIKE.to_string(),
         id: activity_id,
         actor: actor_id,

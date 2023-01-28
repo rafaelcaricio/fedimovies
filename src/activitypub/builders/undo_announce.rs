@@ -2,9 +2,10 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::activitypub::{
-    constants::{AP_CONTEXT, AP_PUBLIC},
+    constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_actor_followers, local_object_id},
+    types::{build_default_context, Context},
     vocabulary::UNDO,
 };
 use crate::config::Instance;
@@ -17,7 +18,7 @@ use super::announce::get_announce_recipients;
 #[derive(Serialize)]
 struct UndoAnnounce {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -47,7 +48,7 @@ fn build_undo_announce(
         local_actor_followers(instance_url, &actor_profile.username),
     ];
     UndoAnnounce {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: UNDO.to_string(),
         id: activity_id,
         actor: actor_id,

@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::{AP_MEDIA_TYPE, AP_CONTEXT, AP_PUBLIC},
+    constants::{AP_MEDIA_TYPE, AP_PUBLIC},
     deliverer::OutgoingActivity,
     identifiers::{
         local_actor_id,
@@ -13,7 +13,15 @@ use crate::activitypub::{
         local_object_id,
         local_tag_collection,
     },
-    types::{Attachment, EmojiTag, EmojiTagImage, LinkTag, SimpleTag},
+    types::{
+        build_default_context,
+        Attachment,
+        Context,
+        EmojiTag,
+        EmojiTagImage,
+        LinkTag,
+        SimpleTag,
+    },
     vocabulary::*,
 };
 use crate::config::Instance;
@@ -40,7 +48,7 @@ enum Tag {
 #[serde(rename_all = "camelCase")]
 pub struct Note {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     id: String,
 
@@ -180,7 +188,7 @@ pub fn build_note(
         None => None,
     };
     Note {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         id: object_id,
         object_type: NOTE.to_string(),
         attachment: attachments,
@@ -198,7 +206,7 @@ pub fn build_note(
 #[derive(Serialize)]
 pub struct CreateNote {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -221,7 +229,7 @@ pub fn build_create_note(
     let secondary_audience = object.cc.clone();
     let activity_id = format!("{}/create", object.id);
     CreateNote {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: CREATE.to_string(),
         id: activity_id,
         actor: object.attributed_to.clone(),

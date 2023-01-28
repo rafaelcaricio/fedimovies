@@ -2,9 +2,9 @@ use serde::Serialize;
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::AP_CONTEXT,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
+    types::{build_default_context, Context},
     vocabulary::ACCEPT,
 };
 use crate::config::Instance;
@@ -15,7 +15,7 @@ use crate::utils::id::new_uuid;
 #[derive(Serialize)]
 struct AcceptFollow {
     #[serde(rename = "@context")]
-    context: String,
+    context: Context,
 
     #[serde(rename = "type")]
     activity_type: String,
@@ -37,7 +37,7 @@ fn build_accept_follow(
     let activity_id = local_object_id(instance_url, &new_uuid());
     let actor_id = local_actor_id(instance_url, &actor_profile.username);
     AcceptFollow {
-        context: AP_CONTEXT.to_string(),
+        context: build_default_context(),
         activity_type: ACCEPT.to_string(),
         id: activity_id,
         actor: actor_id,
