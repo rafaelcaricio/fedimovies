@@ -29,11 +29,59 @@ And these additional standards:
 
 Activities are implemented in way that is compatible with Pleroma, Mastodon and other popular ActivityPub servers.
 
-## Supported FEPs
+Supported FEPs:
 
 - [FEP-f1d5: NodeInfo in Fediverse Software](https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-f1d5.md)
 - [FEP-e232: Object Links](https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-e232.md)
 - [FEP-8b32: Object Integrity Proofs](https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-8b32.md)
+
+## Object integrity proofs
+
+All outgoing activities are signed with actor's key in accordance with [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-8b32.md) document.
+
+Example:
+
+```json
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "actor": "https://example.com/users/alice",
+  "cc": [],
+  "id": "https://example.com/objects/0185f5f8-10b5-1b69-f45e-25f06792f411",
+  "object": "https://example.net/users/bob/posts/141892712081205472",
+  "proof": {
+    "created": "2023-01-28T01:22:40.183273595Z",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "z5djAdMSrV...",
+    "type": "MitraJcsRsaSignature2022",
+    "verificationMethod": "https://example.com/users/alice#main-key"
+  },
+  "to": [
+    "https://example.net/users/bob",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "type":"Like"
+}
+```
+
+### Supported proof suites
+
+#### MitraJcsRsaSignature2022
+
+Canonicalization algorithm: JCS
+Hashing algorithm: SHA-256
+Signature algorithm: RSASSA-PKCS1-v1_5
+
+#### MitraJcsEip191Signature2022
+
+Canonicalization algorithm: JCS
+Hashing algorithm: KECCAK-256 (EIP-191)
+Signature algorithm: ECDSA (EIP-191)
+
+#### MitraJcsEd25519Signature2022
+
+Canonicalization algorithm: JCS
+Hashing algorithm: BLAKE2b-512
+Signature algorithm: EdDSA
 
 ## Profile extensions
 

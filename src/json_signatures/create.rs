@@ -8,8 +8,8 @@ use crate::identity::{
     did_pkh::DidPkh,
     signatures::{
         PROOF_TYPE_JCS_ED25519,
-        PROOF_TYPE_JCS_EIP191_LEGACY,
-        PROOF_TYPE_JCS_RSA_LEGACY,
+        PROOF_TYPE_JCS_EIP191,
+        PROOF_TYPE_JCS_RSA,
     },
 };
 use crate::utils::{
@@ -43,7 +43,7 @@ impl IntegrityProof {
         signature: &[u8],
     ) -> Self {
         Self {
-            proof_type: PROOF_TYPE_JCS_RSA_LEGACY.to_string(),
+            proof_type: PROOF_TYPE_JCS_RSA.to_string(),
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer_key_id.to_string(),
             created: Utc::now(),
@@ -56,7 +56,7 @@ impl IntegrityProof {
         signature: &[u8],
     ) -> Self {
         Self {
-            proof_type: PROOF_TYPE_JCS_EIP191_LEGACY.to_string(),
+            proof_type: PROOF_TYPE_JCS_EIP191.to_string(),
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer.to_string(),
             created: Utc::now(),
@@ -160,7 +160,7 @@ mod tests {
         assert_eq!(result["object"], object["object"]);
         let signature_date = result["proof"]["created"].as_str().unwrap();
         // Put * in place of date to avoid escaping all curly brackets
-        let expected_result = r#"{"actor":"https://example.org/users/test","id":"https://example.org/objects/1","object":{"content":"test","type":"Note"},"proof":{"created":"*","proofPurpose":"assertionMethod","proofValue":"z2Gh9LYrXjSqFrkia6gMg7xp2wftn1hqmYeEXxrsH9Eh6agB2VYraSYrDoSufbXEHnnyHMCoDSAriLpVacj6E4LFK","type":"JcsRsaSignature2022","verificationMethod":"https://example.org/users/test#main-key"},"to":["https://example.org/users/yyy","https://example.org/users/xxx"],"type":"Create"}"#;
+        let expected_result = r#"{"actor":"https://example.org/users/test","id":"https://example.org/objects/1","object":{"content":"test","type":"Note"},"proof":{"created":"*","proofPurpose":"assertionMethod","proofValue":"z2Gh9LYrXjSqFrkia6gMg7xp2wftn1hqmYeEXxrsH9Eh6agB2VYraSYrDoSufbXEHnnyHMCoDSAriLpVacj6E4LFK","type":"MitraJcsRsaSignature2022","verificationMethod":"https://example.org/users/test#main-key"},"to":["https://example.org/users/yyy","https://example.org/users/xxx"],"type":"Create"}"#;
         assert_eq!(
             serde_json::to_string(&result).unwrap(),
             expected_result.replace('*', signature_date),
