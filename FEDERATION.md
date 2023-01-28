@@ -67,20 +67,20 @@ Example:
 
 #### MitraJcsRsaSignature2022
 
-Canonicalization algorithm: JCS
-Hashing algorithm: SHA-256
+Canonicalization algorithm: JCS  
+Hashing algorithm: SHA-256  
 Signature algorithm: RSASSA-PKCS1-v1_5
 
 #### MitraJcsEip191Signature2022
 
-Canonicalization algorithm: JCS
-Hashing algorithm: KECCAK-256 (EIP-191)
+Canonicalization algorithm: JCS  
+Hashing algorithm: KECCAK-256 (EIP-191)  
 Signature algorithm: ECDSA (EIP-191)
 
 #### MitraJcsEd25519Signature2022
 
-Canonicalization algorithm: JCS
-Hashing algorithm: BLAKE2b-512
+Canonicalization algorithm: JCS  
+Hashing algorithm: BLAKE2b-512  
 Signature algorithm: EdDSA
 
 ## Profile extensions
