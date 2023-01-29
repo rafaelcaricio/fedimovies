@@ -176,7 +176,7 @@ pub async fn handle_note(
         },
         other_type => {
             log::warn!("discarding object of type {}", other_type);
-            return Err(ValidationError("unsupported type").into());
+            return Err(ValidationError("unsupported object type").into());
         },
     };
 

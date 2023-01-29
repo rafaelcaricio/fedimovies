@@ -79,6 +79,7 @@ pub async fn handle_announce(
             log::warn!("repost already exists: {}", repost_object_id);
             Ok(None)
         },
+        // May return "post not found" error if post if not public
         Err(other_error) => Err(other_error.into()),
     }
 }

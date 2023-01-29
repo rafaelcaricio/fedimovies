@@ -230,7 +230,10 @@ impl Actor {
                         };
                     },
                     _ => {
-                        log_error(attachment, ValidationError("unsupported type"));
+                        log_error(
+                            attachment,
+                            ValidationError("unsupported attachment type"),
+                        );
                     },
                 };
             };
