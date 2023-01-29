@@ -121,7 +121,7 @@ async fn inbox(
             );
             error
         })?;
-    Ok(HttpResponse::Ok().finish())
+    Ok(HttpResponse::Accepted().finish())
 }
 
 #[derive(Deserialize)]
@@ -304,7 +304,7 @@ async fn instance_actor_inbox(
         "received in instance inbox: {}",
         activity["type"].as_str().unwrap_or("Unknown"),
     );
-    Ok(HttpResponse::Ok().finish())
+    Ok(HttpResponse::Accepted().finish())
 }
 
 pub fn instance_actor_scope() -> Scope {
