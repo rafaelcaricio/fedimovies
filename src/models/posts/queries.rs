@@ -306,12 +306,13 @@ pub async fn create_post(
 }
 
 pub async fn update_post(
-    db_client: &impl DatabaseClient,
+    db_client: &mut impl DatabaseClient,
     post_id: &Uuid,
     post_data: PostUpdateData,
 ) -> Result<(), DatabaseError> {
+    let transaction = db_client.transaction().await?;
     // Reposts and immutable posts can't be updated
-    let updated_count = db_client.execute(
+    let maybe_row = transaction.query_opt(
         "
         UPDATE post
         SET
@@ -320,6 +321,7 @@ pub async fn update_post(
         WHERE id = $3
             AND repost_of_id IS NULL
             AND ipfs_cid IS NULL
+        RETURNING post
         ",
         &[
             &post_data.content,
@@ -327,9 +329,58 @@ pub async fn update_post(
             &post_id,
         ],
     ).await?;
-    if updated_count == 0 {
-        return Err(DatabaseError::NotFound("post"));
-    };
+   let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
+   let db_post: DbPost = row.try_get("post")?;
+
+    // Delete and re-create related objects
+    transaction.execute(
+        "DELETE FROM media_attachment WHERE post_id = $1",
+        &[&db_post.id],
+    ).await?;
+    transaction.execute(
+        "DELETE FROM mention WHERE post_id = $1",
+        &[&db_post.id],
+    ).await?;
+    transaction.execute(
+        "DELETE FROM post_tag WHERE post_id = $1",
+        &[&db_post.id],
+    ).await?;
+    transaction.execute(
+        "DELETE FROM post_link WHERE source_id = $1",
+        &[&db_post.id],
+    ).await?;
+    transaction.execute(
+        "DELETE FROM post_emoji WHERE post_id = $1",
+        &[&db_post.id],
+    ).await?;
+    create_post_attachments(
+        &transaction,
+        &db_post.id,
+        &db_post.author_id,
+        post_data.attachments,
+    ).await?;
+    create_post_mentions(
+        &transaction,
+        &db_post.id,
+        post_data.mentions,
+    ).await?;
+    create_post_tags(
+        &transaction,
+        &db_post.id,
+        post_data.tags,
+    ).await?;
+    create_post_links(
+        &transaction,
+        &db_post.id,
+        post_data.links,
+    ).await?;
+    create_post_emojis(
+        &transaction,
+        &db_post.id,
+        post_data.emojis,
+    ).await?;
+
+    transaction.commit().await?;
     Ok(())
 }
 
@@ -1323,6 +1374,7 @@ mod tests {
         let post_data = PostUpdateData {
             content: "test update".to_string(),
             updated_at: Utc::now(),
+            ..Default::default()
         };
         update_post(db_client, &post.id, post_data).await.unwrap();
         let post = get_post_by_id(db_client, &post.id).await.unwrap();

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::Utc;
 use serde::Deserialize;
 use serde_json::Value;
@@ -7,7 +9,11 @@ use crate::activitypub::{
         helpers::update_remote_profile,
         types::Actor,
     },
-    handlers::create::get_object_content,
+    handlers::create::{
+        get_object_attachments,
+        get_object_content,
+        get_object_tags,
+    },
     types::Object,
     vocabulary::{NOTE, PERSON},
 };
@@ -25,24 +31,48 @@ use crate::models::{
 use super::HandlerResult;
 
 async fn handle_update_note(
+    config: &Config,
     db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
     let object: Object = serde_json::from_value(activity["object"].to_owned())
         .map_err(|_| ValidationError("invalid object"))?;
-    let post_id = match get_post_by_remote_object_id(
+    let post = match get_post_by_remote_object_id(
         db_client,
         &object.id,
     ).await {
-        Ok(post) => post.id,
+        Ok(post) => post,
         // Ignore Update if post is not found locally
         Err(DatabaseError::NotFound(_)) => return Ok(None),
         Err(other_error) => return Err(other_error.into()),
     };
     let content = get_object_content(&object)?;
     let updated_at = object.updated.unwrap_or(Utc::now());
-    let post_data = PostUpdateData { content, updated_at };
-    update_post(db_client, &post_id, post_data).await?;
+    let attachments = get_object_attachments(
+        config,
+        db_client,
+        &object,
+        &post.author,
+    ).await?;
+    if content.is_empty() && attachments.is_empty() {
+        return Err(ValidationError("post is empty").into());
+    };
+    let (mentions, hashtags, links, emojis) = get_object_tags(
+        config,
+        db_client,
+        &object,
+        &HashMap::new(),
+    ).await?;
+    let post_data = PostUpdateData {
+        content,
+        attachments,
+        mentions,
+        tags: hashtags,
+        links,
+        emojis,
+        updated_at,
+    };
+    update_post(db_client, &post.id, post_data).await?;
     Ok(Some(NOTE))
 }
 
@@ -85,7 +115,7 @@ pub async fn handle_update(
         .ok_or(ValidationError("unknown object type"))?;
     match object_type {
         NOTE => {
-            handle_update_note(db_client, activity).await
+            handle_update_note(config, db_client, activity).await
         },
         PERSON => {
             handle_update_person(config, db_client, activity).await

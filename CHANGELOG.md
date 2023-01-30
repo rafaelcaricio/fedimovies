@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Replace post attachments and other related objects when processing `Update(Note)` activity.
+
 ### Changed
 
 - Use proof suites with prefix `Mitra`.

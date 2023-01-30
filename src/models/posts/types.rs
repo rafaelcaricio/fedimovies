@@ -276,7 +276,13 @@ impl PostCreateData {
     }
 }
 
+#[cfg_attr(test, derive(Default))]
 pub struct PostUpdateData {
     pub content: String,
+    pub attachments: Vec<Uuid>,
+    pub mentions: Vec<Uuid>,
+    pub tags: Vec<String>,
+    pub links: Vec<Uuid>,
+    pub emojis: Vec<Uuid>,
     pub updated_at: DateTime<Utc>,
 }

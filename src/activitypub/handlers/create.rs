@@ -131,7 +131,7 @@ fn is_gnu_social_link(author_id: &str, attachment: &Attachment) -> bool {
     }
 }
 
-async fn get_object_attachments(
+pub async fn get_object_attachments(
     config: &Config,
     db_client: &impl DatabaseClient,
     object: &Object,
@@ -197,7 +197,7 @@ async fn get_object_attachments(
     Ok(attachments)
 }
 
-async fn get_object_tags(
+pub async fn get_object_tags(
     config: &Config,
     db_client: &impl DatabaseClient,
     object: &Object,
