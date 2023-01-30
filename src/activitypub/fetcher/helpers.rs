@@ -170,7 +170,6 @@ pub async fn import_post(
     object_received: Option<Object>,
 ) -> Result<Post, HandlerError> {
     let instance = config.instance();
-    let media_dir = config.media_dir();
     if parse_local_object_id(&instance.url(), &object_id).is_ok() {
         return Err(HandlerError::LocalObject);
     };
@@ -264,9 +263,8 @@ pub async fn import_post(
     objects.reverse();
     for object in objects {
         let post = handle_note(
+            config,
             db_client,
-            &instance,
-            &media_dir,
             object,
             &redirects,
         ).await?;

@@ -19,7 +19,7 @@ use super::types::Status;
 pub struct PostContent {
     pub content: String,
     pub mentions: Vec<Uuid>,
-    pub tags: Vec<String>,
+    pub hashtags: Vec<String>,
     pub links: Vec<Uuid>,
     pub linked: Vec<Post>,
     pub emojis: Vec<DbEmoji>,
@@ -44,11 +44,11 @@ pub async fn parse_microsyntaxes(
     );
     let mentions = mention_map.values().map(|profile| profile.id).collect();
     // Hashtags
-    let tags = find_hashtags(&content);
+    let hashtags = find_hashtags(&content);
     content = replace_hashtags(
         &instance.url(),
         &content,
-        &tags,
+        &hashtags,
     );
     // Links
     let link_map = find_linked_posts(
@@ -68,7 +68,7 @@ pub async fn parse_microsyntaxes(
         &content,
     ).await?;
     let emojis = emoji_map.into_values().collect();
-    Ok(PostContent { content, mentions, tags, links, linked, emojis })
+    Ok(PostContent { content, mentions, hashtags, links, linked, emojis })
 }
 
 /// Load related objects and build status for API response

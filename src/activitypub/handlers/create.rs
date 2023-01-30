@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::Path;
 
 use chrono::Utc;
 use serde_json::{Value as JsonValue};
@@ -18,7 +17,7 @@ use crate::activitypub::{
     types::{Attachment, EmojiTag, Link, LinkTag, Object, Tag},
     vocabulary::*,
 };
-use crate::config::{Config, Instance};
+use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::{ConversionError, ValidationError};
 use crate::models::{
@@ -56,7 +55,9 @@ use crate::utils::{
 };
 use super::HandlerResult;
 
-fn get_note_author_id(object: &Object) -> Result<String, ValidationError> {
+fn get_object_attributed_to(object: &Object)
+    -> Result<String, ValidationError>
+{
     let attributed_to = object.attributed_to.as_ref()
         .ok_or(ValidationError("unattributed note"))?;
     let author_id = parse_array(attributed_to)
@@ -82,7 +83,7 @@ fn parse_object_url(value: &JsonValue) -> Result<String, ConversionError> {
     Ok(object_url)
 }
 
-pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
+pub fn get_object_content(object: &Object) -> Result<String, ValidationError> {
     let mut content = if let Some(ref content) = object.content {
         if object.media_type == Some("text/markdown".to_string()) {
             format!("<p>{}</p>", content)
@@ -114,38 +115,6 @@ pub fn get_note_content(object: &Object) -> Result<String, ValidationError> {
     Ok(content_safe)
 }
 
-fn get_note_visibility(
-    author: &DbActorProfile,
-    primary_audience: Vec<String>,
-    secondary_audience: Vec<String>,
-) -> Visibility {
-    let audience = [primary_audience, secondary_audience].concat();
-    // Some servers (e.g. Takahe) use "as" namespace
-    const PUBLIC_VARIANTS: [&str; 3] = [
-        AP_PUBLIC,
-        "as:Public",
-        "Public",
-    ];
-    if audience.iter().any(|item| PUBLIC_VARIANTS.contains(&item.as_str())) {
-       return Visibility::Public;
-    };
-    let maybe_followers = author.actor_json.as_ref()
-        .and_then(|actor| actor.followers.as_ref());
-    if let Some(followers) = maybe_followers {
-        if audience.contains(followers) {
-            return Visibility::Followers;
-        };
-    };
-    let maybe_subscribers = author.actor_json.as_ref()
-        .and_then(|actor| actor.subscribers.as_ref());
-    if let Some(subscribers) = maybe_subscribers {
-        if audience.contains(subscribers) {
-            return Visibility::Subscribers;
-        };
-    };
-    Visibility::Direct
-}
-
 const ATTACHMENT_MAX_SIZE: usize = 20 * 1000 * 1000; // 20 MB
 
 fn is_gnu_social_link(author_id: &str, attachment: &Attachment) -> bool {
@@ -162,40 +131,17 @@ fn is_gnu_social_link(author_id: &str, attachment: &Attachment) -> bool {
     }
 }
 
-pub async fn handle_note(
-    db_client: &mut impl DatabaseClient,
-    instance: &Instance,
-    media_dir: &Path,
-    object: Object,
-    redirects: &HashMap<String, String>,
-) -> Result<Post, HandlerError> {
-    match object.object_type.as_str() {
-        NOTE => (),
-        ARTICLE | EVENT | QUESTION | PAGE | VIDEO => {
-            log::info!("processing object of type {}", object.object_type);
-        },
-        other_type => {
-            log::warn!("discarding object of type {}", other_type);
-            return Err(ValidationError("unsupported object type").into());
-        },
-    };
-
-    let author_id = get_note_author_id(&object)?;
-    let author = get_or_import_profile_by_actor_id(
-        db_client,
-        instance,
-        media_dir,
-        &author_id,
-    ).await.map_err(|err| {
-        log::warn!("failed to import {} ({})", author_id, err);
-        err
-    })?;
-    let content = get_note_content(&object)?;
-    let created_at = object.published.unwrap_or(Utc::now());
-
-    let mut attachments: Vec<Uuid> = Vec::new();
-    if let Some(value) = object.attachment {
-        let list: Vec<Attachment> = parse_property_value(&value)
+async fn get_object_attachments(
+    config: &Config,
+    db_client: &impl DatabaseClient,
+    object: &Object,
+    author: &DbActorProfile,
+) -> Result<Vec<Uuid>, HandlerError> {
+    let instance = config.instance();
+    let media_dir = config.media_dir();
+    let mut attachments = vec![];
+    if let Some(ref value) = object.attachment {
+        let list: Vec<Attachment> = parse_property_value(value)
             .map_err(|_| ValidationError("invalid attachment property"))?;
         let mut downloaded = vec![];
         for attachment in list {
@@ -209,18 +155,21 @@ pub async fn handle_note(
                     continue;
                 },
             };
-            if is_gnu_social_link(&author_id, &attachment) {
+            if is_gnu_social_link(
+                &author.actor_id(&instance.url()),
+                &attachment,
+            ) {
                 // Don't fetch HTML pages attached by GNU Social
                 continue;
             };
             let attachment_url = attachment.url
                 .ok_or(ValidationError("attachment URL is missing"))?;
             let (file_name, file_size, maybe_media_type) = fetch_file(
-                instance,
+                &instance,
                 &attachment_url,
                 attachment.media_type.as_deref(),
                 ATTACHMENT_MAX_SIZE,
-                media_dir,
+                &media_dir,
             ).await
                 .map_err(|err| {
                     log::warn!("{}", err);
@@ -245,16 +194,23 @@ pub async fn handle_note(
             attachments.push(db_attachment.id);
         };
     };
-    if content.is_empty() && attachments.is_empty() {
-        return Err(ValidationError("post is empty").into());
-    };
+    Ok(attachments)
+}
 
-    let mut mentions: Vec<Uuid> = Vec::new();
+async fn get_object_tags(
+    config: &Config,
+    db_client: &impl DatabaseClient,
+    object: &Object,
+    redirects: &HashMap<String, String>,
+) -> Result<(Vec<Uuid>, Vec<String>, Vec<Uuid>, Vec<Uuid>), HandlerError> {
+    let instance = config.instance();
+    let media_dir = config.media_dir();
+    let mut mentions = vec![];
     let mut hashtags = vec![];
     let mut links = vec![];
     let mut emojis = vec![];
-    if let Some(value) = object.tag {
-        let list: Vec<JsonValue> = parse_property_value(&value)
+    if let Some(ref value) = object.tag {
+        let list: Vec<JsonValue> = parse_property_value(value)
             .map_err(|_| ValidationError("invalid tag property"))?;
         for tag_value in list {
             let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
@@ -295,8 +251,8 @@ pub async fn handle_note(
                     // but also can be actor URL (profile link).
                     match get_or_import_profile_by_actor_id(
                         db_client,
-                        instance,
-                        media_dir,
+                        &instance,
+                        &media_dir,
                         &href,
                     ).await {
                         Ok(profile) => {
@@ -325,8 +281,8 @@ pub async fn handle_note(
                 if let Ok(actor_address) = mention_to_address(&tag_name) {
                     let profile = match get_or_import_profile_by_actor_address(
                         db_client,
-                        instance,
-                        media_dir,
+                        &instance,
+                        &media_dir,
                         &actor_address,
                     ).await {
                         Ok(profile) => profile,
@@ -413,11 +369,11 @@ pub async fn handle_note(
                     Err(other_error) => return Err(other_error.into()),
                 };
                 let (file_name, file_size, maybe_media_type) = match fetch_file(
-                    instance,
+                    &instance,
                     &tag.icon.url,
                     tag.icon.media_type.as_deref(),
                     EMOJI_MAX_SIZE,
-                    media_dir,
+                    &media_dir,
                 ).await {
                     Ok(file) => file,
                     Err(error) => {
@@ -480,6 +436,87 @@ pub async fn handle_note(
             links.push(linked.id);
         };
     };
+    Ok((mentions, hashtags, links, emojis))
+}
+
+fn get_object_visibility(
+    author: &DbActorProfile,
+    primary_audience: Vec<String>,
+    secondary_audience: Vec<String>,
+) -> Visibility {
+    let audience = [primary_audience, secondary_audience].concat();
+    // Some servers (e.g. Takahe) use "as" namespace
+    const PUBLIC_VARIANTS: [&str; 3] = [
+        AP_PUBLIC,
+        "as:Public",
+        "Public",
+    ];
+    if audience.iter().any(|item| PUBLIC_VARIANTS.contains(&item.as_str())) {
+       return Visibility::Public;
+    };
+    let actor = author.actor_json.as_ref()
+        .expect("actor data should be present");
+    if let Some(ref followers) = actor.followers {
+        if audience.contains(followers) {
+            return Visibility::Followers;
+        };
+    };
+    if let Some(ref subscribers) = actor.subscribers {
+        if audience.contains(subscribers) {
+            return Visibility::Subscribers;
+        };
+    };
+    Visibility::Direct
+}
+
+pub async fn handle_note(
+    config: &Config,
+    db_client: &mut impl DatabaseClient,
+    object: Object,
+    redirects: &HashMap<String, String>,
+) -> Result<Post, HandlerError> {
+    let instance = config.instance();
+    let media_dir = config.media_dir();
+    match object.object_type.as_str() {
+        NOTE => (),
+        ARTICLE | EVENT | QUESTION | PAGE | VIDEO => {
+            log::info!("processing object of type {}", object.object_type);
+        },
+        other_type => {
+            log::warn!("discarding object of type {}", other_type);
+            return Err(ValidationError("unsupported object type").into());
+        },
+    };
+
+    let author_id = get_object_attributed_to(&object)?;
+    let author = get_or_import_profile_by_actor_id(
+        db_client,
+        &instance,
+        &media_dir,
+        &author_id,
+    ).await.map_err(|err| {
+        log::warn!("failed to import {} ({})", author_id, err);
+        err
+    })?;
+    let content = get_object_content(&object)?;
+    let created_at = object.published.unwrap_or(Utc::now());
+
+    let attachments = get_object_attachments(
+        config,
+        db_client,
+        &object,
+        &author,
+    ).await?;
+    if content.is_empty() && attachments.is_empty() {
+        return Err(ValidationError("post is empty").into());
+    };
+
+    let (mentions, hashtags, links, emojis) = get_object_tags(
+        config,
+        db_client,
+        &object,
+        redirects,
+    ).await?;
 
     let in_reply_to_id = match object.in_reply_to {
         Some(ref object_id) => {
@@ -507,7 +544,7 @@ pub async fn handle_note(
         },
         None => vec![],
     };
-    let visibility = get_note_visibility(
+    let visibility = get_object_visibility(
         &author,
         primary_audience,
         secondary_audience,
@@ -567,29 +604,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_get_note_author_id() {
+    fn test_get_object_attributed_to() {
        let object = Object {
             object_type: NOTE.to_string(),
             attributed_to: Some(json!(["https://example.org/1"])),
             ..Default::default()
         };
-        let author_id = get_note_author_id(&object).unwrap();
+        let author_id = get_object_attributed_to(&object).unwrap();
         assert_eq!(author_id, "https://example.org/1");
     }
 
     #[test]
-    fn test_get_note_content() {
+    fn test_get_object_content() {
         let object = Object {
             content: Some("test".to_string()),
             object_type: NOTE.to_string(),
             ..Default::default()
         };
-        let content = get_note_content(&object).unwrap();
+        let content = get_object_content(&object).unwrap();
         assert_eq!(content, "test");
     }
 
     #[test]
-    fn test_get_note_content_from_video() {
+    fn test_get_object_content_from_video() {
         let object = Object {
             name: Some("test-name".to_string()),
             content: Some("test-content".to_string()),
@@ -601,7 +638,7 @@ mod tests {
             }])),
             ..Default::default()
         };
-        let content = get_note_content(&object).unwrap();
+        let content = get_object_content(&object).unwrap();
         assert_eq!(
             content,
             r#"test-content<p><a href="https://example.org/xyz" rel="noopener">https://example.org/xyz</a></p>"#,
@@ -609,11 +646,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_note_visibility_public() {
+    fn test_get_object_visibility_public() {
         let author = DbActorProfile::default();
         let primary_audience = vec![AP_PUBLIC.to_string()];
         let secondary_audience = vec![];
-        let visibility = get_note_visibility(
+        let visibility = get_object_visibility(
             &author,
             primary_audience,
             secondary_audience,
@@ -622,7 +659,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_note_visibility_followers() {
+    fn test_get_object_visibility_followers() {
         let author_followers = "https://example.com/users/author/followers";
         let author = DbActorProfile {
             actor_json: Some(Actor {
@@ -633,7 +670,7 @@ mod tests {
         };
         let primary_audience = vec![author_followers.to_string()];
         let secondary_audience = vec![];
-        let visibility = get_note_visibility(
+        let visibility = get_object_visibility(
             &author,
             primary_audience,
             secondary_audience,
@@ -642,7 +679,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_note_visibility_subscribers() {
+    fn test_get_object_visibility_subscribers() {
         let author_followers = "https://example.com/users/author/followers";
         let author_subscribers = "https://example.com/users/author/subscribers";
         let author = DbActorProfile {
@@ -655,7 +692,7 @@ mod tests {
         };
         let primary_audience = vec![author_subscribers.to_string()];
         let secondary_audience = vec![];
-        let visibility = get_note_visibility(
+        let visibility = get_object_visibility(
             &author,
             primary_audience,
             secondary_audience,
@@ -664,11 +701,14 @@ mod tests {
     }
 
     #[test]
-    fn test_get_note_visibility_direct() {
-        let author = DbActorProfile::default();
+    fn test_get_object_visibility_direct() {
+        let author = DbActorProfile {
+            actor_json: Some(Actor::default()),
+            ..Default::default()
+        };
         let primary_audience = vec!["https://example.com/users/1".to_string()];
         let secondary_audience = vec![];
-        let visibility = get_note_visibility(
+        let visibility = get_object_visibility(
             &author,
             primary_audience,
             secondary_audience,

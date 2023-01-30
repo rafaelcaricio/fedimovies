@@ -90,7 +90,7 @@ async fn create_status(
         _ => return Err(ValidationError("unsupported content type").into()),
     };
     // Parse content
-    let PostContent { mut content, mut mentions, tags, links, linked, emojis } =
+    let PostContent { mut content, mut mentions, hashtags, links, linked, emojis } =
         parse_microsyntaxes(
             db_client,
             &instance,
@@ -167,7 +167,7 @@ async fn create_status(
         visibility: visibility,
         attachments: attachments,
         mentions: mentions,
-        tags: tags,
+        tags: hashtags,
         links: links,
         emojis: emojis,
         object_id: None,

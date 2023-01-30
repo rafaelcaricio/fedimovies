@@ -7,7 +7,7 @@ use crate::activitypub::{
         helpers::update_remote_profile,
         types::Actor,
     },
-    handlers::create::get_note_content,
+    handlers::create::get_object_content,
     types::Object,
     vocabulary::{NOTE, PERSON},
 };
@@ -39,7 +39,7 @@ async fn handle_update_note(
         Err(DatabaseError::NotFound(_)) => return Ok(None),
         Err(other_error) => return Err(other_error.into()),
     };
-    let content = get_note_content(&object)?;
+    let content = get_object_content(&object)?;
     let updated_at = object.updated.unwrap_or(Utc::now());
     let post_data = PostUpdateData { content, updated_at };
     update_post(db_client, &post_id, post_data).await?;
