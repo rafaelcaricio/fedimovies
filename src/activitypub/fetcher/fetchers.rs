@@ -38,6 +38,9 @@ pub enum FetchError {
     #[error(transparent)]
     FileError(#[from] std::io::Error),
 
+    #[error("file size exceeds limit")]
+    FileTooLarge,
+
     #[error("too many objects")]
     RecursionError,
 
@@ -122,13 +125,13 @@ pub async fn fetch_file(
         let file_size: usize = file_size.try_into()
             .expect("value should be within bounds");
         if file_size > file_max_size {
-            return Err(FetchError::OtherError("file is too large"));
+            return Err(FetchError::FileTooLarge);
         };
     };
     let file_data = response.bytes().await?;
     let file_size = file_data.len();
     if file_size > file_max_size {
-        return Err(FetchError::OtherError("file is too large"));
+        return Err(FetchError::FileTooLarge);
     };
     let maybe_media_type = maybe_media_type
         .map(|media_type| media_type.to_string())

@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::activitypub::{
     constants::{AP_MEDIA_TYPE, AP_PUBLIC, AS_MEDIA_TYPE},
-    fetcher::fetchers::fetch_file,
+    fetcher::fetchers::{fetch_file, FetchError},
     fetcher::helpers::{
         get_or_import_profile_by_actor_address,
         get_or_import_profile_by_actor_id,
@@ -129,10 +129,11 @@ pub async fn get_object_attachments(
     db_client: &impl DatabaseClient,
     object: &Object,
     author: &DbActorProfile,
-) -> Result<Vec<Uuid>, HandlerError> {
+) -> Result<(Vec<Uuid>, Vec<String>), HandlerError> {
     let instance = config.instance();
     let media_dir = config.media_dir();
     let mut attachments = vec![];
+    let mut unprocessed = vec![];
     if let Some(ref value) = object.attachment {
         let list: Vec<Attachment> = parse_property_value(value)
             .map_err(|_| ValidationError("invalid attachment property"))?;
@@ -157,17 +158,24 @@ pub async fn get_object_attachments(
             };
             let attachment_url = attachment.url
                 .ok_or(ValidationError("attachment URL is missing"))?;
-            let (file_name, file_size, maybe_media_type) = fetch_file(
+            let (file_name, file_size, maybe_media_type) = match fetch_file(
                 &instance,
                 &attachment_url,
                 attachment.media_type.as_deref(),
                 ATTACHMENT_MAX_SIZE,
                 &media_dir,
-            ).await
-                .map_err(|err| {
-                    log::warn!("{}", err);
-                    ValidationError("failed to fetch attachment")
-                })?;
+            ).await {
+                Ok(file) => file,
+                Err(FetchError::FileTooLarge) => {
+                    log::warn!("attachment is too large: {}", attachment_url);
+                    unprocessed.push(attachment_url);
+                    continue;
+                },
+                Err(other_error) => {
+                    log::warn!("{}", other_error);
+                    return Err(ValidationError("failed to fetch attachment").into());
+                },
+            };
             log::info!("downloaded attachment {}", attachment_url);
             downloaded.push((file_name, file_size, maybe_media_type));
             // Stop downloading if limit is reached
@@ -187,7 +195,7 @@ pub async fn get_object_attachments(
             attachments.push(db_attachment.id);
         };
     };
-    Ok(attachments)
+    Ok((attachments, unprocessed))
 }
 
 pub async fn get_object_tags(
@@ -498,12 +506,15 @@ pub async fn handle_note(
         let object_url = get_object_url(&object)?;
         content += &create_content_link(object_url);
     };
-    let attachments = get_object_attachments(
+    let (attachments, unprocessed) = get_object_attachments(
         config,
         db_client,
         &object,
         &author,
     ).await?;
+    for attachment_url in unprocessed {
+        content += &create_content_link(attachment_url);
+    };
     if content.is_empty() && attachments.is_empty() {
         return Err(ValidationError("post is empty").into());
     };

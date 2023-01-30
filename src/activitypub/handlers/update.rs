@@ -54,12 +54,15 @@ async fn handle_update_note(
         let object_url = get_object_url(&object)?;
         content += &create_content_link(object_url);
     };
-    let attachments = get_object_attachments(
+    let (attachments, unprocessed) = get_object_attachments(
         config,
         db_client,
         &object,
         &post.author,
     ).await?;
+    for attachment_url in unprocessed {
+        content += &create_content_link(attachment_url);
+    };
     if content.is_empty() && attachments.is_empty() {
         return Err(ValidationError("post is empty").into());
     };

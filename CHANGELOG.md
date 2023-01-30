@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Replace post attachments and other related objects when processing `Update(Note)` activity.
+- Append attachment URL to post content if attachment size exceeds limit.
 
 ### Changed
 
