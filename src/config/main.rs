@@ -16,6 +16,7 @@ use crate::utils::urls::guess_protocol;
 
 use super::blockchain::BlockchainConfig;
 use super::environment::Environment;
+use super::limits::Limits;
 use super::MITRA_VERSION;
 
 #[derive(Clone, PartialEq)]
@@ -102,6 +103,9 @@ pub struct Config {
     pub post_character_limit: usize,
 
     proxy_url: Option<String>,
+
+    #[serde(default)]
+    pub limits: Limits,
 
     #[serde(default)]
     pub blocked_instances: Vec<String>,

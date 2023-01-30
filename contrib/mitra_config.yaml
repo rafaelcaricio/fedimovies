@@ -30,6 +30,11 @@ registration:
 # Proxy for outgoing requests
 #proxy_url: 'socks5h://127.0.0.1:9050'
 
+# Limits
+#limits:
+#  media:
+#    file_size_limit: 20M
+
 # List of blocked domains
 #blocked_instances: []
 

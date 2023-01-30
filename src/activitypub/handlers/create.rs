@@ -108,8 +108,6 @@ pub fn create_content_link(url: String) -> String {
     )
 }
 
-const ATTACHMENT_MAX_SIZE: usize = 20 * 1000 * 1000; // 20 MB
-
 fn is_gnu_social_link(author_id: &str, attachment: &Attachment) -> bool {
     if !author_id.contains("/index.php/user/") {
         return false;
@@ -162,7 +160,7 @@ pub async fn get_object_attachments(
                 &instance,
                 &attachment_url,
                 attachment.media_type.as_deref(),
-                ATTACHMENT_MAX_SIZE,
+                config.limits.media.file_size_limit,
                 &media_dir,
             ).await {
                 Ok(file) => file,
