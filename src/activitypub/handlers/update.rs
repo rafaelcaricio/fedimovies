@@ -10,9 +10,11 @@ use crate::activitypub::{
         types::Actor,
     },
     handlers::create::{
+        create_content_link,
         get_object_attachments,
         get_object_content,
         get_object_tags,
+        get_object_url,
     },
     types::Object,
     vocabulary::{NOTE, PERSON},
@@ -46,8 +48,12 @@ async fn handle_update_note(
         Err(DatabaseError::NotFound(_)) => return Ok(None),
         Err(other_error) => return Err(other_error.into()),
     };
-    let content = get_object_content(&object)?;
-    let updated_at = object.updated.unwrap_or(Utc::now());
+    let mut content = get_object_content(&object)?;
+    if object.object_type != NOTE {
+        // Append link to object
+        let object_url = get_object_url(&object)?;
+        content += &create_content_link(object_url);
+    };
     let attachments = get_object_attachments(
         config,
         db_client,
@@ -63,6 +69,7 @@ async fn handle_update_note(
         &object,
         &HashMap::new(),
     ).await?;
+    let updated_at = object.updated.unwrap_or(Utc::now());
     let post_data = PostUpdateData {
         content,
         attachments,

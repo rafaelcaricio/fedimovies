@@ -19,7 +19,7 @@ use crate::activitypub::{
 };
 use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::errors::{ConversionError, ValidationError};
+use crate::errors::ValidationError;
 use crate::models::{
     attachments::queries::create_attachment,
     emojis::queries::{
@@ -68,23 +68,22 @@ fn get_object_attributed_to(object: &Object)
     Ok(author_id)
 }
 
-fn parse_object_url(value: &JsonValue) -> Result<String, ConversionError> {
-    let object_url = match value {
-        JsonValue::String(string) => string.to_owned(),
-        other_value => {
-            let links: Vec<Link> = parse_property_value(other_value)?;
-            if let Some(link) = links.get(0) {
-                link.href.clone()
-            } else {
-                return Err(ConversionError);
-            }
+pub fn get_object_url(object: &Object) -> Result<String, ValidationError> {
+    let maybe_object_url = match &object.url {
+        Some(JsonValue::String(string)) => Some(string.to_owned()),
+        Some(other_value) => {
+            let links: Vec<Link> = parse_property_value(other_value)
+                .map_err(|_| ValidationError("invalid object URL"))?;
+            links.get(0).map(|link| link.href.clone())
         },
+        None => None,
     };
+    let object_url = maybe_object_url.unwrap_or(object.id.clone());
     Ok(object_url)
 }
 
 pub fn get_object_content(object: &Object) -> Result<String, ValidationError> {
-    let mut content = if let Some(ref content) = object.content {
+    let content = if let Some(ref content) = object.content {
         if object.media_type == Some("text/markdown".to_string()) {
             format!("<p>{}</p>", content)
         } else {
@@ -95,24 +94,18 @@ pub fn get_object_content(object: &Object) -> Result<String, ValidationError> {
         // Lemmy pages and PeerTube videos have "name" property
         object.name.as_deref().unwrap_or("").to_string()
     };
-    if object.object_type != NOTE {
-        // Append link to object
-        let object_url = if let Some(ref value) = object.url {
-            parse_object_url(value)
-                .map_err(|_| ValidationError("invalid object URL"))?
-        } else {
-            object.id.clone()
-        };
-        content += &format!(
-            r#"<p><a href="{0}">{0}</a></p>"#,
-            object_url,
-        );
-    };
     if content.len() > CONTENT_MAX_SIZE {
         return Err(ValidationError("content is too long"));
     };
     let content_safe = clean_html(&content, content_allowed_classes());
     Ok(content_safe)
+}
+
+pub fn create_content_link(url: String) -> String {
+    format!(
+        r#"<p><a href="{0}" rel="noopener">{0}</a></p>"#,
+        url,
+    )
 }
 
 const ATTACHMENT_MAX_SIZE: usize = 20 * 1000 * 1000; // 20 MB
@@ -498,9 +491,13 @@ pub async fn handle_note(
         log::warn!("failed to import {} ({})", author_id, err);
         err
     })?;
-    let content = get_object_content(&object)?;
-    let created_at = object.published.unwrap_or(Utc::now());
 
+    let mut content = get_object_content(&object)?;
+    if object.object_type != NOTE {
+        // Append link to object
+        let object_url = get_object_url(&object)?;
+        content += &create_content_link(object_url);
+    };
     let attachments = get_object_attachments(
         config,
         db_client,
@@ -556,6 +553,7 @@ pub async fn handle_note(
             author.username,
         );
     };
+    let created_at = object.published.unwrap_or(Utc::now());
     let post_data = PostCreateData {
         content: content,
         in_reply_to_id,
@@ -638,7 +636,9 @@ mod tests {
             }])),
             ..Default::default()
         };
-        let content = get_object_content(&object).unwrap();
+        let mut content = get_object_content(&object).unwrap();
+        let object_url = get_object_url(&object).unwrap();
+        content += &create_content_link(object_url);
         assert_eq!(
             content,
             r#"test-content<p><a href="https://example.org/xyz" rel="noopener">https://example.org/xyz</a></p>"#,
