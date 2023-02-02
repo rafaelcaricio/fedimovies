@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `https://w3id.org/security/data-integrity/v1` to JSON-LD context.
 - Return `202 Accepted` when activity is accepted by inbox endpoint.
 - Ignore forwarded `Like` activities.
+- Set 10 minute timeout on background job that processes incoming activities.
 
 ## [1.12.0] - 2023-01-26
 

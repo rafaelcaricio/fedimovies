@@ -122,7 +122,12 @@ async fn incoming_activity_queue_task(
     db_pool: &DbPool,
 ) -> Result<(), Error> {
     let db_client = &mut **get_database_client(db_pool).await?;
-    process_queued_incoming_activities(config, db_client).await?;
+    let duration_max = Duration::from_secs(600);
+    let task_completed = process_queued_incoming_activities(config, db_client);
+    match tokio::time::timeout(duration_max, task_completed).await {
+        Ok(result) => result?,
+        Err(_) => log::error!("task timeout: IncomingActivityQueue"),
+    };
     Ok(())
 }
 
