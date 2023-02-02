@@ -3,14 +3,16 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::activitypub::identifiers::local_tag_collection;
-use crate::mastodon_api::accounts::types::Account;
-use crate::mastodon_api::media::types::Attachment;
+use crate::mastodon_api::{
+    accounts::types::Account,
+    custom_emojis::types::CustomEmoji,
+    media::types::Attachment,
+};
 use crate::models::{
     emojis::types::DbEmoji,
     posts::types::{Post, Visibility},
     profiles::types::DbActorProfile,
 };
-use crate::utils::files::get_file_url;
 
 /// https://docs.joinmastodon.org/entities/mention/
 #[derive(Serialize)]
@@ -45,24 +47,6 @@ impl Tag {
         Tag {
             name: tag_name,
             url: tag_url,
-        }
-    }
-}
-
-/// https://docs.joinmastodon.org/entities/CustomEmoji/
-#[derive(Serialize)]
-pub struct CustomEmoji {
-    shortcode: String,
-    url: String,
-    visible_in_picker: bool,
-}
-
-impl CustomEmoji {
-    fn from_db(instance_url: &str, emoji: DbEmoji) -> Self {
-        Self {
-            shortcode: emoji.emoji_name,
-            url: get_file_url(instance_url, &emoji.image.file_name),
-            visible_in_picker: true,
         }
     }
 }

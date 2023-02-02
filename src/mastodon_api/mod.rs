@@ -1,4 +1,5 @@
 pub mod accounts;
+pub mod custom_emojis;
 pub mod directory;
 pub mod instance;
 pub mod markers;

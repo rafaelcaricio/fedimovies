@@ -584,6 +584,19 @@ paths:
                 $ref: '#/components/schemas/Relationship'
         404:
           description: Profile not found
+  /api/v1/custom_emojis:
+    get:
+      summary: Returns custom emojis that are available on the server.
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                description: Emoji list
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomEmoji'
   /api/v1/directory:
     get:
       summary: List profiles visible in the directory.
@@ -1372,6 +1385,9 @@ components:
           type: string
         url:
           description: A link to the custom emoji.
+          type: string
+        static_url:
+          description: A link to a static copy of the custom emoji.
           type: string
         visible_in_picker:
           description: Whether this Emoji should be visible in the picker or unlisted.

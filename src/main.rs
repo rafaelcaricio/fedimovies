@@ -20,6 +20,7 @@ use mitra::http::json_error_handler;
 use mitra::job_queue::scheduler;
 use mitra::logger::configure_logger;
 use mitra::mastodon_api::accounts::views::account_api_scope;
+use mitra::mastodon_api::custom_emojis::views::custom_emoji_api_scope;
 use mitra::mastodon_api::directory::views::directory_api_scope;
 use mitra::mastodon_api::instance::views::instance_api_scope;
 use mitra::mastodon_api::markers::views::marker_api_scope;
@@ -144,6 +145,7 @@ async fn main() -> std::io::Result<()> {
             ))
             .service(oauth_api_scope())
             .service(account_api_scope())
+            .service(custom_emoji_api_scope())
             .service(directory_api_scope())
             .service(instance_api_scope())
             .service(marker_api_scope())

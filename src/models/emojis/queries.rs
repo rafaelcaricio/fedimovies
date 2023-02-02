@@ -111,6 +111,23 @@ pub async fn get_local_emojis_by_names(
     Ok(emojis)
 }
 
+pub async fn get_local_emojis(
+    db_client: &impl DatabaseClient,
+) -> Result<Vec<DbEmoji>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT emoji
+        FROM emoji
+        WHERE hostname IS NULL
+        ",
+        &[],
+    ).await?;
+    let emojis = rows.iter()
+        .map(|row| row.try_get("emoji"))
+        .collect::<Result<_, _>>()?;
+    Ok(emojis)
+}
+
 pub async fn get_emoji_by_name_and_hostname(
     db_client: &impl DatabaseClient,
     emoji_name: &str,
