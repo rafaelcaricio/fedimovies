@@ -186,7 +186,7 @@ async fn deliver_activity_worker(
                 &activity_json,
                 &recipient.inbox,
             ).await {
-                log::error!(
+                log::warn!(
                     "failed to deliver activity to {} (attempt #{}): {}",
                     recipient.inbox,
                     retry_count + 1,
