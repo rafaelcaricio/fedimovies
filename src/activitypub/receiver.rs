@@ -302,8 +302,8 @@ pub async fn receive_activity(
     if !is_authenticated {
         match activity_type {
             CREATE => (), // Accept forwarded Create() activities
-            DELETE => {
-                // Ignore forwarded Delete(Person) and Delete(Note) activities
+            DELETE | LIKE => {
+                // Ignore forwarded Delete and Like activities
                 return Ok(());
             },
             _ => {
