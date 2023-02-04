@@ -195,6 +195,11 @@ async fn create_invoice_view(
     let db_client = &**get_database_client(&db_pool).await?;
     let sender = get_profile_by_id(db_client, &invoice_data.sender_id).await?;
     let recipient = get_user_by_id(db_client, &invoice_data.recipient_id).await?;
+    if !recipient.profile.payment_options.any(PaymentType::MoneroSubscription) {
+        let error_message = "recipient can't accept subscription payments";
+        return Err(ValidationError(error_message).into());
+    };
+
     let payment_address = create_monero_address(monero_config).await
         .map_err(|_| HttpError::InternalError)?
         .to_string();
