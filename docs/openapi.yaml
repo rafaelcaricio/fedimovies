@@ -1658,6 +1658,7 @@ components:
             enum:
               - create_follow_request
               - create_post
+              - manage_subscription_options
     Signature:
       type: object
       properties:

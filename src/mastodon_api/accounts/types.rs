@@ -77,6 +77,8 @@ impl ApiRole {
                 match permission {
                     Permission::CreateFollowRequest => "create_follow_request",
                     Permission::CreatePost => "create_post",
+                    Permission::ManageSubscriptionOptions =>
+                        "manage_subscription_options",
                 }.to_string()
             })
             .collect();

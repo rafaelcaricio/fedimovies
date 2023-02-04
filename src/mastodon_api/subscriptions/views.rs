@@ -13,19 +13,22 @@ use crate::ethereum::subscriptions::{
 };
 use crate::mastodon_api::accounts::types::Account;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::models::invoices::queries::{create_invoice, get_invoice_by_id};
-use crate::models::profiles::queries::{
-    get_profile_by_id,
-    update_profile,
+use crate::models::{
+    invoices::queries::{create_invoice, get_invoice_by_id},
+    profiles::queries::{
+        get_profile_by_id,
+        update_profile,
+    },
+    profiles::types::{
+        MoneroSubscription,
+        PaymentOption,
+        PaymentType,
+        ProfileUpdateData,
+    },
+    subscriptions::queries::get_subscription_by_participants,
+    users::queries::get_user_by_id,
+    users::types::Permission,
 };
-use crate::models::profiles::types::{
-    MoneroSubscription,
-    PaymentOption,
-    PaymentType,
-    ProfileUpdateData,
-};
-use crate::models::subscriptions::queries::get_subscription_by_participants;
-use crate::models::users::queries::get_user_by_id;
 use crate::monero::{
     helpers::validate_monero_address,
     wallet::create_monero_address,
@@ -91,6 +94,9 @@ pub async fn register_subscription_option(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
+    if current_user.role.has_permission(Permission::ManageSubscriptionOptions) {
+        return Err(HttpError::PermissionError);
+    };
 
     let maybe_payment_option = match subscription_option.into_inner() {
         SubscriptionOption::Ethereum => {

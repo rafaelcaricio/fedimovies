@@ -16,6 +16,7 @@ use crate::utils::currencies::Currency;
 pub enum Permission {
     CreateFollowRequest,
     CreatePost,
+    ManageSubscriptionOptions,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -47,15 +48,21 @@ impl Role {
             Self::NormalUser => vec![
                 Permission::CreateFollowRequest,
                 Permission::CreatePost,
+                Permission::ManageSubscriptionOptions,
             ],
             Self::Admin => vec![
                 Permission::CreateFollowRequest,
                 Permission::CreatePost,
+                Permission::ManageSubscriptionOptions,
             ],
             Self::ReadOnlyUser => vec![
                 Permission::CreateFollowRequest,
             ],
         }
+    }
+
+    pub fn has_permission(&self, permission: Permission) -> bool {
+        self.get_permissions().contains(&permission)
     }
 }
 

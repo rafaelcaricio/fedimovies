@@ -126,8 +126,7 @@ pub async fn can_view_post(
 pub fn can_create_post(
     user: &User,
 ) -> bool {
-    let permissions = user.role.get_permissions();
-    permissions.contains(&Permission::CreatePost)
+    user.role.has_permission(Permission::CreatePost)
 }
 
 pub async fn get_local_post_by_id(
