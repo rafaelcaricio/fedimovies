@@ -35,6 +35,8 @@ server {
     add_header Content-Security-Policy "default-src 'none'; connect-src 'self'; img-src 'self' data:; media-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
     add_header X-Content-Type-Options "nosniff";
 
+    client_max_body_size 10M;
+
     location / {
         # Frontend
         root /usr/share/mitra/www;
