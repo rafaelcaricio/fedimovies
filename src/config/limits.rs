@@ -59,10 +59,28 @@ impl Default for MediaLimits {
     }
 }
 
+const fn default_post_character_limit() -> usize { 2000 }
+
+#[derive(Clone, Deserialize)]
+pub struct PostLimits {
+    #[serde(default = "default_post_character_limit")]
+    pub character_limit: usize,
+}
+
+impl Default for PostLimits {
+    fn default() -> Self {
+        Self {
+            character_limit: default_post_character_limit(),
+        }
+    }
+}
+
 #[derive(Clone, Default, Deserialize)]
 pub struct Limits {
     #[serde(default)]
     pub media: MediaLimits,
+    #[serde(default)]
+    pub posts: PostLimits,
 }
 
 #[cfg(test)]

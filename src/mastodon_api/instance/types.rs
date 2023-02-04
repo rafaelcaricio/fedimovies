@@ -74,7 +74,7 @@ pub struct InstanceInfo {
     configuration: InstanceConfiguration,
 
     login_message: String,
-    post_character_limit: usize,
+    post_character_limit: usize, // deprecated
     blockchains: Vec<BlockchainInfo>,
     ipfs_gateway_url: Option<String>,
 }
@@ -158,7 +158,7 @@ impl InstanceInfo {
             },
             configuration: InstanceConfiguration {
                 statuses: InstanceStatusLimits {
-                    max_characters: config.post_character_limit,
+                    max_characters: config.limits.posts.character_limit,
                     max_media_attachments: ATTACHMENTS_MAX_NUM,
                 },
                 media_attachments: InstanceMediaLimits {
@@ -168,7 +168,7 @@ impl InstanceInfo {
                 },
             },
             login_message: config.login_message.clone(),
-            post_character_limit: config.post_character_limit,
+            post_character_limit: config.limits.posts.character_limit,
             blockchains: blockchains,
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),
         }

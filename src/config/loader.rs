@@ -113,12 +113,17 @@ pub fn parse_config() -> (Config, Vec<&'static str>) {
 
     if let Some(registrations_open) = config.registrations_open {
         // Change type if 'registrations_open' parameter is used
-        warnings.push("'registrations_open' setting is deprecated, use 'registration' instead");
+        warnings.push("'registrations_open' setting is deprecated, use 'registration.type' instead");
         if registrations_open {
             config.registration.registration_type = RegistrationType::Open;
         } else {
             config.registration.registration_type = RegistrationType::Invite;
         };
+    };
+
+    if let Some(post_character_limit) = config.post_character_limit {
+        warnings.push("'post_character_limit' setting is deprecated, use 'limits.posts.character_limit' instead");
+        config.limits.posts.character_limit = post_character_limit;
     };
 
     // Insert instance RSA key

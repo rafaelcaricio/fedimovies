@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `/api/v1/custom_emojis` endpoint.
 - Added `limits` parameter group to configuration.
 - Made file size limit adjustable with `limits.media.file_size_limit` configuration option.
+- Added `limits.posts.character_limit` configuration parameter (replaces `post_character_limit`).
 
 ### Changed
 
@@ -23,6 +24,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Set 10 minute timeout on background job that processes incoming activities.
 - Use "warn" log level for delivery errors.
 - Don't allow read-only users to manage subscriptions.
+
+### Deprecated
+
+- Deprecated `post_character_limit` configuration option.
 
 ### Fixed
 

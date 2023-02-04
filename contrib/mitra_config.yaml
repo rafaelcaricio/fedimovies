@@ -25,8 +25,6 @@ registration:
 # EIP-4361 login message
 #login_message: 'Do not sign this message on other sites!'
 
-#post_character_limit: 2000
-
 # Proxy for outgoing requests
 #proxy_url: 'socks5h://127.0.0.1:9050'
 
@@ -34,6 +32,8 @@ registration:
 #limits:
 #  media:
 #    file_size_limit: 20M
+#  posts:
+#    character_limit: 2000
 
 # List of blocked domains
 #blocked_instances: []
