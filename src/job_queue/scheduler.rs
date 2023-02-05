@@ -18,6 +18,7 @@ enum PeriodicTask {
     MoneroPaymentMonitor,
     IncomingActivityQueueExecutor,
     OutgoingActivityQueueExecutor,
+    DeleteExtraneousPosts,
 }
 
 impl PeriodicTask {
@@ -30,6 +31,7 @@ impl PeriodicTask {
             Self::MoneroPaymentMonitor => 30,
             Self::IncomingActivityQueueExecutor => 5,
             Self::OutgoingActivityQueueExecutor => 5,
+            Self::DeleteExtraneousPosts => 3600,
         }
     }
 
@@ -58,6 +60,9 @@ pub fn run(
             (PeriodicTask::IncomingActivityQueueExecutor, None),
             (PeriodicTask::OutgoingActivityQueueExecutor, None),
         ]);
+        if config.retention.extraneous_posts.is_some() {
+            scheduler_state.insert(PeriodicTask::DeleteExtraneousPosts, None);
+        };
 
         let mut interval = tokio::time::interval(Duration::from_secs(5));
         let mut token_waitlist_map: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
@@ -94,6 +99,9 @@ pub fn run(
                     },
                     PeriodicTask::OutgoingActivityQueueExecutor => {
                         outgoing_activity_queue_executor(&config, &db_pool).await
+                    },
+                    PeriodicTask::DeleteExtraneousPosts => {
+                        delete_extraneous_posts(&config, &db_pool).await
                     },
                 };
                 task_result.unwrap_or_else(|err| {

@@ -18,6 +18,8 @@ use crate::ethereum::subscriptions::{
     update_expired_subscriptions,
 };
 use crate::monero::subscriptions::check_monero_subscriptions;
+use crate::models::posts::queries::{delete_post, find_extraneous_posts};
+use crate::utils::datetime::days_before_now;
 
 pub async fn nft_monitor(
     maybe_blockchain: Option<&mut Blockchain>,
@@ -113,5 +115,23 @@ pub async fn outgoing_activity_queue_executor(
     db_pool: &DbPool,
 ) -> Result<(), Error> {
     process_queued_outgoing_activities(config, db_pool).await?;
+    Ok(())
+}
+
+pub async fn delete_extraneous_posts(
+    config: &Config,
+    db_pool: &DbPool,
+) -> Result<(), Error> {
+    let db_client = &mut **get_database_client(db_pool).await?;
+    let updated_before = match config.retention.extraneous_posts {
+        Some(days) => days_before_now(days),
+        None => return Ok(()), // not configured
+    };
+    let posts = find_extraneous_posts(db_client, &updated_before).await?;
+    for post_id in posts {
+        let deletion_queue = delete_post(db_client, &post_id).await?;
+        deletion_queue.process(config).await;
+        log::info!("deleted post {}", post_id);
+    };
     Ok(())
 }

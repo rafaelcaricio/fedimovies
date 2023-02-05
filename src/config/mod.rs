@@ -3,6 +3,7 @@ mod environment;
 mod limits;
 mod loader;
 mod main;
+mod retention;
 
 pub use blockchain::{
     BlockchainConfig,
