@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `limits` parameter group to configuration.
 - Made file size limit adjustable with `limits.media.file_size_limit` configuration option.
 - Added `limits.posts.character_limit` configuration parameter (replaces `post_character_limit`).
-- Implemented automatic pruning of remote posts (disabled by default).
+- Implemented automatic pruning of remote posts and empty profiles (disabled by default).
 
 ### Changed
 

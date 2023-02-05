@@ -18,7 +18,14 @@ use crate::ethereum::subscriptions::{
     update_expired_subscriptions,
 };
 use crate::monero::subscriptions::check_monero_subscriptions;
-use crate::models::posts::queries::{delete_post, find_extraneous_posts};
+use crate::models::{
+    posts::queries::{delete_post, find_extraneous_posts},
+    profiles::queries::{
+        delete_profile,
+        find_empty_profiles,
+        get_profile_by_id,
+    },
+};
 use crate::utils::datetime::days_before_now;
 
 pub async fn nft_monitor(
@@ -132,6 +139,25 @@ pub async fn delete_extraneous_posts(
         let deletion_queue = delete_post(db_client, &post_id).await?;
         deletion_queue.process(config).await;
         log::info!("deleted post {}", post_id);
+    };
+    Ok(())
+}
+
+pub async fn delete_empty_profiles(
+    config: &Config,
+    db_pool: &DbPool,
+) -> Result<(), Error> {
+    let db_client = &mut **get_database_client(db_pool).await?;
+    let updated_before = match config.retention.empty_profiles {
+        Some(days) => days_before_now(days),
+        None => return Ok(()), // not configured
+    };
+    let profiles = find_empty_profiles(db_client, &updated_before).await?;
+    for profile_id in profiles {
+        let profile = get_profile_by_id(db_client, &profile_id).await?;
+        let deletion_queue = delete_profile(db_client, &profile.id).await?;
+        deletion_queue.process(config).await;
+        log::info!("deleted profile {}", profile.acct);
     };
     Ok(())
 }

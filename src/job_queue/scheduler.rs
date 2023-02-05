@@ -19,6 +19,7 @@ enum PeriodicTask {
     IncomingActivityQueueExecutor,
     OutgoingActivityQueueExecutor,
     DeleteExtraneousPosts,
+    DeleteEmptyProfiles,
 }
 
 impl PeriodicTask {
@@ -32,6 +33,7 @@ impl PeriodicTask {
             Self::IncomingActivityQueueExecutor => 5,
             Self::OutgoingActivityQueueExecutor => 5,
             Self::DeleteExtraneousPosts => 3600,
+            Self::DeleteEmptyProfiles => 3600,
         }
     }
 
@@ -62,6 +64,9 @@ pub fn run(
         ]);
         if config.retention.extraneous_posts.is_some() {
             scheduler_state.insert(PeriodicTask::DeleteExtraneousPosts, None);
+        };
+        if config.retention.empty_profiles.is_some() {
+            scheduler_state.insert(PeriodicTask::DeleteEmptyProfiles, None);
         };
 
         let mut interval = tokio::time::interval(Duration::from_secs(5));
@@ -102,6 +107,9 @@ pub fn run(
                     },
                     PeriodicTask::DeleteExtraneousPosts => {
                         delete_extraneous_posts(&config, &db_pool).await
+                    },
+                    PeriodicTask::DeleteEmptyProfiles => {
+                        delete_empty_profiles(&config, &db_pool).await
                     },
                 };
                 task_result.unwrap_or_else(|err| {
