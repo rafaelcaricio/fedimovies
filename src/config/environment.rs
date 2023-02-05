@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::errors::ConversionError;
+use super::ConfigError;
 
 #[derive(Clone, Debug)]
 pub enum Environment {
@@ -16,13 +16,13 @@ impl Default for Environment {
 }
 
 impl FromStr for Environment {
-    type Err = ConversionError;
+    type Err = ConfigError;
 
     fn from_str(val: &str) -> Result<Self, Self::Err> {
         let environment = match val {
             "development" => Environment::Development,
             "production" => Environment::Production,
-            _ => return Err(ConversionError),
+            _ => return Err(ConfigError("invalid environment type")),
         };
         Ok(environment)
     }

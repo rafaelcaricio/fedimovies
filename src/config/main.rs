@@ -11,7 +11,6 @@ use url::Url;
 
 use crate::activitypub::constants::ACTOR_KEY_SUFFIX;
 use crate::activitypub::identifiers::local_instance_actor_id;
-use crate::errors::ConversionError;
 use crate::utils::urls::guess_protocol;
 
 use super::blockchain::BlockchainConfig;
@@ -123,14 +122,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub(super) fn try_instance_url(&self) -> Result<Url, ConversionError> {
+    pub(super) fn try_instance_url(&self) -> Result<Url, url::ParseError> {
         let scheme = match self.environment {
             Environment::Development => "http",
             Environment::Production => guess_protocol(&self.instance_uri),
         };
         let url_str = format!("{}://{}", scheme, self.instance_uri);
-        let url = Url::parse(&url_str).map_err(|_| ConversionError)?;
-        url.host().ok_or(ConversionError)?; // validates URL
+        let url = Url::parse(&url_str)?;
+        url.host().ok_or(url::ParseError::EmptyHost)?; // validates URL
         Ok(url)
     }
 
