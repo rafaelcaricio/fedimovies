@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.13.0] - 2023-02-06
+
 ### Added
 
 - Replace post attachments and other related objects when processing `Update(Note)` activity.

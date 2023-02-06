@@ -1,6 +1,6 @@
 [package]
 name = "mitra"
-version = "1.12.0"
+version = "1.13.0"
 description = "Federated micro-blogging platform and content subscription service"
 license = "AGPL-3.0"
 
@@ -15,8 +15,8 @@ members = [
   "mitra-cli",
 ]
 default-members = [
-    ".",
-    "mitra-cli",
+  ".",
+  "mitra-cli",
 ]
 
 [dependencies]
