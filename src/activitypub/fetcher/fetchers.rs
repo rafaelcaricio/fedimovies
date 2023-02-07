@@ -7,6 +7,7 @@ use serde_json::Value;
 use crate::activitypub::{
     actors::types::Actor,
     constants::AP_MEDIA_TYPE,
+    identifiers::{local_actor_key_id, local_instance_actor_id},
     types::Object,
 };
 use crate::config::Instance;
@@ -90,12 +91,14 @@ async fn send_request(
     };
     if !instance.is_private {
         // Only public instance can send signed request
+        let instance_actor_id = local_instance_actor_id(&instance.url());
+        let instance_actor_key_id = local_actor_key_id(&instance_actor_id);
         let headers = create_http_signature(
             Method::GET,
             url,
             "",
             &instance.actor_key,
-            &instance.actor_key_id(),
+            &instance_actor_key_id,
         )?;
         request_builder = request_builder
             .header("Host", headers.host)

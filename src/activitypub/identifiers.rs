@@ -3,6 +3,8 @@ use uuid::Uuid;
 
 use crate::errors::ValidationError;
 
+const ACTOR_KEY_SUFFIX: &str = "#main-key";
+
 pub enum LocalActorCollection {
     Inbox,
     Outbox,
@@ -56,6 +58,10 @@ pub fn local_actor_subscribers(instance_url: &str, username: &str) -> String {
 
 pub fn local_instance_actor_id(instance_url: &str) -> String {
     format!("{}/actor", instance_url)
+}
+
+pub fn local_actor_key_id(actor_id: &str) -> String {
+    format!("{}{}", actor_id, ACTOR_KEY_SUFFIX)
 }
 
 pub fn local_object_id(instance_url: &str, internal_object_id: &Uuid) -> String {

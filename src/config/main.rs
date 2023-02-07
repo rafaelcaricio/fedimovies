@@ -9,8 +9,6 @@ use serde::{
 };
 use url::Url;
 
-use crate::activitypub::constants::ACTOR_KEY_SUFFIX;
-use crate::activitypub::identifiers::local_instance_actor_id;
 use crate::utils::urls::guess_protocol;
 
 use super::blockchain::BlockchainConfig;
@@ -181,14 +179,6 @@ impl Instance {
 
     pub fn hostname(&self) -> String {
         self._url.host_str().unwrap().to_string()
-    }
-
-    pub fn actor_id(&self) -> String {
-        local_instance_actor_id(&self.url())
-    }
-
-    pub fn actor_key_id(&self) -> String {
-        format!("{}{}", self.actor_id(), ACTOR_KEY_SUFFIX)
     }
 
     pub fn agent(&self) -> String {

@@ -8,11 +8,15 @@ use serde_json::{json, Value};
 
 use crate::activitypub::{
     constants::{
-        ACTOR_KEY_SUFFIX,
         AP_CONTEXT,
         W3ID_SECURITY_CONTEXT,
     },
-    identifiers::{local_actor_id, LocalActorCollection},
+    identifiers::{
+        local_actor_id,
+        local_actor_key_id,
+        local_instance_actor_id,
+        LocalActorCollection,
+    },
     receiver::parse_property_value,
     vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
 };
@@ -259,7 +263,7 @@ pub fn get_local_actor(
     let private_key = deserialize_private_key(&user.private_key)?;
     let public_key_pem = get_public_key_pem(&private_key)?;
     let public_key = PublicKey {
-        id: format!("{}{}", actor_id, ACTOR_KEY_SUFFIX),
+        id: local_actor_key_id(&actor_id),
         owner: actor_id.clone(),
         public_key_pem: public_key_pem,
     };
@@ -332,12 +336,12 @@ pub fn get_local_actor(
 pub fn get_instance_actor(
     instance: &Instance,
 ) -> Result<Actor, ActorKeyError> {
-    let actor_id = instance.actor_id();
+    let actor_id = local_instance_actor_id(&instance.url());
     let actor_inbox = LocalActorCollection::Inbox.of(&actor_id);
     let actor_outbox = LocalActorCollection::Outbox.of(&actor_id);
     let public_key_pem = get_public_key_pem(&instance.actor_key)?;
     let public_key = PublicKey {
-        id: instance.actor_key_id(),
+        id: local_actor_key_id(&actor_id),
         owner: actor_id.clone(),
         public_key_pem: public_key_pem,
     };

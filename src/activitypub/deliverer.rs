@@ -30,8 +30,8 @@ use crate::models::{
 };
 use crate::utils::crypto_rsa::deserialize_private_key;
 use super::actors::types::Actor;
-use super::constants::{AP_MEDIA_TYPE, ACTOR_KEY_SUFFIX};
-use super::identifiers::local_actor_id;
+use super::constants::AP_MEDIA_TYPE;
+use super::identifiers::{local_actor_id, local_actor_key_id};
 use super::queues::OutgoingActivityJobData;
 
 #[derive(thiserror::Error, Debug)]
@@ -136,14 +136,11 @@ async fn deliver_activity_worker(
     recipients: Vec<Recipient>,
 ) -> Result<(), DelivererError> {
     let actor_key = deserialize_private_key(&sender.private_key)?;
-    let actor_key_id = format!(
-        "{}{}",
-        local_actor_id(
-            &instance.url(),
-            &sender.profile.username,
-        ),
-        ACTOR_KEY_SUFFIX,
+    let actor_id = local_actor_id(
+        &instance.url(),
+        &sender.profile.username,
     );
+    let actor_key_id = local_actor_key_id(&actor_id);
     let activity_signed = if is_object_signed(&activity) {
         log::warn!("activity is already signed");
         activity
