@@ -3,6 +3,7 @@ use std::time::Instant;
 use actix_web::{
     get, post, web,
     HttpRequest, HttpResponse, Scope,
+    http::header as http_header,
     http::header::HeaderMap,
 };
 use serde::Deserialize;
@@ -44,7 +45,7 @@ use super::identifiers::{
 use super::receiver::receive_activity;
 
 pub fn is_activitypub_request(headers: &HeaderMap) -> bool {
-    let maybe_user_agent = headers.get("User-Agent")
+    let maybe_user_agent = headers.get(http_header::USER_AGENT)
         .and_then(|value| value.to_str().ok());
     if let Some(user_agent) = maybe_user_agent {
         if user_agent.contains("THIS. IS. GNU social!!!!") {
@@ -58,7 +59,7 @@ pub fn is_activitypub_request(headers: &HeaderMap) -> bool {
         "application/ld+json",
         "application/json",
     ];
-    if let Some(content_type) = headers.get("Accept") {
+    if let Some(content_type) = headers.get(http_header::ACCEPT) {
         let content_type_str = content_type.to_str().ok()
             // Take first content type if there are many
             .and_then(|value| value.split(',').next())
@@ -80,7 +81,7 @@ async fn actor_view(
     if !is_activitypub_request(request.headers()) {
         let page_url = get_profile_page_url(&config.instance_url(), &user.id);
         let response = HttpResponse::Found()
-            .append_header(("Location", page_url))
+            .append_header((http_header::LOCATION, page_url))
             .finish();
         return Ok(response);
     };
@@ -331,7 +332,7 @@ pub async fn object_view(
     if !is_activitypub_request(request.headers()) {
         let page_url = get_post_page_url(&config.instance_url(), &post.id);
         let response = HttpResponse::Found()
-            .append_header(("Location", page_url))
+            .append_header((http_header::LOCATION, page_url))
             .finish();
         return Ok(response);
     };
@@ -375,7 +376,7 @@ pub async fn tag_view(
 ) -> Result<HttpResponse, HttpError> {
     let page_url = get_tag_page_url(&config.instance_url(), &tag_name);
     let response = HttpResponse::Found()
-        .append_header(("Location", page_url))
+        .append_header((http_header::LOCATION, page_url))
         .finish();
     Ok(response)
 }
