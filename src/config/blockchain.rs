@@ -2,8 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ethereum::utils::{parse_caip2_chain_id, ChainIdError};
-use crate::utils::caip2::ChainId;
+use crate::utils::caip2::{ChainId, ChainIdError};
 
 fn default_chain_sync_step() -> u64 { 1000 }
 
@@ -42,7 +41,7 @@ pub struct EthereumConfig {
 
 impl EthereumConfig {
     pub fn try_ethereum_chain_id(&self) -> Result<u32, ChainIdError> {
-        parse_caip2_chain_id(&self.chain_id)
+        self.chain_id.ethereum_chain_id()
     }
 
     pub fn ethereum_chain_id(&self) -> u32 {

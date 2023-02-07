@@ -45,18 +45,28 @@ impl ChainId {
     pub fn is_monero(&self) -> bool {
         self.namespace == CAIP2_MONERO_NAMESPACE
     }
+
+    pub fn ethereum_chain_id(&self) -> Result<u32, ChainIdError> {
+        if !self.is_ethereum() {
+            return Err(ChainIdError("namespace is not eip155"));
+        };
+        let chain_id: u32 = self.reference.parse()
+            .map_err(|_| ChainIdError("invalid EIP-155 chain ID"))?;
+        Ok(chain_id)
+    }
 }
 
 #[derive(thiserror::Error, Debug)]
-#[error("Chain ID parse error")]
-pub struct ChainIdError;
+#[error("{0}")]
+pub struct ChainIdError(&'static str);
 
 impl FromStr for ChainId {
     type Err = ChainIdError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let caip2_re = Regex::new(CAIP2_RE).unwrap();
-        let caps = caip2_re.captures(value).ok_or(ChainIdError)?;
+        let caps = caip2_re.captures(value)
+            .ok_or(ChainIdError("invalid chain ID"))?;
         let chain_id = Self {
             namespace: caps["namespace"].to_string(),
             reference: caps["reference"].to_string(),
@@ -156,5 +166,19 @@ mod tests {
     fn test_parse_invalid_chain_id() {
         let value = "eip155/1/abcde";
         assert!(value.parse::<ChainId>().is_err());
+    }
+
+    #[test]
+    fn test_ethereum_chain_id() {
+        let chain_id: ChainId = "eip155:1".parse().unwrap();
+        let result = chain_id.ethereum_chain_id().unwrap();
+        assert_eq!(result, 1);
+    }
+
+    #[test]
+    fn test_ethereum_chain_id_not_ethereum() {
+        let chain_id: ChainId = "bip122:000000000019d6689c085ae165831e93".parse().unwrap();
+        let error = chain_id.ethereum_chain_id().err().unwrap();
+        assert!(matches!(error, ChainIdError("namespace is not eip155")));
     }
 }
