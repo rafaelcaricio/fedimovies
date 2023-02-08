@@ -28,7 +28,7 @@ impl DidPkh {
     }
 
     pub fn currency(&self) -> Option<Currency> {
-        (&self.chain_id).try_into().ok()
+        self.chain_id.currency()
     }
 }
 

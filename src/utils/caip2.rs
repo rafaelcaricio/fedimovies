@@ -11,6 +11,8 @@ use serde::{
     de::Error as DeserializerError,
 };
 
+use super::currencies::Currency;
+
 const CAIP2_RE: &str = r"(?P<namespace>[-a-z0-9]{3,8}):(?P<reference>[-a-zA-Z0-9]{1,32})";
 const CAIP2_ETHEREUM_NAMESPACE: &str = "eip155";
 const CAIP2_MONERO_NAMESPACE: &str = "monero"; // unregistered namespace
@@ -53,6 +55,15 @@ impl ChainId {
         let chain_id: u32 = self.reference.parse()
             .map_err(|_| ChainIdError("invalid EIP-155 chain ID"))?;
         Ok(chain_id)
+    }
+
+    pub fn currency(&self) -> Option<Currency> {
+        let currency = match self.namespace.as_str() {
+            CAIP2_ETHEREUM_NAMESPACE => Currency::Ethereum,
+            CAIP2_MONERO_NAMESPACE => Currency::Monero,
+            _ => return None,
+        };
+        Some(currency)
     }
 }
 
@@ -180,5 +191,19 @@ mod tests {
         let chain_id: ChainId = "bip122:000000000019d6689c085ae165831e93".parse().unwrap();
         let error = chain_id.ethereum_chain_id().err().unwrap();
         assert!(matches!(error, ChainIdError("namespace is not eip155")));
+    }
+
+    #[test]
+    fn test_chain_id_conversion() {
+        let ethereum_chain_id = ChainId::ethereum_mainnet();
+        let currency = ethereum_chain_id.currency().unwrap();
+        assert_eq!(currency, Currency::Ethereum);
+
+        let monero_chain_id = ChainId {
+            namespace: "monero".to_string(),
+            reference: "mainnet".to_string(),
+        };
+        let currency = monero_chain_id.currency().unwrap();
+        assert_eq!(currency, Currency::Monero);
     }
 }

@@ -1,7 +1,6 @@
 use regex::Regex;
 
-use crate::errors::{ConversionError, ValidationError};
-use super::caip2::ChainId;
+use crate::errors::ValidationError;
 
 #[derive(Debug, PartialEq)]
 pub enum Currency {
@@ -29,19 +28,6 @@ impl Currency {
     }
 }
 
-impl TryFrom<&ChainId> for Currency {
-    type Error = ConversionError;
-
-    fn try_from(value: &ChainId) -> Result<Self, Self::Error> {
-        let currency = match value.namespace.as_str() {
-            "eip155" => Self::Ethereum,
-            "monero" => Self::Monero, // not standard
-            _ => return Err(ConversionError),
-        };
-        Ok(currency)
-    }
-}
-
 pub fn validate_wallet_address(
     currency: &Currency,
     wallet_address: &str,
@@ -62,20 +48,6 @@ pub fn validate_wallet_address(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_chain_id_conversion() {
-        let ethereum_chain_id = ChainId::ethereum_mainnet();
-        let currency = Currency::try_from(&ethereum_chain_id).unwrap();
-        assert_eq!(currency, Currency::Ethereum);
-
-        let monero_chain_id = ChainId {
-            namespace: "monero".to_string(),
-            reference: "mainnet".to_string(),
-        };
-        let currency = Currency::try_from(&monero_chain_id).unwrap();
-        assert_eq!(currency, Currency::Monero);
-    }
 
     #[test]
     fn test_get_currency_field_name() {
