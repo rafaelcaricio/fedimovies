@@ -5,7 +5,8 @@ web_client_dir: null
 http_host: '127.0.0.1'
 http_port: 8380
 
-instance_uri: 127.0.0.1:8380
+instance_uri: http://127.0.0.1:8380
+
 instance_title: Mitra
 instance_short_description: My instance
 instance_description: My instance

@@ -12,7 +12,8 @@ http_port: 8383
 #log_level: info
 
 # Domain name
-instance_uri: example.tld
+instance_uri: https://example.tld
+
 instance_title: example
 instance_short_description: my instance
 # Long description can contain markdown syntax

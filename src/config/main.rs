@@ -9,7 +9,7 @@ use serde::{
 };
 use url::Url;
 
-use crate::utils::urls::guess_protocol;
+use crate::utils::urls::normalize_url;
 
 use super::blockchain::BlockchainConfig;
 use super::environment::Environment;
@@ -78,7 +78,9 @@ pub struct Config {
     pub log_level: LogLevel,
 
     // Domain name or <IP address>:<port>
+    // URI scheme is optional
     instance_uri: String,
+
     pub instance_title: String,
     pub instance_short_description: String,
     pub instance_description: String,
@@ -121,14 +123,7 @@ pub struct Config {
 
 impl Config {
     pub(super) fn try_instance_url(&self) -> Result<Url, url::ParseError> {
-        let scheme = match self.environment {
-            Environment::Development => "http",
-            Environment::Production => guess_protocol(&self.instance_uri),
-        };
-        let url_str = format!("{}://{}", scheme, self.instance_uri);
-        let url = Url::parse(&url_str)?;
-        url.host().ok_or(url::ParseError::EmptyHost)?; // validates URL
-        Ok(url)
+        normalize_url(&self.instance_uri)
     }
 
     pub fn instance(&self) -> Instance {
