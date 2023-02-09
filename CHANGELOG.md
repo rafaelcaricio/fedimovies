@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.13.1] - 2023-02-09
+
 ### Fixed
 
 - Fixed permission error on subscription settings update.
