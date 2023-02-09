@@ -94,7 +94,7 @@ pub async fn register_subscription_option(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
-    if current_user.role.has_permission(Permission::ManageSubscriptionOptions) {
+    if !current_user.role.has_permission(Permission::ManageSubscriptionOptions) {
         return Err(HttpError::PermissionError);
     };
 
