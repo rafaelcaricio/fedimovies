@@ -584,6 +584,47 @@ paths:
                 $ref: '#/components/schemas/Relationship'
         404:
           description: Profile not found
+  /api/v1/apps:
+    post:
+      summary: Create a new application to obtain OAuth2 credentials.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                client_name:
+                  description: A name for your application.
+                  type: string
+                redirect_uris:
+                  description: Where the user should be redirected after authorization.
+                  type: string
+                scopes:
+                  description: Space separated list of scopes.
+                  type: string
+                  example: 'read write'
+                website:
+                  description: An URL to the homepage of your app.
+                  type: string
+                  nullable: true
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Application'
+                  - type: object
+                    properties:
+                      client_id:
+                        description: Client ID key, to be used for obtaining OAuth tokens.
+                        type: string
+                      client_secret:
+                        description: Client secret key, to be used for obtaining OAuth tokens.
+                        type: string
+        400:
+          description: Invalid request data.
   /api/v1/custom_emojis:
     get:
       summary: Returns custom emojis that are available on the server.
@@ -1360,6 +1401,19 @@ components:
           type: string
           enum:
             - update
+    Application:
+      type: object
+      properties:
+        name:
+          description: The name of your application.
+          type: string
+        website:
+          description: The website associated with your application.
+          type: string
+          nullable: true
+        redirect_uri:
+          description: Where the user should be redirected after authorization.
+          type: string
     Attachment:
       type: object
       properties:

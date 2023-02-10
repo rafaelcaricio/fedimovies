@@ -1,9 +1,44 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::database::{DatabaseClient, DatabaseError};
+use crate::database::{
+    catch_unique_violation,
+    DatabaseClient,
+    DatabaseError,
+};
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::{DbUser, User};
+use super::types::{DbOauthApp, DbOauthAppData};
+
+pub async fn create_oauth_app(
+    db_client: &impl DatabaseClient,
+    app_data: DbOauthAppData,
+) -> Result<DbOauthApp, DatabaseError> {
+    let row = db_client.query_one(
+        "
+        INSERT INTO oauth_application (
+            app_name,
+            website,
+            scopes,
+            redirect_uri,
+            client_id,
+            client_secret
+        )
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING oauth_application
+        ",
+        &[
+            &app_data.app_name,
+            &app_data.website,
+            &app_data.scopes,
+            &app_data.redirect_uri,
+            &app_data.client_id,
+            &app_data.client_secret,
+        ],
+    ).await.map_err(catch_unique_violation("oauth_application"))?;
+    let app = row.try_get("oauth_application")?;
+    Ok(app)
+}
 
 pub async fn save_oauth_token(
     db_client: &impl DatabaseClient,
@@ -93,6 +128,18 @@ mod tests {
     use crate::models::users::queries::create_user;
     use crate::models::users::types::UserCreateData;
     use super::*;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_create_oauth_app() {
+        let db_client = &create_test_database().await;
+        let db_app_data = DbOauthAppData {
+            app_name: "My App".to_string(),
+            ..Default::default()
+        };
+        let app = create_oauth_app(db_client, db_app_data).await.unwrap();
+        assert_eq!(app.app_name, "My App");
+    }
 
     #[tokio::test]
     #[serial]
