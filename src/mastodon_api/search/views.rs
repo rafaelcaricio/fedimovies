@@ -5,9 +5,14 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
-use crate::mastodon_api::oauth::auth::get_current_user;
+use crate::mastodon_api::{
+    accounts::types::Account,
+    oauth::auth::get_current_user,
+    statuses::helpers::build_status_list,
+    statuses::types::Tag,
+};
 use super::helpers::search;
-use super::types::SearchQueryParams;
+use super::types::{SearchQueryParams, SearchResults};
 
 #[get("")]
 async fn search_view(
@@ -18,13 +23,26 @@ async fn search_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let results = search(
+    let (profiles, posts, tags) = search(
         &config,
         &current_user,
         db_client,
         query_params.q.trim(),
         query_params.limit.inner(),
     ).await?;
+    let accounts: Vec<Account> = profiles.into_iter()
+        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .collect();
+    let statuses = build_status_list(
+        db_client,
+        &config.instance_url(),
+        Some(&current_user),
+        posts,
+    ).await?;
+    let hashtags = tags.into_iter()
+        .map(|tag_name| Tag::from_tag_name(&config.instance_url(), tag_name))
+        .collect();
+    let results = SearchResults { accounts, statuses, hashtags };
     Ok(HttpResponse::Ok().json(results))
 }
 

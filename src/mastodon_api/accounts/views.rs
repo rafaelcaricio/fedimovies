@@ -460,12 +460,14 @@ async fn search_by_acct(
     query_params: web::Query<SearchAcctQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let accounts = search_profiles_only(
-        &config,
+    let profiles = search_profiles_only(
         db_client,
         &query_params.q,
         query_params.limit.inner(),
     ).await?;
+    let accounts: Vec<Account> = profiles.into_iter()
+        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .collect();
     Ok(HttpResponse::Ok().json(accounts))
 }
 

@@ -14,11 +14,8 @@ use crate::activitypub::{
 };
 use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::errors::{HttpError, ValidationError};
+use crate::errors::ValidationError;
 use crate::identity::did::Did;
-use crate::mastodon_api::accounts::types::Account;
-use crate::mastodon_api::statuses::helpers::build_status_list;
-use crate::mastodon_api::statuses::types::Tag;
 use crate::models::posts::{
     helpers::{can_view_post, get_local_post_by_id},
     types::Post,
@@ -36,7 +33,6 @@ use crate::models::users::{
 };
 use crate::utils::currencies::{validate_wallet_address, Currency};
 use crate::webfinger::types::ActorAddress;
-use super::types::SearchResults;
 
 enum SearchQuery {
     ProfileQuery(String, Option<String>),
@@ -213,13 +209,15 @@ async fn find_profile_by_url(
     Ok(profile)
 }
 
+type SearchResults = (Vec<DbActorProfile>, Vec<Post>, Vec<String>);
+
 pub async fn search(
     config: &Config,
     current_user: &User,
     db_client: &mut impl DatabaseClient,
     search_query: &str,
     limit: u16,
-) -> Result<SearchResults, HttpError> {
+) -> Result<SearchResults, DatabaseError> {
     let mut profiles = vec![];
     let mut posts = vec![];
     let mut tags = vec![];
@@ -275,27 +273,14 @@ pub async fn search(
         },
         SearchQuery::Unknown => (), // ignore
     };
-    let accounts: Vec<Account> = profiles.into_iter()
-        .map(|profile| Account::from_profile(profile, &config.instance_url()))
-        .collect();
-    let statuses = build_status_list(
-        db_client,
-        &config.instance_url(),
-        Some(current_user),
-        posts,
-    ).await?;
-    let hashtags = tags.into_iter()
-        .map(|tag_name| Tag::from_tag_name(&config.instance_url(), tag_name))
-        .collect();
-    Ok(SearchResults { accounts, statuses, hashtags })
+    Ok((profiles, posts, tags))
 }
 
 pub async fn search_profiles_only(
-    config: &Config,
     db_client: &impl DatabaseClient,
     search_query: &str,
     limit: u16,
-) -> Result<Vec<Account>, HttpError> {
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let (username, maybe_hostname) = match parse_profile_query(search_query) {
         Ok(result) => result,
         Err(_) => return Ok(vec![]),
@@ -306,10 +291,7 @@ pub async fn search_profiles_only(
         maybe_hostname.as_ref(),
         limit,
     ).await?;
-    let accounts: Vec<Account> = profiles.into_iter()
-        .map(|profile| Account::from_profile(profile, &config.instance_url()))
-        .collect();
-    Ok(accounts)
+    Ok(profiles)
 }
 
 #[cfg(test)]
