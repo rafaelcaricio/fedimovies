@@ -9,11 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Added `/api/v1/apps` endpoint.
+- Added OAuth authorization page.
 - Documented `http_cors_allowlist` configuration parameter.
 
 ### Changed
 
 - Allow `instance_uri` configuration value to contain URI scheme.
+- Changed `Content-Security-Policy` header value in nginx config examples.
 
 ## [1.13.1] - 2023-02-09
 

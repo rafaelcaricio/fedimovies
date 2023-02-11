@@ -1,4 +1,19 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+#[derive(Deserialize)]
+pub struct AuthorizationRequest {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Deserialize)]
+pub struct AuthorizationQueryParams {
+    pub response_type: String,
+    pub client_id: Uuid,
+    pub redirect_uri: String,
+    pub scope: String,
+}
 
 #[derive(Deserialize)]
 pub struct TokenRequest {

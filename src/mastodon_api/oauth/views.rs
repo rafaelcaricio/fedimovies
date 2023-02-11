@@ -1,4 +1,11 @@
-use actix_web::{post, web, HttpResponse, Scope as ActixScope};
+use actix_web::{
+    get,
+    post,
+    web,
+    HttpResponse,
+    Scope as ActixScope,
+    http::header as http_header,
+};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
 
@@ -7,7 +14,9 @@ use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::eip4361::verify_eip4361_signature;
 use crate::models::oauth::queries::{
+    create_oauth_authorization,
     delete_oauth_token,
+    get_oauth_app_by_client_id,
     save_oauth_token,
 };
 use crate::models::users::queries::{
@@ -17,8 +26,79 @@ use crate::models::users::queries::{
 use crate::utils::currencies::{validate_wallet_address, Currency};
 use crate::utils::passwords::verify_password;
 use super::auth::get_current_user;
-use super::types::{RevocationRequest, TokenRequest, TokenResponse};
-use super::utils::generate_access_token;
+use super::types::{
+    AuthorizationRequest,
+    AuthorizationQueryParams,
+    RevocationRequest,
+    TokenRequest,
+    TokenResponse,
+};
+use super::utils::{
+    generate_access_token,
+    render_authorization_page,
+};
+
+#[get("/authorize")]
+async fn authorization_page_view() -> HttpResponse {
+    let page = render_authorization_page();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(page)
+}
+
+const AUTHORIZATION_CODE_EXPIRES_IN: i64 = 86400 * 30;
+
+#[post("/authorize")]
+async fn authorize_view(
+    db_pool: web::Data<DbPool>,
+    form_data: web::Form<AuthorizationRequest>,
+    query_params: web::Query<AuthorizationQueryParams>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let user = get_user_by_name(db_client, &form_data.username).await?;
+    let password_hash = user.password_hash.as_ref()
+        .ok_or(ValidationError("password auth is disabled"))?;
+    let password_correct = verify_password(
+        password_hash,
+        &form_data.password,
+    ).map_err(|_| HttpError::InternalError)?;
+    if !password_correct {
+        return Err(ValidationError("incorrect password").into());
+    };
+    if query_params.response_type != "code" {
+        return Err(ValidationError("invalid response type").into());
+    };
+    let oauth_app = get_oauth_app_by_client_id(
+        db_client,
+        &query_params.client_id,
+    ).await?;
+    if oauth_app.redirect_uri != query_params.redirect_uri {
+        return Err(ValidationError("invalid redirect_uri parameter").into());
+    };
+
+    let authorization_code = generate_access_token();
+    let created_at = Utc::now();
+    let expires_at = created_at + Duration::seconds(AUTHORIZATION_CODE_EXPIRES_IN);
+    create_oauth_authorization(
+        db_client,
+        &authorization_code,
+        &user.id,
+        oauth_app.id,
+        &query_params.scope.replace('+', " "),
+        &created_at,
+        &expires_at,
+    ).await?;
+
+    let redirect_uri = format!(
+        "{}?code={}",
+        oauth_app.redirect_uri,
+        authorization_code,
+    );
+    let response = HttpResponse::Found()
+        .append_header((http_header::LOCATION, redirect_uri))
+        .finish();
+    Ok(response)
+}
 
 const ACCESS_TOKEN_EXPIRES_IN: i64 = 86400 * 7;
 
@@ -114,6 +194,8 @@ async fn revoke_token_view(
 
 pub fn oauth_api_scope() -> ActixScope {
     web::scope("/oauth")
+        .service(authorization_page_view)
+        .service(authorize_view)
         .service(token_view)
         .service(revoke_token_view)
 }
