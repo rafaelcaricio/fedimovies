@@ -8,6 +8,9 @@ web_client_dir: /usr/share/mitra/www
 http_host: '127.0.0.1'
 http_port: 8383
 
+# List of allowed origins for CORS (in addition to main)
+#http_cors_allowlist: []
+
 # Log level (debug, info, warn)
 #log_level: info
 
