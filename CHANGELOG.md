@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Added `/api/v1/apps` endpoint.
 - Added OAuth authorization page.
+- Support `authorization_code` OAuth grant type.
 - Documented `http_cors_allowlist` configuration parameter.
 
 ### Changed

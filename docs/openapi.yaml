@@ -18,9 +18,15 @@ paths:
                 grant_type:
                   type: string
                   enum:
+                    - authorization_code
                     - password
                     - eip4361
                   example: eip4361
+                code:
+                  description: A user authorization code, obtained via GET /oauth/authorize (required if grant type is "authorization_code").
+                  type: string
+                  nullable: true
+                  example: null
                 username:
                   description: User name (required if grant type is "password").
                   type: string

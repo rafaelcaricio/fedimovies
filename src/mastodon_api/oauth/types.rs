@@ -18,6 +18,11 @@ pub struct AuthorizationQueryParams {
 #[derive(Deserialize)]
 pub struct TokenRequest {
     pub grant_type: String,
+
+    // Required if grant type is "authorization_code"
+    pub code: Option<String>,
+
+    // Required if grant type is "password" or "eip4361"
     pub username: Option<String>,
     pub wallet_address: Option<String>,
     // Required only with "password" and "ethereum" grant types

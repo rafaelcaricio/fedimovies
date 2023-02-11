@@ -90,6 +90,29 @@ pub async fn create_oauth_authorization(
     Ok(())
 }
 
+pub async fn get_user_by_authorization_code(
+    db_client: &impl DatabaseClient,
+    authorization_code: &str,
+) -> Result<User, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT user_account, actor_profile
+        FROM oauth_authorization
+        JOIN user_account ON oauth_authorization.user_id = user_account.id
+        JOIN actor_profile ON user_account.id = actor_profile.id
+        WHERE
+            oauth_authorization.code = $1
+            AND oauth_authorization.expires_at > CURRENT_TIMESTAMP
+        ",
+        &[&authorization_code],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("authorization"))?;
+    let db_user: DbUser = row.try_get("user_account")?;
+    let db_profile: DbActorProfile = row.try_get("actor_profile")?;
+    let user = User::new(db_user, db_profile);
+    Ok(user)
+}
+
 pub async fn save_oauth_token(
     db_client: &impl DatabaseClient,
     owner_id: &Uuid,

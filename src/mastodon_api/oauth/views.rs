@@ -2,6 +2,7 @@ use actix_web::{
     get,
     post,
     web,
+    Either,
     HttpResponse,
     Scope as ActixScope,
     http::header as http_header,
@@ -17,6 +18,7 @@ use crate::models::oauth::queries::{
     create_oauth_authorization,
     delete_oauth_token,
     get_oauth_app_by_client_id,
+    get_user_by_authorization_code,
     save_oauth_token,
 };
 use crate::models::users::queries::{
@@ -108,10 +110,25 @@ const ACCESS_TOKEN_EXPIRES_IN: i64 = 86400 * 7;
 async fn token_view(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-    request_data: web::Json<TokenRequest>,
+    request_data: Either<
+        web::Json<TokenRequest>,
+        web::Form<TokenRequest>,
+    >,
 ) -> Result<HttpResponse, HttpError> {
+    let request_data = match request_data {
+        Either::Left(json) => json.into_inner(),
+        Either::Right(form) => form.into_inner(),
+    };
     let db_client = &**get_database_client(&db_pool).await?;
     let user = match request_data.grant_type.as_str() {
+        "authorization_code" => {
+            let authorization_code = request_data.code.as_ref()
+                .ok_or(ValidationError("authorization code is required"))?;
+            get_user_by_authorization_code(
+                db_client,
+                authorization_code,
+            ).await?
+        },
         "password" => {
             let username = request_data.username.as_ref()
                 .ok_or(ValidationError("username is required"))?;
