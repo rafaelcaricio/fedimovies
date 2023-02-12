@@ -1610,6 +1610,35 @@ mod tests {
 
     #[tokio::test]
     #[serial]
+    async fn test_get_thread() {
+        let db_client = &mut create_test_database().await;
+        let user_data = UserCreateData {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let user = create_user(db_client, user_data).await.unwrap();
+        let post_data_1 = PostCreateData {
+            content: "my post".to_string(),
+            ..Default::default()
+        };
+        let post_1 = create_post(db_client, &user.id, post_data_1).await.unwrap();
+        let post_data_2 = PostCreateData {
+            content: "my reply".to_string(),
+            in_reply_to_id: Some(post_1.id.clone()),
+            ..Default::default()
+        };
+        let post_2 = create_post(db_client, &user.id, post_data_2).await.unwrap();
+        let thread = get_thread(
+            db_client,
+            &post_2.id,
+            Some(&user.id),
+        ).await.unwrap();
+        assert_eq!(thread[0].id, post_1.id);
+        assert_eq!(thread[1].id, post_2.id);
+    }
+
+    #[tokio::test]
+    #[serial]
     async fn test_find_extraneous_posts() {
         let db_client = &mut create_test_database().await;
         let author_data = ProfileCreateData {
