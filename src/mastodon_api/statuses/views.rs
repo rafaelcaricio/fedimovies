@@ -305,6 +305,32 @@ async fn get_context(
     Ok(HttpResponse::Ok().json(statuses))
 }
 
+#[get("/{status_id}/thread")]
+async fn get_thread_view(
+    auth: Option<BearerAuth>,
+    config: web::Data<Config>,
+    db_pool: web::Data<DbPool>,
+    status_id: web::Path<Uuid>,
+) -> Result<HttpResponse, HttpError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let maybe_current_user = match auth {
+        Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
+        None => None,
+    };
+    let posts = get_thread(
+        db_client,
+        &status_id,
+        maybe_current_user.as_ref().map(|user| &user.id),
+    ).await?;
+    let statuses = build_status_list(
+        db_client,
+        &config.instance_url(),
+        maybe_current_user.as_ref(),
+        posts,
+    ).await?;
+    Ok(HttpResponse::Ok().json(statuses))
+}
+
 #[post("/{status_id}/favourite")]
 async fn favourite(
     auth: BearerAuth,
@@ -597,6 +623,7 @@ pub fn status_api_scope() -> Scope {
         .service(get_status)
         .service(delete_status)
         .service(get_context)
+        .service(get_thread_view)
         .service(favourite)
         .service(unfavourite)
         .service(reblog)

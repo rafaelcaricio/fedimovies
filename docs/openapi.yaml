@@ -943,6 +943,22 @@ paths:
           description: Post does not belong to user
         404:
           description: Post not found
+  /api/v1/statuses/{status_id}/thread:
+    get:
+      summary: Get thread that contains given post.
+      parameters:
+        - $ref: '#/components/parameters/status_id'
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Status'
+        404:
+          description: Post not found
   /api/v1/statuses/{status_id}/favourite:
     post:
       summary: Add post to your favourites list
