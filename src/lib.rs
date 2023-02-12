@@ -12,6 +12,7 @@ pub mod job_queue;
 mod json_signatures;
 pub mod logger;
 pub mod mastodon_api;
+pub mod media;
 pub mod models;
 pub mod monero;
 pub mod nodeinfo;

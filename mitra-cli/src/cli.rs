@@ -15,6 +15,7 @@ use mitra::ethereum::{
     sync::save_current_block_number,
     utils::key_to_ethereum_address,
 };
+use mitra::media::remove_files;
 use mitra::models::{
     attachments::queries::delete_unused_attachments,
     cleanup::find_orphaned_files,
@@ -53,7 +54,6 @@ use mitra::utils::{
         serialize_private_key,
     },
     datetime::{days_before_now, get_min_datetime},
-    files::remove_files,
     passwords::hash_password,
 };
 

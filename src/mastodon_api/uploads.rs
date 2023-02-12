@@ -1,11 +1,8 @@
 use std::path::Path;
 
 use crate::errors::HttpError;
-use crate::utils::files::{
-    save_file,
-    sniff_media_type,
-    SUPPORTED_MEDIA_TYPES,
-};
+use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};
+use crate::utils::files::sniff_media_type;
 
 pub const UPLOAD_MAX_SIZE: usize = 1024 * 1024 * 5;
 

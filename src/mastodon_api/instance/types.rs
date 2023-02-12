@@ -12,11 +12,9 @@ use crate::mastodon_api::{
     MASTODON_API_VERSION,
     uploads::UPLOAD_MAX_SIZE,
 };
+use crate::media::SUPPORTED_MEDIA_TYPES;
 use crate::models::posts::validators::ATTACHMENTS_MAX_NUM;
-use crate::utils::{
-    files::SUPPORTED_MEDIA_TYPES,
-    markdown::markdown_to_html,
-};
+use crate::utils::markdown::markdown_to_html;
 
 #[derive(Serialize)]
 struct InstanceStats {

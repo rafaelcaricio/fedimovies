@@ -22,6 +22,7 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::errors::ValidationError;
+use crate::media::get_file_url;
 use crate::models::profiles::types::{
     ExtraField,
     IdentityProof,
@@ -29,7 +30,6 @@ use crate::models::profiles::types::{
 };
 use crate::models::users::types::User;
 use crate::utils::crypto_rsa::{deserialize_private_key, get_public_key_pem};
-use crate::utils::files::get_file_url;
 use crate::utils::urls::get_hostname;
 use crate::webfinger::types::ActorAddress;
 use super::attachments::{

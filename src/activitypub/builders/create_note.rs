@@ -26,6 +26,7 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
+use crate::media::get_file_url;
 use crate::models::{
     emojis::types::DbEmoji,
     posts::queries::get_post_author,
@@ -33,7 +34,6 @@ use crate::models::{
     relationships::queries::{get_followers, get_subscribers},
     users::types::User,
 };
-use crate::utils::files::get_file_url;
 
 #[allow(dead_code)]
 #[derive(Serialize)]

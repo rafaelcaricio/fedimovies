@@ -1,7 +1,7 @@
 use serde::Serialize;
 
+use crate::media::get_file_url;
 use crate::models::emojis::types::DbEmoji;
-use crate::utils::files::get_file_url;
 
 /// https://docs.joinmastodon.org/entities/CustomEmoji/
 #[derive(Serialize)]

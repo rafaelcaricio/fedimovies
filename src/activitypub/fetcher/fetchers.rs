@@ -15,11 +15,8 @@ use crate::http_signatures::create::{
     create_http_signature,
     HttpSignatureError,
 };
-use crate::utils::files::{
-    save_file,
-    sniff_media_type,
-    SUPPORTED_MEDIA_TYPES,
-};
+use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};
+use crate::utils::files::sniff_media_type;
 use crate::utils::urls::guess_protocol;
 use crate::webfinger::types::{ActorAddress, JsonResourceDescriptor};
 

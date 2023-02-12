@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::ipfs::store as ipfs_store;
-use crate::utils::files::remove_files;
+use crate::media::remove_files;
 
 pub struct DeletionQueue {
     pub files: Vec<String>,

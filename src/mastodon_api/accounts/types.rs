@@ -10,6 +10,7 @@ use crate::mastodon_api::{
     pagination::PageSize,
     uploads::{save_b64_file, UploadError},
 };
+use crate::media::get_file_url;
 use crate::models::{
     profiles::types::{
         DbActorProfile,
@@ -27,10 +28,7 @@ use crate::models::{
         User,
     },
 };
-use crate::utils::{
-    files::get_file_url,
-    markdown::markdown_basic_to_html,
-};
+use crate::utils::markdown::markdown_basic_to_html;
 
 /// https://docs.joinmastodon.org/entities/field/
 #[derive(Serialize)]
