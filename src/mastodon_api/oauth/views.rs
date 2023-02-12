@@ -13,7 +13,10 @@ use chrono::{Duration, Utc};
 use crate::config::Config;
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
-use crate::ethereum::eip4361::verify_eip4361_signature;
+use crate::ethereum::{
+    eip4361::verify_eip4361_signature,
+    utils::validate_ethereum_address,
+};
 use crate::models::oauth::queries::{
     create_oauth_authorization,
     delete_oauth_token,
@@ -25,7 +28,6 @@ use crate::models::users::queries::{
     get_user_by_name,
     get_user_by_login_address,
 };
-use crate::utils::currencies::{validate_wallet_address, Currency};
 use crate::utils::passwords::verify_password;
 use super::auth::get_current_user;
 use super::types::{
@@ -138,7 +140,7 @@ async fn token_view(
             // DEPRECATED
             let wallet_address = request_data.wallet_address.as_ref()
                 .ok_or(ValidationError("wallet address is required"))?;
-            validate_wallet_address(&Currency::Ethereum, wallet_address)?;
+            validate_ethereum_address(wallet_address)?;
             get_user_by_login_address(db_client, wallet_address).await?
         },
         "eip4361" => {

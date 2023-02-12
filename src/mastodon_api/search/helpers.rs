@@ -15,6 +15,7 @@ use crate::activitypub::{
 use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
+use crate::ethereum::utils::validate_ethereum_address;
 use crate::identity::did::Did;
 use crate::models::posts::{
     helpers::{can_view_post, get_local_post_by_id},
@@ -31,7 +32,7 @@ use crate::models::users::{
     queries::get_user_by_name,
     types::User,
 };
-use crate::utils::currencies::{validate_wallet_address, Currency};
+use crate::utils::currencies::Currency;
 use crate::webfinger::types::ActorAddress;
 
 enum SearchQuery {
@@ -79,8 +80,7 @@ fn parse_search_query(search_query: &str) -> SearchQuery {
         return SearchQuery::Url(search_query.to_string());
     };
     // TODO: support other currencies
-    if validate_wallet_address(
-        &Currency::Ethereum,
+    if validate_ethereum_address(
         &search_query.to_lowercase(),
     ).is_ok() {
         return SearchQuery::WalletAddress(search_query.to_string());
