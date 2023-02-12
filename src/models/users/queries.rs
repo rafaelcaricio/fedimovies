@@ -6,8 +6,10 @@ use crate::database::{
     DatabaseError,
 };
 use crate::identity::{did::Did, did_pkh::DidPkh};
-use crate::models::profiles::queries::create_profile;
-use crate::models::profiles::types::{DbActorProfile, ProfileCreateData};
+use crate::models::{
+    profiles::queries::create_profile,
+    profiles::types::{DbActorProfile, ProfileCreateData},
+};
 use crate::utils::currencies::Currency;
 use super::types::{DbUser, Role, User, UserCreateData};
 use super::utils::generate_invite_code;

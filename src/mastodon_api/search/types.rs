@@ -1,9 +1,11 @@
 /// https://docs.joinmastodon.org/methods/search/
 use serde::{Deserialize, Serialize};
 
-use crate::mastodon_api::accounts::types::Account;
-use crate::mastodon_api::pagination::PageSize;
-use crate::mastodon_api::statuses::types::{Status, Tag};
+use crate::mastodon_api::{
+    accounts::types::Account,
+    pagination::PageSize,
+    statuses::types::{Status, Tag},
+};
 
 fn default_page_size() -> PageSize { PageSize::new(20) }
 

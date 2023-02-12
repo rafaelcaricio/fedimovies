@@ -16,8 +16,10 @@ use crate::http_signatures::create::{
     HttpSignatureError,
 };
 use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};
-use crate::utils::files::sniff_media_type;
-use crate::utils::urls::guess_protocol;
+use crate::utils::{
+    files::sniff_media_type,
+    urls::guess_protocol,
+};
 use crate::webfinger::types::{ActorAddress, JsonResourceDescriptor};
 
 const FETCHER_CONNECTION_TIMEOUT: u64 = 30;

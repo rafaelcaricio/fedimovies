@@ -9,8 +9,10 @@ use crate::activitypub::{
     vocabulary::{FOLLOW, UNDO},
 };
 use crate::config::Instance;
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::users::types::User;
+use crate::models::{
+    profiles::types::DbActorProfile,
+    users::types::User,
+};
 use super::follow::Follow;
 
 #[derive(Serialize)]

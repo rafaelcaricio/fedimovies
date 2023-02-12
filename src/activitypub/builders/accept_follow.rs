@@ -8,8 +8,10 @@ use crate::activitypub::{
     vocabulary::ACCEPT,
 };
 use crate::config::Instance;
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::users::types::User;
+use crate::models::{
+    profiles::types::DbActorProfile,
+    users::types::User,
+};
 use crate::utils::id::generate_ulid;
 
 #[derive(Serialize)]

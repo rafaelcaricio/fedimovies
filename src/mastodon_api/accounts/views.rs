@@ -15,10 +15,12 @@ use crate::activitypub::builders::{
 use crate::config::{Config, RegistrationType};
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
-use crate::ethereum::contracts::ContractSet;
-use crate::ethereum::eip4361::verify_eip4361_signature;
-use crate::ethereum::gate::is_allowed_user;
-use crate::ethereum::identity::verify_eip191_identity_proof;
+use crate::ethereum::{
+    contracts::ContractSet,
+    eip4361::verify_eip4361_signature,
+    gate::is_allowed_user,
+    identity::verify_eip191_identity_proof,
+};
 use crate::identity::{
     claims::create_identity_claim,
     did::Did,
@@ -36,39 +38,43 @@ use crate::json_signatures::{
         verify_eip191_json_signature,
     },
 };
-use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::mastodon_api::pagination::get_paginated_response;
-use crate::mastodon_api::search::helpers::search_profiles_only;
-use crate::mastodon_api::statuses::helpers::build_status_list;
-use crate::mastodon_api::statuses::types::Status;
-use crate::models::posts::queries::get_posts_by_author;
-use crate::models::profiles::queries::{
-    get_profile_by_acct,
-    get_profile_by_id,
-    search_profiles_by_did,
-    update_profile,
+use crate::mastodon_api::{
+    oauth::auth::get_current_user,
+    pagination::get_paginated_response,
+    search::helpers::search_profiles_only,
+    statuses::helpers::build_status_list,
+    statuses::types::Status,
 };
-use crate::models::profiles::types::{
-    IdentityProof,
-    ProfileUpdateData,
-    ProofType,
+use crate::models::{
+    posts::queries::get_posts_by_author,
+    profiles::queries::{
+        get_profile_by_acct,
+        get_profile_by_id,
+        search_profiles_by_did,
+        update_profile,
+    },
+    profiles::types::{
+        IdentityProof,
+        ProfileUpdateData,
+        ProofType,
+    },
+    relationships::queries::{
+        get_followers_paginated,
+        get_following_paginated,
+        hide_replies,
+        hide_reposts,
+        show_replies,
+        show_reposts,
+        unfollow,
+    },
+    subscriptions::queries::get_incoming_subscriptions,
+    users::queries::{
+        create_user,
+        get_user_by_did,
+        is_valid_invite_code,
+    },
+    users::types::{Role, UserCreateData},
 };
-use crate::models::relationships::queries::{
-    get_followers_paginated,
-    get_following_paginated,
-    hide_replies,
-    hide_reposts,
-    show_replies,
-    show_reposts,
-    unfollow,
-};
-use crate::models::subscriptions::queries::get_incoming_subscriptions;
-use crate::models::users::queries::{
-    create_user,
-    get_user_by_did,
-    is_valid_invite_code,
-};
-use crate::models::users::types::{Role, UserCreateData};
 use crate::utils::{
     caip2::ChainId,
     canonicalization::canonicalize_object,

@@ -2,10 +2,12 @@ use uuid::Uuid;
 
 use crate::activitypub::identifiers::parse_local_object_id;
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::reactions::queries::find_favourited_by_user;
-use crate::models::relationships::queries::has_relationship;
-use crate::models::relationships::types::RelationshipType;
-use crate::models::users::types::{Permission, User};
+use crate::models::{
+    reactions::queries::find_favourited_by_user,
+    relationships::queries::has_relationship,
+    relationships::types::RelationshipType,
+    users::types::{Permission, User},
+};
 use super::queries::{
     get_post_by_id,
     get_post_by_remote_object_id,
@@ -164,11 +166,13 @@ mod tests {
     use serial_test::serial;
     use tokio_postgres::Client;
     use crate::database::test_utils::create_test_database;
-    use crate::models::posts::queries::create_post;
-    use crate::models::posts::types::PostCreateData;
-    use crate::models::relationships::queries::{follow, subscribe};
-    use crate::models::users::queries::create_user;
-    use crate::models::users::types::{Role, User, UserCreateData};
+    use crate::models::{
+        posts::queries::create_post,
+        posts::types::PostCreateData,
+        relationships::queries::{follow, subscribe},
+        users::queries::create_user,
+        users::types::{Role, User, UserCreateData},
+    };
     use super::*;
 
     #[tokio::test]

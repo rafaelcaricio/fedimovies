@@ -2,8 +2,10 @@ use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::invoices::types::{DbInvoice, InvoiceStatus};
-use crate::models::profiles::types::PaymentOption;
+use crate::models::{
+    invoices::types::{DbInvoice, InvoiceStatus},
+    profiles::types::PaymentOption,
+};
 use crate::monero::subscriptions::MONERO_INVOICE_TIMEOUT;
 
 #[derive(Deserialize)]

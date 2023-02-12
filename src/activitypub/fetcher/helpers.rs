@@ -11,14 +11,16 @@ use crate::activitypub::{
 use crate::config::{Config, Instance};
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
-use crate::models::posts::helpers::get_local_post_by_id;
-use crate::models::posts::queries::get_post_by_remote_object_id;
-use crate::models::posts::types::Post;
-use crate::models::profiles::queries::{
-    get_profile_by_acct,
-    get_profile_by_remote_actor_id,
+use crate::models::{
+    posts::helpers::get_local_post_by_id,
+    posts::queries::get_post_by_remote_object_id,
+    posts::types::Post,
+    profiles::queries::{
+        get_profile_by_acct,
+        get_profile_by_remote_actor_id,
+    },
+    profiles::types::DbActorProfile,
 };
-use crate::models::profiles::types::DbActorProfile;
 use crate::webfinger::types::ActorAddress;
 use super::fetchers::{
     fetch_actor,

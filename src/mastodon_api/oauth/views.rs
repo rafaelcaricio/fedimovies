@@ -1,11 +1,11 @@
 use actix_web::{
     get,
+    http::header as http_header,
     post,
     web,
     Either,
     HttpResponse,
     Scope as ActixScope,
-    http::header as http_header,
 };
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
@@ -17,16 +17,18 @@ use crate::ethereum::{
     eip4361::verify_eip4361_signature,
     utils::validate_ethereum_address,
 };
-use crate::models::oauth::queries::{
-    create_oauth_authorization,
-    delete_oauth_token,
-    get_oauth_app_by_client_id,
-    get_user_by_authorization_code,
-    save_oauth_token,
-};
-use crate::models::users::queries::{
-    get_user_by_name,
-    get_user_by_login_address,
+use crate::models::{
+    oauth::queries::{
+        create_oauth_authorization,
+        delete_oauth_token,
+        get_oauth_app_by_client_id,
+        get_user_by_authorization_code,
+        save_oauth_token,
+    },
+    users::queries::{
+        get_user_by_name,
+        get_user_by_login_address,
+    },
 };
 use crate::utils::passwords::verify_password;
 use super::auth::get_current_user;

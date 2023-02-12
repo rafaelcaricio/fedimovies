@@ -17,8 +17,10 @@ use crate::json_signatures::verify::{
     JsonSignatureVerificationError as JsonSignatureError,
     JsonSigner,
 };
-use crate::models::profiles::queries::get_profile_by_remote_actor_id;
-use crate::models::profiles::types::DbActorProfile;
+use crate::models::{
+    profiles::queries::get_profile_by_remote_actor_id,
+    profiles::types::DbActorProfile,
+};
 use crate::utils::crypto_rsa::deserialize_public_key;
 use super::fetcher::helpers::get_or_import_profile_by_actor_id;
 use super::receiver::HandlerError;

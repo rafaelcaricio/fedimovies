@@ -36,11 +36,13 @@ pub fn verify_eip191_identity_proof(
 #[cfg(test)]
 mod tests {
     use web3::signing::{Key, SecretKeyRef};
-    use crate::ethereum::signatures::{
-        generate_ecdsa_key,
-        sign_message,
+    use crate::ethereum::{
+        signatures::{
+            generate_ecdsa_key,
+            sign_message,
+        },
+        utils::address_to_string,
     };
-    use crate::ethereum::utils::address_to_string;
     use crate::utils::currencies::Currency;
     use super::*;
 

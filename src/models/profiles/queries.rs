@@ -8,13 +8,15 @@ use crate::database::{
     DatabaseError,
 };
 use crate::identity::{did::Did, did_pkh::DidPkh};
-use crate::models::cleanup::{
-    find_orphaned_files,
-    find_orphaned_ipfs_objects,
-    DeletionQueue,
+use crate::models::{
+    cleanup::{
+        find_orphaned_files,
+        find_orphaned_ipfs_objects,
+        DeletionQueue,
+    },
+    instances::queries::create_instance,
+    relationships::types::RelationshipType,
 };
-use crate::models::instances::queries::create_instance;
-use crate::models::relationships::types::RelationshipType;
 use crate::utils::{
     currencies::Currency,
     id::generate_ulid,

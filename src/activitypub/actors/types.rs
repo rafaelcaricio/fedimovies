@@ -23,14 +23,18 @@ use crate::activitypub::{
 use crate::config::Instance;
 use crate::errors::ValidationError;
 use crate::media::get_file_url;
-use crate::models::profiles::types::{
-    ExtraField,
-    IdentityProof,
-    PaymentOption,
+use crate::models::{
+    profiles::types::{
+        ExtraField,
+        IdentityProof,
+        PaymentOption,
+    },
+    users::types::User,
 };
-use crate::models::users::types::User;
-use crate::utils::crypto_rsa::{deserialize_private_key, get_public_key_pem};
-use crate::utils::urls::get_hostname;
+use crate::utils::{
+    crypto_rsa::{deserialize_private_key, get_public_key_pem},
+    urls::get_hostname,
+};
 use crate::webfinger::types::ActorAddress;
 use super::attachments::{
     attach_extra_field,

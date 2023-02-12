@@ -96,8 +96,10 @@ pub async fn delete_unused_attachments(
 mod tests {
     use serial_test::serial;
     use crate::database::test_utils::create_test_database;
-    use crate::models::profiles::types::ProfileCreateData;
-    use crate::models::profiles::queries::create_profile;
+    use crate::models::{
+        profiles::types::ProfileCreateData,
+        profiles::queries::create_profile,
+    };
     use super::*;
 
     #[tokio::test]

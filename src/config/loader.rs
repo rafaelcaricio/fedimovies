@@ -4,12 +4,14 @@ use std::str::FromStr;
 
 use rsa::RsaPrivateKey;
 
-use crate::utils::crypto_rsa::{
-    deserialize_private_key,
-    generate_rsa_key,
-    serialize_private_key,
+use crate::utils::{
+    crypto_rsa::{
+        deserialize_private_key,
+        generate_rsa_key,
+        serialize_private_key,
+    },
+    files::{set_file_permissions, write_file},
 };
-use crate::utils::files::{set_file_permissions, write_file};
 
 use super::environment::Environment;
 use super::main::{Config, RegistrationType};

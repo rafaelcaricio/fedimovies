@@ -10,8 +10,10 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::relationships::queries::{get_followers, get_following};
-use crate::models::users::types::User;
+use crate::models::{
+    relationships::queries::{get_followers, get_following},
+    users::types::User,
+};
 
 #[derive(Serialize)]
 struct DeletePerson {

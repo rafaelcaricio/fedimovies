@@ -11,8 +11,10 @@ use serde::{
 };
 use uuid::Uuid;
 
-use crate::activitypub::actors::types::Actor;
-use crate::activitypub::identifiers::local_actor_id;
+use crate::activitypub::{
+    actors::types::Actor,
+    identifiers::local_actor_id,
+};
 use crate::database::{
     json_macro::{json_from_sql, json_to_sql},
     DatabaseTypeError,

@@ -7,22 +7,24 @@ use crate::database::{
     DatabaseClient,
     DatabaseError,
 };
-use crate::models::attachments::queries::set_attachment_ipfs_cid;
-use crate::models::attachments::types::DbMediaAttachment;
-use crate::models::cleanup::{
-    find_orphaned_files,
-    find_orphaned_ipfs_objects,
-    DeletionQueue,
+use crate::models::{
+    attachments::queries::set_attachment_ipfs_cid,
+    attachments::types::DbMediaAttachment,
+    cleanup::{
+        find_orphaned_files,
+        find_orphaned_ipfs_objects,
+        DeletionQueue,
+    },
+    emojis::types::DbEmoji,
+    notifications::queries::{
+        create_mention_notification,
+        create_reply_notification,
+        create_repost_notification,
+    },
+    profiles::queries::update_post_count,
+    profiles::types::DbActorProfile,
+    relationships::types::RelationshipType,
 };
-use crate::models::emojis::types::DbEmoji;
-use crate::models::notifications::queries::{
-    create_mention_notification,
-    create_reply_notification,
-    create_repost_notification,
-};
-use crate::models::profiles::queries::update_post_count;
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::relationships::types::RelationshipType;
 use crate::utils::id::generate_ulid;
 use super::types::{
     DbPost,
@@ -1304,15 +1306,17 @@ mod tests {
     use chrono::Duration;
     use serial_test::serial;
     use crate::database::test_utils::create_test_database;
-    use crate::models::profiles::queries::create_profile;
-    use crate::models::profiles::types::ProfileCreateData;
-    use crate::models::relationships::queries::{
-        follow,
-        hide_reposts,
-        subscribe,
+    use crate::models::{
+        profiles::queries::create_profile,
+        profiles::types::ProfileCreateData,
+        relationships::queries::{
+            follow,
+            hide_reposts,
+            subscribe,
+        },
+        users::queries::create_user,
+        users::types::UserCreateData,
     };
-    use crate::models::users::queries::create_user;
-    use crate::models::users::types::UserCreateData;
     use super::*;
 
     #[tokio::test]

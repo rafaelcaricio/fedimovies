@@ -8,9 +8,11 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::posts::helpers::add_related_posts;
-use crate::models::posts::types::Post;
-use crate::models::users::types::User;
+use crate::models::{
+    posts::helpers::add_related_posts,
+    posts::types::Post,
+    users::types::User,
+};
 use super::create_note::{
     build_note,
     get_note_recipients,

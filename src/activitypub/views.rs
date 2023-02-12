@@ -1,10 +1,14 @@
 use std::time::Instant;
 
 use actix_web::{
-    get, post, web,
-    HttpRequest, HttpResponse, Scope,
+    get,
+    post,
+    web,
     http::header as http_header,
     http::header::HeaderMap,
+    HttpRequest,
+    HttpResponse,
+    Scope,
 };
 use serde::Deserialize;
 use tokio::sync::Mutex;

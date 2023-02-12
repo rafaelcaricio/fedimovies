@@ -6,8 +6,10 @@ use crate::database::{
     DatabaseClient,
     DatabaseError,
 };
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::users::types::{DbUser, User};
+use crate::models::{
+    profiles::types::DbActorProfile,
+    users::types::{DbUser, User},
+};
 use super::types::{DbOauthApp, DbOauthAppData};
 
 pub async fn create_oauth_app(

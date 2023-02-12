@@ -5,10 +5,12 @@ use crate::database::{
     DatabaseClient,
     DatabaseError,
 };
-use crate::models::notifications::queries::create_reaction_notification;
-use crate::models::posts::queries::{
-    update_reaction_count,
-    get_post_author,
+use crate::models::{
+    notifications::queries::create_reaction_notification,
+    posts::queries::{
+        update_reaction_count,
+        get_post_author,
+    },
 };
 use crate::utils::id::generate_ulid;
 use super::types::DbReaction;

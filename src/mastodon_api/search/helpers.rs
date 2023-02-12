@@ -17,20 +17,22 @@ use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::ethereum::utils::validate_ethereum_address;
 use crate::identity::did::Did;
-use crate::models::posts::{
-    helpers::{can_view_post, get_local_post_by_id},
-    types::Post,
-};
-use crate::models::profiles::queries::{
-    search_profiles,
-    search_profiles_by_did_only,
-    search_profiles_by_wallet_address,
-};
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::tags::queries::search_tags;
-use crate::models::users::{
-    queries::get_user_by_name,
-    types::User,
+use crate::models::{
+    posts::{
+        helpers::{can_view_post, get_local_post_by_id},
+        types::Post,
+    },
+    profiles::queries::{
+        search_profiles,
+        search_profiles_by_did_only,
+        search_profiles_by_wallet_address,
+    },
+    profiles::types::DbActorProfile,
+    tags::queries::search_tags,
+    users::{
+        queries::get_user_by_name,
+        types::User,
+    },
 };
 use crate::utils::currencies::Currency;
 use crate::webfinger::types::ActorAddress;

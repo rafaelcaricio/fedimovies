@@ -133,8 +133,10 @@ pub fn verify_ed25519_json_signature(
 mod tests {
     use serde_json::json;
     use crate::json_signatures::create::sign_object;
-    use crate::utils::crypto_rsa::generate_weak_rsa_key;
-    use crate::utils::currencies::Currency;
+    use crate::utils::{
+        crypto_rsa::generate_weak_rsa_key,
+        currencies::Currency,
+    };
     use super::*;
 
     #[test]

@@ -11,8 +11,10 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError, DatabaseTypeError};
-use crate::models::relationships::queries::get_followers;
-use crate::models::users::types::User;
+use crate::models::{
+    relationships::queries::get_followers,
+    users::types::User,
+};
 use crate::utils::id::generate_ulid;
 
 #[derive(Serialize)]

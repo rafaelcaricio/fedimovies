@@ -10,11 +10,13 @@ use web3::{
     types::{BlockId, BlockNumber, FilterBuilder, U256},
 };
 
-use crate::activitypub::builders::{
-    add_person::prepare_add_person,
-    remove_person::prepare_remove_person,
+use crate::activitypub::{
+    builders::{
+        add_person::prepare_add_person,
+        remove_person::prepare_remove_person,
+    },
+    identifiers::LocalActorCollection,
 };
-use crate::activitypub::identifiers::LocalActorCollection;
 use crate::config::{EthereumConfig, Instance};
 use crate::database::{
     get_database_client,
@@ -23,29 +25,33 @@ use crate::database::{
     DbPool,
 };
 use crate::errors::ConversionError;
-use crate::models::notifications::queries::{
-    create_subscription_notification,
-    create_subscription_expiration_notification,
+use crate::models::{
+    notifications::queries::{
+        create_subscription_notification,
+        create_subscription_expiration_notification,
+    },
+    profiles::queries::{
+        get_profile_by_id,
+        search_profiles_by_wallet_address,
+    },
+    profiles::types::DbActorProfile,
+    relationships::queries::unsubscribe,
+    subscriptions::queries::{
+        create_subscription,
+        update_subscription,
+        get_expired_subscriptions,
+        get_subscription_by_participants,
+    },
+    users::queries::{
+        get_user_by_id,
+        get_user_by_public_wallet_address,
+    },
+    users::types::User,
 };
-use crate::models::profiles::queries::{
-    get_profile_by_id,
-    search_profiles_by_wallet_address,
+use crate::utils::{
+    caip2::ChainId,
+    currencies::Currency,
 };
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::relationships::queries::unsubscribe;
-use crate::models::subscriptions::queries::{
-    create_subscription,
-    update_subscription,
-    get_expired_subscriptions,
-    get_subscription_by_participants,
-};
-use crate::models::users::queries::{
-    get_user_by_id,
-    get_user_by_public_wallet_address,
-};
-use crate::models::users::types::User;
-use crate::utils::caip2::ChainId;
-use crate::utils::currencies::Currency;
 use super::contracts::ContractSet;
 use super::errors::EthereumError;
 use super::signatures::{

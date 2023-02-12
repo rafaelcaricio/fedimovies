@@ -8,8 +8,10 @@ use serde_json::json;
 
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::HttpError;
-use crate::models::oauth::queries::get_user_by_oauth_token;
-use crate::models::users::types::User;
+use crate::models::{
+    oauth::queries::get_user_by_oauth_token,
+    users::types::User,
+};
 
 pub async fn get_current_user(
     db_client: &impl DatabaseClient,

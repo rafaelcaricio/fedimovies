@@ -1,10 +1,12 @@
 use actix_web::{get, web, HttpResponse};
 
-use crate::activitypub::constants::AP_MEDIA_TYPE;
-use crate::activitypub::identifiers::{
-    local_actor_id,
-    local_instance_actor_id,
-    parse_local_actor_id,
+use crate::activitypub::{
+    constants::AP_MEDIA_TYPE,
+    identifiers::{
+        local_actor_id,
+        local_instance_actor_id,
+        parse_local_actor_id,
+    },
 };
 use crate::config::{Config, Instance};
 use crate::database::{get_database_client, DatabaseClient, DbPool};

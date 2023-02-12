@@ -4,11 +4,13 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::models::markers::queries::{
-    create_or_update_marker,
-    get_marker_opt,
+use crate::models::{
+    markers::queries::{
+        create_or_update_marker,
+        get_marker_opt,
+    },
+    markers::types::Timeline,
 };
-use crate::models::markers::types::Timeline;
 use super::types::{MarkerQueryParams, MarkerCreateData, Markers};
 
 /// https://docs.joinmastodon.org/methods/timelines/markers/

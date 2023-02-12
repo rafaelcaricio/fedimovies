@@ -11,11 +11,13 @@ use crate::activitypub::queues::{
 };
 use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
-use crate::ethereum::contracts::Blockchain;
-use crate::ethereum::nft::process_nft_events;
-use crate::ethereum::subscriptions::{
-    check_ethereum_subscriptions,
-    update_expired_subscriptions,
+use crate::ethereum::{
+    contracts::Blockchain,
+    nft::process_nft_events,
+    subscriptions::{
+        check_ethereum_subscriptions,
+        update_expired_subscriptions,
+    },
 };
 use crate::monero::subscriptions::check_monero_subscriptions;
 use crate::models::{

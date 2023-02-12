@@ -1,13 +1,15 @@
 use uuid::Uuid;
 
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::posts::helpers::{add_related_posts, add_user_actions};
-use crate::models::posts::queries::{
-    RELATED_ATTACHMENTS,
-    RELATED_EMOJIS,
-    RELATED_LINKS,
-    RELATED_MENTIONS,
-    RELATED_TAGS,
+use crate::models::{
+    posts::helpers::{add_related_posts, add_user_actions},
+    posts::queries::{
+        RELATED_ATTACHMENTS,
+        RELATED_EMOJIS,
+        RELATED_LINKS,
+        RELATED_MENTIONS,
+        RELATED_TAGS,
+    },
 };
 use super::types::{EventType, Notification};
 

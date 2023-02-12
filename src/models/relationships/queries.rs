@@ -5,13 +5,15 @@ use crate::database::{
     DatabaseClient,
     DatabaseError,
 };
-use crate::models::notifications::queries::create_follow_notification;
-use crate::models::profiles::queries::{
-    update_follower_count,
-    update_following_count,
-    update_subscriber_count,
+use crate::models::{
+    notifications::queries::create_follow_notification,
+    profiles::queries::{
+        update_follower_count,
+        update_following_count,
+        update_subscriber_count,
+    },
+    profiles::types::DbActorProfile,
 };
-use crate::models::profiles::types::DbActorProfile;
 use crate::utils::id::generate_ulid;
 use super::types::{
     DbFollowRequest,

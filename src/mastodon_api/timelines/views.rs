@@ -5,8 +5,10 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
-use crate::mastodon_api::oauth::auth::get_current_user;
-use crate::mastodon_api::statuses::helpers::build_status_list;
+use crate::mastodon_api::{
+    oauth::auth::get_current_user,
+    statuses::helpers::build_status_list,
+};
 use crate::models::posts::queries::{
     get_home_timeline,
     get_local_timeline,

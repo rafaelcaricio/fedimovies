@@ -11,9 +11,11 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::posts::types::{Post, Visibility};
-use crate::models::profiles::types::DbActorProfile;
-use crate::models::users::types::User;
+use crate::models::{
+    posts::types::{Post, Visibility},
+    profiles::types::DbActorProfile,
+    users::types::User,
+};
 
 #[derive(Serialize)]
 struct Like {

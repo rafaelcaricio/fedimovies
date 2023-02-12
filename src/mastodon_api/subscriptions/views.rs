@@ -6,13 +6,17 @@ use crate::activitypub::builders::update_person::prepare_update_person;
 use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
 use crate::errors::{HttpError, ValidationError};
-use crate::ethereum::contracts::ContractSet;
-use crate::ethereum::subscriptions::{
-    create_subscription_signature,
-    is_registered_recipient,
+use crate::ethereum::{
+    contracts::ContractSet,
+    subscriptions::{
+        create_subscription_signature,
+        is_registered_recipient,
+    },
 };
-use crate::mastodon_api::accounts::types::Account;
-use crate::mastodon_api::oauth::auth::get_current_user;
+use crate::mastodon_api::{
+    accounts::types::Account,
+    oauth::auth::get_current_user,
+};
 use crate::models::{
     invoices::queries::{create_invoice, get_invoice_by_id},
     profiles::queries::{

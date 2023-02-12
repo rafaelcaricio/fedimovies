@@ -4,8 +4,10 @@ use regex::{Captures, Regex};
 
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
-use crate::models::profiles::queries::get_profiles_by_accts;
-use crate::models::profiles::types::DbActorProfile;
+use crate::models::{
+    profiles::queries::get_profiles_by_accts,
+    profiles::types::DbActorProfile,
+};
 use crate::webfinger::types::ActorAddress;
 use super::links::is_inside_code_block;
 

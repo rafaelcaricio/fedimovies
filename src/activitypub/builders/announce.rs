@@ -11,9 +11,11 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::posts::types::Post;
-use crate::models::relationships::queries::get_followers;
-use crate::models::users::types::User;
+use crate::models::{
+    posts::types::Post,
+    relationships::queries::get_followers,
+    users::types::User,
+};
 
 #[derive(Serialize)]
 struct Announce {

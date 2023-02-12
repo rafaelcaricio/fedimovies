@@ -3,8 +3,10 @@ use std::collections::HashMap;
 use regex::Regex;
 
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::emojis::queries::get_local_emojis_by_names;
-use crate::models::emojis::types::DbEmoji;
+use crate::models::{
+    emojis::queries::get_local_emojis_by_names,
+    emojis::types::DbEmoji,
+};
 use super::links::is_inside_code_block;
 
 // See also: EMOJI_NAME_RE in models::emojis::validators

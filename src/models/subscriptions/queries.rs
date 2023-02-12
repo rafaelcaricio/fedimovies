@@ -6,9 +6,11 @@ use crate::database::{
     DatabaseClient,
     DatabaseError,
 };
-use crate::models::profiles::types::PaymentType;
-use crate::models::relationships::queries::{subscribe, subscribe_opt};
-use crate::models::relationships::types::RelationshipType;
+use crate::models::{
+    profiles::types::PaymentType,
+    relationships::queries::{subscribe, subscribe_opt},
+    relationships::types::RelationshipType,
+};
 use crate::utils::caip2::ChainId;
 use super::types::{DbSubscription, Subscription};
 
