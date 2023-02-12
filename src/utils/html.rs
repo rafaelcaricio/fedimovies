@@ -3,6 +3,8 @@ use std::iter::FromIterator;
 
 use ammonia::Builder;
 
+pub use ammonia::{clean_text as escape_html};
+
 pub fn clean_html(
     unsafe_html: &str,
     allowed_classes: Vec<(&'static str, Vec<&'static str>)>,

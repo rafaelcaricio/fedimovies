@@ -1,12 +1,10 @@
-use ammonia::clean_text;
-
 use crate::activitypub::identifiers::{local_actor_id, local_object_id};
 use crate::config::Instance;
 use crate::models::posts::types::Post;
 use crate::models::profiles::types::DbActorProfile;
 use crate::utils::{
     datetime::get_min_datetime,
-    html::clean_html_all,
+    html::{clean_html_all, escape_html},
 };
 
 const ENTRY_TITLE_MAX_LENGTH: usize = 75;
@@ -16,7 +14,7 @@ fn make_entry(
     post: &Post,
 ) -> String {
     let object_id = local_object_id(instance_url, &post.id);
-    let content_escaped = clean_text(&post.content);
+    let content_escaped = escape_html(&post.content);
     let content_cleaned = clean_html_all(&post.content);
     // Use trimmed content for title
     let mut title: String = content_cleaned.chars()
