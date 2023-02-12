@@ -21,7 +21,7 @@ Follow: [@mitra@mitra.social](https://mitra.social/@mitra)
 
 Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 
-Network stats: https://the-federation.info/mitra
+Network stats: [FediList](http://demo.fedilist.com/instance?software=mitra) / [Fediverse Observer](https://mitra.fediverse.observer/list)
 
 Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about))
 
