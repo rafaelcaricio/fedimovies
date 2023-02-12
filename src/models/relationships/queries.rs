@@ -12,7 +12,7 @@ use crate::models::profiles::queries::{
     update_subscriber_count,
 };
 use crate::models::profiles::types::DbActorProfile;
-use crate::utils::id::new_uuid;
+use crate::utils::id::generate_ulid;
 use super::types::{
     DbFollowRequest,
     DbRelationship,
@@ -142,7 +142,7 @@ pub async fn create_follow_request(
     source_id: &Uuid,
     target_id: &Uuid,
 ) -> Result<DbFollowRequest, DatabaseError> {
-    let request_id = new_uuid();
+    let request_id = generate_ulid();
     let row = db_client.query_one(
         "
         INSERT INTO follow_request (
@@ -169,7 +169,7 @@ pub async fn create_remote_follow_request_opt(
     target_id: &Uuid,
     activity_id: &str,
 ) -> Result<DbFollowRequest, DatabaseError> {
-    let request_id = new_uuid();
+    let request_id = generate_ulid();
     let row = db_client.query_one(
         "
         INSERT INTO follow_request (

@@ -10,7 +10,7 @@ use crate::models::posts::queries::{
     update_reaction_count,
     get_post_author,
 };
-use crate::utils::id::new_uuid;
+use crate::utils::id::generate_ulid;
 use super::types::DbReaction;
 
 pub async fn create_reaction(
@@ -20,7 +20,7 @@ pub async fn create_reaction(
     activity_id: Option<&String>,
 ) -> Result<DbReaction, DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let reaction_id = new_uuid();
+    let reaction_id = generate_ulid();
     // Reactions to reposts are not allowed
     let maybe_row = transaction.query_opt(
         "

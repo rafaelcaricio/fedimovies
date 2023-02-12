@@ -15,8 +15,10 @@ use crate::models::cleanup::{
 };
 use crate::models::instances::queries::create_instance;
 use crate::models::relationships::types::RelationshipType;
-use crate::utils::currencies::Currency;
-use crate::utils::id::new_uuid;
+use crate::utils::{
+    currencies::Currency,
+    id::generate_ulid,
+};
 use super::types::{
     DbActorProfile,
     ExtraFields,
@@ -31,7 +33,7 @@ pub async fn create_profile(
     db_client: &impl DatabaseClient,
     profile_data: ProfileCreateData,
 ) -> Result<DbActorProfile, DatabaseError> {
-    let profile_id = new_uuid();
+    let profile_id = generate_ulid();
     if let Some(ref hostname) = profile_data.hostname {
         create_instance(db_client, hostname).await?;
     };

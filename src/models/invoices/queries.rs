@@ -5,8 +5,10 @@ use crate::database::{
     DatabaseClient,
     DatabaseError,
 };
-use crate::utils::caip2::ChainId;
-use crate::utils::id::new_uuid;
+use crate::utils::{
+    caip2::ChainId,
+    id::generate_ulid,
+};
 use super::types::{DbInvoice, InvoiceStatus};
 
 pub async fn create_invoice(
@@ -17,7 +19,7 @@ pub async fn create_invoice(
     payment_address: &str,
     amount: i64,
 ) -> Result<DbInvoice, DatabaseError> {
-    let invoice_id = new_uuid();
+    let invoice_id = generate_ulid();
     let row = db_client.query_one(
         "
         INSERT INTO invoice (

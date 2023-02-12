@@ -88,7 +88,7 @@ pub async fn prepare_undo_announce(
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::id::new_uuid;
+    use crate::utils::id::generate_ulid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
@@ -97,7 +97,7 @@ mod tests {
     fn test_build_undo_announce() {
         let announcer = DbActorProfile::default();
         let post_author_id = "https://example.com/users/test";
-        let repost_id = new_uuid();
+        let repost_id = generate_ulid();
         let activity = build_undo_announce(
             INSTANCE_URL,
             &announcer,

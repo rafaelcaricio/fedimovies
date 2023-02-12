@@ -23,7 +23,7 @@ use crate::models::notifications::queries::{
 use crate::models::profiles::queries::update_post_count;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::relationships::types::RelationshipType;
-use crate::utils::id::new_uuid;
+use crate::utils::id::generate_ulid;
 use super::types::{
     DbPost,
     Post,
@@ -166,7 +166,7 @@ pub async fn create_post(
     post_data: PostCreateData,
 ) -> Result<Post, DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let post_id = new_uuid();
+    let post_id = generate_ulid();
     // Replying to reposts is not allowed
     // Reposting of other reposts or non-public posts is not allowed
     let insert_statement = format!(

@@ -77,7 +77,7 @@ use crate::utils::{
         serialize_private_key,
     },
     currencies::Currency,
-    id::new_uuid,
+    id::generate_ulid,
     passwords::hash_password,
 };
 use super::helpers::{follow_or_create_request, get_relationship};
@@ -244,7 +244,7 @@ async fn get_unsigned_update(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let internal_activity_id = new_uuid();
+    let internal_activity_id = generate_ulid();
     let activity = build_update_person(
         &config.instance_url(),
         &current_user,

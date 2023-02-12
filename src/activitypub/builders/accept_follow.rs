@@ -10,7 +10,7 @@ use crate::activitypub::{
 use crate::config::Instance;
 use crate::models::profiles::types::DbActorProfile;
 use crate::models::users::types::User;
-use crate::utils::id::new_uuid;
+use crate::utils::id::generate_ulid;
 
 #[derive(Serialize)]
 struct AcceptFollow {
@@ -34,7 +34,7 @@ fn build_accept_follow(
     follow_activity_id: &str,
 ) -> AcceptFollow {
     // Accept(Follow) is idempotent so its ID can be random
-    let activity_id = local_object_id(instance_url, &new_uuid());
+    let activity_id = local_object_id(instance_url, &generate_ulid());
     let actor_id = local_actor_id(instance_url, &actor_profile.username);
     AcceptFollow {
         context: build_default_context(),

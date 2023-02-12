@@ -110,7 +110,7 @@ pub async fn prepare_like(
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::id::new_uuid;
+    use crate::utils::id::generate_ulid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
@@ -120,7 +120,7 @@ mod tests {
         let author = DbActorProfile::default();
         let post_id = "https://example.com/objects/123";
         let post_author_id = "https://example.com/users/test";
-        let reaction_id = new_uuid();
+        let reaction_id = generate_ulid();
         let activity = build_like(
             INSTANCE_URL,
             &author,

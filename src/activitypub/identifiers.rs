@@ -116,7 +116,7 @@ pub fn parse_local_object_id(
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::id::new_uuid;
+    use crate::utils::id::generate_ulid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.org";
@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_parse_local_object_id() {
-        let expected_uuid = new_uuid();
+        let expected_uuid = generate_ulid();
         let object_id = format!(
             "https://example.org/objects/{}",
             expected_uuid,

@@ -13,7 +13,7 @@ use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError, DatabaseTypeError};
 use crate::models::relationships::queries::get_followers;
 use crate::models::users::types::User;
-use crate::utils::id::new_uuid;
+use crate::utils::id::generate_ulid;
 
 #[derive(Serialize)]
 pub struct UpdatePerson {
@@ -38,7 +38,7 @@ pub fn build_update_person(
     let actor = get_local_actor(user, instance_url)?;
     // Update(Person) is idempotent so its ID can be random
     let internal_activity_id =
-        maybe_internal_activity_id.unwrap_or(new_uuid());
+        maybe_internal_activity_id.unwrap_or(generate_ulid());
     let activity_id = local_object_id(instance_url, &internal_activity_id);
     let activity = UpdatePerson {
         context: build_default_context(),
@@ -111,7 +111,7 @@ mod tests {
             },
             ..Default::default()
         };
-        let internal_id = new_uuid();
+        let internal_id = generate_ulid();
         let activity = build_update_person(
             INSTANCE_URL,
             &user,

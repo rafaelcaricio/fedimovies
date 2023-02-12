@@ -87,7 +87,7 @@ pub async fn prepare_undo_like(
 #[cfg(test)]
 mod tests {
     use crate::activitypub::constants::AP_PUBLIC;
-    use crate::utils::id::new_uuid;
+    use crate::utils::id::generate_ulid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
@@ -96,7 +96,7 @@ mod tests {
     fn test_build_undo_like() {
         let author = DbActorProfile::default();
         let post_author_id = "https://example.com/users/test";
-        let reaction_id = new_uuid();
+        let reaction_id = generate_ulid();
         let activity = build_undo_like(
             INSTANCE_URL,
             &author,

@@ -7,7 +7,7 @@ use crate::models::cleanup::{
     find_orphaned_ipfs_objects,
     DeletionQueue,
 };
-use crate::utils::id::new_uuid;
+use crate::utils::id::generate_ulid;
 use super::types::DbMediaAttachment;
 
 pub async fn create_attachment(
@@ -17,7 +17,7 @@ pub async fn create_attachment(
     file_size: usize,
     media_type: Option<String>,
 ) -> Result<DbMediaAttachment, DatabaseError> {
-    let attachment_id = new_uuid();
+    let attachment_id = generate_ulid();
     let file_size: i32 = file_size.try_into()
         .expect("value should be within bounds");
     let inserted_row = db_client.query_one(

@@ -158,8 +158,10 @@ pub fn parse_extra_field(
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::caip2::ChainId;
-    use crate::utils::id::new_uuid;
+    use crate::utils::{
+        caip2::ChainId,
+        id::generate_ulid,
+    };
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
@@ -181,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_payment_option() {
-        let user_id = new_uuid();
+        let user_id = generate_ulid();
         let payment_option =
             PaymentOption::ethereum_subscription(ChainId::ethereum_mainnet());
         let subscription_page_url =

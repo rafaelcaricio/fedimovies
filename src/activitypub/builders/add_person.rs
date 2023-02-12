@@ -9,7 +9,7 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::models::users::types::User;
-use crate::utils::id::new_uuid;
+use crate::utils::id::generate_ulid;
 
 #[derive(Serialize)]
 struct AddOrRemovePerson {
@@ -35,7 +35,7 @@ fn build_update_collection(
     remove: bool,
 ) -> AddOrRemovePerson {
     let actor_id = local_actor_id(instance_url, sender_username);
-    let activity_id = local_object_id(instance_url, &new_uuid());
+    let activity_id = local_object_id(instance_url, &generate_ulid());
     let activity_type = if remove { REMOVE } else { ADD };
     let collection_id = collection.of(&actor_id);
     AddOrRemovePerson {

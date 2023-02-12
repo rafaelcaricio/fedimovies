@@ -10,7 +10,7 @@ use crate::models::{
     cleanup::{find_orphaned_files, DeletionQueue},
     instances::queries::create_instance,
 };
-use crate::utils::id::new_uuid;
+use crate::utils::id::generate_ulid;
 use super::types::{DbEmoji, EmojiImage};
 
 pub async fn create_emoji(
@@ -21,7 +21,7 @@ pub async fn create_emoji(
     object_id: Option<&str>,
     updated_at: &DateTime<Utc>,
 ) -> Result<DbEmoji, DatabaseError> {
-    let emoji_id = new_uuid();
+    let emoji_id = generate_ulid();
     if let Some(hostname) = hostname {
         create_instance(db_client, hostname).await?;
     };

@@ -10,7 +10,7 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::models::users::types::User;
-use crate::utils::id::new_uuid;
+use crate::utils::id::generate_ulid;
 
 #[derive(Serialize)]
 pub struct MovePerson {
@@ -36,7 +36,7 @@ pub fn build_move_person(
     maybe_internal_activity_id: Option<&Uuid>,
 ) -> MovePerson {
     let internal_activity_id = maybe_internal_activity_id.copied()
-        .unwrap_or(new_uuid());
+        .unwrap_or(generate_ulid());
     let activity_id = local_object_id(instance_url, &internal_activity_id);
     let actor_id = local_actor_id(instance_url, &sender.profile.username);
     MovePerson {
@@ -78,7 +78,7 @@ pub fn prepare_move_person(
 #[cfg(test)]
 mod tests {
     use crate::models::profiles::types::DbActorProfile;
-    use crate::utils::id::new_uuid;
+    use crate::utils::id::generate_ulid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
@@ -97,7 +97,7 @@ mod tests {
             "https://server1.org/users/1".to_string(),
             "https://server2.org/users/2".to_string(),
         ];
-        let internal_activity_id = new_uuid();
+        let internal_activity_id = generate_ulid();
         let activity = build_move_person(
             INSTANCE_URL,
             &sender,

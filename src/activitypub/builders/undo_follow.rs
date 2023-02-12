@@ -85,7 +85,7 @@ pub fn prepare_undo_follow(
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::id::new_uuid;
+    use crate::utils::id::generate_ulid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
@@ -97,7 +97,7 @@ mod tests {
             ..Default::default()
         };
         let target_actor_id = "https://test.remote/users/123";
-        let follow_request_id = new_uuid();
+        let follow_request_id = generate_ulid();
         let activity = build_undo_follow(
             INSTANCE_URL,
             &actor_profile,
