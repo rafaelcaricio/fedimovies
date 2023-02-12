@@ -56,6 +56,7 @@ use super::helpers::{
     PostContent,
 };
 use super::types::{
+    Context,
     Status,
     StatusData,
     StatusPreview,
@@ -302,7 +303,22 @@ async fn get_context(
         maybe_current_user.as_ref(),
         posts,
     ).await?;
-    Ok(HttpResponse::Ok().json(statuses))
+    let mut ancestors = vec![];
+    let mut descendants = vec![];
+    let mut is_ancestor = true;
+    for status in statuses {
+        if is_ancestor {
+            if status.id == *status_id {
+                is_ancestor = false;
+                continue;
+            };
+            ancestors.push(status);
+        } else {
+            descendants.push(status);
+        };
+    };
+    let context = Context { ancestors, descendants };
+    Ok(HttpResponse::Ok().json(context))
 }
 
 #[get("/{status_id}/thread")]

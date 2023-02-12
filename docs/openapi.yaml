@@ -943,6 +943,31 @@ paths:
           description: Post does not belong to user
         404:
           description: Post not found
+  /api/v1/statuses/{status_id}/context:
+    get:
+      summary: View statuses above and below this status in the thread.
+      parameters:
+        - $ref: '#/components/parameters/status_id'
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ancestors:
+                    description: Parents in the thread.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Status'
+                  descendants:
+                    description: Parents in the thread.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Status'
+        404:
+          description: Post not found
   /api/v1/statuses/{status_id}/thread:
     get:
       summary: Get thread that contains given post.

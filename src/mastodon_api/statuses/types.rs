@@ -188,6 +188,12 @@ impl StatusPreview {
     }
 }
 
+#[derive(Serialize)]
+pub struct Context {
+    pub ancestors: Vec<Status>,
+    pub descendants: Vec<Status>,
+}
+
 #[derive(Deserialize)]
 pub struct TransactionData {
     pub transaction_id: String,
