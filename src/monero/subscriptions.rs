@@ -173,7 +173,7 @@ pub async fn check_monero_subscriptions(
                 update_subscription(
                     db_client,
                     subscription.id,
-                    &subscription.chain_id,
+                    subscription.chain_id.inner(),
                     &expires_at,
                     &Utc::now(),
                 ).await?;

@@ -4,8 +4,10 @@ use tokio_postgres::Row;
 use uuid::Uuid;
 
 use crate::database::DatabaseError;
-use crate::models::profiles::types::DbActorProfile;
-use crate::utils::caip2::ChainId;
+use crate::models::{
+    invoices::types::DbChainId,
+    profiles::types::DbActorProfile,
+};
 
 #[derive(FromSql)]
 #[postgres(name = "subscription")]
@@ -14,7 +16,7 @@ pub struct DbSubscription {
     pub sender_id: Uuid,
     pub sender_address: Option<String>,
     pub recipient_id: Uuid,
-    pub chain_id: ChainId,
+    pub chain_id: DbChainId,
     pub expires_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

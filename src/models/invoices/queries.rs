@@ -9,7 +9,7 @@ use crate::utils::{
     caip2::ChainId,
     id::generate_ulid,
 };
-use super::types::{DbInvoice, InvoiceStatus};
+use super::types::{DbChainId, DbInvoice, InvoiceStatus};
 
 pub async fn create_invoice(
     db_client: &impl DatabaseClient,
@@ -37,7 +37,7 @@ pub async fn create_invoice(
             &invoice_id,
             &sender_id,
             &recipient_id,
-            &chain_id,
+            &DbChainId::new(chain_id),
             &payment_address,
             &amount,
         ],
@@ -72,7 +72,7 @@ pub async fn get_invoice_by_address(
         SELECT invoice
         FROM invoice WHERE chain_id = $1 AND payment_address = $2
         ",
-        &[&chain_id, &payment_address],
+        &[&DbChainId::new(chain_id), &payment_address],
     ).await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("invoice"))?;
     let invoice = row.try_get("invoice")?;
@@ -89,7 +89,7 @@ pub async fn get_invoices_by_status(
         SELECT invoice
         FROM invoice WHERE chain_id = $1 AND invoice_status = $2
         ",
-        &[&chain_id, &status],
+        &[&DbChainId::new(chain_id), &status],
     ).await?;
     let invoices = rows.iter()
         .map(|row| row.try_get("invoice"))
@@ -157,7 +157,7 @@ mod tests {
         ).await.unwrap();
         assert_eq!(invoice.sender_id, sender.id);
         assert_eq!(invoice.recipient_id, recipient.id);
-        assert_eq!(invoice.chain_id, chain_id);
+        assert_eq!(invoice.chain_id.into_inner(), chain_id);
         assert_eq!(invoice.payment_address, payment_address);
         assert_eq!(invoice.amount, amount);
         assert_eq!(invoice.invoice_status, InvoiceStatus::Open);

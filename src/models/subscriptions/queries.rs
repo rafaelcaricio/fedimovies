@@ -7,6 +7,7 @@ use crate::database::{
     DatabaseError,
 };
 use crate::models::{
+    invoices::types::DbChainId,
     profiles::types::PaymentType,
     relationships::queries::{subscribe, subscribe_opt},
     relationships::types::RelationshipType,
@@ -41,7 +42,7 @@ pub async fn create_subscription(
             &sender_id,
             &sender_address,
             &recipient_id,
-            &chain_id,
+            &DbChainId::new(chain_id),
             &expires_at,
             &updated_at,
         ],
@@ -71,7 +72,7 @@ pub async fn update_subscription(
         ",
         &[
             &subscription_id,
-            &chain_id,
+            &DbChainId::new(chain_id),
             &expires_at,
             &updated_at,
         ],

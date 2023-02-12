@@ -109,48 +109,6 @@ impl<'de> Deserialize<'de> for ChainId {
     }
 }
 
-mod sql {
-    use postgres_protocol::types::{text_from_sql, text_to_sql};
-    use postgres_types::{
-        accepts,
-        private::BytesMut,
-        to_sql_checked,
-        FromSql,
-        IsNull,
-        ToSql,
-        Type,
-    };
-    use super::ChainId;
-
-    impl<'a> FromSql<'a> for ChainId {
-        fn from_sql(
-            _: &Type,
-            raw: &'a [u8],
-        ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
-            let value_str = text_from_sql(raw)?;
-            let value: Self = value_str.parse()?;
-            Ok(value)
-        }
-
-        accepts!(VARCHAR);
-    }
-
-    impl ToSql for ChainId {
-        fn to_sql(
-            &self,
-            _: &Type,
-            out: &mut BytesMut,
-        ) -> Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
-            let value_str = self.to_string();
-            text_to_sql(&value_str, out);
-            Ok(IsNull::No)
-        }
-
-        accepts!(VARCHAR, TEXT);
-        to_sql_checked!();
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

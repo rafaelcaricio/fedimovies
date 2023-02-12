@@ -34,7 +34,7 @@ impl From<DbInvoice> for Invoice {
             InvoiceStatus::Forwarded => "forwarded",
             InvoiceStatus::Timeout => "timeout",
         };
-        let expires_at = if value.chain_id.is_monero() {
+        let expires_at = if value.chain_id.inner().is_monero() {
             value.created_at + Duration::seconds(MONERO_INVOICE_TIMEOUT)
         } else {
             // Epoch 0
