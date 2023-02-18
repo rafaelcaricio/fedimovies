@@ -83,3 +83,40 @@ pub fn make_feed(
         entries=entries.join("\n"),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::{TimeZone, Utc};
+    use uuid::uuid;
+    use super::*;
+
+    #[test]
+    fn test_make_entry() {
+        let instance_url = "https://example.org";
+        let author = DbActorProfile {
+            username: "username".to_string(),
+            ..Default::default()
+        };
+        let post_id = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
+        let created_at = Utc.with_ymd_and_hms(2020, 3, 3, 3, 3, 3).unwrap();
+        let post = Post {
+            id: post_id,
+            author: author,
+            content: "<p>title</p><p>text text text</p>".to_string(),
+            created_at: created_at,
+            ..Default::default()
+        };
+        let entry = make_entry(instance_url, &post);
+        let expected_entry = concat!(
+            "<entry>\n",
+            "    <id>https://example.org/objects/67e55044-10b1-426f-9247-bb680e5fe0c8</id>\n",
+            "    <title>titletext text text</title>\n",
+            "    <updated>2020-03-03T03:03:03+00:00</updated>\n",
+            "    <author><name>username</name></author>\n",
+            r#"    <content type="html">&lt;p&gt;title&lt;&#47;p&gt;&lt;p&gt;text&#32;text&#32;text&lt;&#47;p&gt;</content>"#, "\n",
+            r#"    <link rel="alternate" href="https://example.org/objects/67e55044-10b1-426f-9247-bb680e5fe0c8"/>"#, "\n",
+            "</entry>",
+        );
+        assert_eq!(entry, expected_entry);
+    }
+}
