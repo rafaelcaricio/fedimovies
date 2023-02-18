@@ -9,6 +9,7 @@ use web3::{
     types::{BlockId, BlockNumber, FilterBuilder, U256},
 };
 
+use mitra_config::{EthereumConfig, Instance};
 use mitra_utils::{
     caip2::ChainId,
     currencies::Currency,
@@ -21,7 +22,6 @@ use crate::activitypub::{
     },
     identifiers::LocalActorCollection,
 };
-use crate::config::{EthereumConfig, Instance};
 use crate::database::{
     get_database_client,
     DatabaseClient,

@@ -6,6 +6,7 @@ use serde::{
 };
 use serde_json::{json, Value};
 
+use mitra_config::Instance;
 use mitra_utils::{
     crypto_rsa::{deserialize_private_key, get_public_key_pem},
     urls::get_hostname,
@@ -25,7 +26,6 @@ use crate::activitypub::{
     receiver::parse_property_value,
     vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
 };
-use crate::config::Instance;
 use crate::errors::ValidationError;
 use crate::media::get_file_url;
 use crate::models::{

@@ -6,7 +6,8 @@ use actix_web::{
 };
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
-use crate::config::Config;
+use mitra_config::Config;
+
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::mastodon_api::{

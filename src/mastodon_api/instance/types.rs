@@ -1,14 +1,14 @@
 use serde::Serialize;
 use serde_json::{to_value, Value};
 
-use mitra_utils::markdown::markdown_to_html;
-
-use crate::config::{
+use mitra_config::{
     BlockchainConfig,
     Config,
     RegistrationType,
     MITRA_VERSION,
 };
+use mitra_utils::markdown::markdown_to_html;
+
 use crate::ethereum::contracts::ContractSet;
 use crate::mastodon_api::{
     MASTODON_API_VERSION,

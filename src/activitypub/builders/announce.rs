@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
+use mitra_config::Instance;
+
 use crate::activitypub::{
     actors::types::Actor,
     constants::AP_PUBLIC,
@@ -9,7 +11,6 @@ use crate::activitypub::{
     types::{build_default_context, Context},
     vocabulary::ANNOUNCE,
 };
-use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     posts::types::Post,

@@ -1,6 +1,7 @@
 use serde::Serialize;
 use uuid::Uuid;
 
+use mitra_config::Instance;
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
@@ -11,7 +12,6 @@ use crate::activitypub::{
     types::{build_default_context, Context},
     vocabulary::UPDATE,
 };
-use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError, DatabaseTypeError};
 use crate::models::{
     relationships::queries::get_followers,

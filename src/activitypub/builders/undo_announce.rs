@@ -1,6 +1,8 @@
 use serde::Serialize;
 use uuid::Uuid;
 
+use mitra_config::Instance;
+
 use crate::activitypub::{
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
@@ -8,7 +10,6 @@ use crate::activitypub::{
     types::{build_default_context, Context},
     vocabulary::UNDO,
 };
-use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     posts::types::Post,

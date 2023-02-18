@@ -4,10 +4,10 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::config::Config;
+use mitra_config::Config;
+
 use crate::database::DbPool;
 use crate::ethereum::contracts::Blockchain;
-
 use super::periodic_tasks::*;
 
 #[derive(Debug, Eq, Hash, PartialEq)]

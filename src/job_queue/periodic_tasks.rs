@@ -5,13 +5,13 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use mitra_config::Config;
 use mitra_utils::datetime::days_before_now;
 
 use crate::activitypub::queues::{
     process_queued_incoming_activities,
     process_queued_outgoing_activities,
 };
-use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
 use crate::ethereum::{
     contracts::Blockchain,

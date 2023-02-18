@@ -4,6 +4,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::Utc;
 use uuid::Uuid;
 
+use mitra_config::Config;
 use mitra_utils::{
     currencies::Currency,
     markdown::markdown_lite_to_html,
@@ -17,7 +18,6 @@ use crate::activitypub::builders::{
     undo_announce::prepare_undo_announce,
     undo_like::prepare_undo_like,
 };
-use crate::config::Config;
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::nft::create_mint_signature;

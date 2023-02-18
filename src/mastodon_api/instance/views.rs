@@ -1,6 +1,7 @@
 use actix_web::{get, web, HttpResponse, Scope};
 
-use crate::config::Config;
+use mitra_config::Config;
+
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::ethereum::contracts::ContractSet;

@@ -1,0 +1,30 @@
+[package]
+name = "mitra-config"
+version = "1.13.1"
+license = "AGPL-3.0"
+edition = "2021"
+rust-version = "1.56"
+
+[dependencies]
+mitra-utils = { path = "../mitra-utils" }
+
+# Used to read .env files
+dotenv = "0.15.0"
+# Used for logging
+log = { version = "0.4.14", features = ["serde"] }
+# Used for working with regular expressions
+regex = "1.6.0"
+# Used for working with RSA keys
+rsa = "0.5.0"
+# Used for serialization/deserialization
+serde = { version = "1.0.136", features = ["derive"] }
+# Used to parse config file
+serde_yaml = "0.8.17"
+# Used for creating error types
+thiserror = "1.0.37"
+# Used to work with URLs
+url = "2.2.2"
+
+[features]
+production = []
+test-utils = []

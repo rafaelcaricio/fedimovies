@@ -4,6 +4,7 @@ use std::time::Duration;
 use reqwest::{Client, Method, Proxy, RequestBuilder};
 use serde_json::Value;
 
+use mitra_config::Instance;
 use mitra_utils::{
     files::sniff_media_type,
     urls::guess_protocol,
@@ -15,7 +16,6 @@ use crate::activitypub::{
     identifiers::{local_actor_key_id, local_instance_actor_id},
     types::Object,
 };
-use crate::config::Instance;
 use crate::http_signatures::create::{
     create_http_signature,
     HttpSignatureError,

@@ -185,7 +185,7 @@ impl Instance {
     }
 }
 
-#[cfg(test)]
+#[cfg(feature = "test-utils")]
 impl Instance {
     pub fn for_test(url: &str) -> Self {
         use mitra_utils::crypto_rsa::generate_weak_rsa_key;

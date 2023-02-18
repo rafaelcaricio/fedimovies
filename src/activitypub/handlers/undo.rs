@@ -1,12 +1,13 @@
 use serde::Deserialize;
 use serde_json::Value;
 
+use mitra_config::Config;
+
 use crate::activitypub::{
     identifiers::parse_local_actor_id,
     receiver::{deserialize_into_object_id, find_object_id},
     vocabulary::{ANNOUNCE, FOLLOW, LIKE},
 };
-use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{

@@ -1,5 +1,6 @@
 use serde::Serialize;
 
+use mitra_config::Instance;
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
@@ -9,7 +10,6 @@ use crate::activitypub::{
     types::{build_default_context, Context},
     vocabulary::ACCEPT,
 };
-use crate::config::Instance;
 use crate::models::{
     profiles::types::DbActorProfile,
     users::types::User,

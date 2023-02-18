@@ -1,5 +1,7 @@
 use actix_web::{get, web, HttpResponse};
 
+use mitra_config::{Config, Instance};
+
 use crate::activitypub::{
     constants::AP_MEDIA_TYPE,
     identifiers::{
@@ -8,7 +10,6 @@ use crate::activitypub::{
         parse_local_actor_id,
     },
 };
-use crate::config::{Config, Instance};
 use crate::database::{get_database_client, DatabaseClient, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::models::users::queries::is_registered_user;

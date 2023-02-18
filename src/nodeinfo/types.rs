@@ -2,7 +2,7 @@
 
 use serde::Serialize;
 
-use crate::config::{Config, RegistrationType, MITRA_VERSION};
+use mitra_config::{Config, RegistrationType, MITRA_VERSION};
 
 #[derive(Serialize)]
 struct Software {

@@ -4,6 +4,8 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde_json::Value;
 
+use mitra_config::Config;
+
 use crate::activitypub::{
     actors::{
         helpers::update_remote_profile,
@@ -19,7 +21,6 @@ use crate::activitypub::{
     types::Object,
     vocabulary::{NOTE, PERSON},
 };
-use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{

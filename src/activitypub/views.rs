@@ -14,7 +14,8 @@ use serde::Deserialize;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use crate::config::Config;
+use mitra_config::Config;
+
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::models::{

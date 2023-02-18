@@ -8,7 +8,6 @@ use mitra::activitypub::{
     builders::delete_person::prepare_delete_person,
     fetcher::fetchers::fetch_actor,
 };
-use mitra::config::Config;
 use mitra::database::DatabaseClient;
 use mitra::ethereum::{
     signatures::generate_ecdsa_key,
@@ -48,6 +47,7 @@ use mitra::monero::{
     helpers::check_expired_invoice,
     wallet::create_monero_wallet,
 };
+use mitra_config::Config;
 use mitra_utils::{
     crypto_rsa::{
         generate_rsa_key,

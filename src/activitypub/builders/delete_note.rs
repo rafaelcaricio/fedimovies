@@ -1,12 +1,13 @@
 use serde::Serialize;
 
+use mitra_config::Instance;
+
 use crate::activitypub::{
     deliverer::OutgoingActivity,
     identifiers::local_actor_id,
     types::{build_default_context, Context},
     vocabulary::{DELETE, NOTE, TOMBSTONE},
 };
-use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     posts::helpers::add_related_posts,

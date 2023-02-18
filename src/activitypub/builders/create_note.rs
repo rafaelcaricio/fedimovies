@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
+use mitra_config::Instance;
+
 use crate::activitypub::{
     actors::types::Actor,
     constants::{AP_MEDIA_TYPE, AP_PUBLIC},
@@ -24,7 +26,6 @@ use crate::activitypub::{
     },
     vocabulary::*,
 };
-use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::media::get_file_url;
 use crate::models::{

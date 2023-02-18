@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use serde_json::Value;
 
+use mitra_config::Config;
+
 use crate::activitypub::{
     builders::{
         follow::prepare_follow,
@@ -11,7 +13,6 @@ use crate::activitypub::{
     receiver::parse_array,
     vocabulary::PERSON,
 };
-use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{

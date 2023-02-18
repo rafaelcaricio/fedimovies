@@ -1,6 +1,7 @@
 use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
+use mitra_config::Config;
 use mitra_utils::passwords::hash_password;
 
 use crate::activitypub::{
@@ -9,7 +10,6 @@ use crate::activitypub::{
         undo_follow::prepare_undo_follow,
     },
 };
-use crate::config::Config;
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::mastodon_api::{

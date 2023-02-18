@@ -3,6 +3,7 @@ use std::str::FromStr;
 use regex::Regex;
 use url::Url;
 
+use mitra_config::Config;
 use mitra_utils::currencies::Currency;
 
 use crate::activitypub::{
@@ -14,7 +15,6 @@ use crate::activitypub::{
     identifiers::{parse_local_actor_id, parse_local_object_id},
     HandlerError,
 };
-use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::ethereum::utils::validate_ethereum_address;

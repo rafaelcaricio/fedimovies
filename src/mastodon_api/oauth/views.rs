@@ -10,9 +10,9 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
 
+use mitra_config::Config;
 use mitra_utils::passwords::verify_password;
 
-use crate::config::Config;
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::{

@@ -1,6 +1,7 @@
 use uuid::Uuid;
 
-use crate::config::Instance;
+use mitra_config::Instance;
+
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     emojis::types::DbEmoji,

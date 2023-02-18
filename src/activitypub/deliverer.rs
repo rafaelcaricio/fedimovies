@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::time::sleep;
 
+use mitra_config::Instance;
 use mitra_utils::crypto_rsa::deserialize_private_key;
 
-use crate::config::Instance;
 use crate::database::{
     get_database_client,
     DatabaseClient,

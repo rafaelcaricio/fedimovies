@@ -1,13 +1,14 @@
 use serde::Serialize;
 use uuid::Uuid;
 
+use mitra_config::Instance;
+
 use crate::activitypub::{
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
     types::{build_default_context, Context},
     vocabulary::UNDO,
 };
-use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     posts::types::{Post, Visibility},

@@ -4,7 +4,8 @@ use monero_rpc::TransferType;
 use monero_rpc::monero::Address;
 use uuid::Uuid;
 
-use crate::config::MoneroConfig;
+use mitra_config::MoneroConfig;
+
 use crate::database::DatabaseClient;
 use crate::errors::ValidationError;
 use crate::models::{

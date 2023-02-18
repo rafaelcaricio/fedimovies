@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use mitra_config::{Config, Instance};
+
 use crate::activitypub::{
     actors::helpers::{create_remote_profile, update_remote_profile},
     handlers::create::handle_note,
@@ -8,7 +10,6 @@ use crate::activitypub::{
     receiver::HandlerError,
     types::Object,
 };
-use crate::config::{Config, Instance};
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{

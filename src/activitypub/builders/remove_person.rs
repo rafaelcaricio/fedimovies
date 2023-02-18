@@ -1,9 +1,10 @@
+use mitra_config::Instance;
+
 use crate::activitypub::{
     actors::types::Actor,
     deliverer::OutgoingActivity,
     identifiers::LocalActorCollection,
 };
-use crate::config::Instance;
 use crate::models::users::types::User;
 use super::add_person::prepare_update_collection;
 

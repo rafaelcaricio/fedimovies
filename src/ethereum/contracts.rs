@@ -8,7 +8,8 @@ use web3::{
     transports::Http,
 };
 
-use crate::config::EthereumConfig;
+use mitra_config::EthereumConfig;
+
 use super::api::connect;
 use super::errors::EthereumError;
 use super::sync::{

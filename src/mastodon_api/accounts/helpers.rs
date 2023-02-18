@@ -1,7 +1,8 @@
 use uuid::Uuid;
 
+use mitra_config::Instance;
+
 use crate::activitypub::builders::follow::prepare_follow;
-use crate::config::Instance;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     profiles::types::DbActorProfile,

@@ -1,4 +1,5 @@
-use crate::config::Config;
+use mitra_config::Config;
+
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::ipfs::store as ipfs_store;
 use crate::media::remove_files;

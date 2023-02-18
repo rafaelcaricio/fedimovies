@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::config::Config;
+use mitra_config::Config;
+
 use crate::database::{
     get_database_client,
     DatabaseClient,

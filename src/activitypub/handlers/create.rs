@@ -4,6 +4,7 @@ use chrono::Utc;
 use serde_json::{Value as JsonValue};
 use uuid::Uuid;
 
+use mitra_config::Config;
 use mitra_utils::{
     html::clean_html,
     urls::get_hostname,
@@ -22,7 +23,6 @@ use crate::activitypub::{
     types::{Attachment, EmojiTag, Link, LinkTag, Object, Tag},
     vocabulary::*,
 };
-use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{

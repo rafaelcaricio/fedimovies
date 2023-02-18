@@ -1,6 +1,8 @@
 use serde::Serialize;
 use uuid::Uuid;
 
+use mitra_config::Instance;
+
 use crate::activitypub::{
     actors::types::Actor,
     deliverer::OutgoingActivity,
@@ -8,7 +10,6 @@ use crate::activitypub::{
     types::{build_default_context, Context},
     vocabulary::FOLLOW,
 };
-use crate::config::Instance;
 use crate::models::{
     profiles::types::DbActorProfile,
     users::types::User,

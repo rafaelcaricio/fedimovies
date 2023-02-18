@@ -1,6 +1,7 @@
 use serde::Serialize;
 use uuid::Uuid;
 
+use mitra_config::Instance;
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
@@ -10,7 +11,6 @@ use crate::activitypub::{
     types::{build_default_context, Context},
     vocabulary::MOVE,
 };
-use crate::config::Instance;
 use crate::models::users::types::User;
 
 #[derive(Serialize)]

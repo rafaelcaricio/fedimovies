@@ -4,7 +4,8 @@ use chrono::{Duration, Utc};
 use monero_rpc::TransferType;
 use monero_rpc::monero::{Address, Amount};
 
-use crate::config::{Instance, MoneroConfig};
+use mitra_config::{Instance, MoneroConfig};
+
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::ethereum::subscriptions::send_subscription_notifications;
 use crate::models::{

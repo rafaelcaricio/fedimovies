@@ -10,7 +10,8 @@ use web3::{
     types::{BlockNumber, FilterBuilder},
 };
 
-use crate::config::EthereumConfig;
+use mitra_config::EthereumConfig;
+
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::ipfs::utils::parse_ipfs_url;
 use crate::models::posts::queries::{

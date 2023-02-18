@@ -2,12 +2,13 @@ use std::path::Path;
 
 use serde_json::{Value as JsonValue};
 
+use mitra_config::Instance;
+
 use crate::activitypub::{
     actors::types::Actor,
     fetcher::fetchers::fetch_file,
     receiver::{parse_property_value, HandlerError},
 };
-use crate::config::Instance;
 use crate::database::DatabaseClient;
 use crate::models::{
     profiles::queries::{create_profile, update_profile},

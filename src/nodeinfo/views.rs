@@ -2,7 +2,8 @@
 
 use actix_web::{get, web, HttpResponse};
 
-use crate::config::Config;
+use mitra_config::Config;
+
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::webfinger::types::{

@@ -5,6 +5,7 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
+use mitra_config::{Config, RegistrationType};
 use mitra_utils::{
     caip2::ChainId,
     canonicalization::canonicalize_object,
@@ -24,7 +25,6 @@ use crate::activitypub::builders::{
         prepare_update_person,
     },
 };
-use crate::config::{Config, RegistrationType};
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::{

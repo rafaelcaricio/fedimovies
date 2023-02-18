@@ -1,10 +1,11 @@
 use uuid::Uuid;
 
+use mitra_config::Config;
+
 use crate::activitypub::{
     fetcher::helpers::get_or_import_profile_by_actor_address,
     HandlerError,
 };
-use crate::config::Config;
 use crate::database::{
     get_database_client,
     DatabaseClient,

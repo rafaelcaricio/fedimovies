@@ -1,12 +1,13 @@
 use serde::Deserialize;
 use serde_json::Value;
 
+use mitra_config::Config;
+
 use crate::activitypub::{
     fetcher::helpers::get_or_import_profile_by_actor_id,
     receiver::deserialize_into_object_id,
     vocabulary::NOTE,
 };
-use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{

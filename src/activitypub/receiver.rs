@@ -7,7 +7,8 @@ use serde::{
 };
 use serde_json::Value;
 
-use crate::config::Config;
+use mitra_config::Config;
+
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::{
     ConversionError,

@@ -11,11 +11,12 @@ use actix_web::{
 };
 use uuid::Uuid;
 
+use mitra_config::Config;
+
 use crate::activitypub::{
     identifiers::{local_actor_id, local_object_id},
     views::is_activitypub_request,
 };
-use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::models::users::queries::get_user_by_id;

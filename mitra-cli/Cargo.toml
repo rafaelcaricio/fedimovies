@@ -10,6 +10,7 @@ name = "mitractl"
 path = "src/main.rs"
 
 [dependencies]
+mitra-config = { path = "../mitra-config" }
 mitra-utils = { path = "../mitra-utils" }
 mitra = { path = ".." }
 

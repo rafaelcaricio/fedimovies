@@ -13,7 +13,8 @@ use monero_rpc::monero::{
     Amount,
 };
 
-use crate::config::MoneroConfig;
+use mitra_config::MoneroConfig;
+
 use crate::database::DatabaseError;
 
 pub const DEFAULT_ACCOUNT: u32 = 0;
