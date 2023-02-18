@@ -6,6 +6,11 @@ use serde::{
 };
 use serde_json::{json, Value};
 
+use mitra_utils::{
+    crypto_rsa::{deserialize_private_key, get_public_key_pem},
+    urls::get_hostname,
+};
+
 use crate::activitypub::{
     constants::{
         AP_CONTEXT,
@@ -30,10 +35,6 @@ use crate::models::{
         PaymentOption,
     },
     users::types::User,
-};
-use crate::utils::{
-    crypto_rsa::{deserialize_private_key, get_public_key_pem},
-    urls::get_hostname,
 };
 use crate::webfinger::types::ActorAddress;
 use super::attachments::{
@@ -378,11 +379,11 @@ pub fn get_instance_actor(
 
 #[cfg(test)]
 mod tests {
-    use crate::models::profiles::types::DbActorProfile;
-    use crate::utils::crypto_rsa::{
+    use mitra_utils::crypto_rsa::{
         generate_weak_rsa_key,
         serialize_private_key,
     };
+    use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_HOSTNAME: &str = "example.com";

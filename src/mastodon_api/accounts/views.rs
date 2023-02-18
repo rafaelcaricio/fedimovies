@@ -5,6 +5,18 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
+use mitra_utils::{
+    caip2::ChainId,
+    canonicalization::canonicalize_object,
+    crypto_rsa::{
+        generate_rsa_key,
+        serialize_private_key,
+    },
+    currencies::Currency,
+    id::generate_ulid,
+    passwords::hash_password,
+};
+
 use crate::activitypub::builders::{
     undo_follow::prepare_undo_follow,
     update_person::{
@@ -74,17 +86,6 @@ use crate::models::{
         is_valid_invite_code,
     },
     users::types::{Role, UserCreateData},
-};
-use crate::utils::{
-    caip2::ChainId,
-    canonicalization::canonicalize_object,
-    crypto_rsa::{
-        generate_rsa_key,
-        serialize_private_key,
-    },
-    currencies::Currency,
-    id::generate_ulid,
-    passwords::hash_password,
 };
 use super::helpers::{follow_or_create_request, get_relationship};
 use super::types::{

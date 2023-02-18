@@ -1,6 +1,8 @@
 use actix_web::HttpRequest;
 use serde_json::Value;
 
+use mitra_utils::crypto_rsa::deserialize_public_key;
+
 use crate::config::Config;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::http_signatures::verify::{
@@ -21,7 +23,6 @@ use crate::models::{
     profiles::queries::get_profile_by_remote_actor_id,
     profiles::types::DbActorProfile,
 };
-use crate::utils::crypto_rsa::deserialize_public_key;
 use super::fetcher::helpers::get_or_import_profile_by_actor_id;
 use super::receiver::HandlerError;
 

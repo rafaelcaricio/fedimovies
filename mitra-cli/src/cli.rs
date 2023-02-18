@@ -48,7 +48,7 @@ use mitra::monero::{
     helpers::check_expired_invoice,
     wallet::create_monero_wallet,
 };
-use mitra::utils::{
+use mitra_utils::{
     crypto_rsa::{
         generate_rsa_key,
         serialize_private_key,

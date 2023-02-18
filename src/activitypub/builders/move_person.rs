@@ -1,6 +1,8 @@
 use serde::Serialize;
 use uuid::Uuid;
 
+use mitra_utils::id::generate_ulid;
+
 use crate::activitypub::{
     actors::types::Actor,
     deliverer::OutgoingActivity,
@@ -10,7 +12,6 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::models::users::types::User;
-use crate::utils::id::generate_ulid;
 
 #[derive(Serialize)]
 pub struct MovePerson {
@@ -77,8 +78,8 @@ pub fn prepare_move_person(
 
 #[cfg(test)]
 mod tests {
+    use mitra_utils::id::generate_ulid;
     use crate::models::profiles::types::DbActorProfile;
-    use crate::utils::id::generate_ulid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";

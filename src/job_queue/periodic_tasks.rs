@@ -5,6 +5,8 @@ use anyhow::Error;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use mitra_utils::datetime::days_before_now;
+
 use crate::activitypub::queues::{
     process_queued_incoming_activities,
     process_queued_outgoing_activities,
@@ -28,7 +30,6 @@ use crate::models::{
         get_profile_by_id,
     },
 };
-use crate::utils::datetime::days_before_now;
 
 pub async fn nft_monitor(
     maybe_blockchain: Option<&mut Blockchain>,

@@ -11,11 +11,12 @@ use postgres_types::{
 };
 use uuid::Uuid;
 
+use mitra_utils::caip2::ChainId;
+
 use crate::database::{
     int_enum::{int_enum_from_sql, int_enum_to_sql},
     DatabaseTypeError,
 };
-use crate::utils::caip2::ChainId;
 
 #[derive(Debug)]
 pub struct DbChainId(ChainId);

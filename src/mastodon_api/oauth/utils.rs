@@ -1,6 +1,6 @@
 use base64;
 
-use crate::utils::random::generate_random_sequence;
+use mitra_utils::random::generate_random_sequence;
 
 pub fn render_authorization_page() -> String {
     let page = r#"<!DOCTYPE html>

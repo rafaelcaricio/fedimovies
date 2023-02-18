@@ -1,12 +1,13 @@
+use mitra_utils::{
+    datetime::get_min_datetime,
+    html::{clean_html_all, escape_html},
+};
+
 use crate::activitypub::identifiers::{local_actor_id, local_object_id};
 use crate::config::Instance;
 use crate::models::{
     posts::types::Post,
     profiles::types::DbActorProfile,
-};
-use crate::utils::{
-    datetime::get_min_datetime,
-    html::{clean_html_all, escape_html},
 };
 
 const ENTRY_TITLE_MAX_LENGTH: usize = 75;

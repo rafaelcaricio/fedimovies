@@ -36,6 +36,7 @@ pub fn verify_eip191_identity_proof(
 #[cfg(test)]
 mod tests {
     use web3::signing::{Key, SecretKeyRef};
+    use mitra_utils::currencies::Currency;
     use crate::ethereum::{
         signatures::{
             generate_ecdsa_key,
@@ -43,7 +44,6 @@ mod tests {
         },
         utils::address_to_string,
     };
-    use crate::utils::currencies::Currency;
     use super::*;
 
     const ETHEREUM: Currency = Currency::Ethereum;

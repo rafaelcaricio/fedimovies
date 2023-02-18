@@ -1,6 +1,8 @@
 use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
+use mitra_utils::passwords::hash_password;
+
 use crate::activitypub::{
     builders::{
         move_person::prepare_move_person,
@@ -20,7 +22,6 @@ use crate::models::{
     relationships::queries::{follow, unfollow},
     users::queries::set_user_password,
 };
-use crate::utils::passwords::hash_password;
 use super::helpers::{
     export_followers,
     export_follows,

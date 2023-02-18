@@ -1,5 +1,7 @@
 use uuid::Uuid;
 
+use mitra_utils::id::generate_ulid;
+
 use crate::database::{
     catch_unique_violation,
     DatabaseClient,
@@ -12,7 +14,6 @@ use crate::models::{
         get_post_author,
     },
 };
-use crate::utils::id::generate_ulid;
 use super::types::DbReaction;
 
 pub async fn create_reaction(

@@ -8,7 +8,7 @@ pub fn generate_rsa_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
     RsaPrivateKey::new(&mut rng, bits)
 }
 
-#[cfg(test)]
+#[cfg(feature = "test-utils")]
 pub fn generate_weak_rsa_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
     use rand::SeedableRng;
     let mut rng = rand::rngs::SmallRng::seed_from_u64(0);

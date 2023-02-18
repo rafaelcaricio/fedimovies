@@ -10,6 +10,8 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
 
+use mitra_utils::passwords::verify_password;
+
 use crate::config::Config;
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
@@ -30,7 +32,6 @@ use crate::models::{
         get_user_by_login_address,
     },
 };
-use crate::utils::passwords::verify_password;
 use super::auth::get_current_user;
 use super::types::{
     AuthorizationRequest,

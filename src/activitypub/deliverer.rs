@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::time::sleep;
 
+use mitra_utils::crypto_rsa::deserialize_private_key;
+
 use crate::config::Instance;
 use crate::database::{
     get_database_client,
@@ -28,7 +30,6 @@ use crate::models::{
     profiles::queries::set_reachability_status,
     users::types::User,
 };
-use crate::utils::crypto_rsa::deserialize_private_key;
 use super::actors::types::Actor;
 use super::constants::AP_MEDIA_TYPE;
 use super::identifiers::{local_actor_id, local_actor_key_id};

@@ -4,6 +4,11 @@ use chrono::Utc;
 use serde_json::{Value as JsonValue};
 use uuid::Uuid;
 
+use mitra_utils::{
+    html::clean_html,
+    urls::get_hostname,
+};
+
 use crate::activitypub::{
     constants::{AP_MEDIA_TYPE, AP_PUBLIC, AS_MEDIA_TYPE},
     fetcher::fetchers::{fetch_file, FetchError},
@@ -48,10 +53,6 @@ use crate::models::{
     },
     profiles::types::DbActorProfile,
     users::queries::get_user_by_name,
-};
-use crate::utils::{
-    html::clean_html,
-    urls::get_hostname,
 };
 use super::HandlerResult;
 

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::utils::caip2::{ChainId, ChainIdError};
+use mitra_utils::caip2::{ChainId, ChainIdError};
 
 fn default_chain_sync_step() -> u64 { 1000 }
 

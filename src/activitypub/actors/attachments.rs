@@ -158,7 +158,7 @@ pub fn parse_extra_field(
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{
+    use mitra_utils::{
         caip2::ChainId,
         id::generate_ulid,
     };

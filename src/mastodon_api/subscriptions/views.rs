@@ -2,6 +2,8 @@ use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
+use mitra_utils::currencies::Currency;
+
 use crate::activitypub::builders::update_person::prepare_update_person;
 use crate::config::Config;
 use crate::database::{get_database_client, DbPool};
@@ -37,7 +39,6 @@ use crate::monero::{
     helpers::validate_monero_address,
     wallet::create_monero_address,
 };
-use crate::utils::currencies::Currency;
 use super::types::{
     Invoice,
     InvoiceData,

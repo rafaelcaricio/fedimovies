@@ -4,8 +4,11 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-use crate::utils::caip2::ChainId;
-use crate::utils::currencies::Currency;
+use mitra_utils::{
+    caip2::ChainId,
+    currencies::Currency,
+};
+
 use super::did::DidParseError;
 
 // https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-10.md#syntax

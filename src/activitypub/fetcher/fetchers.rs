@@ -4,6 +4,11 @@ use std::time::Duration;
 use reqwest::{Client, Method, Proxy, RequestBuilder};
 use serde_json::Value;
 
+use mitra_utils::{
+    files::sniff_media_type,
+    urls::guess_protocol,
+};
+
 use crate::activitypub::{
     actors::types::Actor,
     constants::AP_MEDIA_TYPE,
@@ -16,10 +21,6 @@ use crate::http_signatures::create::{
     HttpSignatureError,
 };
 use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};
-use crate::utils::{
-    files::sniff_media_type,
-    urls::guess_protocol,
-};
 use crate::webfinger::types::{ActorAddress, JsonResourceDescriptor};
 
 const FETCHER_CONNECTION_TIMEOUT: u64 = 30;

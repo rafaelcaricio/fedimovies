@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use mitra_utils::caip2::ChainId;
+
 use crate::database::{
     catch_unique_violation,
     DatabaseClient,
@@ -12,7 +14,6 @@ use crate::models::{
     relationships::queries::{subscribe, subscribe_opt},
     relationships::types::RelationshipType,
 };
-use crate::utils::caip2::ChainId;
 use super::types::{DbSubscription, Subscription};
 
 pub async fn create_subscription(

@@ -1,5 +1,7 @@
 use uuid::Uuid;
 
+use mitra_utils::currencies::Currency;
+
 use crate::database::{
     catch_unique_violation,
     DatabaseClient,
@@ -10,7 +12,6 @@ use crate::models::{
     profiles::queries::create_profile,
     profiles::types::{DbActorProfile, ProfileCreateData},
 };
-use crate::utils::currencies::Currency;
 use super::types::{DbUser, Role, User, UserCreateData};
 use super::utils::generate_invite_code;
 

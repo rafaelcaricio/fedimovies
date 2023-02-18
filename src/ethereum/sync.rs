@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 
 use web3::{api::Web3, transports::Http, types::Address};
 
-use crate::utils::files::write_file;
+use mitra_utils::files::write_file;
+
 use super::errors::EthereumError;
 
 const BLOCK_NUMBER_FILE_NAME: &str = "current_block";

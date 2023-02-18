@@ -70,7 +70,7 @@ pub fn prepare_follow(
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::id::generate_ulid;
+    use mitra_utils::id::generate_ulid;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";

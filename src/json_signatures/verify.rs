@@ -4,6 +4,15 @@ use rsa::RsaPublicKey;
 use serde_json::Value;
 use url::Url;
 
+use mitra_utils::{
+    canonicalization::{
+        canonicalize_object,
+        CanonicalizationError,
+    },
+    crypto_rsa::verify_rsa_signature,
+    multibase::{decode_multibase_base58btc, MultibaseError},
+};
+
 use crate::ethereum::identity::verify_eip191_signature;
 use crate::identity::{
     did::Did,
@@ -11,14 +20,6 @@ use crate::identity::{
     did_pkh::DidPkh,
     minisign::verify_ed25519_signature,
     signatures::SignatureType,
-};
-use crate::utils::{
-    canonicalization::{
-        canonicalize_object,
-        CanonicalizationError,
-    },
-    crypto_rsa::verify_rsa_signature,
-    multibase::{decode_multibase_base58btc, MultibaseError},
 };
 use super::create::{
     IntegrityProof,
@@ -132,11 +133,11 @@ pub fn verify_ed25519_json_signature(
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use crate::json_signatures::create::sign_object;
-    use crate::utils::{
+    use mitra_utils::{
         crypto_rsa::generate_weak_rsa_key,
         currencies::Currency,
     };
+    use crate::json_signatures::create::sign_object;
     use super::*;
 
     #[test]

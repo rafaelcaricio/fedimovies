@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::utils::canonicalization::{
+use mitra_utils::canonicalization::{
     canonicalize_object,
     CanonicalizationError,
 };
@@ -30,8 +30,8 @@ pub fn create_identity_claim(
 
 #[cfg(test)]
 mod tests {
+    use mitra_utils::currencies::Currency;
     use crate::identity::did_pkh::DidPkh;
-    use crate::utils::currencies::Currency;
     use super::*;
 
     #[test]

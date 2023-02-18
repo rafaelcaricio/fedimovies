@@ -4,6 +4,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use mitra_utils::markdown::markdown_basic_to_html;
+
 use crate::errors::{HttpError, ValidationError};
 use crate::identity::did::Did;
 use crate::mastodon_api::{
@@ -28,7 +30,6 @@ use crate::models::{
         User,
     },
 };
-use crate::utils::markdown::markdown_basic_to_html;
 
 /// https://docs.joinmastodon.org/entities/field/
 #[derive(Serialize)]

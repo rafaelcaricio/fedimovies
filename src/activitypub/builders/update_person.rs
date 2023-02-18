@@ -1,6 +1,8 @@
 use serde::Serialize;
 use uuid::Uuid;
 
+use mitra_utils::id::generate_ulid;
+
 use crate::activitypub::{
     actors::types::{get_local_actor, Actor, ActorKeyError},
     constants::AP_PUBLIC,
@@ -15,7 +17,6 @@ use crate::models::{
     relationships::queries::get_followers,
     users::types::User,
 };
-use crate::utils::id::generate_ulid;
 
 #[derive(Serialize)]
 pub struct UpdatePerson {
@@ -92,11 +93,11 @@ pub async fn prepare_update_person(
 
 #[cfg(test)]
 mod tests {
-    use crate::models::profiles::types::DbActorProfile;
-    use crate::utils::crypto_rsa::{
+    use mitra_utils::crypto_rsa::{
         generate_weak_rsa_key,
         serialize_private_key,
     };
+    use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";

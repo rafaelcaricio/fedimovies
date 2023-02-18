@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use mitra_utils::id::generate_ulid;
+
 use crate::database::{
     catch_unique_violation,
     query_macro::query,
@@ -25,7 +27,6 @@ use crate::models::{
     profiles::types::DbActorProfile,
     relationships::types::RelationshipType,
 };
-use crate::utils::id::generate_ulid;
 use super::types::{
     DbPost,
     Post,

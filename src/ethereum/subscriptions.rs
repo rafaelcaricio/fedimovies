@@ -1,13 +1,17 @@
 use std::convert::TryInto;
 
 use chrono::{DateTime, TimeZone, Utc};
-
 use web3::{
     api::Web3,
     contract::{Contract, Options},
     ethabi::RawLog,
     transports::Http,
     types::{BlockId, BlockNumber, FilterBuilder, U256},
+};
+
+use mitra_utils::{
+    caip2::ChainId,
+    currencies::Currency,
 };
 
 use crate::activitypub::{
@@ -47,10 +51,6 @@ use crate::models::{
         get_user_by_public_wallet_address,
     },
     users::types::User,
-};
-use crate::utils::{
-    caip2::ChainId,
-    currencies::Currency,
 };
 use super::contracts::ContractSet;
 use super::errors::EthereumError;

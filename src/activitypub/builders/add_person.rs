@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+use mitra_utils::id::generate_ulid;
+
 use crate::activitypub::{
     actors::types::Actor,
     deliverer::OutgoingActivity,
@@ -9,7 +11,6 @@ use crate::activitypub::{
 };
 use crate::config::Instance;
 use crate::models::users::types::User;
-use crate::utils::id::generate_ulid;
 
 #[derive(Serialize)]
 struct AddOrRemovePerson {

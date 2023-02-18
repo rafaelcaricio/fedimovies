@@ -3,6 +3,8 @@ use std::str::FromStr;
 use regex::Regex;
 use url::Url;
 
+use mitra_utils::currencies::Currency;
+
 use crate::activitypub::{
     fetcher::helpers::{
         get_or_import_profile_by_actor_id,
@@ -34,7 +36,6 @@ use crate::models::{
         types::User,
     },
 };
-use crate::utils::currencies::Currency;
 use crate::webfinger::types::ActorAddress;
 
 enum SearchQuery {

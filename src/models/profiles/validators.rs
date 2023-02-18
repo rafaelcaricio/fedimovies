@@ -1,6 +1,8 @@
 use regex::Regex;
+
+use mitra_utils::html::{clean_html, clean_html_strict};
+
 use crate::errors::ValidationError;
-use crate::utils::html::{clean_html, clean_html_strict};
 use super::types::ExtraField;
 
 const USERNAME_RE: &str = r"^[a-zA-Z0-9_\.-]+$";

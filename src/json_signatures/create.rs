@@ -3,6 +3,15 @@ use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use mitra_utils::{
+    canonicalization::{
+        canonicalize_object,
+        CanonicalizationError,
+    },
+    crypto_rsa::create_rsa_signature,
+    multibase::encode_multibase_base58btc,
+};
+
 use crate::identity::{
     did_key::DidKey,
     did_pkh::DidPkh,
@@ -11,14 +20,6 @@ use crate::identity::{
         PROOF_TYPE_JCS_EIP191,
         PROOF_TYPE_JCS_RSA,
     },
-};
-use crate::utils::{
-    canonicalization::{
-        canonicalize_object,
-        CanonicalizationError,
-    },
-    crypto_rsa::create_rsa_signature,
-    multibase::encode_multibase_base58btc,
 };
 
 pub(super) const PROOF_KEY: &str = "proof";
@@ -133,7 +134,7 @@ pub fn is_object_signed(object: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use crate::utils::crypto_rsa::generate_weak_rsa_key;
+    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
 
     #[test]

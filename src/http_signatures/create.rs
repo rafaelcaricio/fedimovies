@@ -2,7 +2,7 @@ use actix_web::http::Method;
 use chrono::Utc;
 use rsa::RsaPrivateKey;
 
-use crate::utils::crypto_rsa::{
+use mitra_utils::crypto_rsa::{
     create_rsa_signature,
     get_message_digest,
 };
@@ -92,7 +92,7 @@ pub fn create_http_signature(
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::crypto_rsa::generate_weak_rsa_key;
+    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
 
     #[test]

@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use mitra_utils::id::generate_ulid;
+
 use crate::database::{
     catch_unique_violation,
     DatabaseClient,
@@ -10,7 +12,6 @@ use crate::models::{
     cleanup::{find_orphaned_files, DeletionQueue},
     instances::queries::create_instance,
 };
-use crate::utils::id::generate_ulid;
 use super::types::{DbEmoji, EmojiImage};
 
 pub async fn create_emoji(

@@ -1,13 +1,14 @@
 use uuid::Uuid;
 
+use mitra_utils::{
+    caip2::ChainId,
+    id::generate_ulid,
+};
+
 use crate::database::{
     catch_unique_violation,
     DatabaseClient,
     DatabaseError,
-};
-use crate::utils::{
-    caip2::ChainId,
-    id::generate_ulid,
 };
 use super::types::{DbChainId, DbInvoice, InvoiceStatus};
 

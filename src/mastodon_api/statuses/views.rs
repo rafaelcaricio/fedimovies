@@ -4,6 +4,11 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::Utc;
 use uuid::Uuid;
 
+use mitra_utils::{
+    currencies::Currency,
+    markdown::markdown_lite_to_html,
+};
+
 use crate::activitypub::builders::{
     announce::prepare_announce,
     create_note::prepare_create_note,
@@ -44,10 +49,6 @@ use crate::models::{
         delete_reaction,
     },
     relationships::queries::get_subscribers,
-};
-use crate::utils::{
-    currencies::Currency,
-    markdown::markdown_lite_to_html,
 };
 use super::helpers::{
     build_status,

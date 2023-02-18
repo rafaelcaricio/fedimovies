@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use rsa::RsaPrivateKey;
 
-use crate::utils::{
+use mitra_utils::{
     crypto_rsa::{
         deserialize_private_key,
         generate_rsa_key,

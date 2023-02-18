@@ -1,6 +1,6 @@
 use hex;
 
-use crate::utils::random::generate_random_sequence;
+use mitra_utils::random::generate_random_sequence;
 
 const INVITE_CODE_LENGTH: usize = 32;
 

@@ -9,7 +9,7 @@ use serde::{
 };
 use url::Url;
 
-use crate::utils::urls::normalize_url;
+use mitra_utils::urls::normalize_url;
 
 use super::blockchain::BlockchainConfig;
 use super::environment::Environment;
@@ -188,7 +188,7 @@ impl Instance {
 #[cfg(test)]
 impl Instance {
     pub fn for_test(url: &str) -> Self {
-        use crate::utils::crypto_rsa::generate_weak_rsa_key;
+        use mitra_utils::crypto_rsa::generate_weak_rsa_key;
         Self {
             _url: Url::parse(url).unwrap(),
             actor_key: generate_weak_rsa_key().unwrap(),
@@ -200,7 +200,7 @@ impl Instance {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::crypto_rsa::generate_weak_rsa_key;
+    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
 
     #[test]

@@ -4,10 +4,11 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-use crate::utils::multibase::{
+use mitra_utils::multibase::{
     decode_multibase_base58btc,
     encode_multibase_base58btc,
 };
+
 use super::did::DidParseError;
 
 const DID_KEY_RE: &str = r"did:key:(?P<key>z[a-km-zA-HJ-NP-Z1-9]+)";

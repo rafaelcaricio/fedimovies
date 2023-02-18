@@ -1,6 +1,8 @@
 use serde::Serialize;
 use serde_json::{to_value, Value};
 
+use mitra_utils::markdown::markdown_to_html;
+
 use crate::config::{
     BlockchainConfig,
     Config,
@@ -14,7 +16,6 @@ use crate::mastodon_api::{
 };
 use crate::media::SUPPORTED_MEDIA_TYPES;
 use crate::models::posts::validators::ATTACHMENTS_MAX_NUM;
-use crate::utils::markdown::markdown_to_html;
 
 #[derive(Serialize)]
 struct InstanceStats {

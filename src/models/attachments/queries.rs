@@ -1,13 +1,14 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use mitra_utils::id::generate_ulid;
+
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::cleanup::{
     find_orphaned_files,
     find_orphaned_ipfs_objects,
     DeletionQueue,
 };
-use crate::utils::id::generate_ulid;
 use super::types::DbMediaAttachment;
 
 pub async fn create_attachment(

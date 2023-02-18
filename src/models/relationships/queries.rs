@@ -1,5 +1,7 @@
 use uuid::Uuid;
 
+use mitra_utils::id::generate_ulid;
+
 use crate::database::{
     catch_unique_violation,
     DatabaseClient,
@@ -14,7 +16,6 @@ use crate::models::{
     },
     profiles::types::DbActorProfile,
 };
-use crate::utils::id::generate_ulid;
 use super::types::{
     DbFollowRequest,
     DbRelationship,

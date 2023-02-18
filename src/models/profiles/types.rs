@@ -11,6 +11,8 @@ use serde::{
 };
 use uuid::Uuid;
 
+use mitra_utils::caip2::ChainId;
+
 use crate::activitypub::{
     actors::types::Actor,
     identifiers::local_actor_id,
@@ -24,7 +26,6 @@ use crate::identity::{
     did::Did,
     signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
-use crate::utils::caip2::ChainId;
 use crate::webfinger::types::ActorAddress;
 use super::validators::{
     validate_username,

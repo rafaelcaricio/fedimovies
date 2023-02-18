@@ -4,7 +4,7 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-use crate::utils::files::{get_media_type_extension, write_file};
+use mitra_utils::files::{get_media_type_extension, write_file};
 
 pub const SUPPORTED_MEDIA_TYPES: [&str; 8] = [
     "audio/mpeg",
@@ -61,7 +61,7 @@ pub fn remove_files(files: Vec<String>, from_dir: &Path) -> () {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::files::sniff_media_type;
+    use mitra_utils::files::sniff_media_type;
     use super::*;
 
     #[test]

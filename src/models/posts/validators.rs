@@ -1,5 +1,6 @@
+use mitra_utils::html::clean_html_strict;
+
 use crate::errors::ValidationError;
-use crate::utils::html::clean_html_strict;
 
 pub const ATTACHMENTS_MAX_NUM: usize = 15;
 pub const EMOJIS_MAX_NUM: usize = 20;

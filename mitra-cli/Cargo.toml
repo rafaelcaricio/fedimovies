@@ -10,6 +10,7 @@ name = "mitractl"
 path = "src/main.rs"
 
 [dependencies]
+mitra-utils = { path = "../mitra-utils" }
 mitra = { path = ".." }
 
 # Used for catching errors

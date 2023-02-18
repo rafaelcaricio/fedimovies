@@ -1,6 +1,11 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use mitra_utils::{
+    currencies::Currency,
+    id::generate_ulid,
+};
+
 use crate::database::{
     catch_unique_violation,
     query_macro::query,
@@ -16,10 +21,6 @@ use crate::models::{
     },
     instances::queries::create_instance,
     relationships::types::RelationshipType,
-};
-use crate::utils::{
-    currencies::Currency,
-    id::generate_ulid,
 };
 use super::types::{
     DbActorProfile,
