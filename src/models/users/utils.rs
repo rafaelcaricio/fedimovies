@@ -1,12 +1,11 @@
 use hex;
-use rand;
-use rand::prelude::*;
+
+use crate::utils::random::generate_random_sequence;
 
 const INVITE_CODE_LENGTH: usize = 32;
 
 pub fn generate_invite_code() -> String {
-    let mut rng = rand::thread_rng();
-    let value: [u8; INVITE_CODE_LENGTH / 2] = rng.gen();
+    let value: [u8; INVITE_CODE_LENGTH / 2] = generate_random_sequence();
     hex::encode(value)
 }
 

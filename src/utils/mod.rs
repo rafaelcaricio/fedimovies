@@ -9,4 +9,5 @@ pub mod id;
 pub mod markdown;
 pub mod multibase;
 pub mod passwords;
+pub mod random;
 pub mod urls;

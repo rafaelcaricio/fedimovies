@@ -1,6 +1,6 @@
 use base64;
-use rand;
-use rand::prelude::*;
+
+use crate::utils::random::generate_random_sequence;
 
 pub fn render_authorization_page() -> String {
     let page = r#"<!DOCTYPE html>
@@ -41,8 +41,7 @@ pub fn render_authorization_page() -> String {
 const ACCESS_TOKEN_SIZE: usize = 20;
 
 pub fn generate_access_token() -> String {
-    let mut rng = rand::thread_rng();
-    let value: [u8; ACCESS_TOKEN_SIZE] = rng.gen();
+    let value: [u8; ACCESS_TOKEN_SIZE] = generate_random_sequence();
     base64::encode_config(value, base64::URL_SAFE_NO_PAD)
 }
 
