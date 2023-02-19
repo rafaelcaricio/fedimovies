@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{
     Deserialize,
     Deserializer,
@@ -15,6 +17,9 @@ use mitra_utils::{
 use crate::activitypub::{
     constants::{
         AP_CONTEXT,
+        MASTODON_CONTEXT,
+        MITRA_CONTEXT,
+        SCHEMA_ORG_CONTEXT,
         W3ID_SECURITY_CONTEXT,
     },
     identifiers::{
@@ -253,6 +258,27 @@ impl Actor {
 
 pub type ActorKeyError = rsa::pkcs8::Error;
 
+fn build_actor_context() -> (
+    &'static str,
+    &'static str,
+    HashMap<&'static str, &'static str>,
+) {
+    (
+        AP_CONTEXT,
+        W3ID_SECURITY_CONTEXT,
+        HashMap::from([
+            ("manuallyApprovesFollowers", "as:manuallyApprovesFollowers"),
+            ("schema", SCHEMA_ORG_CONTEXT),
+            ("PropertyValue", "schema:PropertyValue"),
+            ("value", "schema:value"),
+            ("toot", MASTODON_CONTEXT),
+            ("IdentityProof", "toot:IdentityProof"),
+            ("mitra", MITRA_CONTEXT),
+            ("subscribers", "mitra:subscribers"),
+        ]),
+    )
+}
+
 pub fn get_local_actor(
     user: &User,
     instance_url: &str,
@@ -312,10 +338,7 @@ pub fn get_local_actor(
         attachments.push(attachment);
     };
     let actor = Actor {
-        context: Some(json!([
-            AP_CONTEXT.to_string(),
-            W3ID_SECURITY_CONTEXT.to_string(),
-        ])),
+        context: Some(json!(build_actor_context())),
         id: actor_id.clone(),
         object_type: PERSON.to_string(),
         name: user.profile.display_name.clone(),
@@ -351,10 +374,7 @@ pub fn get_instance_actor(
         public_key_pem: public_key_pem,
     };
     let actor = Actor {
-        context: Some(json!([
-            AP_CONTEXT.to_string(),
-            W3ID_SECURITY_CONTEXT.to_string(),
-        ])),
+        context: Some(json!(build_actor_context())),
         id: actor_id,
         object_type: SERVICE.to_string(),
         name: Some(instance.hostname()),

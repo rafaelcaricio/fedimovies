@@ -22,6 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Changed `/api/v1/statuses/{status_id}/context` response format to match Mastodon API.
 - Changed status code of `/api/v1/statuses` response to 200 to match Mastodon API.
 
+### Fixed
+
+- Fixed actor object JSON-LD validation errors.
+
 ## [1.13.1] - 2023-02-09
 
 ### Fixed
