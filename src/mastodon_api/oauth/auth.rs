@@ -1,11 +1,3 @@
-use actix_web::{
-    body::{BodySize, BoxBody, MessageBody},
-    dev::ServiceResponse,
-    http::StatusCode,
-    middleware::{ErrorHandlerResponse, ErrorHandlers},
-};
-use serde_json::json;
-
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::HttpError;
 use crate::models::{
@@ -26,23 +18,4 @@ pub async fn get_current_user(
         }
     })?;
     Ok(user)
-}
-
-/// Error handler for 401 Unauthorized
-pub fn create_auth_error_handler<B: MessageBody + 'static>() -> ErrorHandlers<B> {
-    ErrorHandlers::new()
-        .handler(StatusCode::UNAUTHORIZED, |response: ServiceResponse<B>| {
-            let response_new = response.map_body(|_, body| {
-                if let BodySize::None | BodySize::Sized(0) = body.size() {
-                    // Insert error description if response body is empty
-                    // https://github.com/actix/actix-extras/issues/156
-                    let error_data = json!({
-                        "message": "auth header is not present",
-                    });
-                    return BoxBody::new(error_data.to_string());
-                };
-                body.boxed()
-            });
-            Ok(ErrorHandlerResponse::Response(response_new.map_into_right_body()))
-        })
 }

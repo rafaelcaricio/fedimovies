@@ -15,7 +15,10 @@ use mitra::atom::views as atom;
 use mitra::database::{get_database_client, create_pool};
 use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::contracts::get_contracts;
-use mitra::http::json_error_handler;
+use mitra::http::{
+    create_auth_error_handler,
+    json_error_handler,
+};
 use mitra::job_queue::scheduler;
 use mitra::logger::configure_logger;
 use mitra::mastodon_api::accounts::views::account_api_scope;
@@ -26,7 +29,6 @@ use mitra::mastodon_api::instance::views::instance_api_scope;
 use mitra::mastodon_api::markers::views::marker_api_scope;
 use mitra::mastodon_api::media::views::media_api_scope;
 use mitra::mastodon_api::notifications::views::notification_api_scope;
-use mitra::mastodon_api::oauth::auth::create_auth_error_handler;
 use mitra::mastodon_api::oauth::views::oauth_api_scope;
 use mitra::mastodon_api::search::views::search_api_scope;
 use mitra::mastodon_api::settings::views::settings_api_scope;
