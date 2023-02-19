@@ -38,10 +38,11 @@ async fn get_jrd(
         parse_acct_uri(resource)?
     } else {
         // Actor ID? (reverse webfinger)
-        let username = parse_local_actor_id(
-            &instance.url(),
-            resource,
-        )?;
+        let username = if resource == local_instance_actor_id(&instance.url()) {
+            instance.hostname()
+        } else {
+            parse_local_actor_id(&instance.url(), resource)?
+        };
         ActorAddress { username, hostname: instance.hostname() }
     };
     if actor_address.hostname != instance.hostname() {

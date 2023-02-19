@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Support `authorization_code` OAuth grant type.
 - Documented `http_cors_allowlist` configuration parameter.
 - Added `/api/v1/statuses/{status_id}/thread` API endpoint (replaces `/api/v1/statuses/{status_id}/context`).
+- Accept webfinger requests where `resource` is instance actor ID.
 
 ### Changed
 
