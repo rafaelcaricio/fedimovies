@@ -886,7 +886,7 @@ paths:
               required:
                 - status
       responses:
-        201:
+        200:
           description: Post created
           content:
             application/json:

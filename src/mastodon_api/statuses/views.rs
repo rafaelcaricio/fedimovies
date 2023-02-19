@@ -21,6 +21,7 @@ use crate::activitypub::builders::{
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::nft::create_mint_signature;
+use crate::http::FormOrJson;
 use crate::ipfs::{
     store as ipfs_store,
     posts::PostMetadata,
@@ -70,7 +71,7 @@ async fn create_status(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-    status_data: web::Json<StatusData>,
+    status_data: FormOrJson<StatusData>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
@@ -190,7 +191,7 @@ async fn create_status(
         .await?.enqueue(db_client).await?;
 
     let status = Status::from_post(post, &instance.url());
-    Ok(HttpResponse::Created().json(status))
+    Ok(HttpResponse::Ok().json(status))
 }
 
 #[post("/preview")]

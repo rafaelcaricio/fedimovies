@@ -3,7 +3,6 @@ use actix_web::{
     http::header as http_header,
     post,
     web,
-    Either,
     HttpResponse,
     Scope as ActixScope,
 };
@@ -19,6 +18,7 @@ use crate::ethereum::{
     eip4361::verify_eip4361_signature,
     utils::validate_ethereum_address,
 };
+use crate::http::FormOrJson;
 use crate::models::{
     oauth::queries::{
         create_oauth_authorization,
@@ -115,15 +115,9 @@ const ACCESS_TOKEN_EXPIRES_IN: i64 = 86400 * 7;
 async fn token_view(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-    request_data: Either<
-        web::Json<TokenRequest>,
-        web::Form<TokenRequest>,
-    >,
+    request_data: FormOrJson<TokenRequest>,
 ) -> Result<HttpResponse, HttpError> {
-    let request_data = match request_data {
-        Either::Left(json) => json.into_inner(),
-        Either::Right(form) => form.into_inner(),
-    };
+    let request_data = request_data.into_inner();
     let db_client = &**get_database_client(&db_pool).await?;
     let user = match request_data.grant_type.as_str() {
         "authorization_code" => {

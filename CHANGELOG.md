@@ -12,13 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added OAuth authorization page.
 - Support `authorization_code` OAuth grant type.
 - Documented `http_cors_allowlist` configuration parameter.
-- Added `/api/v1/{status_id}/thread` API endpoint (replaces `/api/v1/{status_id}/context`).
+- Added `/api/v1/statuses/{status_id}/thread` API endpoint (replaces `/api/v1/statuses/{status_id}/context`).
 
 ### Changed
 
 - Allow `instance_uri` configuration value to contain URI scheme.
 - Changed `Content-Security-Policy` header value in nginx config examples.
-- Changed `/api/v1/{status_id}/context` response format to match Mastodon API.
+- Changed `/api/v1/statuses/{status_id}/context` response format to match Mastodon API.
+- Changed status code of `/api/v1/statuses` response to 200 to match Mastodon API.
 
 ## [1.13.1] - 2023-02-09
 
