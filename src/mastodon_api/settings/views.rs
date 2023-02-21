@@ -1,4 +1,11 @@
-use actix_web::{get, post, web, HttpResponse, Scope};
+use actix_web::{
+    dev::ConnectionInfo,
+    get,
+    post,
+    web,
+    HttpResponse,
+    Scope,
+};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
@@ -12,6 +19,7 @@ use crate::activitypub::{
 };
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
+use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     accounts::types::Account,
     oauth::auth::get_current_user,
@@ -37,6 +45,7 @@ use super::types::{
 #[post("/change_password")]
 async fn change_password_view(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     request_data: web::Json<PasswordChangeRequest>,
@@ -47,6 +56,7 @@ async fn change_password_view(
         .map_err(|_| HttpError::InternalError)?;
     set_user_password(db_client, &current_user.id, password_hash).await?;
     let account = Account::from_user(
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         current_user,
     );
@@ -117,6 +127,7 @@ async fn import_follows_view(
 #[post("/move_followers")]
 async fn move_followers(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     request_data: web::Json<MoveFollowersRequest>,
@@ -194,6 +205,7 @@ async fn move_followers(
     ).enqueue(db_client).await?;
 
     let account = Account::from_user(
+        &get_request_base_url(connection_info),
         &instance.url(),
         current_user,
     );

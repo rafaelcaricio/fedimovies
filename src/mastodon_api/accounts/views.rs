@@ -1,6 +1,12 @@
 use actix_web::{
-    get, patch, post, web,
-    HttpRequest, HttpResponse, Scope,
+    dev::ConnectionInfo,
+    get,
+    patch,
+    post,
+    web,
+    HttpRequest,
+    HttpResponse,
+    Scope,
 };
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
@@ -33,6 +39,7 @@ use crate::ethereum::{
     gate::is_allowed_user,
     identity::verify_eip191_identity_proof,
 };
+use crate::http::get_request_base_url;
 use crate::identity::{
     claims::create_identity_claim,
     did::Did,
@@ -110,6 +117,7 @@ use super::types::{
 
 #[post("")]
 pub async fn create_account(
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     maybe_blockchain: web::Data<Option<ContractSet>>,
@@ -195,6 +203,7 @@ pub async fn create_account(
     };
     log::warn!("created user {}", user.id);
     let account = Account::from_user(
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         user,
     );
@@ -204,12 +213,14 @@ pub async fn create_account(
 #[get("/verify_credentials")]
 async fn verify_credentials(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_current_user(db_client, auth.token()).await?;
     let account = Account::from_user(
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         user,
     );
@@ -219,6 +230,7 @@ async fn verify_credentials(
 #[patch("/update_credentials")]
 async fn update_credentials(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_data: web::Json<AccountUpdateData>,
@@ -246,6 +258,7 @@ async fn update_credentials(
     ).await?.enqueue(db_client).await?;
 
     let account = Account::from_user(
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         current_user,
     );
@@ -278,6 +291,7 @@ async fn get_unsigned_update(
 #[post("/send_activity")]
 async fn send_signed_activity(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     data: web::Json<SignedActivity>,
@@ -323,6 +337,7 @@ async fn send_signed_activity(
     outgoing_activity.enqueue(db_client).await?;
 
     let account = Account::from_user(
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         current_user,
     );
@@ -363,6 +378,7 @@ async fn get_identity_claim(
 #[post("/identity_proof")]
 async fn create_identity_proof(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     proof_data: web::Json<IdentityProofData>,
@@ -441,6 +457,7 @@ async fn create_identity_proof(
     ).await?.enqueue(db_client).await?;
 
     let account = Account::from_user(
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         current_user,
     );
@@ -465,6 +482,7 @@ async fn get_relationships_view(
 
 #[get("/lookup")]
 async fn lookup_acct(
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<LookupAcctQueryParams>,
@@ -472,6 +490,7 @@ async fn lookup_acct(
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_acct(db_client, &query_params.acct).await?;
     let account = Account::from_profile(
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         profile,
     );
@@ -480,6 +499,7 @@ async fn lookup_acct(
 
 #[get("/search")]
 async fn search_by_acct(
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<SearchAcctQueryParams>,
@@ -490,9 +510,11 @@ async fn search_by_acct(
         &query_params.q,
         query_params.limit.inner(),
     ).await?;
+    let base_url = get_request_base_url(connection_info);
     let instance_url = config.instance().url();
     let accounts: Vec<Account> = profiles.into_iter()
         .map(|profile| Account::from_profile(
+            &base_url,
             &instance_url,
             profile,
         ))
@@ -502,6 +524,7 @@ async fn search_by_acct(
 
 #[get("/search_did")]
 async fn search_by_did(
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<SearchDidQueryParams>,
@@ -510,9 +533,11 @@ async fn search_by_did(
     let did: Did = query_params.did.parse()
         .map_err(|_| ValidationError("invalid DID"))?;
     let profiles = search_profiles_by_did(db_client, &did, false).await?;
+    let base_url = get_request_base_url(connection_info);
     let instance_url = config.instance().url();
     let accounts: Vec<Account> = profiles.into_iter()
         .map(|profile| Account::from_profile(
+            &base_url,
             &instance_url,
             profile,
         ))
@@ -522,6 +547,7 @@ async fn search_by_did(
 
 #[get("/{account_id}")]
 async fn get_account(
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
@@ -529,6 +555,7 @@ async fn get_account(
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
     let account = Account::from_profile(
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         profile,
     );
@@ -608,6 +635,7 @@ async fn unfollow_account(
 #[get("/{account_id}/statuses")]
 async fn get_account_statuses(
     auth: Option<BearerAuth>,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
@@ -636,6 +664,7 @@ async fn get_account_statuses(
     ).await?;
     let statuses = build_status_list(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         maybe_current_user.as_ref(),
         posts,
@@ -646,6 +675,7 @@ async fn get_account_statuses(
 #[get("/{account_id}/followers")]
 async fn get_account_followers(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
@@ -668,9 +698,11 @@ async fn get_account_followers(
     ).await?;
     let max_index = usize::from(query_params.limit.inner().saturating_sub(1));
     let maybe_last_id = followers.get(max_index).map(|item| item.relationship_id);
+    let base_url = get_request_base_url(connection_info);
     let instance_url = config.instance().url();
     let accounts: Vec<Account> = followers.into_iter()
         .map(|item| Account::from_profile(
+            &base_url,
             &instance_url,
             item.profile,
         ))
@@ -687,6 +719,7 @@ async fn get_account_followers(
 #[get("/{account_id}/following")]
 async fn get_account_following(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
@@ -709,9 +742,11 @@ async fn get_account_following(
     ).await?;
     let max_index = usize::from(query_params.limit.inner().saturating_sub(1));
     let maybe_last_id = following.get(max_index).map(|item| item.relationship_id);
+    let base_url = get_request_base_url(connection_info);
     let instance_url = config.instance().url();
     let accounts: Vec<Account> = following.into_iter()
         .map(|item| Account::from_profile(
+            &base_url,
             &instance_url,
             item.profile,
         ))
@@ -728,6 +763,7 @@ async fn get_account_following(
 #[get("/{account_id}/subscribers")]
 async fn get_account_subscribers(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
@@ -741,6 +777,7 @@ async fn get_account_subscribers(
         let subscriptions: Vec<ApiSubscription> = vec![];
         return Ok(HttpResponse::Ok().json(subscriptions));
     };
+    let base_url = get_request_base_url(connection_info);
     let instance_url = config.instance_url();
     let subscriptions: Vec<ApiSubscription> = get_incoming_subscriptions(
         db_client,
@@ -751,6 +788,7 @@ async fn get_account_subscribers(
         .await?
         .into_iter()
         .map(|subscription| ApiSubscription::from_subscription(
+            &base_url,
             &instance_url,
             subscription,
         ))

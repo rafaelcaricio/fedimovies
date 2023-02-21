@@ -1,4 +1,11 @@
-use actix_web::{get, post, web, HttpResponse, Scope};
+use actix_web::{
+    dev::ConnectionInfo,
+    get,
+    post,
+    web,
+    HttpResponse,
+    Scope,
+};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
@@ -15,6 +22,7 @@ use crate::ethereum::{
         is_registered_recipient,
     },
 };
+use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     accounts::types::Account,
     oauth::auth::get_current_user,
@@ -92,6 +100,7 @@ async fn get_subscription_options(
 #[post("/options")]
 pub async fn register_subscription_option(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     maybe_blockchain: web::Data<Option<ContractSet>>,
@@ -166,6 +175,7 @@ pub async fn register_subscription_option(
     };
 
     let account = Account::from_user(
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         current_user,
     );

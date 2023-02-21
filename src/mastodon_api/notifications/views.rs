@@ -1,6 +1,8 @@
 /// https://docs.joinmastodon.org/methods/notifications/
 use actix_web::{
-    get, web,
+    dev::ConnectionInfo,
+    get,
+    web,
     HttpRequest, HttpResponse,
     Scope as ActixScope,
 };
@@ -10,6 +12,7 @@ use mitra_config::Config;
 
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
+use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     oauth::auth::get_current_user,
     pagination::get_paginated_response,
@@ -20,6 +23,7 @@ use super::types::{ApiNotification, NotificationQueryParams};
 #[get("")]
 async fn get_notifications_view(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<NotificationQueryParams>,
@@ -27,6 +31,8 @@ async fn get_notifications_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    let base_url = get_request_base_url(connection_info);
+    let instance = config.instance();
     let notifications: Vec<ApiNotification> = get_notifications(
         db_client,
         &current_user.id,
@@ -34,13 +40,17 @@ async fn get_notifications_view(
         query_params.limit.inner(),
     ).await?
         .into_iter()
-        .map(|item| ApiNotification::from_db(&config.instance_url(), item))
+        .map(|item| ApiNotification::from_db(
+            &base_url,
+            &instance.url(),
+            item,
+        ))
         .collect();
     let max_index = usize::from(query_params.limit.inner().saturating_sub(1));
     let maybe_last_id = notifications.get(max_index)
         .map(|item| item.id.clone());
     let response = get_paginated_response(
-        &config.instance_url(),
+        &instance.url(),
         request.uri().path(),
         notifications,
         maybe_last_id,

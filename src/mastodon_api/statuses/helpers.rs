@@ -75,6 +75,7 @@ pub async fn parse_microsyntaxes(
 /// Load related objects and build status for API response
 pub async fn build_status(
     db_client: &impl DatabaseClient,
+    base_url: &str,
     instance_url: &str,
     user: Option<&User>,
     mut post: Post,
@@ -83,12 +84,13 @@ pub async fn build_status(
     if let Some(user) = user {
         add_user_actions(db_client, &user.id, vec![&mut post]).await?;
     };
-    let status = Status::from_post(instance_url, post);
+    let status = Status::from_post(base_url, instance_url, post);
     Ok(status)
 }
 
 pub async fn build_status_list(
     db_client: &impl DatabaseClient,
+    base_url: &str,
     instance_url: &str,
     user: Option<&User>,
     mut posts: Vec<Post>,
@@ -99,7 +101,7 @@ pub async fn build_status_list(
     };
     let statuses: Vec<Status> = posts
         .into_iter()
-        .map(|post| Status::from_post(instance_url, post))
+        .map(|post| Status::from_post(base_url, instance_url, post))
         .collect();
     Ok(statuses)
 }

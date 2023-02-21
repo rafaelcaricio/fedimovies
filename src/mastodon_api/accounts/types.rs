@@ -117,14 +117,15 @@ pub struct Account {
 
 impl Account {
     pub fn from_profile(
+        base_url: &str,
         instance_url: &str,
         profile: DbActorProfile,
     ) -> Self {
         let profile_url = profile.actor_url(instance_url);
         let avatar_url = profile.avatar
-            .map(|image| get_file_url(instance_url, &image.file_name));
+            .map(|image| get_file_url(base_url, &image.file_name));
         let header_url = profile.banner
-            .map(|image| get_file_url(instance_url, &image.file_name));
+            .map(|image| get_file_url(base_url, &image.file_name));
         let is_locked = profile.actor_json
             .map(|actor| actor.manually_approves_followers)
             .unwrap_or(false);
@@ -207,6 +208,7 @@ impl Account {
     }
 
     pub fn from_user(
+        base_url: &str,
         instance_url: &str,
         user: User,
     ) -> Self {
@@ -224,6 +226,7 @@ impl Account {
         };
         let role = ApiRole::from_db(user.role);
         let mut account = Self::from_profile(
+            base_url,
             instance_url,
             user.profile,
         );
@@ -502,10 +505,12 @@ pub struct ApiSubscription {
 
 impl ApiSubscription {
     pub fn from_subscription(
+        base_url: &str,
         instance_url: &str,
         subscription: Subscription,
     ) -> Self {
         let sender = Account::from_profile(
+            base_url,
             instance_url,
             subscription.sender,
         );
@@ -546,6 +551,7 @@ mod tests {
         };
         let account = Account::from_profile(
             INSTANCE_URL,
+            INSTANCE_URL,
             profile,
         );
 
@@ -570,6 +576,7 @@ mod tests {
             ..Default::default()
         };
         let account = Account::from_user(
+            INSTANCE_URL,
             INSTANCE_URL,
             user,
         );

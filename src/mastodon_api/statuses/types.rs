@@ -85,12 +85,13 @@ pub struct Status {
 
 impl Status {
     pub fn from_post(
+        base_url: &str,
         instance_url: &str,
         post: Post,
     ) -> Self {
         let object_id = post.object_id(instance_url);
         let attachments: Vec<Attachment> = post.attachments.into_iter()
-            .map(|item| Attachment::from_db(instance_url, item))
+            .map(|item| Attachment::from_db(base_url, item))
             .collect();
         let mentions: Vec<Mention> = post.mentions.into_iter()
             .map(|item| Mention::from_profile(instance_url, item))
@@ -99,20 +100,21 @@ impl Status {
             .map(|tag_name| Tag::from_tag_name(instance_url, tag_name))
             .collect();
         let emojis: Vec<CustomEmoji> = post.emojis.into_iter()
-            .map(|emoji| CustomEmoji::from_db(instance_url, emoji))
+            .map(|emoji| CustomEmoji::from_db(base_url, emoji))
             .collect();
         let account = Account::from_profile(
+            base_url,
             instance_url,
             post.author,
         );
         let reblog = if let Some(repost_of) = post.repost_of {
-            let status = Status::from_post(instance_url, *repost_of);
+            let status = Status::from_post(base_url, instance_url, *repost_of);
             Some(Box::new(status))
         } else {
             None
         };
         let links = post.linked.into_iter().map(|post| {
-            Status::from_post(instance_url, post)
+            Status::from_post(base_url, instance_url, post)
         }).collect();
         let visibility = match post.visibility {
             Visibility::Public => "public",

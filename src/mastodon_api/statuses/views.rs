@@ -1,5 +1,13 @@
 /// https://docs.joinmastodon.org/methods/statuses/
-use actix_web::{delete, get, post, web, HttpResponse, Scope};
+use actix_web::{
+    delete,
+    dev::ConnectionInfo,
+    get,
+    post,
+    web,
+    HttpResponse,
+    Scope,
+};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::Utc;
 use uuid::Uuid;
@@ -21,7 +29,7 @@ use crate::activitypub::builders::{
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::{HttpError, ValidationError};
 use crate::ethereum::nft::create_mint_signature;
-use crate::http::FormOrJson;
+use crate::http::{get_request_base_url, FormOrJson};
 use crate::ipfs::{
     store as ipfs_store,
     posts::PostMetadata,
@@ -69,6 +77,7 @@ use super::types::{
 #[post("")]
 async fn create_status(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_data: FormOrJson<StatusData>,
@@ -190,7 +199,11 @@ async fn create_status(
     prepare_create_note(db_client, &instance, &current_user, &post)
         .await?.enqueue(db_client).await?;
 
-    let status = Status::from_post(&instance.url(), post);
+    let status = Status::from_post(
+        &get_request_base_url(connection_info),
+        &instance.url(),
+        post,
+    );
     Ok(HttpResponse::Ok().json(status))
 }
 
@@ -232,6 +245,7 @@ async fn preview_status(
 #[get("/{status_id}")]
 async fn get_status(
     auth: Option<BearerAuth>,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
@@ -247,6 +261,7 @@ async fn get_status(
     };
     let status = build_status(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         maybe_current_user.as_ref(),
         post,
@@ -285,6 +300,7 @@ async fn delete_status(
 #[get("/{status_id}/context")]
 async fn get_context(
     auth: Option<BearerAuth>,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
@@ -301,6 +317,7 @@ async fn get_context(
     ).await?;
     let statuses = build_status_list(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         maybe_current_user.as_ref(),
         posts,
@@ -327,6 +344,7 @@ async fn get_context(
 async fn get_thread_view(
     auth: Option<BearerAuth>,
     config: web::Data<Config>,
+    connection_info: ConnectionInfo,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
@@ -342,6 +360,7 @@ async fn get_thread_view(
     ).await?;
     let statuses = build_status_list(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         maybe_current_user.as_ref(),
         posts,
@@ -352,6 +371,7 @@ async fn get_thread_view(
 #[post("/{status_id}/favourite")]
 async fn favourite(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
@@ -386,6 +406,7 @@ async fn favourite(
 
     let status = build_status(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         Some(&current_user),
         post,
@@ -396,6 +417,7 @@ async fn favourite(
 #[post("/{status_id}/unfavourite")]
 async fn unfavourite(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
@@ -427,6 +449,7 @@ async fn unfavourite(
 
     let status = build_status(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         Some(&current_user),
         post,
@@ -437,6 +460,7 @@ async fn unfavourite(
 #[post("/{status_id}/reblog")]
 async fn reblog(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
@@ -465,6 +489,7 @@ async fn reblog(
 
     let status = build_status(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         Some(&current_user),
         repost,
@@ -475,6 +500,7 @@ async fn reblog(
 #[post("/{status_id}/unreblog")]
 async fn unreblog(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
@@ -502,6 +528,7 @@ async fn unreblog(
 
     let status = build_status(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         Some(&current_user),
         post,
@@ -512,6 +539,7 @@ async fn unreblog(
 #[post("/{status_id}/make_permanent")]
 async fn make_permanent(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
@@ -561,6 +589,7 @@ async fn make_permanent(
 
     let status = build_status(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         Some(&current_user),
         post,
@@ -605,6 +634,7 @@ async fn get_signature(
 #[post("/{status_id}/token_minted")]
 async fn token_minted(
     auth: BearerAuth,
+    connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
@@ -625,6 +655,7 @@ async fn token_minted(
 
     let status = build_status(
         db_client,
+        &get_request_base_url(connection_info),
         &config.instance_url(),
         Some(&current_user),
         post,

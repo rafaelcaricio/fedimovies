@@ -1,6 +1,6 @@
 use actix_web::{
     body::{BodySize, BoxBody, MessageBody},
-    dev::ServiceResponse,
+    dev::{ConnectionInfo, ServiceResponse},
     error::{Error, JsonPayloadError},
     http::StatusCode,
     middleware::{ErrorHandlerResponse, ErrorHandlers},
@@ -9,6 +9,8 @@ use actix_web::{
     HttpRequest,
 };
 use serde_json::json;
+
+use mitra_utils::urls::guess_protocol;
 
 use crate::errors::HttpError;
 
@@ -45,4 +47,16 @@ pub fn json_error_handler(
         },
         other_error => other_error.into(),
     }
+}
+
+pub fn get_request_base_url(connection_info: ConnectionInfo) -> String {
+    // TODO: HTTP server should set X-Forwarded-Proto header
+    // let scheme = connection_info.scheme();
+    let host = connection_info.host();
+    let scheme = if let Some((hostname, _port)) = host.split_once(':') {
+        guess_protocol(hostname)
+    } else {
+        guess_protocol(host)
+    };
+    format!("{}://{}", scheme, host)
 }

@@ -13,8 +13,8 @@ pub struct CustomEmoji {
 }
 
 impl CustomEmoji {
-    pub fn from_db(instance_url: &str, emoji: DbEmoji) -> Self {
-        let image_url = get_file_url(instance_url, &emoji.image.file_name);
+    pub fn from_db(base_url: &str, emoji: DbEmoji) -> Self {
+        let image_url = get_file_url(base_url, &emoji.image.file_name);
         Self {
             shortcode: emoji.emoji_name,
             url: image_url.clone(),

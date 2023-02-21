@@ -26,7 +26,7 @@ pub struct Attachment {
 }
 
 impl Attachment {
-    pub fn from_db(instance_url: &str, db_attachment: DbMediaAttachment) -> Self {
+    pub fn from_db(base_url: &str, db_attachment: DbMediaAttachment) -> Self {
         let attachment_type =
             AttachmentType::from_media_type(db_attachment.media_type);
         let attachment_type_mastodon = match attachment_type {
@@ -35,7 +35,7 @@ impl Attachment {
             AttachmentType::Video => "video",
         };
         let attachment_url = get_file_url(
-            instance_url,
+            base_url,
             &db_attachment.file_name,
         );
         Self {
