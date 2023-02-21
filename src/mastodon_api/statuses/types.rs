@@ -24,7 +24,7 @@ pub struct Mention {
 }
 
 impl Mention {
-    fn from_profile(profile: DbActorProfile, instance_url: &str) -> Self {
+    fn from_profile(instance_url: &str, profile: DbActorProfile) -> Self {
         Mention {
             id: profile.id.to_string(),
             username: profile.username.clone(),
@@ -84,13 +84,16 @@ pub struct Status {
 }
 
 impl Status {
-    pub fn from_post(post: Post, instance_url: &str) -> Self {
+    pub fn from_post(
+        instance_url: &str,
+        post: Post,
+    ) -> Self {
         let object_id = post.object_id(instance_url);
         let attachments: Vec<Attachment> = post.attachments.into_iter()
-            .map(|item| Attachment::from_db(item, instance_url))
+            .map(|item| Attachment::from_db(instance_url, item))
             .collect();
         let mentions: Vec<Mention> = post.mentions.into_iter()
-            .map(|item| Mention::from_profile(item, instance_url))
+            .map(|item| Mention::from_profile(instance_url, item))
             .collect();
         let tags: Vec<Tag> = post.tags.into_iter()
             .map(|tag_name| Tag::from_tag_name(instance_url, tag_name))
@@ -98,15 +101,18 @@ impl Status {
         let emojis: Vec<CustomEmoji> = post.emojis.into_iter()
             .map(|emoji| CustomEmoji::from_db(instance_url, emoji))
             .collect();
-        let account = Account::from_profile(post.author, instance_url);
+        let account = Account::from_profile(
+            instance_url,
+            post.author,
+        );
         let reblog = if let Some(repost_of) = post.repost_of {
-            let status = Status::from_post(*repost_of, instance_url);
+            let status = Status::from_post(instance_url, *repost_of);
             Some(Box::new(status))
         } else {
             None
         };
         let links = post.linked.into_iter().map(|post| {
-            Status::from_post(post, instance_url)
+            Status::from_post(instance_url, post)
         }).collect();
         let visibility = match post.visibility {
             Visibility::Public => "public",

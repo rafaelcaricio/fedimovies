@@ -31,17 +31,21 @@ async fn search_view(
         query_params.q.trim(),
         query_params.limit.inner(),
     ).await?;
+    let instance_url = config.instance().url();
     let accounts: Vec<Account> = profiles.into_iter()
-        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .map(|profile| Account::from_profile(
+            &instance_url,
+            profile,
+        ))
         .collect();
     let statuses = build_status_list(
         db_client,
-        &config.instance_url(),
+        &instance_url,
         Some(&current_user),
         posts,
     ).await?;
     let hashtags = tags.into_iter()
-        .map(|tag_name| Tag::from_tag_name(&config.instance_url(), tag_name))
+        .map(|tag_name| Tag::from_tag_name(&instance_url, tag_name))
         .collect();
     let results = SearchResults { accounts, statuses, hashtags };
     Ok(HttpResponse::Ok().json(results))

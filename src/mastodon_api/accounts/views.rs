@@ -194,7 +194,10 @@ pub async fn create_account(
         Err(other_error) => return Err(other_error.into()),
     };
     log::warn!("created user {}", user.id);
-    let account = Account::from_user(user, &config.instance_url());
+    let account = Account::from_user(
+        &config.instance_url(),
+        user,
+    );
     Ok(HttpResponse::Created().json(account))
 }
 
@@ -206,7 +209,10 @@ async fn verify_credentials(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_current_user(db_client, auth.token()).await?;
-    let account = Account::from_user(user, &config.instance_url());
+    let account = Account::from_user(
+        &config.instance_url(),
+        user,
+    );
     Ok(HttpResponse::Ok().json(account))
 }
 
@@ -239,7 +245,10 @@ async fn update_credentials(
         None,
     ).await?.enqueue(db_client).await?;
 
-    let account = Account::from_user(current_user, &config.instance_url());
+    let account = Account::from_user(
+        &config.instance_url(),
+        current_user,
+    );
     Ok(HttpResponse::Ok().json(account))
 }
 
@@ -313,7 +322,10 @@ async fn send_signed_activity(
 
     outgoing_activity.enqueue(db_client).await?;
 
-    let account = Account::from_user(current_user, &config.instance_url());
+    let account = Account::from_user(
+        &config.instance_url(),
+        current_user,
+    );
     Ok(HttpResponse::Ok().json(account))
 }
 
@@ -428,7 +440,10 @@ async fn create_identity_proof(
         None,
     ).await?.enqueue(db_client).await?;
 
-    let account = Account::from_user(current_user, &config.instance_url());
+    let account = Account::from_user(
+        &config.instance_url(),
+        current_user,
+    );
     Ok(HttpResponse::Ok().json(account))
 }
 
@@ -456,7 +471,10 @@ async fn lookup_acct(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_acct(db_client, &query_params.acct).await?;
-    let account = Account::from_profile(profile, &config.instance_url());
+    let account = Account::from_profile(
+        &config.instance_url(),
+        profile,
+    );
     Ok(HttpResponse::Ok().json(account))
 }
 
@@ -472,8 +490,12 @@ async fn search_by_acct(
         &query_params.q,
         query_params.limit.inner(),
     ).await?;
+    let instance_url = config.instance().url();
     let accounts: Vec<Account> = profiles.into_iter()
-        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .map(|profile| Account::from_profile(
+            &instance_url,
+            profile,
+        ))
         .collect();
     Ok(HttpResponse::Ok().json(accounts))
 }
@@ -488,8 +510,12 @@ async fn search_by_did(
     let did: Did = query_params.did.parse()
         .map_err(|_| ValidationError("invalid DID"))?;
     let profiles = search_profiles_by_did(db_client, &did, false).await?;
+    let instance_url = config.instance().url();
     let accounts: Vec<Account> = profiles.into_iter()
-        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .map(|profile| Account::from_profile(
+            &instance_url,
+            profile,
+        ))
         .collect();
     Ok(HttpResponse::Ok().json(accounts))
 }
@@ -502,7 +528,10 @@ async fn get_account(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
-    let account = Account::from_profile(profile, &config.instance_url());
+    let account = Account::from_profile(
+        &config.instance_url(),
+        profile,
+    );
     Ok(HttpResponse::Ok().json(account))
 }
 
@@ -639,11 +668,15 @@ async fn get_account_followers(
     ).await?;
     let max_index = usize::from(query_params.limit.inner().saturating_sub(1));
     let maybe_last_id = followers.get(max_index).map(|item| item.relationship_id);
+    let instance_url = config.instance().url();
     let accounts: Vec<Account> = followers.into_iter()
-        .map(|item| Account::from_profile(item.profile, &config.instance_url()))
+        .map(|item| Account::from_profile(
+            &instance_url,
+            item.profile,
+        ))
         .collect();
     let response = get_paginated_response(
-        &config.instance_url(),
+        &instance_url,
         request.uri().path(),
         accounts,
         maybe_last_id,
@@ -676,11 +709,15 @@ async fn get_account_following(
     ).await?;
     let max_index = usize::from(query_params.limit.inner().saturating_sub(1));
     let maybe_last_id = following.get(max_index).map(|item| item.relationship_id);
+    let instance_url = config.instance().url();
     let accounts: Vec<Account> = following.into_iter()
-        .map(|item| Account::from_profile(item.profile, &config.instance_url()))
+        .map(|item| Account::from_profile(
+            &instance_url,
+            item.profile,
+        ))
         .collect();
     let response = get_paginated_response(
-        &config.instance_url(),
+        &instance_url,
         request.uri().path(),
         accounts,
         maybe_last_id,
@@ -713,7 +750,10 @@ async fn get_account_subscribers(
     )
         .await?
         .into_iter()
-        .map(|item| ApiSubscription::from_subscription(&instance_url, item))
+        .map(|subscription| ApiSubscription::from_subscription(
+            &instance_url,
+            subscription,
+        ))
         .collect();
     Ok(HttpResponse::Ok().json(subscriptions))
 }

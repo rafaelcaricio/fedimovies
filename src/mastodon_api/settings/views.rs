@@ -46,7 +46,10 @@ async fn change_password_view(
     let password_hash = hash_password(&request_data.new_password)
         .map_err(|_| HttpError::InternalError)?;
     set_user_password(db_client, &current_user.id, password_hash).await?;
-    let account = Account::from_user(current_user, &config.instance_url());
+    let account = Account::from_user(
+        &config.instance_url(),
+        current_user,
+    );
     Ok(HttpResponse::Ok().json(account))
 }
 
@@ -190,7 +193,10 @@ async fn move_followers(
         None,
     ).enqueue(db_client).await?;
 
-    let account = Account::from_user(current_user, &instance.url());
+    let account = Account::from_user(
+        &instance.url(),
+        current_user,
+    );
     Ok(HttpResponse::Ok().json(account))
 }
 

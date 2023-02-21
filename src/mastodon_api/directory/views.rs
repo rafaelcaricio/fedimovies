@@ -28,9 +28,13 @@ async fn profile_directory(
         query_params.offset,
         query_params.limit.inner(),
     ).await?;
+    let instance_url = config.instance().url();
     let accounts: Vec<Account> = profiles
         .into_iter()
-        .map(|profile| Account::from_profile(profile, &config.instance_url()))
+        .map(|profile| Account::from_profile(
+            &instance_url,
+            profile,
+        ))
         .collect();
     Ok(HttpResponse::Ok().json(accounts))
 }

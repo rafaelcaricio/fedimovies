@@ -116,7 +116,10 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn from_profile(profile: DbActorProfile, instance_url: &str) -> Self {
+    pub fn from_profile(
+        instance_url: &str,
+        profile: DbActorProfile,
+    ) -> Self {
         let profile_url = profile.actor_url(instance_url);
         let avatar_url = profile.avatar
             .map(|image| get_file_url(instance_url, &image.file_name));
@@ -203,7 +206,10 @@ impl Account {
         }
     }
 
-    pub fn from_user(user: User, instance_url: &str) -> Self {
+    pub fn from_user(
+        instance_url: &str,
+        user: User,
+    ) -> Self {
         let fields_sources = user.profile.extra_fields.clone()
             .into_inner().into_iter()
             .map(|field| AccountField {
@@ -217,7 +223,10 @@ impl Account {
             fields: fields_sources,
         };
         let role = ApiRole::from_db(user.role);
-        let mut account = Self::from_profile(user.profile, instance_url);
+        let mut account = Self::from_profile(
+            instance_url,
+            user.profile,
+        );
         account.source = Some(source);
         account.role = Some(role);
         account
@@ -496,7 +505,10 @@ impl ApiSubscription {
         instance_url: &str,
         subscription: Subscription,
     ) -> Self {
-        let sender = Account::from_profile(subscription.sender, instance_url);
+        let sender = Account::from_profile(
+            instance_url,
+            subscription.sender,
+        );
         Self {
             id: subscription.id,
             sender,
@@ -532,7 +544,10 @@ mod tests {
             avatar: Some(ProfileImage::new("test".to_string(), 1000, None)),
             ..Default::default()
         };
-        let account = Account::from_profile(profile, INSTANCE_URL);
+        let account = Account::from_profile(
+            INSTANCE_URL,
+            profile,
+        );
 
         assert_eq!(
             account.avatar.unwrap(),
@@ -554,7 +569,10 @@ mod tests {
             profile,
             ..Default::default()
         };
-        let account = Account::from_user(user, INSTANCE_URL);
+        let account = Account::from_user(
+            INSTANCE_URL,
+            user,
+        );
 
         assert_eq!(
             account.source.unwrap().note.unwrap(),

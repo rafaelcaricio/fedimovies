@@ -190,7 +190,7 @@ async fn create_status(
     prepare_create_note(db_client, &instance, &current_user, &post)
         .await?.enqueue(db_client).await?;
 
-    let status = Status::from_post(post, &instance.url());
+    let status = Status::from_post(&instance.url(), post);
     Ok(HttpResponse::Ok().json(status))
 }
 

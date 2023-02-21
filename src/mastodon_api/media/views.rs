@@ -36,8 +36,8 @@ async fn create_attachment_view(
         Some(media_type),
     ).await?;
     let attachment = Attachment::from_db(
-        db_attachment,
         &config.instance_url(),
+        db_attachment,
     );
     Ok(HttpResponse::Ok().json(attachment))
 }

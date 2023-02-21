@@ -83,7 +83,7 @@ pub async fn build_status(
     if let Some(user) = user {
         add_user_actions(db_client, &user.id, vec![&mut post]).await?;
     };
-    let status = Status::from_post(post, instance_url);
+    let status = Status::from_post(instance_url, post);
     Ok(status)
 }
 
@@ -99,7 +99,7 @@ pub async fn build_status_list(
     };
     let statuses: Vec<Status> = posts
         .into_iter()
-        .map(|post| Status::from_post(post, instance_url))
+        .map(|post| Status::from_post(instance_url, post))
         .collect();
     Ok(statuses)
 }

@@ -34,13 +34,16 @@ pub struct ApiNotification {
 }
 
 impl ApiNotification {
-    pub fn from_db(notification: Notification, instance_url: &str) -> Self {
+    pub fn from_db(
+        instance_url: &str,
+        notification: Notification,
+    ) -> Self {
         let account = Account::from_profile(
-            notification.sender,
             instance_url,
+            notification.sender,
         );
         let status = notification.post.map(|post| {
-            Status::from_post(post, instance_url)
+            Status::from_post(instance_url, post)
         });
         let event_type_mastodon = match notification.event_type {
             EventType::Follow => "follow",

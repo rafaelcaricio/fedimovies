@@ -26,16 +26,20 @@ pub struct Attachment {
 }
 
 impl Attachment {
-    pub fn from_db(db_object: DbMediaAttachment, instance_url: &str) -> Self {
-        let attachment_type = AttachmentType::from_media_type(db_object.media_type);
+    pub fn from_db(instance_url: &str, db_attachment: DbMediaAttachment) -> Self {
+        let attachment_type =
+            AttachmentType::from_media_type(db_attachment.media_type);
         let attachment_type_mastodon = match attachment_type {
             AttachmentType::Unknown => "unknown",
             AttachmentType::Image => "image",
             AttachmentType::Video => "video",
         };
-        let attachment_url = get_file_url(instance_url, &db_object.file_name);
+        let attachment_url = get_file_url(
+            instance_url,
+            &db_attachment.file_name,
+        );
         Self {
-            id: db_object.id,
+            id: db_attachment.id,
             attachment_type: attachment_type_mastodon.to_string(),
             url: attachment_url,
         }

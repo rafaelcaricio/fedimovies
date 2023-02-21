@@ -165,7 +165,10 @@ pub async fn register_subscription_option(
         ).await?.enqueue(db_client).await?;
     };
 
-    let account = Account::from_user(current_user, &config.instance_url());
+    let account = Account::from_user(
+        &config.instance_url(),
+        current_user,
+    );
     Ok(HttpResponse::Ok().json(account))
 }
 
