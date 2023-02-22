@@ -24,6 +24,7 @@ use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};
 use crate::webfinger::types::{ActorAddress, JsonResourceDescriptor};
 
 const FETCHER_CONNECTION_TIMEOUT: u64 = 30;
+const FETCHER_TIMEOUT: u64 = 180;
 
 #[derive(thiserror::Error, Debug)]
 pub enum FetchError {
@@ -51,12 +52,14 @@ pub enum FetchError {
 
 fn build_client(instance: &Instance) -> reqwest::Result<Client> {
     let mut client_builder = Client::builder();
-    let connect_timeout = Duration::from_secs(FETCHER_CONNECTION_TIMEOUT);
     if let Some(ref proxy_url) = instance.proxy_url {
         let proxy = Proxy::all(proxy_url)?;
         client_builder = client_builder.proxy(proxy);
     };
+    let timeout = Duration::from_secs(FETCHER_TIMEOUT);
+    let connect_timeout = Duration::from_secs(FETCHER_CONNECTION_TIMEOUT);
     client_builder
+        .timeout(timeout)
         .connect_timeout(connect_timeout)
         .build()
 }
