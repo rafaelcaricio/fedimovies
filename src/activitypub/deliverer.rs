@@ -35,6 +35,8 @@ use super::constants::AP_MEDIA_TYPE;
 use super::identifiers::{local_actor_id, local_actor_key_id};
 use super::queues::OutgoingActivityJobData;
 
+const DELIVERER_TIMEOUT: u64 = 30;
+
 #[derive(thiserror::Error, Debug)]
 pub enum DelivererError {
     #[error("key error")]
@@ -65,7 +67,10 @@ fn build_client(instance: &Instance) -> reqwest::Result<Client> {
         let proxy = Proxy::all(proxy_url)?;
         client_builder = client_builder.proxy(proxy);
     };
-    client_builder.build()
+    let timeout = Duration::from_secs(DELIVERER_TIMEOUT);
+    client_builder
+        .timeout(timeout)
+        .build()
 }
 
 async fn send_activity(
