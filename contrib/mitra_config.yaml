@@ -29,9 +29,6 @@ registration:
 # EIP-4361 login message
 #login_message: 'Do not sign this message on other sites!'
 
-# Proxy for outgoing requests
-#proxy_url: 'socks5h://127.0.0.1:9050'
-
 # Limits
 #limits:
 #  media:
@@ -43,6 +40,11 @@ registration:
 retention:
   extraneous_posts: 50
   empty_profiles: 150
+
+# Federation parameters
+#federation:
+#  # Proxy for outgoing requests
+#  #proxy_url: 'socks5h://127.0.0.1:9050'
 
 # List of blocked domains
 #blocked_instances: []

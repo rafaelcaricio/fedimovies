@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Set fetcher timeout to 3 minutes.
 - Set deliverer timeout to 30 seconds.
+- Added `federation` parameter group to configuration.
+
+### Deprecated
+
+- Deprecated `proxy_url` configuration paramter (replaced by `federation.proxy_url`).
 
 ## [1.14.0] - 2023-02-22
 

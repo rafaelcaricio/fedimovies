@@ -113,6 +113,7 @@ pub fn parse_config() -> (Config, Vec<&'static str>) {
         panic!("both ipfs_api_url and ipfs_gateway_url must be set");
     };
 
+    // Migrations
     if let Some(registrations_open) = config.registrations_open {
         // Change type if 'registrations_open' parameter is used
         warnings.push("'registrations_open' setting is deprecated, use 'registration.type' instead");
@@ -122,10 +123,13 @@ pub fn parse_config() -> (Config, Vec<&'static str>) {
             config.registration.registration_type = RegistrationType::Invite;
         };
     };
-
     if let Some(post_character_limit) = config.post_character_limit {
         warnings.push("'post_character_limit' setting is deprecated, use 'limits.posts.character_limit' instead");
         config.limits.posts.character_limit = post_character_limit;
+    };
+    if let Some(ref proxy_url) = config.proxy_url {
+        warnings.push("'proxy_url' setting is deprecated, use 'federation.proxy_url' instead");
+        config.federation.proxy_url = Some(proxy_url.to_string());
     };
 
     // Insert instance RSA key

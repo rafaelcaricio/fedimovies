@@ -13,6 +13,7 @@ use mitra_utils::urls::normalize_url;
 
 use super::blockchain::BlockchainConfig;
 use super::environment::Environment;
+use super::federation::FederationConfig;
 use super::limits::Limits;
 use super::retention::RetentionConfig;
 use super::MITRA_VERSION;
@@ -99,13 +100,16 @@ pub struct Config {
 
     pub(super) post_character_limit: Option<usize>, // deprecated
 
-    proxy_url: Option<String>,
-
     #[serde(default)]
     pub limits: Limits,
 
     #[serde(default)]
     pub retention: RetentionConfig,
+
+    pub(super) proxy_url: Option<String>,
+
+    #[serde(default)]
+    pub(super) federation: FederationConfig,
 
     #[serde(default)]
     pub blocked_instances: Vec<String>,
@@ -130,7 +134,7 @@ impl Config {
         Instance {
             _url: self.try_instance_url().unwrap(),
             actor_key: self.instance_rsa_key.clone().unwrap(),
-            proxy_url: self.proxy_url.clone(),
+            proxy_url: self.federation.proxy_url.clone(),
             is_private: matches!(self.environment, Environment::Development),
         }
     }
