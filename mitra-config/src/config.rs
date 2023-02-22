@@ -104,6 +104,8 @@ impl Config {
             is_private:
                 !self.federation.enabled ||
                 matches!(self.environment, Environment::Development),
+            fetcher_timeout: self.federation.fetcher_timeout,
+            deliverer_timeout: self.federation.deliverer_timeout,
         }
     }
 
@@ -138,6 +140,8 @@ pub struct Instance {
     pub onion_proxy_url: Option<String>,
     // Private instance won't send signed HTTP requests
     pub is_private: bool,
+    pub fetcher_timeout: u64,
+    pub deliverer_timeout: u64,
 }
 
 impl Instance {
@@ -168,6 +172,8 @@ impl Instance {
             proxy_url: None,
             onion_proxy_url: None,
             is_private: true,
+            fetcher_timeout: 0,
+            deliverer_timeout: 0,
         }
     }
 }
@@ -187,6 +193,8 @@ mod tests {
             proxy_url: None,
             onion_proxy_url: None,
             is_private: true,
+            fetcher_timeout: 0,
+            deliverer_timeout: 0,
         };
 
         assert_eq!(instance.url(), "https://example.com");
@@ -207,6 +215,8 @@ mod tests {
             proxy_url: None,
             onion_proxy_url: None,
             is_private: true,
+            fetcher_timeout: 0,
+            deliverer_timeout: 0,
         };
 
         assert_eq!(instance.url(), "http://1.2.3.4:3777");

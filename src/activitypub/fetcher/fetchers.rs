@@ -24,8 +24,6 @@ use crate::http_signatures::create::{
 use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};
 use crate::webfinger::types::{ActorAddress, JsonResourceDescriptor};
 
-const FETCHER_TIMEOUT: u64 = 180;
-
 #[derive(thiserror::Error, Debug)]
 pub enum FetchError {
     #[error(transparent)]
@@ -62,7 +60,7 @@ fn build_client(
     let client = build_federation_client(
         instance,
         is_onion,
-        FETCHER_TIMEOUT,
+        instance.fetcher_timeout,
     )?;
     Ok(client)
 }

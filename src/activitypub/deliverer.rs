@@ -36,8 +36,6 @@ use super::{
     queues::OutgoingActivityJobData,
 };
 
-const DELIVERER_TIMEOUT: u64 = 30;
-
 #[derive(thiserror::Error, Debug)]
 pub enum DelivererError {
     #[error("key error")]
@@ -71,7 +69,7 @@ fn build_client(
     let client = build_federation_client(
         instance,
         is_onion,
-        DELIVERER_TIMEOUT,
+        instance.deliverer_timeout,
     )?;
     Ok(client)
 }
