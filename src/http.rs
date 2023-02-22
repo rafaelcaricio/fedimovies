@@ -3,7 +3,11 @@ use actix_web::{
     dev::{ConnectionInfo, ServiceResponse},
     error::{Error, JsonPayloadError},
     http::StatusCode,
-    middleware::{ErrorHandlerResponse, ErrorHandlers},
+    middleware::{
+        DefaultHeaders,
+        ErrorHandlerResponse,
+        ErrorHandlers,
+    },
     web::{Form, Json},
     Either,
     HttpRequest,
@@ -34,6 +38,25 @@ pub fn create_auth_error_handler<B: MessageBody + 'static>() -> ErrorHandlers<B>
             });
             Ok(ErrorHandlerResponse::Response(response_new.map_into_right_body()))
         })
+}
+
+pub fn create_default_headers_middleware() -> DefaultHeaders {
+    DefaultHeaders::new()
+        .add((
+            "Content-Security-Policy",
+            // script-src unsafe-inline required by MetaMask
+            // style-src oauth-authorization required by OAuth authorization page
+            "default-src 'none'; \
+                connect-src 'self'; \
+                img-src 'self' data:; \
+                media-src 'self'; \
+                script-src 'self' 'unsafe-inline'; \
+                style-src 'self' 'nonce-oauth-authorization'; \
+                frame-ancestors 'none'; \
+                base-uri 'self'; \
+                form-action 'self'",
+        ))
+        .add(("X-Content-Type-Options", "nosniff"))
 }
 
 /// Convert JSON payload deserialization errors into validation errors

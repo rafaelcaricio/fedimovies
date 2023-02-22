@@ -31,10 +31,6 @@ server {
     ssl_stapling_verify on;
 
     add_header Strict-Transport-Security "max-age=63072000" always;
-    # script-src unsafe-inline required by MetaMask
-    # style-src oauth-authorization required by OAuth authorization page
-    add_header Content-Security-Policy "default-src 'none'; connect-src 'self'; img-src 'self' data:; media-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'nonce-oauth-authorization'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
-    add_header X-Content-Type-Options "nosniff";
 
     client_max_body_size 10M;
 

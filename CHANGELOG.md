@@ -15,13 +15,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `/api/v1/statuses/{status_id}/thread` API endpoint (replaces `/api/v1/statuses/{status_id}/context`).
 - Accept webfinger requests where `resource` is instance actor ID.
 - Added `proxy_set_header X-Forwarded-Proto $scheme;` directive to nginx config example.
+- Add `Content-Security-Policy` and `X-Content-Type-Options` headers to all responses.
 
 ### Changed
 
 - Allow `instance_uri` configuration value to contain URI scheme.
-- Changed `Content-Security-Policy` header value in nginx config examples.
 - Changed `/api/v1/statuses/{status_id}/context` response format to match Mastodon API.
 - Changed status code of `/api/v1/statuses` response to 200 to match Mastodon API.
+- Removed `add_header` directives for `Content-Security-Policy` and `X-Content-Type-Options` headers from nginx config example.
 
 ### Deprecated
 

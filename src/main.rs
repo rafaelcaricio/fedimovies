@@ -17,6 +17,7 @@ use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::contracts::get_contracts;
 use mitra::http::{
     create_auth_error_handler,
+    create_default_headers_middleware,
     json_error_handler,
 };
 use mitra::job_queue::scheduler;
@@ -133,6 +134,7 @@ async fn main() -> std::io::Result<()> {
                 }
             })
             .wrap(create_auth_error_handler())
+            .wrap(create_default_headers_middleware())
             .app_data(web::PayloadConfig::default().limit(UPLOAD_MAX_SIZE * 2))
             .app_data(web::JsonConfig::default()
                 .limit(UPLOAD_MAX_SIZE * 2)
