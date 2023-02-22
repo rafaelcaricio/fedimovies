@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Documented `http_cors_allowlist` configuration parameter.
 - Added `/api/v1/statuses/{status_id}/thread` API endpoint (replaces `/api/v1/statuses/{status_id}/context`).
 - Accept webfinger requests where `resource` is instance actor ID.
+- Added `proxy_set_header X-Forwarded-Proto $scheme;` directive to nginx config example.
 
 ### Changed
 
@@ -21,6 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Changed `Content-Security-Policy` header value in nginx config examples.
 - Changed `/api/v1/statuses/{status_id}/context` response format to match Mastodon API.
 - Changed status code of `/api/v1/statuses` response to 200 to match Mastodon API.
+
+### Deprecated
+
+- Deprecated protocol guessing on incoming requests (use `X-Forwarded-Proto` header).
 
 ### Fixed
 
