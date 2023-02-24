@@ -22,6 +22,7 @@ pub async fn get_nodeinfo(
         rel: "http://nodeinfo.diaspora.software/ns/schema/2.0".to_string(),
         media_type: None,
         href: Some(nodeinfo_2_0_url),
+        properties: Default::default(),
     };
     let jrd = JsonResourceDescriptor {
         subject: config.instance_url(),

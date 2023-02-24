@@ -1,6 +1,9 @@
 /// https://webfinger.net/
-use std::fmt;
-use std::str::FromStr;
+use std::{
+    collections::HashMap,
+    fmt,
+    str::FromStr,
+};
 
 use regex::Regex;
 use serde::{Serialize, Deserialize};
@@ -63,6 +66,9 @@ pub struct Link {
     pub media_type: Option<String>,
 
     pub href: Option<String>,
+
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub properties: HashMap<String, String>,
 }
 
 // https://datatracker.ietf.org/doc/html/rfc7033#section-4.4

@@ -62,11 +62,13 @@ async fn get_jrd(
         rel: "http://webfinger.net/rel/profile-page".to_string(),
         media_type: Some("text/html".to_string()),
         href: Some(actor_id.clone()),
+        properties: Default::default(),
     };
     let link_actor = Link {
         rel: "self".to_string(),
         media_type: Some(AP_MEDIA_TYPE.to_string()),
         href: Some(actor_id),
+        properties: Default::default(),
     };
     let jrd = JsonResourceDescriptor {
         subject: format!("acct:{}", actor_address),

@@ -12,9 +12,10 @@ use mitra_utils::{
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::AP_MEDIA_TYPE,
+    constants::{AP_CONTEXT, AP_MEDIA_TYPE},
     identifiers::{local_actor_key_id, local_instance_actor_id},
     types::Object,
+    vocabulary::GROUP,
 };
 use crate::http_signatures::create::{
     create_http_signature,
@@ -183,11 +184,28 @@ pub async fn perform_webfinger_query(
         .error_for_status()?
         .text().await?;
     let jrd: JsonResourceDescriptor = serde_json::from_str(&webfinger_data)?;
-    let link = jrd.links.into_iter()
-        .find(|link| link.rel == "self")
-        .ok_or(FetchError::OtherError("self link not found"))?;
-    let actor_url = link.href
-        .ok_or(FetchError::OtherError("account href not found"))?;
+    // Lemmy servers can have Group and Person actors with the same name
+    // https://github.com/LemmyNet/lemmy/issues/2037
+    let ap_type_property = format!("{}#type", AP_CONTEXT);
+    let group_link = jrd.links.iter()
+        .find(|link| {
+            link.rel == "self" &&
+            link.properties
+                .get(&ap_type_property)
+                .map(|val| val.as_str()) == Some(GROUP)
+        });
+    let link = if let Some(link) = group_link {
+        // Prefer Group if the actor type is provided
+        link
+    } else {
+        // Otherwise take first "self" link
+        jrd.links.iter()
+            .find(|link| link.rel == "self")
+            .ok_or(FetchError::OtherError("self link not found"))?
+    };
+    let actor_url = link.href.as_ref()
+        .ok_or(FetchError::OtherError("account href not found"))?
+        .to_string();
     Ok(actor_url)
 }
 

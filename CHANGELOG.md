@@ -15,12 +15,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
-- Deprecated `proxy_url` configuration paramter (replaced by `federation.proxy_url`).
+- Deprecated `proxy_url` configuration parameter (replaced by `federation.proxy_url`).
 
 ### Fixed
 
 - Prevent `delete-extraneous-posts` command from removing locally-linked posts.
 - Make webfinger response compatible with GNU Social account lookup.
+- Prefer `Group` actor when doing webfinger query on Lemmy server.
 
 ## [1.14.0] - 2023-02-22
 
