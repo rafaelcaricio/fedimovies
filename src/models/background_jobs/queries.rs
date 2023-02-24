@@ -30,7 +30,7 @@ pub async fn enqueue_job(
 pub async fn get_job_batch(
     db_client: &impl DatabaseClient,
     job_type: &JobType,
-    batch_size: i64,
+    batch_size: u32,
 ) -> Result<Vec<DbBackgroundJob>, DatabaseError> {
     let rows = db_client.query(
         "
@@ -54,7 +54,7 @@ pub async fn get_job_batch(
             &JobStatus::Running,
             &job_type,
             &JobStatus::Queued,
-            &batch_size,
+            &i64::from(batch_size),
         ],
     ).await?;
     let jobs = rows.iter()
