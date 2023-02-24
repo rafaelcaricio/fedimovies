@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Set fetcher timeout to 3 minutes.
 - Set deliverer timeout to 30 seconds.
 - Added `federation` parameter group to configuration.
+- Add empty `spoiler_text` property to Mastodon API Status object.
 
 ### Deprecated
 

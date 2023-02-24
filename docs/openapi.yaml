@@ -1800,6 +1800,9 @@ components:
         visibility:
           description: Visibility of this post.
           $ref: '#/components/schemas/Visibility'
+        spoiler_text:
+          description: Subject or summary line, below which post content is collapsed until expanded.
+          type: string
         media_attachments:
           description: Media that is attached to this post.
           type: array
