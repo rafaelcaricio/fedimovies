@@ -57,14 +57,20 @@ async fn get_jrd(
         };
         local_actor_id(&instance.url(), &actor_address.username)
     };
-    let link = Link {
+    // Required by GNU Social
+    let link_profile = Link {
+        rel: "http://webfinger.net/rel/profile-page".to_string(),
+        media_type: Some("text/html".to_string()),
+        href: Some(actor_id.clone()),
+    };
+    let link_actor = Link {
         rel: "self".to_string(),
-        link_type: Some(AP_MEDIA_TYPE.to_string()),
+        media_type: Some(AP_MEDIA_TYPE.to_string()),
         href: Some(actor_id),
     };
     let jrd = JsonResourceDescriptor {
         subject: format!("acct:{}", actor_address),
-        links: vec![link],
+        links: vec![link_profile, link_actor],
     };
     Ok(jrd)
 }

@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Prevent `delete-extraneous-posts` command from removing locally-linked posts.
+- Make webfinger response compatible with GNU Social account lookup.
 
 ## [1.14.0] - 2023-02-22
 

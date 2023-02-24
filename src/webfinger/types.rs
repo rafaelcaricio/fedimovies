@@ -60,7 +60,7 @@ pub struct Link {
     pub rel: String,
 
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub link_type: Option<String>,
+    pub media_type: Option<String>,
 
     pub href: Option<String>,
 }

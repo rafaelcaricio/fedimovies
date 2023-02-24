@@ -20,7 +20,7 @@ pub async fn get_nodeinfo(
     let nodeinfo_2_0_url = format!("{}/nodeinfo/2.0", config.instance_url());
     let link = Link {
         rel: "http://nodeinfo.diaspora.software/ns/schema/2.0".to_string(),
-        link_type: None,
+        media_type: None,
         href: Some(nodeinfo_2_0_url),
     };
     let jrd = JsonResourceDescriptor {
