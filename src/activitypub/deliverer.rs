@@ -6,16 +6,13 @@ use reqwest::{Client, Proxy};
 use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tokio::time::sleep;
 
 use mitra_config::Instance;
 use mitra_utils::crypto_rsa::deserialize_private_key;
 
 use crate::database::{
-    get_database_client,
     DatabaseClient,
     DatabaseError,
-    DbPool,
 };
 use crate::http_signatures::create::{
     create_http_signature,
@@ -26,10 +23,7 @@ use crate::json_signatures::create::{
     sign_object,
     JsonSignatureError,
 };
-use crate::models::{
-    profiles::queries::set_reachability_status,
-    users::types::User,
-};
+use crate::models::users::types::User;
 use super::actors::types::Actor;
 use super::constants::AP_MEDIA_TYPE;
 use super::identifiers::{local_actor_id, local_actor_key_id};
@@ -122,26 +116,19 @@ async fn send_activity(
     Ok(())
 }
 
-// 30 secs, 5 mins, 50 mins, 8 hours
-fn backoff(retry_count: u32) -> Duration {
-    debug_assert!(retry_count > 0);
-    Duration::from_secs(3 * 10_u64.pow(retry_count))
-}
-
 #[derive(Deserialize, Serialize)]
 pub struct Recipient {
-    id: String,
+    pub id: String,
     inbox: String,
     #[serde(default)]
-    is_delivered: bool, // default to false if serialized data contains no value
+    pub is_delivered: bool, // default to false if serialized data contains no value
 }
 
 async fn deliver_activity_worker(
-    maybe_db_pool: Option<DbPool>,
     instance: Instance,
     sender: User,
     activity: Value,
-    mut recipients: Vec<Recipient>,
+    recipients: &mut [Recipient],
 ) -> Result<(), DelivererError> {
     let actor_key = deserialize_private_key(&sender.private_key)?;
     let actor_id = local_actor_id(
@@ -157,56 +144,30 @@ async fn deliver_activity_worker(
     };
     let activity_json = serde_json::to_string(&activity_signed)?;
 
-    let mut retry_count = 0;
-    let max_retries = 2;
-
-    while recipients.iter().any(|recipient| !recipient.is_delivered) &&
-        retry_count <= max_retries
-    {
-        if retry_count > 0 {
-            // Wait before next attempt
-            sleep(backoff(retry_count)).await;
+    for recipient in recipients.iter_mut() {
+        if recipient.is_delivered {
+            continue;
         };
-        for recipient in recipients.iter_mut() {
-            if recipient.is_delivered {
-                continue;
-            };
-            if let Err(error) = send_activity(
-                &instance,
-                &actor_key,
-                &actor_key_id,
-                &activity_json,
-                &recipient.inbox,
-            ).await {
-                log::warn!(
-                    "failed to deliver activity to {} (attempt #{}): {}",
-                    recipient.inbox,
-                    retry_count + 1,
-                    error,
-                );
-            } else {
-                recipient.is_delivered = true;
-            };
-        };
-        retry_count += 1;
-    };
-
-    if let Some(ref db_pool) = maybe_db_pool {
-        // Get connection from pool only after finishing delivery
-        let db_client = &**get_database_client(db_pool).await?;
-        for recipient in recipients {
-            set_reachability_status(
-                db_client,
-                &recipient.id,
-                recipient.is_delivered,
-            ).await?;
+        if let Err(error) = send_activity(
+            &instance,
+            &actor_key,
+            &actor_key_id,
+            &activity_json,
+            &recipient.inbox,
+        ).await {
+            log::warn!(
+                "failed to deliver activity to {}: {}",
+                recipient.inbox,
+                error,
+            );
+        } else {
+            recipient.is_delivered = true;
         };
     };
     Ok(())
 }
 
 pub struct OutgoingActivity {
-    pub db_pool: Option<DbPool>, // needed to track unreachable actors (optional)
     pub instance: Instance,
     pub sender: User,
     pub activity: Value,
@@ -233,7 +194,6 @@ impl OutgoingActivity {
             };
         };
         Self {
-            db_pool: None,
             instance: instance.clone(),
             sender: sender.clone(),
             activity: serde_json::to_value(activity)
@@ -243,23 +203,15 @@ impl OutgoingActivity {
     }
 
     pub(super) async fn deliver(
-        self,
-    ) -> Result<(), DelivererError> {
+        mut self,
+    ) -> Result<Vec<Recipient>, DelivererError> {
         deliver_activity_worker(
-            self.db_pool,
             self.instance,
             self.sender,
             self.activity,
-            self.recipients,
-        ).await
-    }
-
-    pub(super) fn spawn_deliver(self) -> () {
-        tokio::spawn(async move {
-            self.deliver().await.unwrap_or_else(|err| {
-                log::error!("{}", err);
-            });
-        });
+            &mut self.recipients,
+        ).await?;
+        Ok(self.recipients)
     }
 
     pub async fn enqueue(
@@ -278,18 +230,8 @@ impl OutgoingActivity {
             activity: self.activity,
             sender_id: self.sender.id,
             recipients: self.recipients,
+            failure_count: 0,
         };
-        job_data.into_job(db_client).await
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_backoff() {
-        assert_eq!(backoff(1).as_secs(), 30);
-        assert_eq!(backoff(2).as_secs(), 300);
+        job_data.into_job(db_client, 0).await
     }
 }

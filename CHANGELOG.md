@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `federation` parameter group to configuration.
 - Add empty `spoiler_text` property to Mastodon API Status object.
 - Added `error` and `error_description` fields to Mastodon API error responses.
+- Store information about failed activity deliveries in database.
 
 ### Changed
 

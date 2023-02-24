@@ -19,6 +19,7 @@ use crate::models::{
         delete_job_from_queue,
     },
     background_jobs::types::JobType,
+    profiles::queries::set_reachability_status,
     users::queries::get_user_by_id,
 };
 use super::deliverer::{OutgoingActivity, Recipient};
@@ -97,9 +98,9 @@ pub async fn process_queued_incoming_activities(
                 !matches!(error, HandlerError::FetchError(FetchError::RecursionError))
             {
                 // Re-queue
-                log::info!("activity re-queued");
                 let retry_after = incoming_queue_backoff(job_data.failure_count);
                 job_data.into_job(db_client, retry_after).await?;
+                log::info!("activity re-queued");
             };
         };
         delete_job_from_queue(db_client, &job.id).await?;
@@ -112,16 +113,18 @@ pub struct OutgoingActivityJobData {
     pub activity: Value,
     pub sender_id: Uuid,
     pub recipients: Vec<Recipient>,
+    pub failure_count: u32,
 }
 
 impl OutgoingActivityJobData {
     pub async fn into_job(
         self,
         db_client: &impl DatabaseClient,
+        delay: u32,
     ) -> Result<(), DatabaseError> {
         let job_data = serde_json::to_value(self)
             .expect("activity should be serializable");
-        let scheduled_for = Utc::now();
+        let scheduled_for = Utc::now() + Duration::seconds(delay.into());
         enqueue_job(
             db_client,
             &JobType::OutgoingActivity,
@@ -132,6 +135,13 @@ impl OutgoingActivityJobData {
 }
 
 const OUTGOING_QUEUE_BATCH_SIZE: u32 = 1;
+const OUTGOING_QUEUE_RETRIES_MAX: u32 = 2;
+
+// 30 secs, 5 mins, 50 mins, 8 hours
+pub fn outgoing_queue_backoff(failure_count: u32) -> u32 {
+    debug_assert!(failure_count > 0);
+    3 * 10_u32.pow(failure_count)
+}
 
 pub async fn process_queued_outgoing_activities(
     config: &Config,
@@ -144,19 +154,64 @@ pub async fn process_queued_outgoing_activities(
         OUTGOING_QUEUE_BATCH_SIZE,
     ).await?;
     for job in batch {
-        let job_data: OutgoingActivityJobData =
+        let mut job_data: OutgoingActivityJobData =
             serde_json::from_value(job.job_data)
                 .map_err(|_| DatabaseTypeError)?;
         let sender = get_user_by_id(db_client, &job_data.sender_id).await?;
         let outgoing_activity = OutgoingActivity {
-            db_pool: Some(db_pool.clone()),
             instance: config.instance(),
             sender,
-            activity: job_data.activity,
+            activity: job_data.activity.clone(),
             recipients: job_data.recipients,
         };
-        outgoing_activity.spawn_deliver();
+
+        let recipients = match outgoing_activity.deliver().await {
+            Ok(recipients) => recipients,
+            Err(error) => {
+                // Unexpected error
+                log::error!("{}", error);
+                delete_job_from_queue(db_client, &job.id).await?;
+                return Ok(());
+            },
+        };
+        log::info!(
+            "delivery job: {} delivered, {} errors (attempt #{})",
+            recipients.iter().filter(|item| item.is_delivered).count(),
+            recipients.iter().filter(|item| !item.is_delivered).count(),
+            job_data.failure_count + 1,
+        );
+        if recipients.iter().any(|recipient| !recipient.is_delivered) &&
+            job_data.failure_count < OUTGOING_QUEUE_RETRIES_MAX
+        {
+            job_data.failure_count += 1;
+            // Re-queue if some deliveries are not successful
+            job_data.recipients = recipients;
+            let retry_after = outgoing_queue_backoff(job_data.failure_count);
+            job_data.into_job(db_client, retry_after).await?;
+            log::info!("delivery job re-queued");
+        } else {
+            // Update inbox status if all deliveries are successful
+            // or if retry limit is reached
+            for recipient in recipients {
+                set_reachability_status(
+                    db_client,
+                    &recipient.id,
+                    recipient.is_delivered,
+                ).await?;
+            };
+        };
         delete_job_from_queue(db_client, &job.id).await?;
     };
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_outgoing_queue_backoff() {
+        assert_eq!(outgoing_queue_backoff(1), 30);
+        assert_eq!(outgoing_queue_backoff(2), 300);
+    }
 }
