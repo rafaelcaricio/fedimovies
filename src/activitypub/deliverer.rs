@@ -252,7 +252,7 @@ impl OutgoingActivity {
         }
     }
 
-    pub async fn deliver(
+    pub(super) async fn deliver(
         self,
     ) -> Result<(), DelivererError> {
         deliver_activity_worker(
@@ -264,7 +264,7 @@ impl OutgoingActivity {
         ).await
     }
 
-    pub fn spawn_deliver(self) -> () {
+    pub(super) fn spawn_deliver(self) -> () {
         tokio::spawn(async move {
             self.deliver().await.unwrap_or_else(|err| {
                 log::error!("{}", err);

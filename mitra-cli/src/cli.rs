@@ -244,7 +244,7 @@ impl DeleteProfile {
         deletion_queue.process(config).await;
         // Send Delete(Person) activities
         if let Some(activity) = maybe_delete_person {
-            activity.deliver().await?;
+            activity.enqueue(db_client).await?;
         };
         println!("profile deleted");
         Ok(())
@@ -279,7 +279,7 @@ impl DeletePost {
         deletion_queue.process(config).await;
         // Send Delete(Note) activity
         if let Some(activity) = maybe_delete_note {
-            activity.deliver().await?;
+            activity.enqueue(db_client).await?;
         };
         println!("post deleted");
         Ok(())
