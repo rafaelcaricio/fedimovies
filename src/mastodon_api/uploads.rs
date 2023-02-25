@@ -2,8 +2,8 @@ use std::path::Path;
 
 use mitra_utils::files::sniff_media_type;
 
-use crate::errors::HttpError;
 use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};
+use super::errors::MastodonError;
 
 pub const UPLOAD_MAX_SIZE: usize = 1024 * 1024 * 5;
 
@@ -22,12 +22,12 @@ pub enum UploadError {
     InvalidMediaType,
 }
 
-impl From<UploadError> for HttpError {
+impl From<UploadError> for MastodonError {
     fn from(error: UploadError) -> Self {
         match error {
-            UploadError::WriteError(_) => HttpError::InternalError,
+            UploadError::WriteError(_) => MastodonError::InternalError,
             other_error => {
-                HttpError::ValidationError(other_error.to_string())
+                MastodonError::ValidationError(other_error.to_string())
             },
         }
     }

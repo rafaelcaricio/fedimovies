@@ -8,8 +8,10 @@ use actix_web::{
 use uuid::Uuid;
 
 use crate::database::{get_database_client, DbPool};
-use crate::errors::HttpError;
-use crate::mastodon_api::oauth::utils::generate_access_token;
+use crate::mastodon_api::{
+    errors::MastodonError,
+    oauth::utils::generate_access_token,
+};
 use crate::models::{
     oauth::queries::create_oauth_app,
     oauth::types::DbOauthAppData,
@@ -24,7 +26,7 @@ async fn create_app_view(
         web::Json<CreateAppRequest>,
         web::Form<CreateAppRequest>,
     >,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let request_data = match request_data {
         Either::Left(json) => json.into_inner(),
         Either::Right(form) => form.into_inner(),

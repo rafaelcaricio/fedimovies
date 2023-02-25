@@ -2,8 +2,10 @@ use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use crate::database::{get_database_client, DbPool};
-use crate::errors::HttpError;
-use crate::mastodon_api::oauth::auth::get_current_user;
+use crate::mastodon_api::{
+    errors::MastodonError,
+    oauth::auth::get_current_user,
+};
 use crate::models::{
     markers::queries::{
         create_or_update_marker,
@@ -19,7 +21,7 @@ async fn get_marker_view(
     auth: BearerAuth,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<MarkerQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let timeline = query_params.to_timeline()?;
@@ -35,7 +37,7 @@ async fn update_marker_view(
     auth: BearerAuth,
     db_pool: web::Data<DbPool>,
     marker_data: web::Json<MarkerCreateData>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let db_marker = create_or_update_marker(

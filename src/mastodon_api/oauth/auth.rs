@@ -1,5 +1,5 @@
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::errors::HttpError;
+use crate::mastodon_api::errors::MastodonError;
 use crate::models::{
     oauth::queries::get_user_by_oauth_token,
     users::types::User,
@@ -8,13 +8,13 @@ use crate::models::{
 pub async fn get_current_user(
     db_client: &impl DatabaseClient,
     token: &str,
-) -> Result<User, HttpError> {
+) -> Result<User, MastodonError> {
     let user = get_user_by_oauth_token(db_client, token).await.map_err(|err| {
         match err {
             DatabaseError::NotFound(_) => {
-                HttpError::AuthError("access token is invalid")
+                MastodonError::AuthError("access token is invalid")
             },
-            _ => HttpError::InternalError,
+            _ => MastodonError::InternalError,
         }
     })?;
     Ok(user)

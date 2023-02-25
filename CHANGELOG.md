@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Set deliverer timeout to 30 seconds.
 - Added `federation` parameter group to configuration.
 - Add empty `spoiler_text` property to Mastodon API Status object.
+- Added `error` and `error_description` fields to Mastodon API error responses.
 
 ### Changed
 
@@ -22,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `proxy_url` configuration parameter (replaced by `federation.proxy_url`).
 - Deprecated Atom feeds at `/feeds/{username}`.
+- Deprecated `message` field in Mastodon API error response.
 
 ### Fixed
 

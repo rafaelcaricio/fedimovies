@@ -6,9 +6,10 @@ use uuid::Uuid;
 
 use mitra_utils::markdown::markdown_basic_to_html;
 
-use crate::errors::{HttpError, ValidationError};
+use crate::errors::ValidationError;
 use crate::identity::did::Did;
 use crate::mastodon_api::{
+    errors::MastodonError,
     pagination::PageSize,
     uploads::{save_b64_file, UploadError},
 };
@@ -315,7 +316,7 @@ impl AccountUpdateData {
         self,
         profile: &DbActorProfile,
         media_dir: &Path,
-    ) -> Result<ProfileUpdateData, HttpError> {
+    ) -> Result<ProfileUpdateData, MastodonError> {
         let maybe_bio = if let Some(ref bio_source) = self.note {
             let bio = markdown_basic_to_html(bio_source)
                 .map_err(|_| ValidationError("invalid markdown"))?;

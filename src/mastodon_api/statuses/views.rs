@@ -27,7 +27,7 @@ use crate::activitypub::builders::{
     undo_like::prepare_undo_like,
 };
 use crate::database::{get_database_client, DatabaseError, DbPool};
-use crate::errors::{HttpError, ValidationError};
+use crate::errors::ValidationError;
 use crate::ethereum::nft::create_mint_signature;
 use crate::http::{get_request_base_url, FormOrJson};
 use crate::ipfs::{
@@ -35,7 +35,10 @@ use crate::ipfs::{
     posts::PostMetadata,
     utils::get_ipfs_url,
 };
-use crate::mastodon_api::oauth::auth::get_current_user;
+use crate::mastodon_api::{
+    errors::MastodonError,
+    oauth::auth::get_current_user,
+};
 use crate::models::{
     posts::helpers::{can_create_post, can_view_post},
     posts::queries::{
@@ -81,11 +84,11 @@ async fn create_status(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_data: FormOrJson<StatusData>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     if !can_create_post(&current_user) {
-        return Err(HttpError::PermissionError);
+        return Err(MastodonError::PermissionError);
     };
     let instance = config.instance();
     let status_data = status_data.into_inner();
@@ -213,7 +216,7 @@ async fn preview_status(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_data: web::Json<StatusPreviewData>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     get_current_user(db_client, auth.token()).await?;
     let instance = config.instance();
@@ -249,7 +252,7 @@ async fn get_status(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let maybe_current_user = match auth {
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
@@ -257,7 +260,7 @@ async fn get_status(
     };
     let post = get_post_by_id(db_client, &status_id).await?;
     if !can_view_post(db_client, maybe_current_user.as_ref(), &post).await? {
-        return Err(HttpError::NotFoundError("post"));
+        return Err(MastodonError::NotFoundError("post"));
     };
     let status = build_status(
         db_client,
@@ -275,12 +278,12 @@ async fn delete_status(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let post = get_post_by_id(db_client, &status_id).await?;
     if post.author.id != current_user.id {
-        return Err(HttpError::PermissionError);
+        return Err(MastodonError::PermissionError);
     };
     let delete_note = prepare_delete_note(
         db_client,
@@ -304,7 +307,7 @@ async fn get_context(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let maybe_current_user = match auth {
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
@@ -347,7 +350,7 @@ async fn get_thread_view(
     connection_info: ConnectionInfo,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let maybe_current_user = match auth {
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
@@ -375,12 +378,12 @@ async fn favourite(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
     if post.repost_of_id.is_some() {
-        return Err(HttpError::NotFoundError("post"));
+        return Err(MastodonError::NotFoundError("post"));
     };
     let maybe_reaction_created = match create_reaction(
         db_client, &current_user.id, &status_id, None,
@@ -421,7 +424,7 @@ async fn unfavourite(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
@@ -464,15 +467,15 @@ async fn reblog(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     if !can_create_post(&current_user) {
-        return Err(HttpError::PermissionError);
+        return Err(MastodonError::PermissionError);
     };
     let mut post = get_post_by_id(db_client, &status_id).await?;
     if !post.is_public() || post.repost_of_id.is_some() {
-        return Err(HttpError::NotFoundError("post"));
+        return Err(MastodonError::NotFoundError("post"));
     };
     let repost_data = PostCreateData::repost(status_id.into_inner(), None);
     let mut repost = create_post(db_client, &current_user.id, repost_data).await?;
@@ -504,7 +507,7 @@ async fn unreblog(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let reposts = find_reposts_by_user(
@@ -512,7 +515,7 @@ async fn unreblog(
         &current_user.id,
         &[*status_id],
     ).await?;
-    let repost_id = reposts.first().ok_or(HttpError::NotFoundError("post"))?;
+    let repost_id = reposts.first().ok_or(MastodonError::NotFoundError("post"))?;
     // Ignore returned data because reposts don't have attached files
     delete_post(db_client, repost_id).await?;
     let post = get_post_by_id(db_client, &status_id).await?;
@@ -543,28 +546,28 @@ async fn make_permanent(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
     if post.ipfs_cid.is_some() {
-        return Err(HttpError::OperationError("post already saved to IPFS"));
+        return Err(MastodonError::OperationError("post already saved to IPFS"));
     };
     if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {
         // Users can only archive their own public posts
-        return Err(HttpError::PermissionError);
+        return Err(MastodonError::PermissionError);
     };
     let ipfs_api_url = config.ipfs_api_url.as_ref()
-        .ok_or(HttpError::NotSupported)?;
+        .ok_or(MastodonError::NotSupported)?;
 
     let mut attachments = vec![];
     for attachment in post.attachments.iter_mut() {
         // Add attachment to IPFS
         let image_path = config.media_dir().join(&attachment.file_name);
         let image_data = std::fs::read(image_path)
-            .map_err(|_| HttpError::InternalError)?;
+            .map_err(|_| MastodonError::InternalError)?;
         let image_cid = ipfs_store::add(ipfs_api_url, image_data).await
-            .map_err(|_| HttpError::InternalError)?;
+            .map_err(|_| MastodonError::InternalError)?;
         attachment.ipfs_cid = Some(image_cid.clone());
         attachments.push((attachment.id, image_cid));
     };
@@ -579,10 +582,10 @@ async fn make_permanent(
         maybe_post_image_cid,
     );
     let post_metadata_json = serde_json::to_string(&post_metadata)
-        .map_err(|_| HttpError::InternalError)?
+        .map_err(|_| MastodonError::InternalError)?
         .as_bytes().to_vec();
     let post_metadata_cid = ipfs_store::add(ipfs_api_url, post_metadata_json).await
-        .map_err(|_| HttpError::InternalError)?;
+        .map_err(|_| MastodonError::InternalError)?;
 
     set_post_ipfs_cid(db_client, &post.id, &post_metadata_cid, attachments).await?;
     post.ipfs_cid = Some(post_metadata_cid);
@@ -603,31 +606,31 @@ async fn get_signature(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let ethereum_config = config.blockchain()
-        .ok_or(HttpError::NotSupported)?
+        .ok_or(MastodonError::NotSupported)?
         .ethereum_config()
-        .ok_or(HttpError::NotSupported)?;
+        .ok_or(MastodonError::NotSupported)?;
     // User must have a public ethereum address
     let wallet_address = current_user
         .public_wallet_address(&Currency::Ethereum)
-        .ok_or(HttpError::PermissionError)?;
+        .ok_or(MastodonError::PermissionError)?;
     let post = get_post_by_id(db_client, &status_id).await?;
     if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {
         // Users can only tokenize their own public posts
-        return Err(HttpError::PermissionError);
+        return Err(MastodonError::PermissionError);
     };
     let ipfs_cid = post.ipfs_cid
         // Post metadata is not immutable
-        .ok_or(HttpError::PermissionError)?;
+        .ok_or(MastodonError::PermissionError)?;
     let token_uri = get_ipfs_url(&ipfs_cid);
     let signature = create_mint_signature(
         ethereum_config,
         &wallet_address,
         &token_uri,
-    ).map_err(|_| HttpError::InternalError)?;
+    ).map_err(|_| MastodonError::InternalError)?;
     Ok(HttpResponse::Ok().json(signature))
 }
 
@@ -639,15 +642,15 @@ async fn token_minted(
     db_pool: web::Data<DbPool>,
     status_id: web::Path<Uuid>,
     transaction_data: web::Json<TransactionData>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let mut post = get_post_by_id(db_client, &status_id).await?;
     if post.token_tx_id.is_some() {
-        return Err(HttpError::OperationError("transaction is already registered"));
+        return Err(MastodonError::OperationError("transaction is already registered"));
     };
     if post.author.id != current_user.id || !post.is_public() || post.repost_of_id.is_some() {
-        return Err(HttpError::PermissionError);
+        return Err(MastodonError::PermissionError);
     };
     let token_tx_id = transaction_data.into_inner().transaction_id;
     set_post_token_tx_id(db_client, &post.id, &token_tx_id).await?;

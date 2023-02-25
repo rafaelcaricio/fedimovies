@@ -11,9 +11,9 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use mitra_config::Config;
 
 use crate::database::{get_database_client, DbPool};
-use crate::errors::HttpError;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
+    errors::MastodonError,
     oauth::auth::get_current_user,
     statuses::helpers::build_status_list,
 };
@@ -31,7 +31,7 @@ async fn home_timeline(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<TimelineQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let posts = get_home_timeline(
@@ -58,7 +58,7 @@ async fn public_timeline(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<TimelineQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let posts = get_local_timeline(
@@ -85,7 +85,7 @@ async fn hashtag_timeline(
     db_pool: web::Data<DbPool>,
     hashtag: web::Path<String>,
     query_params: web::Query<TimelineQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let maybe_current_user = match auth {
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),

@@ -7,12 +7,14 @@ pub mod markers;
 pub mod media;
 pub mod notifications;
 pub mod oauth;
-mod pagination;
 pub mod search;
 pub mod settings;
 pub mod statuses;
 pub mod subscriptions;
 pub mod timelines;
+
+mod errors;
+mod pagination;
 mod uploads;
 
 const MASTODON_API_VERSION: &str = "4.0.0";

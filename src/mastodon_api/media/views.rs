@@ -5,8 +5,8 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use mitra_config::Config;
 
 use crate::database::{get_database_client, DbPool};
-use crate::errors::HttpError;
 use crate::mastodon_api::{
+    errors::MastodonError,
     oauth::auth::get_current_user,
     uploads::save_b64_file,
 };
@@ -19,7 +19,7 @@ async fn create_attachment_view(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     attachment_data: web::Json<AttachmentCreateData>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let (file_name, file_size, media_type) = save_b64_file(

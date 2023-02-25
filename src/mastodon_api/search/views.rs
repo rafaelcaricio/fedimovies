@@ -11,10 +11,10 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use mitra_config::Config;
 
 use crate::database::{get_database_client, DbPool};
-use crate::errors::HttpError;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     accounts::types::Account,
+    errors::MastodonError,
     oauth::auth::get_current_user,
     statuses::helpers::build_status_list,
     statuses::types::Tag,
@@ -29,7 +29,7 @@ async fn search_view(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<SearchQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let (profiles, posts, tags) = search(

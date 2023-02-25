@@ -7,8 +7,8 @@ use actix_web::{
 };
 
 use crate::database::{get_database_client, DbPool};
-use crate::errors::HttpError;
 use crate::http::get_request_base_url;
+use crate::mastodon_api::errors::MastodonError;
 use crate::models::emojis::queries::get_local_emojis;
 use super::types::CustomEmoji;
 
@@ -17,7 +17,7 @@ use super::types::CustomEmoji;
 async fn custom_emoji_list(
     connection_info: ConnectionInfo,
     db_pool: web::Data<DbPool>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let base_url = get_request_base_url(connection_info);
     let emojis: Vec<CustomEmoji> = get_local_emojis(db_client).await?

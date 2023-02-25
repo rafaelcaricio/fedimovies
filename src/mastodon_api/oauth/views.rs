@@ -13,12 +13,13 @@ use mitra_config::Config;
 use mitra_utils::passwords::verify_password;
 
 use crate::database::{get_database_client, DatabaseError, DbPool};
-use crate::errors::{HttpError, ValidationError};
+use crate::errors::ValidationError;
 use crate::ethereum::{
     eip4361::verify_eip4361_signature,
     utils::validate_ethereum_address,
 };
 use crate::http::FormOrJson;
+use crate::mastodon_api::errors::MastodonError;
 use crate::models::{
     oauth::queries::{
         create_oauth_authorization,
@@ -60,7 +61,7 @@ async fn authorize_view(
     db_pool: web::Data<DbPool>,
     form_data: web::Form<AuthorizationRequest>,
     query_params: web::Query<AuthorizationQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &form_data.username).await?;
     let password_hash = user.password_hash.as_ref()
@@ -68,7 +69,7 @@ async fn authorize_view(
     let password_correct = verify_password(
         password_hash,
         &form_data.password,
-    ).map_err(|_| HttpError::InternalError)?;
+    ).map_err(|_| MastodonError::InternalError)?;
     if !password_correct {
         return Err(ValidationError("incorrect password").into());
     };
@@ -116,7 +117,7 @@ async fn token_view(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     request_data: FormOrJson<TokenRequest>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let request_data = request_data.into_inner();
     let db_client = &**get_database_client(&db_pool).await?;
     let user = match request_data.grant_type.as_str() {
@@ -165,7 +166,7 @@ async fn token_view(
         let password_correct = verify_password(
             password_hash,
             password,
-        ).map_err(|_| HttpError::InternalError)?;
+        ).map_err(|_| MastodonError::InternalError)?;
         if !password_correct {
             return Err(ValidationError("incorrect password").into());
         };
@@ -193,7 +194,7 @@ async fn revoke_token_view(
     auth: BearerAuth,
     db_pool: web::Data<DbPool>,
     request_data: web::Json<RevocationRequest>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     match delete_oauth_token(
@@ -202,7 +203,7 @@ async fn revoke_token_view(
         &request_data.token,
     ).await {
         Ok(_) => (),
-        Err(DatabaseError::NotFound(_)) => return Err(HttpError::PermissionError),
+        Err(DatabaseError::NotFound(_)) => return Err(MastodonError::PermissionError),
         Err(other_error) => return Err(other_error.into()),
     };
     Ok(HttpResponse::Ok().finish())

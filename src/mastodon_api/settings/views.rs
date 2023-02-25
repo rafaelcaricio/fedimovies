@@ -18,10 +18,11 @@ use crate::activitypub::{
     },
 };
 use crate::database::{get_database_client, DatabaseError, DbPool};
-use crate::errors::{HttpError, ValidationError};
+use crate::errors::ValidationError;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     accounts::types::Account,
+    errors::MastodonError,
     oauth::auth::get_current_user,
 };
 use crate::models::{
@@ -49,11 +50,11 @@ async fn change_password_view(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     request_data: web::Json<PasswordChangeRequest>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let password_hash = hash_password(&request_data.new_password)
-        .map_err(|_| HttpError::InternalError)?;
+        .map_err(|_| MastodonError::InternalError)?;
     set_user_password(db_client, &current_user.id, password_hash).await?;
     let account = Account::from_user(
         &get_request_base_url(connection_info),
@@ -68,7 +69,7 @@ async fn export_followers_view(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let csv = export_followers(
@@ -87,7 +88,7 @@ async fn export_follows_view(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let csv = export_follows(
@@ -107,7 +108,7 @@ async fn import_follows_view(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     request_data: web::Json<ImportFollowsRequest>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let address_list = parse_address_list(&request_data.follows_csv)?;
@@ -131,7 +132,7 @@ async fn move_followers(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     request_data: web::Json<MoveFollowersRequest>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let instance = config.instance();

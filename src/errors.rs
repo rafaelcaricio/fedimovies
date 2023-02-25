@@ -39,12 +39,6 @@ pub enum HttpError {
     #[error("{0} not found")]
     NotFoundError(&'static str),
 
-    #[error("operation not supported")]
-    NotSupported,
-
-    #[error("{0}")]
-    OperationError(&'static str),
-
     #[error("internal error")]
     InternalError,
 }
@@ -80,8 +74,6 @@ impl ResponseError for HttpError {
             HttpError::AuthError(_) => StatusCode::UNAUTHORIZED,
             HttpError::PermissionError => StatusCode::FORBIDDEN,
             HttpError::NotFoundError(_) => StatusCode::NOT_FOUND,
-            HttpError::NotSupported => StatusCode::IM_A_TEAPOT,
-            HttpError::OperationError(_) => StatusCode::UNPROCESSABLE_ENTITY,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

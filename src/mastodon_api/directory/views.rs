@@ -11,10 +11,10 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use mitra_config::Config;
 
 use crate::database::{get_database_client, DbPool};
-use crate::errors::HttpError;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     accounts::types::Account,
+    errors::MastodonError,
     oauth::auth::get_current_user,
 };
 use crate::models::profiles::queries::get_profiles;
@@ -27,7 +27,7 @@ async fn profile_directory(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<DirectoryQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     get_current_user(db_client, auth.token()).await?;
     let profiles = get_profiles(

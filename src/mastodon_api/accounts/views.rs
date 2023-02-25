@@ -32,7 +32,7 @@ use crate::activitypub::builders::{
     },
 };
 use crate::database::{get_database_client, DatabaseError, DbPool};
-use crate::errors::{HttpError, ValidationError};
+use crate::errors::ValidationError;
 use crate::ethereum::{
     contracts::ContractSet,
     eip4361::verify_eip4361_signature,
@@ -58,6 +58,7 @@ use crate::json_signatures::{
     },
 };
 use crate::mastodon_api::{
+    errors::MastodonError,
     oauth::auth::get_current_user,
     pagination::get_paginated_response,
     search::helpers::search_profiles_only,
@@ -122,7 +123,7 @@ pub async fn create_account(
     db_pool: web::Data<DbPool>,
     maybe_blockchain: web::Data<Option<ContractSet>>,
     account_data: web::Json<AccountCreateData>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     // Validate
     account_data.clean()?;
@@ -136,7 +137,7 @@ pub async fn create_account(
 
     let maybe_password_hash = if let Some(password) = account_data.password.as_ref() {
         let password_hash = hash_password(password)
-            .map_err(|_| HttpError::InternalError)?;
+            .map_err(|_| MastodonError::InternalError)?;
         Some(password_hash)
     } else {
         None
@@ -165,7 +166,7 @@ pub async fn create_account(
             let wallet_address = maybe_wallet_address.as_ref()
                 .ok_or(ValidationError("wallet address is required"))?;
             let is_allowed = is_allowed_user(gate, wallet_address).await
-                .map_err(|_| HttpError::InternalError)?;
+                .map_err(|_| MastodonError::InternalError)?;
             if !is_allowed {
                 return Err(ValidationError("not allowed to sign up").into());
             };
@@ -175,10 +176,10 @@ pub async fn create_account(
     // Generate RSA private key for actor
     let private_key = match web::block(generate_rsa_key).await {
         Ok(Ok(private_key)) => private_key,
-        _ => return Err(HttpError::InternalError),
+        _ => return Err(MastodonError::InternalError),
     };
     let private_key_pem = serialize_private_key(&private_key)
-        .map_err(|_| HttpError::InternalError)?;
+        .map_err(|_| MastodonError::InternalError)?;
 
     let AccountCreateData { username, invite_code, .. } =
         account_data.into_inner();
@@ -216,7 +217,7 @@ async fn verify_credentials(
     connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_current_user(db_client, auth.token()).await?;
     let account = Account::from_user(
@@ -234,7 +235,7 @@ async fn update_credentials(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_data: web::Json<AccountUpdateData>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     let mut profile_data = account_data.into_inner()
@@ -270,7 +271,7 @@ async fn get_unsigned_update(
     auth: BearerAuth,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let internal_activity_id = generate_ulid();
@@ -278,9 +279,9 @@ async fn get_unsigned_update(
         &config.instance_url(),
         &current_user,
         Some(internal_activity_id),
-    ).map_err(|_| HttpError::InternalError)?;
+    ).map_err(|_| MastodonError::InternalError)?;
     let canonical_json = canonicalize_object(&activity)
-        .map_err(|_| HttpError::InternalError)?;
+        .map_err(|_| MastodonError::InternalError)?;
     let data = UnsignedActivity {
         params: ActivityParams::Update { internal_activity_id },
         message: canonical_json,
@@ -295,7 +296,7 @@ async fn send_signed_activity(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     data: web::Json<SignedActivity>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let signer = data.signer.parse::<Did>()
@@ -310,11 +311,11 @@ async fn send_signed_activity(
                 &config.instance(),
                 &current_user,
                 Some(*internal_activity_id),
-            ).await.map_err(|_| HttpError::InternalError)?
+            ).await.map_err(|_| MastodonError::InternalError)?
         },
     };
     let canonical_json = canonicalize_object(&outgoing_activity.activity)
-        .map_err(|_| HttpError::InternalError)?;
+        .map_err(|_| MastodonError::InternalError)?;
     let proof = match signer {
         Did::Key(signer) => {
             let signature_bin = parse_minisign_signature(&data.signature)
@@ -332,7 +333,7 @@ async fn send_signed_activity(
         },
     };
     add_integrity_proof(&mut outgoing_activity.activity, proof)
-        .map_err(|_| HttpError::InternalError)?;
+        .map_err(|_| MastodonError::InternalError)?;
 
     outgoing_activity.enqueue(db_client).await?;
 
@@ -350,7 +351,7 @@ async fn get_identity_claim(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<IdentityClaimQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let did = match query_params.proof_type.as_str() {
@@ -370,7 +371,7 @@ async fn get_identity_claim(
     };
     let actor_id = current_user.profile.actor_id(&config.instance_url());
     let claim = create_identity_claim(&actor_id, &did)
-        .map_err(|_| HttpError::InternalError)?;
+        .map_err(|_| MastodonError::InternalError)?;
     let response = IdentityClaim { did, claim };
     Ok(HttpResponse::Ok().json(response))
 }
@@ -382,7 +383,7 @@ async fn create_identity_proof(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     proof_data: web::Json<IdentityProofData>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     let did = proof_data.did.parse::<Did>()
@@ -469,7 +470,7 @@ async fn get_relationships_view(
     auth: BearerAuth,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<RelationshipQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let relationship = get_relationship(
@@ -486,7 +487,7 @@ async fn lookup_acct(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<LookupAcctQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_acct(db_client, &query_params.acct).await?;
     let account = Account::from_profile(
@@ -503,7 +504,7 @@ async fn search_by_acct(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<SearchAcctQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profiles = search_profiles_only(
         db_client,
@@ -528,7 +529,7 @@ async fn search_by_did(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<SearchDidQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let did: Did = query_params.did.parse()
         .map_err(|_| ValidationError("invalid DID"))?;
@@ -551,7 +552,7 @@ async fn get_account(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
     let account = Account::from_profile(
@@ -569,7 +570,7 @@ async fn follow_account(
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
     follow_data: web::Json<FollowData>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target = get_profile_by_id(db_client, &account_id).await?;
@@ -603,7 +604,7 @@ async fn unfollow_account(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target = get_profile_by_id(db_client, &account_id).await?;
@@ -611,7 +612,7 @@ async fn unfollow_account(
         Ok(Some(follow_request_id)) => {
             // Remote follow
             let remote_actor = target.actor_json
-                .ok_or(HttpError::InternalError)?;
+                .ok_or(MastodonError::InternalError)?;
             prepare_undo_follow(
                 &config.instance(),
                 &current_user,
@@ -640,7 +641,7 @@ async fn get_account_statuses(
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
     query_params: web::Query<StatusListQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let maybe_current_user = match auth {
         Some(auth) => Some(get_current_user(db_client, auth.token()).await?),
@@ -681,7 +682,7 @@ async fn get_account_followers(
     account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
     request: HttpRequest,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
@@ -725,7 +726,7 @@ async fn get_account_following(
     account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
     request: HttpRequest,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
@@ -768,7 +769,7 @@ async fn get_account_subscribers(
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
     query_params: web::Query<FollowListQueryParams>,
-) -> Result<HttpResponse, HttpError> {
+) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
