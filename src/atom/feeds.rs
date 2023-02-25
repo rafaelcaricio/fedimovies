@@ -44,8 +44,8 @@ fn make_entry(
     )
 }
 
-pub fn get_feed_url(instance_url: &str, username: &str) -> String {
-    format!("{}/feeds/{}", instance_url, username)
+fn get_feed_url(instance_url: &str, username: &str) -> String {
+    format!("{}/feeds/users/{}", instance_url, username)
 }
 
 pub fn make_feed(

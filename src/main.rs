@@ -11,7 +11,7 @@ use actix_web::{
 use tokio::sync::Mutex;
 
 use mitra::activitypub::views as activitypub;
-use mitra::atom::views as atom;
+use mitra::atom::views::atom_scope;
 use mitra::database::{get_database_client, create_pool};
 use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::contracts::get_contracts;
@@ -168,7 +168,7 @@ async fn main() -> std::io::Result<()> {
             .service(activitypub::object_view)
             .service(activitypub::emoji_view)
             .service(activitypub::tag_view)
-            .service(atom::get_atom_feed)
+            .service(atom_scope())
             .service(nodeinfo::get_nodeinfo)
             .service(nodeinfo::get_nodeinfo_2_0)
             .service(web_client::profile_page_redirect())

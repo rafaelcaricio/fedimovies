@@ -1,4 +1,4 @@
-use actix_web::{get, web, HttpResponse};
+use actix_web::{web, HttpResponse, Scope};
 
 use mitra_config::Config;
 
@@ -12,8 +12,7 @@ use super::feeds::make_feed;
 
 const FEED_SIZE: u16 = 10;
 
-#[get("/feeds/{username}")]
-pub async fn get_atom_feed(
+async fn get_atom_feed(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     username: web::Path<String>,
@@ -39,4 +38,11 @@ pub async fn get_atom_feed(
         .content_type("application/atom+xml")
         .body(feed);
     Ok(response)
+}
+
+
+pub fn atom_scope() -> Scope {
+    web::scope("/feeds")
+        .route("/users/{username}", web::get().to(get_atom_feed))
+        .route("/{username}", web::get().to(get_atom_feed))
 }
