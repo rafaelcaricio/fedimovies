@@ -136,6 +136,7 @@ pub async fn import_profile_by_actor_address(
     Ok(profile)
 }
 
+// Works with local profiles
 pub async fn get_or_import_profile_by_actor_address(
     db_client: &impl DatabaseClient,
     instance: &Instance,

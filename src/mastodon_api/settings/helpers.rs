@@ -20,7 +20,6 @@ use crate::errors::ValidationError;
 use crate::mastodon_api::accounts::helpers::follow_or_create_request;
 use crate::models::{
     posts::mentions::mention_to_address,
-    profiles::queries::get_profile_by_acct,
     profiles::types::DbActorProfile,
     relationships::queries::{
         follow,
@@ -128,14 +127,31 @@ pub async fn move_followers_task(
 ) -> Result<(), anyhow::Error> {
     let db_client = &mut **get_database_client(db_pool).await?;
     let instance = config.instance();
-    let mut followers = vec![];
+    let mut remote_followers = vec![];
     for follower_address in address_list {
-        let follower_acct = follower_address.acct(&instance.hostname());
-        // TODO: fetch unknown profiles
-        let follower = get_profile_by_acct(db_client, &follower_acct).await?;
+        let follower = match get_or_import_profile_by_actor_address(
+            db_client,
+            &instance,
+            &config.media_dir(),
+            &follower_address,
+        ).await {
+            Ok(profile) => profile,
+            Err(error @ (
+                HandlerError::FetchError(_) |
+                HandlerError::DatabaseError(DatabaseError::NotFound(_))
+            )) => {
+                log::warn!(
+                    "failed to import profile {}: {}",
+                    follower_address,
+                    error,
+                );
+                continue;
+            },
+            Err(other_error) => return Err(other_error.into()),
+        };
         if let Some(remote_actor) = follower.actor_json {
             // Add remote actor to activity recipients list
-            followers.push(remote_actor);
+            remote_followers.push(remote_actor);
         } else {
             // Immediately move local followers (only if alias can be verified)
             if let Some(ref from_profile) = maybe_from_profile {
@@ -170,7 +186,7 @@ pub async fn move_followers_task(
         &instance,
         &current_user,
         from_actor_id,
-        followers,
+        remote_followers,
         None,
     ).enqueue(db_client).await?;
     Ok(())
