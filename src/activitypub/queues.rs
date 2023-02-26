@@ -135,12 +135,12 @@ impl OutgoingActivityJobData {
 }
 
 const OUTGOING_QUEUE_BATCH_SIZE: u32 = 1;
-const OUTGOING_QUEUE_RETRIES_MAX: u32 = 2;
+const OUTGOING_QUEUE_RETRIES_MAX: u32 = 3;
 
-// 30 secs, 5 mins, 50 mins, 8 hours
+// 5 mins, 50 mins, 8 hours
 pub fn outgoing_queue_backoff(failure_count: u32) -> u32 {
     debug_assert!(failure_count > 0);
-    3 * 10_u32.pow(failure_count)
+    30 * 10_u32.pow(failure_count)
 }
 
 pub async fn process_queued_outgoing_activities(
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_outgoing_queue_backoff() {
-        assert_eq!(outgoing_queue_backoff(1), 30);
-        assert_eq!(outgoing_queue_backoff(2), 300);
+        assert_eq!(outgoing_queue_backoff(1), 300);
+        assert_eq!(outgoing_queue_backoff(2), 3000);
     }
 }
