@@ -5,7 +5,7 @@ use mitra_config::{Config, Instance};
 
 use crate::activitypub::{
     actors::helpers::{create_remote_profile, update_remote_profile},
-    handlers::create::handle_note,
+    handlers::create::{get_object_links, handle_note},
     identifiers::parse_local_object_id,
     receiver::HandlerError,
     types::Object,
@@ -192,6 +192,7 @@ pub async fn import_post(
         let object_id = match queue.pop() {
             Some(object_id) => {
                 if objects.iter().any(|object| object.id == object_id) {
+                    // Can happen due to redirections
                     log::warn!("loop detected");
                     continue;
                 };
@@ -253,9 +254,9 @@ pub async fn import_post(
             // Fetch parent object on next iteration
             queue.push(object_id.to_owned());
         };
-        if let Some(ref object_id) = object.quote_url {
-            // Fetch quoted object after fetching current thread
-            queue.insert(0, object_id.to_owned());
+        for object_id in get_object_links(&object)? {
+            // Fetch linked objects after fetching current thread
+            queue.insert(0, object_id);
         };
         maybe_object = None;
         objects.push(object);

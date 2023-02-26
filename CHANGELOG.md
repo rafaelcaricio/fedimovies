@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Make webfinger response compatible with GNU Social account lookup.
 - Prefer `Group` actor when doing webfinger query on Lemmy server.
 - Fetch missing profiles before doing follower migration.
+- Follow FEP-e232 links when importing post.
 
 ## [1.14.0] - 2023-02-22
 

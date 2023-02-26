@@ -197,6 +197,43 @@ pub async fn get_object_attachments(
     Ok((attachments, unprocessed))
 }
 
+pub fn get_object_links(
+    object: &Object,
+) -> Result<Vec<String>, HandlerError> {
+    let mut links = vec![];
+    if let Some(ref value) = object.tag {
+        let list: Vec<JsonValue> = parse_property_value(value)
+            .map_err(|_| ValidationError("invalid tag property"))?;
+        for tag_value in list {
+            let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
+            if tag_type == LINK {
+                let tag: LinkTag = match serde_json::from_value(tag_value) {
+                    Ok(tag) => tag,
+                    Err(_) => {
+                        log::warn!("invalid link tag");
+                        continue;
+                    },
+                };
+                if tag.media_type != AP_MEDIA_TYPE &&
+                    tag.media_type != AS_MEDIA_TYPE
+                {
+                    // Unknown media type
+                    continue;
+                };
+                if !links.contains(&tag.href) {
+                    links.push(tag.href);
+                };
+            };
+        };
+    };
+    if let Some(ref object_id) = object.quote_url {
+        if !links.contains(object_id) {
+            links.push(object_id.to_owned());
+        };
+    };
+    Ok(links)
+}
+
 pub async fn get_object_tags(
     config: &Config,
     db_client: &impl DatabaseClient,
