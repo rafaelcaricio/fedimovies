@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add empty `spoiler_text` property to Mastodon API Status object.
 - Added `error` and `error_description` fields to Mastodon API error responses.
 - Store information about failed activity deliveries in database.
+- Added `/api/v1/accounts/{account_id}/aliases` API endpoint.
 
 ### Changed
 

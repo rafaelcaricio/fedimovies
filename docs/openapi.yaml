@@ -544,6 +544,23 @@ paths:
                   $ref: '#/components/schemas/Subscription'
         404:
           description: Profile not found
+  /api/v1/accounts/{account_id}/aliases:
+    get:
+      summary: Get actor's aliases.
+      parameters:
+        - $ref: '#/components/parameters/account_id'
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                description: Profile list
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        404:
+          description: Profile not found
   /api/v1/accounts/{account_id}/follow:
     post:
       summary: Follow the given actor.
