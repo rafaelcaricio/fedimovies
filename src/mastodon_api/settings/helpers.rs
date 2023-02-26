@@ -3,6 +3,10 @@ use uuid::Uuid;
 use mitra_config::Config;
 
 use crate::activitypub::{
+    builders::{
+        move_person::prepare_move_person,
+        undo_follow::prepare_undo_follow,
+    },
     fetcher::helpers::get_or_import_profile_by_actor_address,
     HandlerError,
 };
@@ -15,9 +19,15 @@ use crate::database::{
 use crate::errors::ValidationError;
 use crate::mastodon_api::accounts::helpers::follow_or_create_request;
 use crate::models::{
-    profiles::types::DbActorProfile,
     posts::mentions::mention_to_address,
-    relationships::queries::{get_followers, get_following},
+    profiles::queries::get_profile_by_acct,
+    profiles::types::DbActorProfile,
+    relationships::queries::{
+        follow,
+        get_followers,
+        get_following,
+        unfollow,
+    },
     users::types::User,
 };
 use crate::webfinger::types::ActorAddress;
@@ -105,6 +115,64 @@ pub async fn import_follows_task(
             &profile,
         ).await?;
     };
+    Ok(())
+}
+
+pub async fn move_followers_task(
+    config: &Config,
+    db_pool: &DbPool,
+    current_user: User,
+    from_actor_id: &str,
+    maybe_from_profile: Option<DbActorProfile>,
+    address_list: Vec<ActorAddress>,
+) -> Result<(), anyhow::Error> {
+    let db_client = &mut **get_database_client(db_pool).await?;
+    let instance = config.instance();
+    let mut followers = vec![];
+    for follower_address in address_list {
+        let follower_acct = follower_address.acct(&instance.hostname());
+        // TODO: fetch unknown profiles
+        let follower = get_profile_by_acct(db_client, &follower_acct).await?;
+        if let Some(remote_actor) = follower.actor_json {
+            // Add remote actor to activity recipients list
+            followers.push(remote_actor);
+        } else {
+            // Immediately move local followers (only if alias can be verified)
+            if let Some(ref from_profile) = maybe_from_profile {
+                match unfollow(db_client, &follower.id, &from_profile.id).await {
+                    Ok(maybe_follow_request_id) => {
+                        // Send Undo(Follow) to a remote actor
+                        let remote_actor = from_profile.actor_json.as_ref()
+                            .expect("actor data must be present");
+                        let follow_request_id = maybe_follow_request_id
+                            .expect("follow request must exist");
+                        prepare_undo_follow(
+                            &instance,
+                            &current_user,
+                            remote_actor,
+                            &follow_request_id,
+                        ).enqueue(db_client).await?;
+                    },
+                    // Not a follower, ignore
+                    Err(DatabaseError::NotFound(_)) => continue,
+                    Err(other_error) => return Err(other_error.into()),
+                };
+                match follow(db_client, &follower.id, &current_user.id).await {
+                    Ok(_) => (),
+                    // Ignore if already following
+                    Err(DatabaseError::AlreadyExists(_)) => (),
+                    Err(other_error) => return Err(other_error.into()),
+                };
+            };
+        };
+    };
+    prepare_move_person(
+        &instance,
+        &current_user,
+        from_actor_id,
+        followers,
+        None,
+    ).enqueue(db_client).await?;
     Ok(())
 }
 

@@ -11,12 +11,6 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use mitra_config::Config;
 use mitra_utils::passwords::hash_password;
 
-use crate::activitypub::{
-    builders::{
-        move_person::prepare_move_person,
-        undo_follow::prepare_undo_follow,
-    },
-};
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::ValidationError;
 use crate::http::get_request_base_url;
@@ -27,14 +21,14 @@ use crate::mastodon_api::{
 };
 use crate::models::{
     profiles::helpers::find_aliases,
-    profiles::queries::{get_profile_by_acct, get_profile_by_remote_actor_id},
-    relationships::queries::{follow, unfollow},
+    profiles::queries::get_profile_by_remote_actor_id,
     users::queries::set_user_password,
 };
 use super::helpers::{
     export_followers,
     export_follows,
     import_follows_task,
+    move_followers_task,
     parse_address_list,
 };
 use super::types::{
@@ -158,52 +152,20 @@ async fn move_followers(
             return Err(ValidationError("old profile is not an alias").into());
         };
     };
-    let mut followers = vec![];
     let address_list = parse_address_list(&request_data.followers_csv)?;
-    for follower_address in address_list {
-        let follower_acct = follower_address.acct(&instance.hostname());
-        // TODO: fetch unknown profiles
-        let follower = get_profile_by_acct(db_client, &follower_acct).await?;
-        if let Some(remote_actor) = follower.actor_json {
-            // Add remote actor to activity recipients list
-            followers.push(remote_actor);
-        } else {
-            // Immediately move local followers (only if alias can be verified)
-            if let Some(ref from_profile) = maybe_from_profile {
-                match unfollow(db_client, &follower.id, &from_profile.id).await {
-                    Ok(maybe_follow_request_id) => {
-                        // Send Undo(Follow) to a remote actor
-                        let remote_actor = from_profile.actor_json.as_ref()
-                            .expect("actor data must be present");
-                        let follow_request_id = maybe_follow_request_id
-                            .expect("follow request must exist");
-                        prepare_undo_follow(
-                            &instance,
-                            &current_user,
-                            remote_actor,
-                            &follow_request_id,
-                        ).enqueue(db_client).await?;
-                    },
-                    // Not a follower, ignore
-                    Err(DatabaseError::NotFound(_)) => continue,
-                    Err(other_error) => return Err(other_error.into()),
-                };
-                match follow(db_client, &follower.id, &current_user.id).await {
-                    Ok(_) => (),
-                    // Ignore if already following
-                    Err(DatabaseError::AlreadyExists(_)) => (),
-                    Err(other_error) => return Err(other_error.into()),
-                };
-            };
-        };
-    };
-    prepare_move_person(
-        &instance,
-        &current_user,
-        &request_data.from_actor_id,
-        followers,
-        None,
-    ).enqueue(db_client).await?;
+    let current_user_clone = current_user.clone();
+    tokio::spawn(async move {
+        move_followers_task(
+            &config,
+            &db_pool,
+            current_user_clone,
+            &request_data.from_actor_id,
+            maybe_from_profile,
+            address_list,
+        ).await.unwrap_or_else(|error| {
+            log::error!("move followers: {}", error);
+        });
+    });
 
     let account = Account::from_user(
         &get_request_base_url(connection_info),
