@@ -115,20 +115,18 @@ fn deserialize_image_opt<'de, D>(
 }
 
 // Some implementations use single object instead of array
-fn deserialize_attachments_opt<'de, D>(
+fn deserialize_attachments<'de, D>(
     deserializer: D,
-) -> Result<Option<Vec<ActorAttachment>>, D::Error>
+) -> Result<Vec<ActorAttachment>, D::Error>
     where D: Deserializer<'de>
 {
     let maybe_value: Option<Value> = Option::deserialize(deserializer)?;
-    let maybe_attachments = if let Some(value) = maybe_value {
-        let attachments: Vec<ActorAttachment> = parse_property_value(&value)
-            .map_err(DeserializerError::custom)?;
-        Some(attachments)
+    let attachments = if let Some(value) = maybe_value {
+        parse_property_value(&value).map_err(DeserializerError::custom)?
     } else {
-        None
+        vec![]
     };
-    Ok(maybe_attachments)
+    Ok(attachments)
 }
 
 // Clone and Debug traits are required by FromSql
@@ -179,10 +177,10 @@ pub struct Actor {
 
     #[serde(
         default,
-        deserialize_with = "deserialize_attachments_opt",
-        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_attachments",
+        skip_serializing_if = "Vec::is_empty",
     )]
-    pub attachment: Option<Vec<ActorAttachment>>,
+    pub attachment: Vec<ActorAttachment>,
 
     #[serde(default)]
     pub manually_approves_followers: bool,
@@ -222,34 +220,32 @@ impl Actor {
                 error,
             );
         };
-        if let Some(attachments) = &self.attachment {
-            for attachment in attachments {
-                match attachment.object_type.as_str() {
-                    IDENTITY_PROOF => {
-                        match parse_identity_proof(&self.id, attachment) {
-                            Ok(proof) => identity_proofs.push(proof),
-                            Err(error) => log_error(attachment, error),
-                        };
-                    },
-                    LINK => {
-                        match parse_payment_option(attachment) {
-                            Ok(option) => payment_options.push(option),
-                            Err(error) => log_error(attachment, error),
-                        };
-                    },
-                    PROPERTY_VALUE => {
-                        match parse_extra_field(attachment) {
-                            Ok(field) => extra_fields.push(field),
-                            Err(error) => log_error(attachment, error),
-                        };
-                    },
-                    _ => {
-                        log_error(
-                            attachment,
-                            ValidationError("unsupported attachment type"),
-                        );
-                    },
-                };
+        for attachment in self.attachment.iter() {
+            match attachment.object_type.as_str() {
+                IDENTITY_PROOF => {
+                    match parse_identity_proof(&self.id, attachment) {
+                        Ok(proof) => identity_proofs.push(proof),
+                        Err(error) => log_error(attachment, error),
+                    };
+                },
+                LINK => {
+                    match parse_payment_option(attachment) {
+                        Ok(option) => payment_options.push(option),
+                        Err(error) => log_error(attachment, error),
+                    };
+                },
+                PROPERTY_VALUE => {
+                    match parse_extra_field(attachment) {
+                        Ok(field) => extra_fields.push(field),
+                        Err(error) => log_error(attachment, error),
+                    };
+                },
+                _ => {
+                    log_error(
+                        attachment,
+                        ValidationError("unsupported attachment type"),
+                    );
+                },
             };
         };
         (identity_proofs, payment_options, extra_fields)
@@ -353,7 +349,7 @@ pub fn get_local_actor(
         image: banner,
         summary: user.profile.bio.clone(),
         also_known_as: None,
-        attachment: Some(attachments),
+        attachment: attachments,
         manually_approves_followers: false,
         tag: None,
         url: Some(actor_id),
@@ -389,7 +385,7 @@ pub fn get_instance_actor(
         image: None,
         summary: None,
         also_known_as: None,
-        attachment: None,
+        attachment: vec![],
         manually_approves_followers: false,
         tag: None,
         url: None,
@@ -455,7 +451,7 @@ mod tests {
             actor.public_key.id,
             "https://example.com/users/testuser#main-key",
         );
-        assert_eq!(actor.attachment.unwrap().len(), 0);
+        assert_eq!(actor.attachment.len(), 0);
         assert_eq!(actor.summary, user.profile.bio);
     }
 
