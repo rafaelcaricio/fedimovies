@@ -1,27 +1,27 @@
 # Mitra
 
-Federated micro-blogging platform and content subscription service.
+Federated micro-blogging platform.
 
 Built on [ActivityPub](https://www.w3.org/TR/activitypub/) protocol, self-hosted, lightweight. Part of the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
-Subscriptions provide a way to receive monthly payments from subscribers and to publish private content made exclusively for them.
+Features:
 
-Supported payment methods:
-
-- [Monero](https://www.getmonero.org/get-started/what-is-monero/).
-- [ERC-20](https://ethereum.org/en/developers/docs/standards/tokens/erc-20/) tokens (on Ethereum and other EVM-compatible blockchains).
-
-Other features:
-
+- Micro-blogging service (includes support for quote posts, custom emojis and more).
+- Mastodon API.
+- Content subscription service. Subscriptions provide a way to receive monthly payments from subscribers and to publish private content made exclusively for them.
+  - Supported payment methods: [Monero](https://www.getmonero.org/get-started/what-is-monero/) and [ERC-20](https://ethereum.org/en/developers/docs/standards/tokens/erc-20/) tokens (on Ethereum and other EVM-compatible blockchains).
 - [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
-- Account migrations (from one server to another).
+- Account migrations (from one server to another). Identity can be detached from the server.
 - Donation buttons.
 
 Follow: [@mitra@mitra.social](https://mitra.social/@mitra)
 
 Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
 
-Network stats: [FediList](http://demo.fedilist.com/instance?software=mitra) / [Fediverse Observer](https://mitra.fediverse.observer/list)
+## Instances
+
+- [FediList](http://demo.fedilist.com/instance?software=mitra)
+- [Fediverse Observer](https://mitra.fediverse.observer/list)
 
 Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about))
 
