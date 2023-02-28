@@ -1,7 +1,12 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Deserializer,
+    Serialize,
+    de::{Error as DeserializerError},
+};
 use serde_json::Value;
 
 use super::constants::{
@@ -10,6 +15,7 @@ use super::constants::{
     W3ID_DATA_INTEGRITY_CONTEXT,
     W3ID_SECURITY_CONTEXT,
 };
+use super::receiver::parse_property_value;
 use super::vocabulary::HASHTAG;
 
 #[derive(Deserialize, Serialize)]
@@ -82,6 +88,20 @@ pub struct EmojiTag {
     pub updated: DateTime<Utc>,
 }
 
+fn deserialize_value_array<'de, D>(
+    deserializer: D,
+) -> Result<Vec<Value>, D::Error>
+    where D: Deserializer<'de>
+{
+    let maybe_value: Option<Value> = Option::deserialize(deserializer)?;
+    let values = if let Some(value) = maybe_value {
+        parse_property_value(&value).map_err(DeserializerError::custom)?
+    } else {
+        vec![]
+    };
+    Ok(values)
+}
+
 #[derive(Deserialize)]
 #[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
@@ -102,7 +122,13 @@ pub struct Object {
     pub in_reply_to: Option<String>,
     pub content: Option<String>,
     pub quote_url: Option<String>,
-    pub tag: Option<Value>,
+
+    #[serde(
+        default,
+        deserialize_with = "deserialize_value_array",
+    )]
+    pub tag: Vec<Value>,
+
     pub to: Option<Value>,
     pub updated: Option<DateTime<Utc>>,
     pub url: Option<Value>,

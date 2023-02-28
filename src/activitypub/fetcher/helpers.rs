@@ -254,7 +254,7 @@ pub async fn import_post(
             // Fetch parent object on next iteration
             queue.push(object_id.to_owned());
         };
-        for object_id in get_object_links(&object)? {
+        for object_id in get_object_links(&object) {
             // Fetch linked objects after fetching current thread
             queue.insert(0, object_id);
         };

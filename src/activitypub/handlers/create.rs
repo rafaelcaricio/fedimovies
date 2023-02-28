@@ -199,30 +199,26 @@ pub async fn get_object_attachments(
 
 pub fn get_object_links(
     object: &Object,
-) -> Result<Vec<String>, HandlerError> {
+) -> Vec<String> {
     let mut links = vec![];
-    if let Some(ref value) = object.tag {
-        let list: Vec<JsonValue> = parse_property_value(value)
-            .map_err(|_| ValidationError("invalid tag property"))?;
-        for tag_value in list {
-            let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
-            if tag_type == LINK {
-                let tag: LinkTag = match serde_json::from_value(tag_value) {
-                    Ok(tag) => tag,
-                    Err(_) => {
-                        log::warn!("invalid link tag");
-                        continue;
-                    },
-                };
-                if tag.media_type != AP_MEDIA_TYPE &&
-                    tag.media_type != AS_MEDIA_TYPE
-                {
-                    // Unknown media type
+    for tag_value in object.tag.clone() {
+        let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
+        if tag_type == LINK {
+            let tag: LinkTag = match serde_json::from_value(tag_value) {
+                Ok(tag) => tag,
+                Err(_) => {
+                    log::warn!("invalid link tag");
                     continue;
-                };
-                if !links.contains(&tag.href) {
-                    links.push(tag.href);
-                };
+                },
+            };
+            if tag.media_type != AP_MEDIA_TYPE &&
+                tag.media_type != AS_MEDIA_TYPE
+            {
+                // Unknown media type
+                continue;
+            };
+            if !links.contains(&tag.href) {
+                links.push(tag.href);
             };
         };
     };
@@ -231,7 +227,7 @@ pub fn get_object_links(
             links.push(object_id.to_owned());
         };
     };
-    Ok(links)
+    links
 }
 
 pub async fn get_object_tags(
@@ -246,220 +242,216 @@ pub async fn get_object_tags(
     let mut hashtags = vec![];
     let mut links = vec![];
     let mut emojis = vec![];
-    if let Some(ref value) = object.tag {
-        let list: Vec<JsonValue> = parse_property_value(value)
-            .map_err(|_| ValidationError("invalid tag property"))?;
-        for tag_value in list {
-            let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
-            if tag_type == HASHTAG {
-                let tag: Tag = match serde_json::from_value(tag_value) {
-                    Ok(tag) => tag,
-                    Err(_) => {
-                        log::warn!("invalid hashtag");
-                        continue;
-                    },
-                };
-                if let Some(tag_name) = tag.name {
-                    // Ignore invalid tags
-                    if let Ok(tag_name) = normalize_hashtag(&tag_name) {
-                        if !hashtags.contains(&tag_name) {
-                            hashtags.push(tag_name);
-                        };
+    for tag_value in object.tag.clone() {
+        let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
+        if tag_type == HASHTAG {
+            let tag: Tag = match serde_json::from_value(tag_value) {
+                Ok(tag) => tag,
+                Err(_) => {
+                    log::warn!("invalid hashtag");
+                    continue;
+                },
+            };
+            if let Some(tag_name) = tag.name {
+                // Ignore invalid tags
+                if let Ok(tag_name) = normalize_hashtag(&tag_name) {
+                    if !hashtags.contains(&tag_name) {
+                        hashtags.push(tag_name);
                     };
                 };
-            } else if tag_type == MENTION {
-                let tag: Tag = match serde_json::from_value(tag_value) {
-                    Ok(tag) => tag,
-                    Err(_) => {
-                        log::warn!("invalid mention");
-                        continue;
-                    },
-                };
-                // Try to find profile by actor ID.
-                if let Some(href) = tag.href {
-                    if let Ok(username) = parse_local_actor_id(&instance.url(), &href) {
-                        let user = get_user_by_name(db_client, &username).await?;
-                        if !mentions.contains(&user.id) {
-                            mentions.push(user.id);
-                        };
-                        continue;
+            };
+        } else if tag_type == MENTION {
+            let tag: Tag = match serde_json::from_value(tag_value) {
+                Ok(tag) => tag,
+                Err(_) => {
+                    log::warn!("invalid mention");
+                    continue;
+                },
+            };
+            // Try to find profile by actor ID.
+            if let Some(href) = tag.href {
+                if let Ok(username) = parse_local_actor_id(&instance.url(), &href) {
+                    let user = get_user_by_name(db_client, &username).await?;
+                    if !mentions.contains(&user.id) {
+                        mentions.push(user.id);
                     };
-                    // NOTE: `href` attribute is usually actor ID
-                    // but also can be actor URL (profile link).
-                    match get_or_import_profile_by_actor_id(
-                        db_client,
-                        &instance,
-                        &media_dir,
-                        &href,
-                    ).await {
-                        Ok(profile) => {
-                            if !mentions.contains(&profile.id) {
-                                mentions.push(profile.id);
-                            };
-                            continue;
-                        },
-                        Err(error) => {
-                            log::warn!(
-                                "failed to find mentioned profile by ID {}: {}",
-                                href,
-                                error,
-                            );
-                        },
-                    };
-                };
-                // Try to find profile by actor address
-                let tag_name = match tag.name {
-                    Some(name) => name,
-                    None => {
-                        log::warn!("failed to parse mention");
-                        continue;
-                    },
-                };
-                if let Ok(actor_address) = mention_to_address(&tag_name) {
-                    let profile = match get_or_import_profile_by_actor_address(
-                        db_client,
-                        &instance,
-                        &media_dir,
-                        &actor_address,
-                    ).await {
-                        Ok(profile) => profile,
-                        Err(error @ (
-                            HandlerError::FetchError(_) |
-                            HandlerError::DatabaseError(DatabaseError::NotFound(_))
-                        )) => {
-                            // Ignore mention if fetcher fails
-                            // Ignore mention if local address is not valid
-                            log::warn!(
-                                "failed to find mentioned profile {}: {}",
-                                actor_address,
-                                error,
-                            );
-                            continue;
-                        },
-                        Err(other_error) => return Err(other_error),
-                    };
-                    if !mentions.contains(&profile.id) {
-                        mentions.push(profile.id);
-                    };
-                } else {
-                    log::warn!("failed to parse mention {}", tag_name);
-                };
-            } else if tag_type == LINK {
-                let tag: LinkTag = match serde_json::from_value(tag_value) {
-                    Ok(tag) => tag,
-                    Err(_) => {
-                        log::warn!("invalid link tag");
-                        continue;
-                    },
-                };
-                if tag.media_type != AP_MEDIA_TYPE &&
-                    tag.media_type != AS_MEDIA_TYPE
-                {
-                    // Unknown media type
                     continue;
                 };
-                let href = redirects.get(&tag.href).unwrap_or(&tag.href);
-                let linked = get_post_by_object_id(
+                // NOTE: `href` attribute is usually actor ID
+                // but also can be actor URL (profile link).
+                match get_or_import_profile_by_actor_id(
                     db_client,
-                    &instance.url(),
-                    href,
-                ).await?;
-                if !links.contains(&linked.id) {
-                    links.push(linked.id);
-                };
-            } else if tag_type == EMOJI {
-                let tag: EmojiTag = match serde_json::from_value(tag_value) {
-                    Ok(tag) => tag,
-                    Err(error) => {
-                        log::warn!("invalid emoji tag: {}", error);
-                        continue;
-                    },
-                };
-                if emojis.len() >= EMOJIS_MAX_NUM {
-                    log::warn!("too many emojis");
-                    continue;
-                };
-                let tag_name = tag.name.trim_matches(':');
-                if validate_emoji_name(tag_name).is_err() {
-                    log::warn!("invalid emoji name");
-                    continue;
-                };
-                let maybe_emoji_id = match get_emoji_by_remote_object_id(
-                    db_client,
-                    &tag.id,
-                ).await {
-                    Ok(emoji) => {
-                        if emoji.updated_at >= tag.updated {
-                            // Emoji already exists and is up to date
-                            if !emojis.contains(&emoji.id) {
-                                emojis.push(emoji.id);
-                            };
-                            continue;
-                        };
-                        if emoji.emoji_name != tag_name {
-                            log::warn!("emoji name can't be changed");
-                            continue;
-                        };
-                        Some(emoji.id)
-                    },
-                    Err(DatabaseError::NotFound("emoji")) => None,
-                    Err(other_error) => return Err(other_error.into()),
-                };
-                let (file_name, file_size, maybe_media_type) = match fetch_file(
                     &instance,
-                    &tag.icon.url,
-                    tag.icon.media_type.as_deref(),
-                    EMOJI_MAX_SIZE,
                     &media_dir,
+                    &href,
                 ).await {
-                    Ok(file) => file,
-                    Err(error) => {
-                        log::warn!("failed to fetch emoji: {}", error);
+                    Ok(profile) => {
+                        if !mentions.contains(&profile.id) {
+                            mentions.push(profile.id);
+                        };
                         continue;
                     },
-                };
-                let media_type = match maybe_media_type {
-                    Some(media_type) if EMOJI_MEDIA_TYPES.contains(&media_type.as_str()) => {
-                        media_type
-                    },
-                    _ => {
+                    Err(error) => {
                         log::warn!(
-                            "unexpected emoji media type: {:?}",
-                            maybe_media_type,
+                            "failed to find mentioned profile by ID {}: {}",
+                            href,
+                            error,
+                        );
+                    },
+                };
+            };
+            // Try to find profile by actor address
+            let tag_name = match tag.name {
+                Some(name) => name,
+                None => {
+                    log::warn!("failed to parse mention");
+                    continue;
+                },
+            };
+            if let Ok(actor_address) = mention_to_address(&tag_name) {
+                let profile = match get_or_import_profile_by_actor_address(
+                    db_client,
+                    &instance,
+                    &media_dir,
+                    &actor_address,
+                ).await {
+                    Ok(profile) => profile,
+                    Err(error @ (
+                        HandlerError::FetchError(_) |
+                        HandlerError::DatabaseError(DatabaseError::NotFound(_))
+                    )) => {
+                        // Ignore mention if fetcher fails
+                        // Ignore mention if local address is not valid
+                        log::warn!(
+                            "failed to find mentioned profile {}: {}",
+                            actor_address,
+                            error,
                         );
                         continue;
                     },
+                    Err(other_error) => return Err(other_error),
                 };
-                log::info!("downloaded emoji {}", tag.icon.url);
-                let image = EmojiImage { file_name, file_size, media_type };
-                let emoji = if let Some(emoji_id) = maybe_emoji_id {
-                    update_emoji(
-                        db_client,
-                        &emoji_id,
-                        image,
-                        &tag.updated,
-                    ).await?
-                } else {
-                    let hostname = get_hostname(&tag.id)
-                        .map_err(|_| ValidationError("invalid emoji ID"))?;
-                    create_emoji(
-                        db_client,
-                        tag_name,
-                        Some(&hostname),
-                        image,
-                        Some(&tag.id),
-                        &tag.updated,
-                    ).await?
-                };
-                if !emojis.contains(&emoji.id) {
-                    emojis.push(emoji.id);
+                if !mentions.contains(&profile.id) {
+                    mentions.push(profile.id);
                 };
             } else {
-                log::warn!(
-                    "skipping tag of type {}",
-                    tag_type,
-                );
+                log::warn!("failed to parse mention {}", tag_name);
             };
+        } else if tag_type == LINK {
+            let tag: LinkTag = match serde_json::from_value(tag_value) {
+                Ok(tag) => tag,
+                Err(_) => {
+                    log::warn!("invalid link tag");
+                    continue;
+                },
+            };
+            if tag.media_type != AP_MEDIA_TYPE &&
+                tag.media_type != AS_MEDIA_TYPE
+            {
+                // Unknown media type
+                continue;
+            };
+            let href = redirects.get(&tag.href).unwrap_or(&tag.href);
+            let linked = get_post_by_object_id(
+                db_client,
+                &instance.url(),
+                href,
+            ).await?;
+            if !links.contains(&linked.id) {
+                links.push(linked.id);
+            };
+        } else if tag_type == EMOJI {
+            let tag: EmojiTag = match serde_json::from_value(tag_value) {
+                Ok(tag) => tag,
+                Err(error) => {
+                    log::warn!("invalid emoji tag: {}", error);
+                    continue;
+                },
+            };
+            if emojis.len() >= EMOJIS_MAX_NUM {
+                log::warn!("too many emojis");
+                continue;
+            };
+            let tag_name = tag.name.trim_matches(':');
+            if validate_emoji_name(tag_name).is_err() {
+                log::warn!("invalid emoji name");
+                continue;
+            };
+            let maybe_emoji_id = match get_emoji_by_remote_object_id(
+                db_client,
+                &tag.id,
+            ).await {
+                Ok(emoji) => {
+                    if emoji.updated_at >= tag.updated {
+                        // Emoji already exists and is up to date
+                        if !emojis.contains(&emoji.id) {
+                            emojis.push(emoji.id);
+                        };
+                        continue;
+                    };
+                    if emoji.emoji_name != tag_name {
+                        log::warn!("emoji name can't be changed");
+                        continue;
+                    };
+                    Some(emoji.id)
+                },
+                Err(DatabaseError::NotFound("emoji")) => None,
+                Err(other_error) => return Err(other_error.into()),
+            };
+            let (file_name, file_size, maybe_media_type) = match fetch_file(
+                &instance,
+                &tag.icon.url,
+                tag.icon.media_type.as_deref(),
+                EMOJI_MAX_SIZE,
+                &media_dir,
+            ).await {
+                Ok(file) => file,
+                Err(error) => {
+                    log::warn!("failed to fetch emoji: {}", error);
+                    continue;
+                },
+            };
+            let media_type = match maybe_media_type {
+                Some(media_type) if EMOJI_MEDIA_TYPES.contains(&media_type.as_str()) => {
+                    media_type
+                },
+                _ => {
+                    log::warn!(
+                        "unexpected emoji media type: {:?}",
+                        maybe_media_type,
+                    );
+                    continue;
+                },
+            };
+            log::info!("downloaded emoji {}", tag.icon.url);
+            let image = EmojiImage { file_name, file_size, media_type };
+            let emoji = if let Some(emoji_id) = maybe_emoji_id {
+                update_emoji(
+                    db_client,
+                    &emoji_id,
+                    image,
+                    &tag.updated,
+                ).await?
+            } else {
+                let hostname = get_hostname(&tag.id)
+                    .map_err(|_| ValidationError("invalid emoji ID"))?;
+                create_emoji(
+                    db_client,
+                    tag_name,
+                    Some(&hostname),
+                    image,
+                    Some(&tag.id),
+                    &tag.updated,
+                ).await?
+            };
+            if !emojis.contains(&emoji.id) {
+                emojis.push(emoji.id);
+            };
+        } else {
+            log::warn!(
+                "skipping tag of type {}",
+                tag_type,
+            );
         };
     };
     if let Some(ref object_id) = object.quote_url {
