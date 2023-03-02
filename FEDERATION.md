@@ -86,6 +86,10 @@ Canonicalization algorithm: JCS
 Hashing algorithm: BLAKE2b-512  
 Signature algorithm: EdDSA
 
+## Custom emojis
+
+Custom emojis are implemented as described in Mastodon documentation: https://docs.joinmastodon.org/spec/activitypub/#emoji.
+
 ## Profile extensions
 
 ### Cryptocurrency addresses
