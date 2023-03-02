@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Allow to add notes to generated invite codes.
+
 ## [1.15.0] - 2023-02-27
 
 ### Added

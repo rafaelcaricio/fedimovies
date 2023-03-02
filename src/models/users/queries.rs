@@ -12,36 +12,43 @@ use crate::models::{
     profiles::queries::create_profile,
     profiles::types::{DbActorProfile, ProfileCreateData},
 };
-use super::types::{DbUser, Role, User, UserCreateData};
+use super::types::{
+    DbInviteCode,
+    DbUser,
+    Role,
+    User,
+    UserCreateData,
+};
 use super::utils::generate_invite_code;
 
 pub async fn create_invite_code(
     db_client: &impl DatabaseClient,
+    note: Option<&str>,
 ) -> Result<String, DatabaseError> {
     let invite_code = generate_invite_code();
     db_client.execute(
         "
-        INSERT INTO user_invite_code (code)
-        VALUES ($1)
+        INSERT INTO user_invite_code (code, note)
+        VALUES ($1, $2)
         ",
-        &[&invite_code],
+        &[&invite_code, &note],
     ).await?;
     Ok(invite_code)
 }
 
 pub async fn get_invite_codes(
     db_client: &impl DatabaseClient,
-) -> Result<Vec<String>, DatabaseError> {
+) -> Result<Vec<DbInviteCode>, DatabaseError> {
     let rows = db_client.query(
         "
-        SELECT code
+        SELECT user_invite_code
         FROM user_invite_code
         WHERE used = FALSE
         ",
         &[],
     ).await?;
-    let codes: Vec<String> = rows.iter()
-        .map(|row| row.try_get("code"))
+    let codes = rows.iter()
+        .map(|row| row.try_get("user_invite_code"))
         .collect::<Result<_, _>>()?;
     Ok(codes)
 }
@@ -298,6 +305,14 @@ mod tests {
     use crate::database::test_utils::create_test_database;
     use crate::models::users::types::Role;
     use super::*;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_create_invite_code() {
+        let db_client = &mut create_test_database().await;
+        let code = create_invite_code(db_client, Some("test")).await.unwrap();
+        assert_eq!(code.len(), 32);
+    }
 
     #[tokio::test]
     #[serial]

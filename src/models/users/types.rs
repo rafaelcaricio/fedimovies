@@ -13,6 +13,16 @@ use crate::errors::ValidationError;
 use crate::identity::did::Did;
 use crate::models::profiles::types::DbActorProfile;
 
+#[allow(dead_code)]
+#[derive(FromSql)]
+#[postgres(name = "user_invite_code")]
+pub struct DbInviteCode {
+    pub code: String,
+    used: bool,
+    pub note: Option<String>,
+    created_at: DateTime<Utc>,
+}
+
 #[derive(PartialEq)]
 pub enum Permission {
     CreateFollowRequest,

@@ -117,14 +117,19 @@ impl GenerateEthereumAddress {
 
 /// Generate invite code
 #[derive(Parser)]
-pub struct GenerateInviteCode;
+pub struct GenerateInviteCode {
+    note: Option<String>,
+}
 
 impl GenerateInviteCode {
     pub async fn execute(
         &self,
         db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        let invite_code = create_invite_code(db_client).await?;
+        let invite_code = create_invite_code(
+            db_client,
+            self.note.as_deref(),
+        ).await?;
         println!("generated invite code: {}", invite_code);
         Ok(())
     }
@@ -144,8 +149,12 @@ impl ListInviteCodes {
             println!("no invite codes found");
             return Ok(());
         };
-        for code in invite_codes {
-            println!("{}", code);
+        for invite_code in invite_codes {
+            if let Some(note) = invite_code.note {
+                println!("{} ({})", invite_code.code, note);
+            } else {
+                println!("{}", invite_code.code);
+            };
         };
         Ok(())
     }

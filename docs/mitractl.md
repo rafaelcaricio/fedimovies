@@ -20,10 +20,10 @@ Generate RSA private key:
 mitractl generate-rsa-key
 ```
 
-Generate invite code:
+Generate invite code (note is optional):
 
 ```shell
-mitractl generate-invite-code
+mitractl generate-invite-code <note>
 ```
 
 List generated invites:
