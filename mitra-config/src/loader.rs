@@ -13,8 +13,9 @@ use mitra_utils::{
     files::{set_file_permissions, write_file},
 };
 
-use super::config::{Config, RegistrationType};
+use super::config::Config;
 use super::environment::Environment;
+use super::registration::RegistrationType;
 
 struct EnvConfig {
     config_path: String,
