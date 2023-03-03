@@ -15,7 +15,7 @@ pub use blockchain::{
 pub use config::{Config, Instance};
 pub use environment::Environment;
 pub use loader::parse_config;
-pub use registration::RegistrationType;
+pub use registration::{DefaultRole, RegistrationType};
 
 pub const MITRA_VERSION: &str = env!("CARGO_PKG_VERSION");
 

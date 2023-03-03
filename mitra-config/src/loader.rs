@@ -15,7 +15,7 @@ use mitra_utils::{
 
 use super::config::Config;
 use super::environment::Environment;
-use super::registration::RegistrationType;
+use super::registration::{DefaultRole, RegistrationType};
 
 struct EnvConfig {
     config_path: String,
@@ -122,6 +122,14 @@ pub fn parse_config() -> (Config, Vec<&'static str>) {
             config.registration.registration_type = RegistrationType::Open;
         } else {
             config.registration.registration_type = RegistrationType::Invite;
+        };
+    };
+    if let Some(read_only_user) = config.registration.default_role_read_only_user {
+        warnings.push("'default_role_read_only_user' setting is deprecated, use 'registration.default_role' instead");
+        if read_only_user {
+            config.registration.default_role = DefaultRole::ReadOnlyUser;
+        } else {
+            config.registration.default_role = DefaultRole::NormalUser;
         };
     };
     if let Some(post_character_limit) = config.post_character_limit {

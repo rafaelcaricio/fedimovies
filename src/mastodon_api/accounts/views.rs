@@ -11,7 +11,7 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
-use mitra_config::{Config, RegistrationType};
+use mitra_config::{Config, DefaultRole, RegistrationType};
 use mitra_utils::{
     caip2::ChainId,
     canonicalization::canonicalize_object,
@@ -184,10 +184,9 @@ pub async fn create_account(
 
     let AccountCreateData { username, invite_code, .. } =
         account_data.into_inner();
-    let role = if config.registration.default_role_read_only_user {
-        Role::ReadOnlyUser
-    } else {
-        Role::NormalUser
+    let role = match config.registration.default_role {
+        DefaultRole::NormalUser => Role::NormalUser,
+        DefaultRole::ReadOnlyUser => Role::ReadOnlyUser,
     };
     let user_data = UserCreateData {
         username,

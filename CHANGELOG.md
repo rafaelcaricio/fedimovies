@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Allow to add notes to generated invite codes.
+- Added `registration.default_role` configuration option.
+
+### Deprecated
+
+- Deprecated `default_role_read_only_user` configuration option (replaced by `registration.default_role`).
 
 ## [1.15.0] - 2023-02-27
 
