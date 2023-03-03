@@ -1,13 +1,11 @@
 use std::path::Path;
 
-use serde_json::{Value as JsonValue};
-
 use mitra_config::Instance;
 
 use crate::activitypub::{
     actors::types::Actor,
     fetcher::fetchers::fetch_file,
-    receiver::{parse_property_value, HandlerError},
+    receiver::HandlerError,
 };
 use crate::database::DatabaseClient;
 use crate::models::{
@@ -81,14 +79,8 @@ async fn fetch_actor_images(
 }
 
 fn parse_tags(actor: &Actor) -> () {
-    if let Some(ref tag_list_value) = actor.tag {
-        let maybe_tag_list: Option<Vec<JsonValue>> =
-            parse_property_value(tag_list_value).ok();
-        if let Some(tag_list) = maybe_tag_list {
-            for tag_value in tag_list {
-                log::debug!("found actor tag: {}", tag_value);
-            };
-        };
+    for tag_value in &actor.tag {
+        log::debug!("found actor tag: {}", tag_value);
     };
 }
 

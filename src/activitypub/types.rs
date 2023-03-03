@@ -88,7 +88,7 @@ pub struct EmojiTag {
     pub updated: DateTime<Utc>,
 }
 
-fn deserialize_value_array<'de, D>(
+pub fn deserialize_value_array<'de, D>(
     deserializer: D,
 ) -> Result<Vec<Value>, D::Error>
     where D: Deserializer<'de>

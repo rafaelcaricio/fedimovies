@@ -29,6 +29,7 @@ use crate::activitypub::{
         LocalActorCollection,
     },
     receiver::parse_property_value,
+    types::deserialize_value_array,
     vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
 };
 use crate::errors::ValidationError;
@@ -185,8 +186,12 @@ pub struct Actor {
     #[serde(default)]
     pub manually_approves_followers: bool,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tag: Option<Value>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_value_array",
+        skip_serializing_if = "Vec::is_empty",
+    )]
+    pub tag: Vec<Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
@@ -351,7 +356,7 @@ pub fn get_local_actor(
         also_known_as: None,
         attachment: attachments,
         manually_approves_followers: false,
-        tag: None,
+        tag: vec![],
         url: Some(actor_id),
     };
     Ok(actor)
@@ -387,7 +392,7 @@ pub fn get_instance_actor(
         also_known_as: None,
         attachment: vec![],
         manually_approves_followers: false,
-        tag: None,
+        tag: vec![],
         url: None,
     };
     Ok(actor)
