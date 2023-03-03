@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Allow to add notes to generated invite codes.
 - Added `registration.default_role` configuration option.
+- Save emojis attached to actor objects.
 
 ### Deprecated
 

@@ -5,10 +5,13 @@ use mitra_config::Instance;
 use crate::activitypub::{
     actors::types::Actor,
     fetcher::fetchers::fetch_file,
+    handlers::create::handle_emoji,
     receiver::HandlerError,
+    vocabulary::{EMOJI, HASHTAG},
 };
 use crate::database::DatabaseClient;
 use crate::models::{
+    posts::validators::EMOJIS_MAX_NUM,
     profiles::queries::{create_profile, update_profile},
     profiles::types::{
         DbActorProfile,
@@ -78,10 +81,38 @@ async fn fetch_actor_images(
     (maybe_avatar, maybe_banner)
 }
 
-fn parse_tags(actor: &Actor) -> () {
-    for tag_value in &actor.tag {
-        log::debug!("found actor tag: {}", tag_value);
+async fn parse_tags(
+    db_client: &impl DatabaseClient,
+    instance: &Instance,
+    media_dir: &Path,
+    actor: &Actor,
+) -> Result<(), HandlerError> {
+    let mut emojis = vec![];
+    for tag_value in actor.tag.clone() {
+        let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
+        if tag_type == EMOJI {
+            if emojis.len() >= EMOJIS_MAX_NUM {
+                log::warn!("too many emojis");
+                continue;
+            };
+            match handle_emoji(
+                db_client,
+                instance,
+                media_dir,
+                tag_value,
+            ).await? {
+                Some(emoji) => {
+                    if !emojis.contains(&emoji.id) {
+                        emojis.push(emoji.id);
+                    };
+                },
+                None => continue,
+            };
+        } else {
+            log::warn!("skipping actor tag of type {}", tag_type);
+        };
     };
+    Ok(())
 }
 
 pub async fn create_remote_profile(
@@ -103,7 +134,12 @@ pub async fn create_remote_profile(
     ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
-    parse_tags(&actor);
+    parse_tags(
+        db_client,
+        instance,
+        media_dir,
+        &actor,
+    ).await?;
     let mut profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
         hostname: Some(actor_address.hostname),
@@ -153,7 +189,12 @@ pub async fn update_remote_profile(
     ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
-    parse_tags(&actor);
+    parse_tags(
+        db_client,
+        instance,
+        media_dir,
+        &actor,
+    ).await?;
     let mut profile_data = ProfileUpdateData {
         display_name: actor.name.clone(),
         bio: actor.summary.clone(),
