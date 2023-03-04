@@ -57,6 +57,38 @@ async fn create_profile_emojis(
     Ok(emojis)
 }
 
+async fn update_emoji_cache(
+    db_client: &impl DatabaseClient,
+    profile_id: &Uuid,
+) -> Result<DbActorProfile, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        WITH profile_emojis AS (
+            SELECT
+                actor_profile.id AS profile_id,
+                COALESCE(
+                    jsonb_agg(emoji) FILTER (WHERE emoji.id IS NOT NULL),
+                    '[]'
+                ) AS emojis
+            FROM actor_profile
+            LEFT JOIN profile_emoji ON (profile_emoji.profile_id = actor_profile.id)
+            LEFT JOIN emoji ON (emoji.id = profile_emoji.emoji_id)
+            WHERE actor_profile.id = $1
+            GROUP BY actor_profile.id
+        )
+        UPDATE actor_profile
+        SET emojis = profile_emojis.emojis
+        FROM profile_emojis
+        WHERE actor_profile.id = profile_emojis.profile_id
+        RETURNING actor_profile
+        ",
+        &[&profile_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("profile"))?;
+    let profile: DbActorProfile = row.try_get("actor_profile")?;
+    Ok(profile)
+}
+
 /// Create new profile using given Client or Transaction.
 pub async fn create_profile(
     db_client: &mut impl DatabaseClient,
@@ -67,7 +99,7 @@ pub async fn create_profile(
     if let Some(ref hostname) = profile_data.hostname {
         create_instance(&transaction, hostname).await?;
     };
-    let row = transaction.query_one(
+    transaction.execute(
         "
         INSERT INTO actor_profile (
             id, username, hostname, display_name, bio, bio_source,
@@ -93,7 +125,6 @@ pub async fn create_profile(
             &profile_data.actor_json,
         ],
     ).await.map_err(catch_unique_violation("profile"))?;
-    let profile = row.try_get("actor_profile")?;
 
     // Create related objects
     create_profile_emojis(
@@ -101,6 +132,7 @@ pub async fn create_profile(
         &profile_id,
         profile_data.emojis,
     ).await?;
+    let profile = update_emoji_cache(&transaction, &profile_id).await?;
 
     transaction.commit().await?;
     Ok(profile)
@@ -112,7 +144,7 @@ pub async fn update_profile(
     profile_data: ProfileUpdateData,
 ) -> Result<DbActorProfile, DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let maybe_row = transaction.query_opt(
+    transaction.execute(
         "
         UPDATE actor_profile
         SET
@@ -142,21 +174,18 @@ pub async fn update_profile(
             &profile_id,
         ],
     ).await?;
-    let profile: DbActorProfile = match maybe_row {
-        Some(row) => row.try_get("actor_profile")?,
-        None => return Err(DatabaseError::NotFound("profile")),
-    };
 
     // Delete and re-create related objects
     transaction.execute(
         "DELETE FROM profile_emoji WHERE profile_id = $1",
-        &[&profile.id],
+        &[profile_id],
     ).await?;
     create_profile_emojis(
         &transaction,
-        &profile.id,
+        profile_id,
         profile_data.emojis,
     ).await?;
+    let profile = update_emoji_cache(&transaction, profile_id).await?;
 
     transaction.commit().await?;
     Ok(profile)
@@ -734,15 +763,19 @@ mod tests {
     use serial_test::serial;
     use crate::activitypub::actors::types::Actor;
     use crate::database::test_utils::create_test_database;
-    use crate::models::profiles::queries::create_profile;
-    use crate::models::profiles::types::{
-        ExtraField,
-        IdentityProof,
-        ProfileCreateData,
-        ProofType,
+    use crate::models::{
+        emojis::queries::create_emoji,
+        emojis::types::EmojiImage,
+        profiles::queries::create_profile,
+        profiles::types::{
+            ExtraField,
+            IdentityProof,
+            ProfileCreateData,
+            ProofType,
+        },
+        users::queries::create_user,
+        users::types::UserCreateData,
     };
-    use crate::models::users::queries::create_user;
-    use crate::models::users::types::UserCreateData;
     use super::*;
 
     fn create_test_actor(actor_id: &str) -> Actor {
@@ -784,6 +817,30 @@ mod tests {
             profile.actor_id.unwrap(),
             "https://example.com/users/test",
         );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_create_profile_with_emoji() {
+        let db_client = &mut create_test_database().await;
+        let image = EmojiImage::default();
+        let emoji = create_emoji(
+            db_client,
+            "testemoji",
+            None,
+            image,
+            None,
+            &Utc::now(),
+        ).await.unwrap();
+        let profile_data = ProfileCreateData {
+            username: "test".to_string(),
+            emojis: vec![emoji.id.clone()],
+            ..Default::default()
+        };
+        let profile = create_profile(db_client, profile_data).await.unwrap();
+        let profile_emojis = profile.emojis.into_inner();
+        assert_eq!(profile_emojis.len(), 1);
+        assert_eq!(profile_emojis[0].id, emoji.id);
     }
 
     #[tokio::test]

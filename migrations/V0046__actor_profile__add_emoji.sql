@@ -1,0 +1,1 @@
+ALTER TABLE actor_profile ADD COLUMN emojis JSONB NOT NULL DEFAULT '[]';

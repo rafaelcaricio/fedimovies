@@ -26,6 +26,7 @@ use crate::identity::{
     did::Did,
     signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
+use crate::models::emojis::types::DbEmoji;
 use crate::webfinger::types::ActorAddress;
 use super::validators::{
     validate_username,
@@ -311,6 +312,18 @@ impl ExtraFields {
 json_from_sql!(ExtraFields);
 json_to_sql!(ExtraFields);
 
+#[derive(Clone, Deserialize)]
+pub struct ProfileEmojis(Vec<DbEmoji>);
+
+impl ProfileEmojis {
+    pub fn into_inner(self) -> Vec<DbEmoji> {
+        let Self(emojis) = self;
+        emojis
+    }
+}
+
+json_from_sql!(ProfileEmojis);
+
 json_from_sql!(Actor);
 json_to_sql!(Actor);
 
@@ -332,6 +345,7 @@ pub struct DbActorProfile {
     pub following_count: i32,
     pub subscriber_count: i32,
     pub post_count: i32,
+    pub emojis: ProfileEmojis,
     pub actor_json: Option<Actor>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -419,6 +433,7 @@ impl Default for DbActorProfile {
             following_count: 0,
             subscriber_count: 0,
             post_count: 0,
+            emojis: ProfileEmojis(vec![]),
             actor_json: None,
             actor_id: None,
             created_at: now,
@@ -519,7 +534,9 @@ impl From<&DbActorProfile> for ProfileUpdateData {
             identity_proofs: profile.identity_proofs.into_inner(),
             payment_options: profile.payment_options.into_inner(),
             extra_fields: profile.extra_fields.into_inner(),
-            emojis: vec![],
+            emojis: profile.emojis.into_inner().into_iter()
+                .map(|emoji| emoji.id)
+                .collect(),
             actor_json: profile.actor_json,
         }
     }

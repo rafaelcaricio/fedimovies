@@ -20,7 +20,7 @@ pub struct EmojiImage {
 json_from_sql!(EmojiImage);
 json_to_sql!(EmojiImage);
 
-#[derive(Clone, FromSql)]
+#[derive(Clone, Deserialize, FromSql)]
 #[cfg_attr(test, derive(Default))]
 #[postgres(name = "emoji")]
 pub struct DbEmoji {

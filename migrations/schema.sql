@@ -28,6 +28,7 @@ CREATE TABLE actor_profile (
     following_count INTEGER NOT NULL CHECK (following_count >= 0) DEFAULT 0,
     subscriber_count INTEGER NOT NULL CHECK (subscriber_count >= 0) DEFAULT 0,
     post_count INTEGER NOT NULL CHECK (post_count >= 0) DEFAULT 0,
+    emojis JSONB NOT NULL DEFAULT '[]',
     actor_json JSONB,
     actor_id VARCHAR(200) UNIQUE GENERATED ALWAYS AS (actor_json ->> 'id') STORED,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),

@@ -1433,6 +1433,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Field'
+        emojis:
+          description: Custom emoji entities to be used when rendering the profile.
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomEmoji'
         followers_count:
           description: The reported followers of this profile.
           type: number

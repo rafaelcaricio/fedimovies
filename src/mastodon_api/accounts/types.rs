@@ -9,6 +9,7 @@ use mitra_utils::markdown::markdown_basic_to_html;
 use crate::errors::ValidationError;
 use crate::identity::did::Did;
 use crate::mastodon_api::{
+    custom_emojis::types::CustomEmoji,
     errors::MastodonError,
     pagination::PageSize,
     uploads::{save_b64_file, UploadError},
@@ -106,6 +107,7 @@ pub struct Account {
     pub identity_proofs: Vec<AccountField>,
     pub payment_options: Vec<AccountPaymentOption>,
     pub fields: Vec<AccountField>,
+    pub emojis: Vec<CustomEmoji>,
     pub followers_count: i32,
     pub following_count: i32,
     pub subscribers_count: i32,
@@ -185,6 +187,11 @@ impl Account {
             })
             .collect();
 
+        let emojis = profile.emojis.into_inner()
+            .into_iter()
+            .map(|db_emoji| CustomEmoji::from_db(base_url, db_emoji))
+            .collect();
+
         Self {
             id: profile.id,
             username: profile.username,
@@ -199,6 +206,7 @@ impl Account {
             identity_proofs,
             payment_options,
             fields: extra_fields,
+            emojis,
             followers_count: profile.follower_count,
             following_count: profile.following_count,
             subscribers_count: profile.subscriber_count,
