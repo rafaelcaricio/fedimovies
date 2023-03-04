@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `registration.default_role` configuration option.
 - Save emojis attached to actor objects.
 
+### Changed
+
+- Use .jpg extension for files with image/jpeg media type.
+
 ### Deprecated
 
 - Deprecated `default_role_read_only_user` configuration option (replaced by `registration.default_role`).

@@ -19,6 +19,8 @@ members = [
 default-members = [
   ".",
   "mitra-cli",
+  "mitra-config",
+  "mitra-utils",
 ]
 
 [dependencies]
