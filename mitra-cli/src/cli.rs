@@ -30,6 +30,7 @@ use mitra::models::{
     profiles::queries::{
         delete_profile,
         find_empty_profiles,
+        find_unreachable,
         get_profile_by_id,
         get_profile_by_remote_actor_id,
     },
@@ -81,6 +82,7 @@ pub enum SubCommand {
     DeleteUnusedAttachments(DeleteUnusedAttachments),
     DeleteOrphanedFiles(DeleteOrphanedFiles),
     DeleteEmptyProfiles(DeleteEmptyProfiles),
+    ListUnreachableActors(ListUnreachableActors),
     ImportEmoji(ImportEmoji),
     UpdateCurrentBlock(UpdateCurrentBlock),
     ResetSubscriptions(ResetSubscriptions),
@@ -412,6 +414,36 @@ impl DeleteEmptyProfiles {
             let deletion_queue = delete_profile(db_client, &profile.id).await?;
             deletion_queue.process(config).await;
             println!("profile {} deleted", profile.acct);
+        };
+        Ok(())
+    }
+}
+
+/// List unreachable actors
+#[derive(Parser)]
+pub struct ListUnreachableActors {
+    days: u32,
+}
+
+impl ListUnreachableActors {
+    pub async fn execute(
+        &self,
+        _config: &Config,
+        db_client: &impl DatabaseClient,
+    ) -> Result<(), Error> {
+        let unreachable_since = days_before_now(self.days);
+        let profiles = find_unreachable(db_client, &unreachable_since).await?;
+        println!(
+            "{0: <60} | {1: <35} | {2: <35}",
+            "ID", "unreachable since", "updated at",
+        );
+        for profile in profiles {
+            println!(
+                "{0: <60} | {1: <35} | {2: <35}",
+                profile.actor_id.unwrap(),
+                profile.unreachable_since.unwrap().to_string(),
+                profile.updated_at.to_string(),
+            );
         };
         Ok(())
     }

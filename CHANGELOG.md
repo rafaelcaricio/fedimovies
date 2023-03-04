@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Save emojis attached to actor objects.
 - Added `emojis` field to Mastodon API Account entity.
 - Support audio attachments.
+- Added CLI command for viewing unreachable actors.
 
 ### Changed
 

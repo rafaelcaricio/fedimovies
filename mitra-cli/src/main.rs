@@ -41,6 +41,7 @@ async fn main() {
                 SubCommand::DeleteUnusedAttachments(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteOrphanedFiles(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteEmptyProfiles(cmd) => cmd.execute(&config, db_client).await.unwrap(),
+                SubCommand::ListUnreachableActors(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::ImportEmoji(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::UpdateCurrentBlock(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::ResetSubscriptions(cmd) => cmd.execute(&config, db_client).await.unwrap(),

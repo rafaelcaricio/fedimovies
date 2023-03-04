@@ -725,6 +725,25 @@ pub async fn set_reachability_status(
     Ok(())
 }
 
+pub async fn find_unreachable(
+    db_client: &impl DatabaseClient,
+    unreachable_since: &DateTime<Utc>,
+) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT actor_profile
+        FROM actor_profile
+        WHERE unreachable_since < $1
+        ORDER BY hostname, username
+        ",
+        &[&unreachable_since],
+    ).await?;
+    let profiles = rows.iter()
+        .map(|row| row.try_get("actor_profile"))
+        .collect::<Result<_, _>>()?;
+    Ok(profiles)
+}
+
 /// Finds all empty remote profiles
 /// (without any posts, reactions, relationships)
 /// updated before the specified date
