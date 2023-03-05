@@ -33,6 +33,7 @@ impl Attachment {
             AttachmentType::Unknown => "unknown",
             AttachmentType::Image => "image",
             AttachmentType::Video => "video",
+            AttachmentType::Audio => "audio",
         };
         let attachment_url = get_file_url(
             base_url,

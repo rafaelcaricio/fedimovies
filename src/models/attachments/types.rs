@@ -19,6 +19,7 @@ pub enum AttachmentType {
     Unknown,
     Image,
     Video,
+    Audio,
 }
 
 impl AttachmentType {
@@ -29,6 +30,8 @@ impl AttachmentType {
                     Self::Image
                 } else if media_type.starts_with("video/") {
                     Self::Video
+                } else if media_type.starts_with("audio/") {
+                    Self::Audio
                 } else {
                     Self::Unknown
                 }
