@@ -4,16 +4,56 @@ use serde::Serialize;
 
 use mitra_config::{Config, RegistrationType, MITRA_VERSION};
 
+const MITRA_NAME: &str = "mitra";
+const MITRA_REPOSITORY: &str = "https://codeberg.org/silverpill/mitra";
+const ATOM_SERVICE: &str = "atom1.0";
+const ACTIVITYPUB_PROTOCOL: &str = "activitypub";
+
 #[derive(Serialize)]
-struct Software {
+struct Software20 {
     name: String,
     version: String,
 }
 
+impl Default for Software20 {
+    fn default() -> Self {
+        Self {
+            name: MITRA_NAME.to_string(),
+            version: MITRA_VERSION.to_string(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct Software21 {
+    name: String,
+    version: String,
+    repository: String,
+}
+
+impl Default for Software21 {
+    fn default() -> Self {
+        Self {
+            name: MITRA_NAME.to_string(),
+            version: MITRA_VERSION.to_string(),
+            repository: MITRA_REPOSITORY.to_string(),
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct Services {
-    inbound: Vec<String>,
-    outbound: Vec<String>,
+    inbound: Vec<&'static str>,
+    outbound: Vec<&'static str>,
+}
+
+impl Default for Services {
+    fn default() -> Self {
+        Self {
+            inbound: vec![],
+            outbound: vec![ATOM_SERVICE],
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -35,12 +75,25 @@ struct Metadata {
     node_description: String,
 }
 
+impl Metadata {
+    fn new(config: &Config) -> Self {
+        Self {
+            node_name: config.instance_title.clone(),
+            node_description: config.instance_short_description.clone(),
+        }
+    }
+}
+
+fn has_open_registrations(config: &Config) -> bool {
+    config.registration.registration_type != RegistrationType::Invite
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeInfo20 {
-    version: String,
-    software: Software,
-    protocols: Vec<String>,
+    version: &'static str,
+    software: Software20,
+    protocols: Vec<&'static str>,
     services: Services,
     open_registrations: bool,
     usage: Usage,
@@ -49,28 +102,40 @@ pub struct NodeInfo20 {
 
 impl NodeInfo20 {
     pub fn new(config: &Config, usage: Usage) -> Self {
-        let software = Software {
-            name: "mitra".to_string(),
-            version: MITRA_VERSION.to_string(),
-        };
-        let services = Services {
-            inbound: vec![],
-            outbound: vec!["atom1.0".to_string()],
-        };
-        let metadata = Metadata {
-            node_name: config.instance_title.clone(),
-            node_description: config.instance_short_description.clone(),
-        };
         Self {
-            version: "2.0".to_string(),
-            software,
-            protocols: vec!["activitypub".to_string()],
-            services,
-            open_registrations:
-                config.registration.registration_type !=
-                RegistrationType::Invite,
+            version: "2.0",
+            software: Software20::default(),
+            protocols: vec![ACTIVITYPUB_PROTOCOL],
+            services: Services::default(),
+            open_registrations: has_open_registrations(config),
             usage,
-            metadata,
+            metadata: Metadata::new(config),
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeInfo21 {
+    version: &'static str,
+    software: Software21,
+    protocols: Vec<&'static str>,
+    services: Services,
+    open_registrations: bool,
+    usage: Usage,
+    metadata: Metadata,
+}
+
+impl NodeInfo21 {
+    pub fn new(config: &Config, usage: Usage) -> Self {
+        Self {
+            version: "2.1",
+            software: Software21::default(),
+            protocols: vec![ACTIVITYPUB_PROTOCOL],
+            services: Services::default(),
+            open_registrations: has_open_registrations(config),
+            usage,
+            metadata: Metadata::new(config),
         }
     }
 }

@@ -169,8 +169,9 @@ async fn main() -> std::io::Result<()> {
             .service(activitypub::emoji_view)
             .service(activitypub::tag_view)
             .service(atom_scope())
-            .service(nodeinfo::get_nodeinfo)
+            .service(nodeinfo::get_nodeinfo_jrd)
             .service(nodeinfo::get_nodeinfo_2_0)
+            .service(nodeinfo::get_nodeinfo_2_1)
             .service(web_client::profile_page_redirect())
             .service(web_client::post_page_redirect())
             .service(
