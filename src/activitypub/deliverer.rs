@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
-use std::time::Duration;
 
 use actix_web::http::Method;
-use reqwest::{Client, Proxy};
+use reqwest::Client;
 use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -24,10 +23,13 @@ use crate::json_signatures::create::{
     JsonSignatureError,
 };
 use crate::models::users::types::User;
-use super::actors::types::Actor;
-use super::constants::AP_MEDIA_TYPE;
-use super::identifiers::{local_actor_id, local_actor_key_id};
-use super::queues::OutgoingActivityJobData;
+use super::{
+    actors::types::Actor,
+    constants::AP_MEDIA_TYPE,
+    http_client::build_federation_client,
+    identifiers::{local_actor_id, local_actor_key_id},
+    queues::OutgoingActivityJobData,
+};
 
 const DELIVERER_TIMEOUT: u64 = 30;
 
@@ -56,15 +58,7 @@ pub enum DelivererError {
 }
 
 fn build_client(instance: &Instance) -> reqwest::Result<Client> {
-    let mut client_builder = Client::builder();
-    if let Some(ref proxy_url) = instance.proxy_url {
-        let proxy = Proxy::all(proxy_url)?;
-        client_builder = client_builder.proxy(proxy);
-    };
-    let timeout = Duration::from_secs(DELIVERER_TIMEOUT);
-    client_builder
-        .timeout(timeout)
-        .build()
+    build_federation_client(instance, DELIVERER_TIMEOUT)
 }
 
 async fn send_activity(

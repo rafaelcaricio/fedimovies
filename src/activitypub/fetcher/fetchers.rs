@@ -1,7 +1,6 @@
 use std::path::Path;
-use std::time::Duration;
 
-use reqwest::{Client, Method, Proxy, RequestBuilder};
+use reqwest::{Client, Method, RequestBuilder};
 use serde_json::Value;
 
 use mitra_config::Instance;
@@ -13,6 +12,7 @@ use mitra_utils::{
 use crate::activitypub::{
     actors::types::Actor,
     constants::{AP_CONTEXT, AP_MEDIA_TYPE},
+    http_client::build_federation_client,
     identifiers::{local_actor_key_id, local_instance_actor_id},
     types::Object,
     vocabulary::GROUP,
@@ -24,7 +24,6 @@ use crate::http_signatures::create::{
 use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};
 use crate::webfinger::types::{ActorAddress, JsonResourceDescriptor};
 
-const FETCHER_CONNECTION_TIMEOUT: u64 = 30;
 const FETCHER_TIMEOUT: u64 = 180;
 
 #[derive(thiserror::Error, Debug)]
@@ -52,17 +51,7 @@ pub enum FetchError {
 }
 
 fn build_client(instance: &Instance) -> reqwest::Result<Client> {
-    let mut client_builder = Client::builder();
-    if let Some(ref proxy_url) = instance.proxy_url {
-        let proxy = Proxy::all(proxy_url)?;
-        client_builder = client_builder.proxy(proxy);
-    };
-    let timeout = Duration::from_secs(FETCHER_TIMEOUT);
-    let connect_timeout = Duration::from_secs(FETCHER_CONNECTION_TIMEOUT);
-    client_builder
-        .timeout(timeout)
-        .connect_timeout(connect_timeout)
-        .build()
+    build_federation_client(instance, FETCHER_TIMEOUT)
 }
 
 fn build_request(

@@ -6,6 +6,7 @@ pub mod constants;
 mod deliverer;
 pub mod fetcher;
 mod handlers;
+mod http_client;
 pub mod identifiers;
 pub mod queues;
 mod receiver;
