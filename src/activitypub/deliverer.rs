@@ -7,7 +7,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use mitra_config::Instance;
-use mitra_utils::crypto_rsa::deserialize_private_key;
+use mitra_utils::{
+    crypto_rsa::deserialize_private_key,
+    urls::get_hostname,
+};
 
 use crate::database::{
     DatabaseClient,
@@ -47,18 +50,28 @@ pub enum DelivererError {
     #[error("activity serialization error")]
     SerializationError(#[from] serde_json::Error),
 
+    #[error("inavlid URL")]
+    UrlError(#[from] url::ParseError),
+
     #[error(transparent)]
     RequestError(#[from] reqwest::Error),
 
     #[error("http error {0:?}")]
     HttpError(reqwest::StatusCode),
-
-    #[error(transparent)]
-    DatabaseError(#[from] DatabaseError),
 }
 
-fn build_client(instance: &Instance) -> reqwest::Result<Client> {
-    build_federation_client(instance, DELIVERER_TIMEOUT)
+fn build_client(
+    instance: &Instance,
+    request_uri: &str,
+) -> Result<Client, DelivererError> {
+    let hostname = get_hostname(request_uri)?;
+    let is_onion = hostname.ends_with(".onion");
+    let client = build_federation_client(
+        instance,
+        is_onion,
+        DELIVERER_TIMEOUT,
+    )?;
+    Ok(client)
 }
 
 async fn send_activity(
@@ -76,7 +89,7 @@ async fn send_activity(
         actor_key_id,
     )?;
 
-    let client = build_client(instance)?;
+    let client = build_client(instance, inbox_url)?;
     let request = client.post(inbox_url)
         .header("Host", headers.host)
         .header("Date", headers.date)

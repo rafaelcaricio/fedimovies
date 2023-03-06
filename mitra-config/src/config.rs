@@ -99,6 +99,7 @@ impl Config {
             _url: self.try_instance_url().unwrap(),
             actor_key: self.instance_rsa_key.clone().unwrap(),
             proxy_url: self.federation.proxy_url.clone(),
+            onion_proxy_url: self.federation.onion_proxy_url.clone(),
             is_private: matches!(self.environment, Environment::Development),
         }
     }
@@ -131,6 +132,7 @@ pub struct Instance {
     pub actor_key: RsaPrivateKey,
     // Proxy for outgoing requests
     pub proxy_url: Option<String>,
+    pub onion_proxy_url: Option<String>,
     // Private instance won't send signed HTTP requests
     pub is_private: bool,
 }
@@ -161,6 +163,7 @@ impl Instance {
             _url: Url::parse(url).unwrap(),
             actor_key: generate_weak_rsa_key().unwrap(),
             proxy_url: None,
+            onion_proxy_url: None,
             is_private: true,
         }
     }
@@ -179,6 +182,7 @@ mod tests {
             _url: instance_url,
             actor_key: instance_rsa_key,
             proxy_url: None,
+            onion_proxy_url: None,
             is_private: true,
         };
 
@@ -198,6 +202,7 @@ mod tests {
             _url: instance_url,
             actor_key: instance_rsa_key,
             proxy_url: None,
+            onion_proxy_url: None,
             is_private: true,
         };
 

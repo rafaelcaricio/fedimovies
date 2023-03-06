@@ -9,10 +9,16 @@ const CONNECTION_TIMEOUT: u64 = 30;
 
 pub fn build_federation_client(
     instance: &Instance,
+    is_onion: bool,
     timeout: u64,
 ) -> reqwest::Result<Client> {
     let mut client_builder = Client::builder();
-    if let Some(ref proxy_url) = instance.proxy_url {
+    let mut maybe_proxy_url = instance.proxy_url.as_ref();
+    if is_onion {
+        maybe_proxy_url = maybe_proxy_url
+            .or(instance.onion_proxy_url.as_ref());
+    };
+    if let Some(proxy_url) = maybe_proxy_url {
         let proxy = Proxy::all(proxy_url)?;
         client_builder = client_builder.proxy(proxy);
     };

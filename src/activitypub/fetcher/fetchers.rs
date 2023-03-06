@@ -6,7 +6,7 @@ use serde_json::Value;
 use mitra_config::Instance;
 use mitra_utils::{
     files::sniff_media_type,
-    urls::guess_protocol,
+    urls::{get_hostname, guess_protocol},
 };
 
 use crate::activitypub::{
@@ -31,6 +31,9 @@ pub enum FetchError {
     #[error(transparent)]
     SignatureError(#[from] HttpSignatureError),
 
+    #[error("inavlid URL")]
+    UrlError(#[from] url::ParseError),
+
     #[error(transparent)]
     RequestError(#[from] reqwest::Error),
 
@@ -50,8 +53,18 @@ pub enum FetchError {
     OtherError(&'static str),
 }
 
-fn build_client(instance: &Instance) -> reqwest::Result<Client> {
-    build_federation_client(instance, FETCHER_TIMEOUT)
+fn build_client(
+    instance: &Instance,
+    request_uri: &str,
+) -> Result<Client, FetchError> {
+    let hostname = get_hostname(request_uri)?;
+    let is_onion = hostname.ends_with(".onion");
+    let client = build_federation_client(
+        instance,
+        is_onion,
+        FETCHER_TIMEOUT,
+    )?;
+    Ok(client)
 }
 
 fn build_request(
@@ -75,7 +88,7 @@ async fn send_request(
     url: &str,
     query_params: &[(&str, &str)],
 ) -> Result<String, FetchError> {
-    let client = build_client(instance)?;
+    let client = build_client(instance, url)?;
     let mut request_builder = build_request(instance, client, Method::GET, url)
         .header(reqwest::header::ACCEPT, AP_MEDIA_TYPE);
 
@@ -113,7 +126,7 @@ pub async fn fetch_file(
     file_max_size: usize,
     output_dir: &Path,
 ) -> Result<(String, usize, Option<String>), FetchError> {
-    let client = build_client(instance)?;
+    let client = build_client(instance, url)?;
     let request_builder =
         build_request(instance, client, Method::GET, url);
     let response = request_builder.send().await?.error_for_status()?;
@@ -164,7 +177,7 @@ pub async fn perform_webfinger_query(
         guess_protocol(&actor_address.hostname),
         actor_address.hostname,
     );
-    let client = build_client(instance)?;
+    let client = build_client(instance, &webfinger_url)?;
     let request_builder =
         build_request(instance, client, Method::GET, &webfinger_url);
     let webfinger_data = request_builder
