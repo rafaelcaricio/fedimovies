@@ -13,10 +13,7 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use mitra_config::Config;
-use mitra_utils::{
-    currencies::Currency,
-    markdown::markdown_lite_to_html,
-};
+use mitra_utils::markdown::markdown_lite_to_html;
 
 use crate::activitypub::builders::{
     announce::prepare_announce,
@@ -28,12 +25,10 @@ use crate::activitypub::builders::{
 };
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::ValidationError;
-use crate::ethereum::nft::create_mint_signature;
 use crate::http::{get_request_base_url, FormOrJson};
 use crate::ipfs::{
     store as ipfs_store,
     posts::PostMetadata,
-    utils::get_ipfs_url,
 };
 use crate::mastodon_api::{
     errors::MastodonError,
@@ -47,7 +42,6 @@ use crate::models::{
         get_thread,
         find_reposts_by_user,
         set_post_ipfs_cid,
-        set_post_token_tx_id,
         delete_post,
     },
     posts::types::{PostCreateData, Visibility},
@@ -74,7 +68,6 @@ use super::types::{
     StatusData,
     StatusPreview,
     StatusPreviewData,
-    TransactionData,
 };
 
 #[post("")]
@@ -600,6 +593,16 @@ async fn make_permanent(
     Ok(HttpResponse::Ok().json(status))
 }
 
+#[cfg(feature = "ethereum-extras")]
+use {
+    mitra_utils::currencies::Currency,
+    crate::ethereum::nft::create_mint_signature,
+    crate::ipfs::utils::get_ipfs_url,
+    crate::models::posts::queries::set_post_token_tx_id,
+    super::types::TransactionData,
+};
+
+#[cfg(feature = "ethereum-extras")]
 #[get("/{status_id}/signature")]
 async fn get_signature(
     auth: BearerAuth,
@@ -634,6 +637,7 @@ async fn get_signature(
     Ok(HttpResponse::Ok().json(signature))
 }
 
+#[cfg(feature = "ethereum-extras")]
 #[post("/{status_id}/token_minted")]
 async fn token_minted(
     auth: BearerAuth,
@@ -666,8 +670,19 @@ async fn token_minted(
     Ok(HttpResponse::Ok().json(status))
 }
 
+#[cfg(feature = "ethereum-extras")]
+fn with_ethereum_extras(scope: Scope) -> Scope {
+    scope
+        .service(get_signature)
+        .service(token_minted)
+}
+#[cfg(not(feature = "ethereum-extras"))]
+fn with_ethereum_extras(scope: Scope) -> Scope {
+    scope
+}
+
 pub fn status_api_scope() -> Scope {
-    web::scope("/api/v1/statuses")
+    let scope = web::scope("/api/v1/statuses")
         // Routes without status ID
         .service(create_status)
         .service(preview_status)
@@ -680,7 +695,6 @@ pub fn status_api_scope() -> Scope {
         .service(unfavourite)
         .service(reblog)
         .service(unreblog)
-        .service(make_permanent)
-        .service(get_signature)
-        .service(token_minted)
+        .service(make_permanent);
+    with_ethereum_extras(scope)
 }

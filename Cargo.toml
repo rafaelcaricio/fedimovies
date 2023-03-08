@@ -92,7 +92,10 @@ web3 = { version = "0.18.0", default-features = false, features = ["http", "http
 [dev-dependencies]
 mitra-config = { path = "mitra-config", features = ["test-utils"] }
 mitra-utils = { path = "mitra-utils", features = ["test-utils"] }
+
 serial_test = "0.7.0"
 
 [features]
+ethereum-extras = []
+
 production = ["mitra-config/production"]

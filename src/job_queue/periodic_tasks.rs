@@ -12,7 +12,6 @@ use crate::activitypub::queues::{
 use crate::database::{get_database_client, DbPool};
 use crate::ethereum::{
     contracts::Blockchain,
-    nft::process_nft_events,
     subscriptions::{
         check_ethereum_subscriptions,
         update_expired_subscriptions,
@@ -28,6 +27,10 @@ use crate::models::{
     },
 };
 
+#[cfg(feature = "ethereum-extras")]
+use crate::ethereum::nft::process_nft_events;
+
+#[cfg(feature = "ethereum-extras")]
 pub async fn nft_monitor(
     maybe_blockchain: Option<&mut Blockchain>,
     db_pool: &DbPool,

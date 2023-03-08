@@ -6,9 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Changed
+### Removed
 
-- Store NFT monitor state in database.
+- Disabled post tokenization (can be re-enabled with `ethereum-extras` feature).
 
 ## [1.16.0] - 2023-03-08
 

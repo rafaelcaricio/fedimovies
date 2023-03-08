@@ -11,7 +11,6 @@ use super::periodic_tasks::*;
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 enum PeriodicTask {
-    NftMonitor,
     EthereumSubscriptionMonitor,
     SubscriptionExpirationMonitor,
     MoneroPaymentMonitor,
@@ -19,13 +18,15 @@ enum PeriodicTask {
     OutgoingActivityQueueExecutor,
     DeleteExtraneousPosts,
     DeleteEmptyProfiles,
+
+    #[cfg(feature = "ethereum-extras")]
+    NftMonitor,
 }
 
 impl PeriodicTask {
     /// Returns task period (in seconds)
     fn period(&self) -> i64 {
         match self {
-            Self::NftMonitor => 30,
             Self::EthereumSubscriptionMonitor => 300,
             Self::SubscriptionExpirationMonitor => 300,
             Self::MoneroPaymentMonitor => 30,
@@ -33,6 +34,9 @@ impl PeriodicTask {
             Self::OutgoingActivityQueueExecutor => 5,
             Self::DeleteExtraneousPosts => 3600,
             Self::DeleteEmptyProfiles => 3600,
+
+            #[cfg(feature = "ethereum-extras")]
+            Self::NftMonitor => 30,
         }
     }
 
@@ -54,12 +58,14 @@ pub fn run(
 ) -> () {
     tokio::spawn(async move {
         let mut scheduler_state = HashMap::from([
-            (PeriodicTask::NftMonitor, None),
             (PeriodicTask::EthereumSubscriptionMonitor, None),
             (PeriodicTask::SubscriptionExpirationMonitor, None),
             (PeriodicTask::MoneroPaymentMonitor, None),
             (PeriodicTask::IncomingActivityQueueExecutor, None),
             (PeriodicTask::OutgoingActivityQueueExecutor, None),
+
+            #[cfg(feature = "ethereum-extras")]
+            (PeriodicTask::NftMonitor, None),
         ]);
         if config.retention.extraneous_posts.is_some() {
             scheduler_state.insert(PeriodicTask::DeleteExtraneousPosts, None);
@@ -77,12 +83,6 @@ pub fn run(
                     continue;
                 };
                 let task_result = match task {
-                    PeriodicTask::NftMonitor => {
-                        nft_monitor(
-                            maybe_blockchain.as_mut(),
-                            &db_pool,
-                        ).await
-                    },
                     PeriodicTask::EthereumSubscriptionMonitor => {
                         ethereum_subscription_monitor(
                             &config,
@@ -107,6 +107,13 @@ pub fn run(
                     },
                     PeriodicTask::DeleteEmptyProfiles => {
                         delete_empty_profiles(&config, &db_pool).await
+                    },
+                    #[cfg(feature = "ethereum-extras")]
+                    PeriodicTask::NftMonitor => {
+                        nft_monitor(
+                            maybe_blockchain.as_mut(),
+                            &db_pool,
+                        ).await
                     },
                 };
                 task_result.unwrap_or_else(|err| {

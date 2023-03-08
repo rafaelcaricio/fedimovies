@@ -8,6 +8,7 @@ pub fn get_ipfs_url(cid: &str) -> String {
 #[error("parse error")]
 pub struct ParseError;
 
+#[allow(dead_code)]
 pub fn parse_ipfs_url(url: &str) -> Result<String, ParseError> {
     let regexp = Regex::new(r"ipfs://(?P<cid>\w+)").unwrap();
     let caps = regexp.captures(url).ok_or(ParseError)?;
