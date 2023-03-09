@@ -14,18 +14,27 @@ use mitra_config::EthereumConfig;
 
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::ipfs::utils::parse_ipfs_url;
-use crate::models::posts::queries::{
-    get_post_by_ipfs_cid,
-    get_token_waitlist,
-    set_post_token_id,
-    set_post_token_tx_id,
+use crate::models::{
+    posts::queries::{
+        get_post_by_ipfs_cid,
+        get_token_waitlist,
+        set_post_token_id,
+        set_post_token_tx_id,
+    },
+    properties::queries::{
+        get_internal_property,
+        set_internal_property,
+    },
 };
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
 use super::sync::SyncState;
 use super::utils::parse_address;
 
+const TOKEN_WAITLIST_MAP_PROPERTY_NAME: &str = "token_waitlist_map";
+
 const TOKEN_WAIT_TIME: i64 = 10; // in minutes
+const TOKEN_WAIT_RESET_TIME: i64 = 12 * 60; // in minutes
 
 /// Finds posts awaiting tokenization
 /// and looks for corresponding Mint events
@@ -34,11 +43,18 @@ pub async fn process_nft_events(
     contract: &Contract<Http>,
     sync_state: &mut SyncState,
     db_pool: &DbPool,
-    token_waitlist_map: &mut HashMap<Uuid, DateTime<Utc>>,
 ) -> Result<(), EthereumError> {
     let db_client = &**get_database_client(db_pool).await?;
 
     // Create/update token waitlist map
+    let mut token_waitlist_map: HashMap<Uuid, DateTime<Utc>> =
+        get_internal_property(db_client, TOKEN_WAITLIST_MAP_PROPERTY_NAME)
+            .await?.unwrap_or_default();
+    token_waitlist_map.retain(|_, waiting_since| {
+        // Re-add token to waitlist if waiting for too long
+        let duration = Utc::now() - *waiting_since;
+        duration.num_minutes() < TOKEN_WAIT_RESET_TIME
+    });
     let token_waitlist = get_token_waitlist(db_client).await?;
     for post_id in token_waitlist {
         if !token_waitlist_map.contains_key(&post_id) {
@@ -121,6 +137,11 @@ pub async fn process_nft_events(
         };
     };
 
+    set_internal_property(
+        db_client,
+        TOKEN_WAITLIST_MAP_PROPERTY_NAME,
+        &token_waitlist_map,
+    ).await?;
     sync_state.update(&contract.address(), to_block)?;
     Ok(())
 }

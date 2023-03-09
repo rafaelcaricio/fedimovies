@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
 
 use mitra_config::Config;
 
@@ -70,7 +69,6 @@ pub fn run(
         };
 
         let mut interval = tokio::time::interval(Duration::from_secs(5));
-        let mut token_waitlist_map: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
         loop {
             interval.tick().await;
 
@@ -83,7 +81,6 @@ pub fn run(
                         nft_monitor(
                             maybe_blockchain.as_mut(),
                             &db_pool,
-                            &mut token_waitlist_map,
                         ).await
                     },
                     PeriodicTask::EthereumSubscriptionMonitor => {

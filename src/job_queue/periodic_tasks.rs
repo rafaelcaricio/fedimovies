@@ -1,9 +1,6 @@
-use std::collections::HashMap;
 use std::time::Duration;
 
 use anyhow::Error;
-use chrono::{DateTime, Utc};
-use uuid::Uuid;
 
 use mitra_config::Config;
 use mitra_utils::datetime::days_before_now;
@@ -34,7 +31,6 @@ use crate::models::{
 pub async fn nft_monitor(
     maybe_blockchain: Option<&mut Blockchain>,
     db_pool: &DbPool,
-    token_waitlist_map: &mut HashMap<Uuid, DateTime<Utc>>,
 ) -> Result<(), Error> {
     let blockchain = match maybe_blockchain {
         Some(blockchain) => blockchain,
@@ -49,7 +45,6 @@ pub async fn nft_monitor(
         collectible,
         &mut blockchain.sync_state,
         db_pool,
-        token_waitlist_map,
     ).await?;
     Ok(())
 }
