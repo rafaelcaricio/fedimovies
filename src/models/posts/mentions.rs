@@ -13,7 +13,7 @@ use super::links::is_inside_code_block;
 
 // See also: ACTOR_ADDRESS_RE in webfinger::types
 const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])@(?P<mention>[^\s<]+)";
-const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+\w))?(?P<after>[\.,:?\)]?)$";
+const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+\w))?(?P<after>[\.,:?!\)]?)$";
 
 /// Finds everything that looks like a mention
 fn find_mentions(

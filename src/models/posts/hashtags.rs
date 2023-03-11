@@ -5,7 +5,7 @@ use crate::errors::ValidationError;
 use super::links::is_inside_code_block;
 
 const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])#(?P<tag>[^\s<]+)";
-const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?\)]?)$";
+const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?!\)]?)$";
 const HASHTAG_NAME_RE: &str = r"^\w+$";
 
 /// Finds anything that looks like a hashtag
