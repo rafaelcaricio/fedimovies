@@ -1,4 +1,6 @@
-# Tor instance
+# Tor federation
+
+## Tor-only instance
 
 Install Tor.
 
@@ -25,3 +27,16 @@ Restart the Tor service. Inside the `HiddenServiceDir` directory find the `hostn
 Start Mitra.
 
 For more information about running onion services, visit https://community.torproject.org/onion-services/setup/
+
+## Clearnet + Tor
+
+Clearnet instances can federate with Tor-only instances.
+
+Add the following block to Mitra configuration file:
+
+```yaml
+federation:
+  onion_proxy_url: 'socks5h://127.0.0.1:9050'
+```
+
+Where `127.0.0.1:9050` is the address and the port where Tor proxy is listening.

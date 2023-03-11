@@ -11,8 +11,9 @@ Features:
 - Content subscription service. Subscriptions provide a way to receive monthly payments from subscribers and to publish private content made exclusively for them.
   - Supported payment methods: [Monero](https://www.getmonero.org/get-started/what-is-monero/) and [ERC-20](https://ethereum.org/en/developers/docs/standards/tokens/erc-20/) tokens (on Ethereum and other EVM-compatible blockchains).
 - [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
-- Account migrations (from one server to another). Identity can be detached from the server.
 - Donation buttons.
+- Account migrations (from one server to another). Identity can be detached from the server.
+- Federation over Tor.
 
 Follow: [@mitra@mitra.social](https://mitra.social/@mitra)
 
@@ -101,6 +102,10 @@ systemctl start mitra
 ```
 
 An HTTP server will be needed to handle HTTPS requests. See the example of [nginx configuration file](./contrib/mitra.nginx).
+
+### Tor federation
+
+See [guide](./docs/onion.md).
 
 ### Monero
 
