@@ -1,3 +1,6 @@
+[registries.crates-io]
+protocol = "git"
+
 # https://github.com/rust-lang/cargo/issues/5034#issuecomment-927105016
 [target.'cfg(feature = "cargo-clippy")']
 rustflags = [
