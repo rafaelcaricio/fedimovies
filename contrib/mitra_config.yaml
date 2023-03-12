@@ -20,7 +20,9 @@ instance_uri: https://example.tld
 instance_title: example
 instance_short_description: my instance
 # Long description can contain markdown syntax
-instance_description: my instance
+instance_description: |
+  # My instance
+  Welcome!
 
 registration:
   # Possible values: open, invite
