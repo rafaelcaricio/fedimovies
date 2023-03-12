@@ -6,14 +6,17 @@ use sha2::{Digest, Sha256};
 
 use mitra_utils::files::{get_media_type_extension, write_file};
 
-pub const SUPPORTED_MEDIA_TYPES: [&str; 8] = [
+pub const SUPPORTED_MEDIA_TYPES: [&str; 11] = [
     "audio/mpeg",
+    "audio/ogg",
+    "audio/x-wav",
     "image/apng",
     "image/gif",
     "image/jpeg",
     "image/png",
     "image/webp",
     "video/mp4",
+    "video/ogg",
     "video/webm",
 ];
 

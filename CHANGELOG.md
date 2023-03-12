@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Enabled audio and video uploads.
+- Added `audio/ogg` and `audio/x-wav` to the list of supported media types.
 
 ### Changed
 
