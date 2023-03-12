@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Enabled audio and video uploads.
+
 ### Changed
 
 - Save latest ethereum block number to database instead of file.

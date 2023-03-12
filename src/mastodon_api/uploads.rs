@@ -37,7 +37,7 @@ pub fn save_b64_file(
     b64data: &str,
     maybe_media_type: Option<String>,
     output_dir: &Path,
-    maybe_expected_prefix: Option<&str>,
+    maybe_expected_prefix: Option<&str>, // deprecated
 ) -> Result<(String, usize, String), UploadError> {
     let file_data = base64::decode(b64data)?;
     let file_size = file_data.len();

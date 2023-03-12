@@ -26,7 +26,7 @@ async fn create_attachment_view(
         &attachment_data.file,
         attachment_data.media_type.clone(),
         &config.media_dir(),
-        Some("image/"),
+        None,
     )?;
     let db_attachment = create_attachment(
         db_client,
