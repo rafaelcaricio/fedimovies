@@ -253,7 +253,7 @@ pub async fn check_ethereum_subscriptions(
         };
     };
 
-    sync_state.update(&contract.address(), to_block)?;
+    sync_state.update(db_client, &contract.address(), to_block).await?;
     Ok(())
 }
 

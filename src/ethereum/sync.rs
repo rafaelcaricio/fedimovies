@@ -1,29 +1,44 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use web3::{api::Web3, transports::Http, types::Address};
 
-use mitra_utils::files::write_file;
-
+use crate::database::DatabaseClient;
+use crate::models::properties::queries::{
+    get_internal_property,
+    set_internal_property,
+};
 use super::errors::EthereumError;
 
 const BLOCK_NUMBER_FILE_NAME: &str = "current_block";
+const CURRENT_BLOCK_PROPERTY_NAME: &str = "ethereum_current_block";
 
-pub fn save_current_block_number(
-    storage_dir: &Path,
+pub async fn save_current_block_number(
+    db_client: &impl DatabaseClient,
     block_number: u64,
 ) -> Result<(), EthereumError> {
-    let file_path = storage_dir.join(BLOCK_NUMBER_FILE_NAME);
-    write_file(block_number.to_string().as_bytes(), &file_path)
-        .map_err(|_| EthereumError::OtherError("failed to save current block"))?;
+    set_internal_property(
+        db_client,
+        CURRENT_BLOCK_PROPERTY_NAME,
+        &block_number,
+    ).await?;
     Ok(())
 }
 
-fn read_current_block_number(
+async fn read_current_block_number(
+    db_client: &impl DatabaseClient,
     storage_dir: &Path,
 ) -> Result<Option<u64>, EthereumError> {
+    let maybe_block_number = get_internal_property(
+        db_client,
+        CURRENT_BLOCK_PROPERTY_NAME,
+    ).await?;
+    if maybe_block_number.is_some() {
+        return Ok(maybe_block_number);
+    };
+    // Try to read from file if internal property is not set
     let file_path = storage_dir.join(BLOCK_NUMBER_FILE_NAME);
-    let block_number = if file_path.exists() {
+    let maybe_block_number = if file_path.exists() {
         let block_number: u64 = std::fs::read_to_string(&file_path)
             .map_err(|_| EthereumError::OtherError("failed to read current block"))?
             .parse()
@@ -32,19 +47,20 @@ fn read_current_block_number(
     } else {
         None
     };
-    Ok(block_number)
+    Ok(maybe_block_number)
 }
 
 pub async fn get_current_block_number(
+    db_client: &impl DatabaseClient,
     web3: &Web3<Http>,
     storage_dir: &Path,
 ) -> Result<u64, EthereumError> {
-    let block_number = match read_current_block_number(storage_dir)? {
+    let block_number = match read_current_block_number(db_client, storage_dir).await? {
         Some(block_number) => block_number,
         None => {
             // Save block number when connecting to the node for the first time
             let block_number = web3.eth().block_number().await?.as_u64();
-            save_current_block_number(storage_dir, block_number)?;
+            save_current_block_number(db_client, block_number).await?;
             block_number
         },
     };
@@ -57,8 +73,6 @@ pub struct SyncState {
     contracts: HashMap<Address, u64>,
     sync_step: u64,
     reorg_max_depth: u64,
-
-    storage_dir: PathBuf,
 }
 
 impl SyncState {
@@ -67,7 +81,6 @@ impl SyncState {
         contracts: Vec<Address>,
         sync_step: u64,
         reorg_max_depth: u64,
-        storage_dir: &Path,
     ) -> Self {
         log::info!("current block is {}", current_block);
         let mut contract_map = HashMap::new();
@@ -79,7 +92,6 @@ impl SyncState {
             contracts: contract_map,
             sync_step,
             reorg_max_depth,
-            storage_dir: storage_dir.to_path_buf(),
         }
     }
 
@@ -109,8 +121,9 @@ impl SyncState {
         true
     }
 
-    pub fn update(
+    pub async fn update(
         &mut self,
+        db_client: &impl DatabaseClient,
         contract_address: &Address,
         block_number: u64,
     ) -> Result<(), EthereumError> {
@@ -118,7 +131,7 @@ impl SyncState {
         if let Some(min_value) = self.contracts.values().min().copied() {
             if min_value > self.current_block {
                 self.current_block = min_value;
-                save_current_block_number(&self.storage_dir, self.current_block)?;
+                save_current_block_number(db_client, self.current_block).await?;
                 log::info!("synced to block {}", self.current_block);
             };
         };
@@ -138,7 +151,6 @@ mod tests {
             vec![address.clone()],
             100,
             10,
-            Path::new("test"),
         );
         let (from_block, to_block) = sync_state.get_scan_range(&address, 555);
         assert_eq!(from_block, 0);
@@ -153,7 +165,6 @@ mod tests {
             vec![address.clone()],
             100,
             10,
-            Path::new("test"),
         );
         let (from_block, to_block) = sync_state.get_scan_range(&address, 555);
         assert_eq!(from_block, 500);

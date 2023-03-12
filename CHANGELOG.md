@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Save latest ethereum block number to database instead of file.
+
+### Deprecated
+
+- Reading ethereum block number from `current_block` file.
+
 ### Removed
 
 - Disabled post tokenization (can be re-enabled with `ethereum-extras` feature).

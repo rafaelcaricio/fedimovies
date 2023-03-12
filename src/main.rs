@@ -54,21 +54,16 @@ async fn main() -> std::io::Result<()> {
     let db_pool = create_pool(&config.database_url);
     let mut db_client = get_database_client(&db_pool).await.unwrap();
     apply_migrations(&mut db_client).await;
-    std::mem::drop(db_client);
+
     if !config.media_dir().exists() {
         std::fs::create_dir(config.media_dir())
             .expect("failed to create media directory");
     };
-    log::info!(
-        "app initialized; version {}, environment = '{:?}'",
-        MITRA_VERSION,
-        config.environment,
-    );
 
     let maybe_blockchain = if let Some(blockchain_config) = config.blockchain() {
         if let Some(ethereum_config) = blockchain_config.ethereum_config() {
             // Create blockchain interface
-            get_contracts(ethereum_config, &config.storage_dir).await
+            get_contracts(&**db_client, ethereum_config, &config.storage_dir).await
                 .map(Some).unwrap()
         } else {
             None
@@ -78,6 +73,13 @@ async fn main() -> std::io::Result<()> {
     };
     let maybe_contract_set = maybe_blockchain.clone()
         .map(|blockchain| blockchain.contract_set);
+
+    std::mem::drop(db_client);
+    log::info!(
+        "app initialized; version {}, environment = '{:?}'",
+        MITRA_VERSION,
+        config.environment,
+    );
 
     scheduler::run(config.clone(), maybe_blockchain, db_pool.clone());
     log::info!("scheduler started");

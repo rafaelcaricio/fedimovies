@@ -142,7 +142,7 @@ pub async fn process_nft_events(
         TOKEN_WAITLIST_MAP_PROPERTY_NAME,
         &token_waitlist_map,
     ).await?;
-    sync_state.update(&contract.address(), to_block)?;
+    sync_state.update(db_client, &contract.address(), to_block).await?;
     Ok(())
 }
 

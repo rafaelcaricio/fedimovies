@@ -10,6 +10,7 @@ use web3::{
 
 use mitra_config::EthereumConfig;
 
+use crate::database::DatabaseClient;
 use super::api::connect;
 use super::errors::EthereumError;
 use super::sync::{
@@ -98,6 +99,7 @@ pub struct Blockchain {
 }
 
 pub async fn get_contracts(
+    db_client: &impl DatabaseClient,
     config: &EthereumConfig,
     storage_dir: &Path,
 ) -> Result<Blockchain, EthereumError> {
@@ -181,13 +183,12 @@ pub async fn get_contracts(
         maybe_subscription_adapter = Some(subscription_adapter);
     };
 
-    let current_block = get_current_block_number(&web3, storage_dir).await?;
+    let current_block = get_current_block_number(db_client, &web3, storage_dir).await?;
     let sync_state = SyncState::new(
         current_block,
         sync_targets,
         config.chain_sync_step,
         config.chain_reorg_max_depth,
-        storage_dir,
     );
 
     let contract_set = ContractSet {

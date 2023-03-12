@@ -493,10 +493,10 @@ pub struct UpdateCurrentBlock {
 impl UpdateCurrentBlock {
     pub async fn execute(
         &self,
-        config: &Config,
-        _db_client: &impl DatabaseClient,
+        _config: &Config,
+        db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        save_current_block_number(&config.storage_dir, self.number)?;
+        save_current_block_number(db_client, self.number).await?;
         println!("current block updated");
         Ok(())
     }
