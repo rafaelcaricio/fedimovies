@@ -19,7 +19,7 @@ use crate::identity::{
     did_key::DidKey,
     did_pkh::DidPkh,
     minisign::verify_ed25519_signature,
-    signatures::SignatureType,
+    signatures::ProofType,
 };
 use super::create::{
     IntegrityProof,
@@ -34,7 +34,7 @@ pub enum JsonSigner {
 }
 
 pub struct SignatureData {
-    pub signature_type: SignatureType,
+    pub signature_type: ProofType,
     pub signer: JsonSigner,
     pub message: String,
     pub signature: Vec<u8>,
@@ -156,7 +156,7 @@ mod tests {
         let signature_data = get_json_signature(&signed_object).unwrap();
         assert_eq!(
             signature_data.signature_type,
-            SignatureType::JcsEip191Signature,
+            ProofType::JcsEip191Signature,
         );
         let expected_signer = JsonSigner::Did(Did::Pkh(DidPkh::from_address(
             &Currency::Ethereum,
@@ -192,7 +192,7 @@ mod tests {
         let signature_data = get_json_signature(&signed_object).unwrap();
         assert_eq!(
             signature_data.signature_type,
-            SignatureType::JcsRsaSignature,
+            ProofType::JcsRsaSignature,
         );
         let expected_signer = JsonSigner::ActorKeyId(signer_key_id.to_string());
         assert_eq!(signature_data.signer, expected_signer);
