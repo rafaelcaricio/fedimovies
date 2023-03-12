@@ -10,10 +10,7 @@ use web3::{
 };
 
 use mitra_config::{EthereumConfig, Instance};
-use mitra_utils::{
-    caip2::ChainId,
-    currencies::Currency,
-};
+use mitra_utils::currencies::Currency;
 
 use crate::activitypub::{
     builders::{
@@ -180,6 +177,10 @@ pub async fn check_ethereum_subscriptions(
             &recipient.id,
         ).await {
             Ok(subscription) => {
+                if subscription.chain_id != config.chain_id {
+                    log::error!("can't switch to another chain");
+                    continue;
+                };
                 let current_sender_address =
                     subscription.sender_address.unwrap_or("''".to_string());
                 if current_sender_address != sender_address {
@@ -193,24 +194,14 @@ pub async fn check_ethereum_subscriptions(
                     );
                     continue;
                 };
-                if subscription.chain_id != config.chain_id &&
-                    subscription.chain_id != ChainId::ethereum_devnet()
-                {
-                    // Switching from from devnet is allowed during migration
-                    // because there's no persistent state
-                    log::error!("can't switch to another chain");
-                    continue;
-                };
                 if subscription.updated_at >= block_date {
                     // Event already processed
                     continue;
                 };
                 // Update subscription expiration date
-                // TODO: disallow automatic chain ID updates after migration
                 update_subscription(
                     db_client,
                     subscription.id,
-                    &config.chain_id,
                     &expires_at,
                     &block_date,
                 ).await?;

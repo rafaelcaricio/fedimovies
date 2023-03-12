@@ -56,7 +56,6 @@ pub async fn create_subscription(
 pub async fn update_subscription(
     db_client: &mut impl DatabaseClient,
     subscription_id: i32,
-    chain_id: &ChainId,
     expires_at: &DateTime<Utc>,
     updated_at: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
@@ -65,15 +64,13 @@ pub async fn update_subscription(
         "
         UPDATE subscription
         SET
-            chain_id = $2,
-            expires_at = $3,
-            updated_at = $4
+            expires_at = $2,
+            updated_at = $3
         WHERE id = $1
         RETURNING sender_id, recipient_id
         ",
         &[
             &subscription_id,
-            &DbChainId::new(chain_id),
             &expires_at,
             &updated_at,
         ],

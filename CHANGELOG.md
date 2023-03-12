@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 
 - Disabled post tokenization (can be re-enabled with `ethereum-extras` feature).
+- Removed ability to switch from Ethereum devnet to another chain without resetting subscriptions.
 
 ### Fixed
 
