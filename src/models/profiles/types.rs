@@ -1,6 +1,3 @@
-use std::fmt;
-use std::str::FromStr;
-
 use chrono::{DateTime, Duration, Utc};
 use postgres_types::FromSql;
 use serde::{
@@ -21,11 +18,8 @@ use crate::database::{
     json_macro::{json_from_sql, json_to_sql},
     DatabaseTypeError,
 };
-use crate::errors::{ConversionError, ValidationError};
-use crate::identity::{
-    did::Did,
-    signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
-};
+use crate::errors::ValidationError;
+use crate::identity::did::Did;
 use crate::models::emojis::types::DbEmoji;
 use crate::webfinger::types::ActorAddress;
 use super::validators::{
@@ -60,55 +54,54 @@ json_from_sql!(ProfileImage);
 json_to_sql!(ProfileImage);
 
 #[derive(Clone, Debug)]
-pub enum ProofType {
+pub enum IdentityProofType {
     LegacyEip191IdentityProof,
     LegacyMinisignIdentityProof,
 }
 
-impl FromStr for ProofType {
-    type Err = ConversionError;
+impl From<&IdentityProofType> for i16 {
+    fn from(proof_type: &IdentityProofType) -> i16 {
+        match proof_type {
+            IdentityProofType::LegacyEip191IdentityProof => 1,
+            IdentityProofType::LegacyMinisignIdentityProof => 2,
+        }
+    }
+}
 
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
+impl TryFrom<i16> for IdentityProofType {
+    type Error = DatabaseTypeError;
+
+    fn try_from(value: i16) -> Result<Self, Self::Error> {
         let proof_type = match value {
-            PROOF_TYPE_ID_EIP191 => Self::LegacyEip191IdentityProof,
-            PROOF_TYPE_ID_MINISIGN => Self::LegacyMinisignIdentityProof,
-            _ => return Err(ConversionError),
+            1 => Self::LegacyEip191IdentityProof,
+            2 => Self::LegacyMinisignIdentityProof,
+            _ => return Err(DatabaseTypeError),
         };
         Ok(proof_type)
     }
 }
 
-impl fmt::Display for ProofType {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let proof_type_str = match self {
-            Self::LegacyEip191IdentityProof => PROOF_TYPE_ID_EIP191,
-            Self::LegacyMinisignIdentityProof => PROOF_TYPE_ID_MINISIGN,
-        };
-        write!(formatter, "{}", proof_type_str)
-    }
-}
-
-impl<'de> Deserialize<'de> for ProofType {
+impl<'de> Deserialize<'de> for IdentityProofType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: Deserializer<'de>
     {
-        String::deserialize(deserializer)?
-            .parse().map_err(DeserializerError::custom)
+        i16::deserialize(deserializer)?
+            .try_into().map_err(DeserializerError::custom)
     }
 }
 
-impl Serialize for ProofType {
+impl Serialize for IdentityProofType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
-        serializer.serialize_str(&self.to_string())
+        serializer.serialize_i16(self.into())
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct IdentityProof {
     pub issuer: Did,
-    pub proof_type: ProofType,
+    pub proof_type: IdentityProofType,
     pub value: String,
 }
 
@@ -551,7 +544,7 @@ mod tests {
 
     #[test]
     fn test_identity_proof_serialization() {
-        let json_data = r#"{"issuer":"did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a","proof_type":"ethereum-eip191-00","value":"dbfe"}"#;
+        let json_data = r#"{"issuer":"did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a","proof_type":1,"value":"dbfe"}"#;
         let proof: IdentityProof = serde_json::from_str(json_data).unwrap();
         let did_pkh = match proof.issuer {
             Did::Pkh(ref did_pkh) => did_pkh,

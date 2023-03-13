@@ -11,13 +11,14 @@ use crate::identity::{
     claims::create_identity_claim,
     did::Did,
     minisign::verify_minisign_identity_proof,
+    signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
 };
 use crate::models::profiles::types::{
     ExtraField,
     IdentityProof,
+    IdentityProofType,
     PaymentLink,
     PaymentOption,
-    ProofType,
 };
 use crate::web_client::urls::get_subscription_page_url;
 use super::types::ActorAttachment;
@@ -25,12 +26,16 @@ use super::types::ActorAttachment;
 pub fn attach_identity_proof(
     proof: IdentityProof,
 ) -> ActorAttachment {
+    let proof_type_str = match proof.proof_type {
+        IdentityProofType::LegacyEip191IdentityProof => PROOF_TYPE_ID_EIP191,
+        IdentityProofType::LegacyMinisignIdentityProof => PROOF_TYPE_ID_MINISIGN,
+    };
     ActorAttachment {
         object_type: IDENTITY_PROOF.to_string(),
         name: proof.issuer.to_string(),
         value: None,
         href: None,
-        signature_algorithm: Some(proof.proof_type.to_string()),
+        signature_algorithm: Some(proof_type_str.to_string()),
         signature_value: Some(proof.value),
     }
 }
@@ -42,10 +47,13 @@ pub fn parse_identity_proof(
     if attachment.object_type != IDENTITY_PROOF {
         return Err(ValidationError("invalid attachment type"));
     };
-    let proof_type = attachment.signature_algorithm.as_ref()
-        .ok_or(ValidationError("missing proof type"))?
-        .parse()
-        .map_err(|_| ValidationError("unsupported proof type"))?;
+    let proof_type_str = attachment.signature_algorithm.as_ref()
+        .ok_or(ValidationError("missing proof type"))?;
+    let proof_type = match proof_type_str.as_str() {
+        PROOF_TYPE_ID_EIP191 => IdentityProofType::LegacyEip191IdentityProof,
+        PROOF_TYPE_ID_MINISIGN => IdentityProofType::LegacyMinisignIdentityProof,
+        _ => return Err(ValidationError("unsupported proof type")),
+    };
     let did = attachment.name.parse::<Did>()
         .map_err(|_| ValidationError("invalid DID"))?;
     let message = create_identity_claim(actor_id, &did)
@@ -54,7 +62,7 @@ pub fn parse_identity_proof(
         .ok_or(ValidationError("missing signature"))?;
     match did {
         Did::Key(ref did_key) => {
-            if !matches!(proof_type, ProofType::LegacyMinisignIdentityProof) {
+            if !matches!(proof_type, IdentityProofType::LegacyMinisignIdentityProof) {
                 return Err(ValidationError("incorrect proof type"));
             };
             verify_minisign_identity_proof(
@@ -64,7 +72,7 @@ pub fn parse_identity_proof(
             ).map_err(|_| ValidationError("invalid identity proof"))?;
         },
         Did::Pkh(ref did_pkh) => {
-            if !matches!(proof_type, ProofType::LegacyEip191IdentityProof) {
+            if !matches!(proof_type, IdentityProofType::LegacyEip191IdentityProof) {
                 return Err(ValidationError("incorrect proof type"));
             };
             verify_eip191_identity_proof(

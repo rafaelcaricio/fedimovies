@@ -76,8 +76,8 @@ use crate::models::{
     },
     profiles::types::{
         IdentityProof,
+        IdentityProofType,
         ProfileUpdateData,
-        ProofType,
     },
     relationships::queries::{
         get_followers_paginated,
@@ -411,7 +411,7 @@ async fn create_identity_proof(
                 &message,
                 &proof_data.signature,
             ).map_err(|_| ValidationError("invalid signature"))?;
-            ProofType::LegacyMinisignIdentityProof
+            IdentityProofType::LegacyMinisignIdentityProof
         },
         Did::Pkh(ref did_pkh) => {
             if did_pkh.chain_id != ChainId::ethereum_mainnet() {
@@ -432,7 +432,7 @@ async fn create_identity_proof(
                 &message,
                 &proof_data.signature,
             ).map_err(|_| ValidationError("invalid signature"))?;
-            ProofType::LegacyEip191IdentityProof
+            IdentityProofType::LegacyEip191IdentityProof
         },
     };
 
