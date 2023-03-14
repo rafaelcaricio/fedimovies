@@ -37,7 +37,7 @@ use crate::ethereum::{
     contracts::ContractSet,
     eip4361::verify_eip4361_signature,
     gate::is_allowed_user,
-    identity::verify_eip191_identity_proof,
+    identity::verify_eip191_signature,
 };
 use crate::http::get_request_base_url;
 use crate::identity::{
@@ -47,7 +47,7 @@ use crate::identity::{
     minisign::{
         minisign_key_to_did,
         parse_minisign_signature,
-        verify_minisign_identity_proof,
+        verify_minisign_signature,
     },
 };
 use crate::json_signatures::{
@@ -406,10 +406,12 @@ async fn create_identity_proof(
     // Verify proof
     let proof_type = match did {
         Did::Key(ref did_key) => {
-            verify_minisign_identity_proof(
+            let signature_bin = parse_minisign_signature(&proof_data.signature)
+                .map_err(|_| ValidationError("invalid signature encoding"))?;
+            verify_minisign_signature(
                 did_key,
                 &message,
-                &proof_data.signature,
+                &signature_bin,
             ).map_err(|_| ValidationError("invalid signature"))?;
             IdentityProofType::LegacyMinisignIdentityProof
         },
@@ -427,7 +429,7 @@ async fn create_identity_proof(
                     return Err(ValidationError("DID doesn't match current identity").into());
                 };
             };
-            verify_eip191_identity_proof(
+            verify_eip191_signature(
                 did_pkh,
                 &message,
                 &proof_data.signature,

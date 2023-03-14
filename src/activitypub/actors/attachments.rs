@@ -6,11 +6,14 @@ use crate::activitypub::vocabulary::{
     PROPERTY_VALUE,
 };
 use crate::errors::ValidationError;
-use crate::ethereum::identity::verify_eip191_identity_proof;
+use crate::ethereum::identity::verify_eip191_signature;
 use crate::identity::{
     claims::create_identity_claim,
     did::Did,
-    minisign::verify_minisign_identity_proof,
+    minisign::{
+        parse_minisign_signature,
+        verify_minisign_signature,
+    },
 };
 use crate::json_signatures::proofs::{
     PROOF_TYPE_ID_EIP191,
@@ -68,17 +71,19 @@ pub fn parse_identity_proof(
             if !matches!(proof_type, IdentityProofType::LegacyMinisignIdentityProof) {
                 return Err(ValidationError("incorrect proof type"));
             };
-            verify_minisign_identity_proof(
+            let signature_bin = parse_minisign_signature(signature)
+                .map_err(|_| ValidationError("invalid signature encoding"))?;
+            verify_minisign_signature(
                 did_key,
                 &message,
-                signature,
+                &signature_bin,
             ).map_err(|_| ValidationError("invalid identity proof"))?;
         },
         Did::Pkh(ref did_pkh) => {
             if !matches!(proof_type, IdentityProofType::LegacyEip191IdentityProof) {
                 return Err(ValidationError("incorrect proof type"));
             };
-            verify_eip191_identity_proof(
+            verify_eip191_signature(
                 did_pkh,
                 &message,
                 signature,

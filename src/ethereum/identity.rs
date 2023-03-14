@@ -24,15 +24,6 @@ pub fn verify_eip191_signature(
     Ok(())
 }
 
-/// Verifies proof of address ownership
-pub fn verify_eip191_identity_proof(
-    did: &DidPkh,
-    message: &str,
-    signature_hex: &str,
-) -> Result<(), Eip191VerificationError> {
-    verify_eip191_signature(did, message, signature_hex)
-}
-
 #[cfg(test)]
 mod tests {
     use web3::signing::{Key, SecretKeyRef};
@@ -49,7 +40,7 @@ mod tests {
     const ETHEREUM: Currency = Currency::Ethereum;
 
     #[test]
-    fn test_verify_eip191_identity_proof() {
+    fn test_verify_eip191_signature() {
         let message = "test";
         let secret_key = generate_ecdsa_key();
         let secret_key_ref = SecretKeyRef::new(&secret_key);
@@ -58,7 +49,7 @@ mod tests {
         let did = DidPkh::from_address(&ETHEREUM, &address);
         let signature = sign_message(&secret_key_str, message.as_bytes())
             .unwrap().to_string();
-        let result = verify_eip191_identity_proof(&did, message, &signature);
+        let result = verify_eip191_signature(&did, message, &signature);
         assert_eq!(result.is_ok(), true);
     }
 }

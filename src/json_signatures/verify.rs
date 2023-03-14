@@ -18,7 +18,7 @@ use crate::identity::{
     did::Did,
     did_key::DidKey,
     did_pkh::DidPkh,
-    minisign::verify_ed25519_signature,
+    minisign::verify_minisign_signature,
 };
 use super::create::{
     IntegrityProof,
@@ -126,7 +126,7 @@ pub fn verify_ed25519_json_signature(
     message: &str,
     signature: &[u8],
 ) -> Result<(), VerificationError> {
-    verify_ed25519_signature(signer, message, signature)
+    verify_minisign_signature(signer, message, signature)
         .map_err(|_| VerificationError::InvalidSignature)
 }
 

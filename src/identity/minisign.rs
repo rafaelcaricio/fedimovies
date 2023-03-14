@@ -105,23 +105,7 @@ pub enum VerificationError {
     SignatureError(#[from] SignatureError),
 }
 
-pub fn verify_minisign_identity_proof(
-    signer: &DidKey,
-    message: &str,
-    signature: &str,
-) -> Result<(), VerificationError> {
-    let ed25519_key = signer.try_ed25519_key()?;
-    let ed25519_signature = parse_minisign_signature(signature)?;
-    let message = format!("{}\n", message);
-    _verify_ed25519_signature(
-        &message,
-        ed25519_key,
-        ed25519_signature,
-    )?;
-    Ok(())
-}
-
-pub fn verify_ed25519_signature(
+pub fn verify_minisign_signature(
     signer: &DidKey,
     message: &str,
     signature: &[u8],
@@ -150,6 +134,8 @@ mod tests {
         let minisign_signature =
             "RUSA58rRENpGFVKxdZGMG1WdIJ+dlyP83qOqw6GP0H/Li6Brug2A3mFKLtleIRLi6IIG0smzOlX5CEsisNnc897OUHIOSNLsQQs=";
         let signer = minisign_key_to_did(minisign_key).unwrap();
-        verify_minisign_identity_proof(&signer, message, minisign_signature).unwrap();
+        let signature_bin = parse_minisign_signature(minisign_signature).unwrap();
+        let result = verify_minisign_signature(&signer, message, &signature_bin);
+        assert_eq!(result.is_ok(), true);
     }
 }
