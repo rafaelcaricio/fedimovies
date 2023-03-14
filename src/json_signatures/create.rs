@@ -15,11 +15,11 @@ use mitra_utils::{
 use crate::identity::{
     did_key::DidKey,
     did_pkh::DidPkh,
-    signatures::{
-        PROOF_TYPE_JCS_ED25519,
-        PROOF_TYPE_JCS_EIP191,
-        PROOF_TYPE_JCS_RSA,
-    },
+};
+use super::proofs::{
+    PROOF_TYPE_JCS_ED25519,
+    PROOF_TYPE_JCS_EIP191,
+    PROOF_TYPE_JCS_RSA,
 };
 
 pub(super) const PROOF_KEY: &str = "proof";

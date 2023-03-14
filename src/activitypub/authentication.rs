@@ -10,14 +10,17 @@ use crate::http_signatures::verify::{
     verify_http_signature,
     HttpSignatureVerificationError as HttpSignatureError,
 };
-use crate::identity::{did::Did, signatures::ProofType};
-use crate::json_signatures::verify::{
-    get_json_signature,
-    verify_ed25519_json_signature,
-    verify_eip191_json_signature,
-    verify_rsa_json_signature,
-    JsonSignatureVerificationError as JsonSignatureError,
-    JsonSigner,
+use crate::identity::did::Did;
+use crate::json_signatures::{
+    proofs::ProofType,
+    verify::{
+        get_json_signature,
+        verify_ed25519_json_signature,
+        verify_eip191_json_signature,
+        verify_rsa_json_signature,
+        JsonSignatureVerificationError as JsonSignatureError,
+        JsonSigner,
+    },
 };
 use crate::models::{
     profiles::queries::get_profile_by_remote_actor_id,

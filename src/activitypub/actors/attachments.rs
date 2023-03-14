@@ -11,7 +11,10 @@ use crate::identity::{
     claims::create_identity_claim,
     did::Did,
     minisign::verify_minisign_identity_proof,
-    signatures::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN},
+};
+use crate::json_signatures::proofs::{
+    PROOF_TYPE_ID_EIP191,
+    PROOF_TYPE_ID_MINISIGN,
 };
 use crate::models::profiles::types::{
     ExtraField,

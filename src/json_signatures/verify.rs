@@ -19,13 +19,13 @@ use crate::identity::{
     did_key::DidKey,
     did_pkh::DidPkh,
     minisign::verify_ed25519_signature,
-    signatures::ProofType,
 };
 use super::create::{
     IntegrityProof,
     PROOF_KEY,
     PROOF_PURPOSE,
 };
+use super::proofs::ProofType;
 
 #[derive(Debug, PartialEq)]
 pub enum JsonSigner {
