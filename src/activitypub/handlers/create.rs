@@ -304,14 +304,21 @@ pub async fn handle_emoji(
     } else {
         let hostname = get_hostname(&tag.id)
             .map_err(|_| ValidationError("invalid emoji ID"))?;
-        create_emoji(
+        match create_emoji(
             db_client,
             emoji_name,
             Some(&hostname),
             image,
             Some(&tag.id),
             &tag.updated,
-        ).await?
+        ).await {
+            Ok(emoji) => emoji,
+            Err(DatabaseError::AlreadyExists(_)) => {
+                log::warn!("emoji name is not unique: {}", emoji_name);
+                return Ok(None);
+            },
+            Err(other_error) => return Err(other_error.into()),
+        }
     };
     Ok(Some(emoji))
 }
