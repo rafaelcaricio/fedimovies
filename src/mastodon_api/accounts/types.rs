@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use mitra_utils::markdown::markdown_basic_to_html;
 
+use crate::activitypub::actors::helpers::ACTOR_IMAGE_MAX_SIZE;
 use crate::errors::ValidationError;
 use crate::identity::did::Did;
 use crate::mastodon_api::{
@@ -303,6 +304,7 @@ fn process_b64_image_field_value(
                     &b64_data,
                     form_media_type,
                     output_dir,
+                    ACTOR_IMAGE_MAX_SIZE,
                     Some("image/"),
                 )?;
                 let image = ProfileImage::new(

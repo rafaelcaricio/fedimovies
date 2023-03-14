@@ -10,10 +10,7 @@ use mitra_config::{
 use mitra_utils::markdown::markdown_to_html;
 
 use crate::ethereum::contracts::ContractSet;
-use crate::mastodon_api::{
-    MASTODON_API_VERSION,
-    uploads::UPLOAD_MAX_SIZE,
-};
+use crate::mastodon_api::MASTODON_API_VERSION;
 use crate::media::SUPPORTED_MEDIA_TYPES;
 use crate::models::posts::validators::ATTACHMENTS_MAX_NUM;
 
@@ -163,7 +160,7 @@ impl InstanceInfo {
                 media_attachments: InstanceMediaLimits {
                     supported_mime_types: SUPPORTED_MEDIA_TYPES.iter()
                         .map(|media_type| media_type.to_string()).collect(),
-                    image_size_limit: UPLOAD_MAX_SIZE,
+                    image_size_limit: config.limits.media.file_size_limit,
                 },
             },
             login_message: config.login_message.clone(),

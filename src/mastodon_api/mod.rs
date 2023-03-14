@@ -18,4 +18,3 @@ mod pagination;
 mod uploads;
 
 const MASTODON_API_VERSION: &str = "4.0.0";
-pub use uploads::UPLOAD_MAX_SIZE;

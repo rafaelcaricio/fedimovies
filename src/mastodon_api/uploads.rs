@@ -5,8 +5,6 @@ use mitra_utils::files::sniff_media_type;
 use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};
 use super::errors::MastodonError;
 
-pub const UPLOAD_MAX_SIZE: usize = 1024 * 1024 * 5;
-
 #[derive(thiserror::Error, Debug)]
 pub enum UploadError {
     #[error(transparent)]
@@ -37,11 +35,12 @@ pub fn save_b64_file(
     b64data: &str,
     maybe_media_type: Option<String>,
     output_dir: &Path,
-    maybe_expected_prefix: Option<&str>, // deprecated
+    file_size_limit: usize,
+    maybe_expected_prefix: Option<&str>,
 ) -> Result<(String, usize, String), UploadError> {
     let file_data = base64::decode(b64data)?;
     let file_size = file_data.len();
-    if file_size > UPLOAD_MAX_SIZE {
+    if file_size > file_size_limit {
         return Err(UploadError::TooLarge);
     };
     // Sniff media type if not provided

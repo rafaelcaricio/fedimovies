@@ -36,7 +36,6 @@ use mitra::mastodon_api::settings::views::settings_api_scope;
 use mitra::mastodon_api::statuses::views::status_api_scope;
 use mitra::mastodon_api::subscriptions::views::subscription_api_scope;
 use mitra::mastodon_api::timelines::views::timeline_api_scope;
-use mitra::mastodon_api::UPLOAD_MAX_SIZE;
 use mitra::nodeinfo::views as nodeinfo;
 use mitra::webfinger::views as webfinger;
 use mitra::web_client::views as web_client;
@@ -114,6 +113,7 @@ async fn main() -> std::io::Result<()> {
                     .expose_any_header()
             },
         };
+        let payload_size_limit = 2 * config.limits.media.file_size_limit;
         let mut app = App::new()
             .wrap(cors_config)
             .wrap(ActixLogger::new("%r : %s : %{r}a"))
@@ -137,9 +137,9 @@ async fn main() -> std::io::Result<()> {
             })
             .wrap(create_auth_error_handler())
             .wrap(create_default_headers_middleware())
-            .app_data(web::PayloadConfig::default().limit(UPLOAD_MAX_SIZE * 2))
+            .app_data(web::PayloadConfig::default().limit(payload_size_limit))
             .app_data(web::JsonConfig::default()
-                .limit(UPLOAD_MAX_SIZE * 2)
+                .limit(payload_size_limit)
                 .error_handler(json_error_handler)
             )
             .app_data(web::Data::new(config.clone()))
