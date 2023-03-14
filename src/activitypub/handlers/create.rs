@@ -244,9 +244,9 @@ pub async fn handle_emoji(
             return Ok(None);
         },
     };
-    let tag_name = tag.name.trim_matches(':');
-    if validate_emoji_name(tag_name).is_err() {
-        log::warn!("invalid emoji name");
+    let emoji_name = tag.name.trim_matches(':');
+    if validate_emoji_name(emoji_name).is_err() {
+        log::warn!("invalid emoji name: {}", emoji_name);
         return Ok(None);
     };
     let maybe_emoji_id = match get_emoji_by_remote_object_id(
@@ -258,7 +258,7 @@ pub async fn handle_emoji(
                 // Emoji already exists and is up to date
                 return Ok(Some(emoji));
             };
-            if emoji.emoji_name != tag_name {
+            if emoji.emoji_name != emoji_name {
                 log::warn!("emoji name can't be changed");
                 return Ok(None);
             };
@@ -306,7 +306,7 @@ pub async fn handle_emoji(
             .map_err(|_| ValidationError("invalid emoji ID"))?;
         create_emoji(
             db_client,
-            tag_name,
+            emoji_name,
             Some(&hostname),
             image,
             Some(&tag.id),
