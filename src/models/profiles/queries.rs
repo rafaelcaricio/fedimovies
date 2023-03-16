@@ -3,6 +3,8 @@ use uuid::Uuid;
 
 use mitra_utils::{
     currencies::Currency,
+    did::Did,
+    did_pkh::DidPkh,
     id::generate_ulid,
 };
 
@@ -12,7 +14,6 @@ use crate::database::{
     DatabaseClient,
     DatabaseError,
 };
-use crate::identity::{did::Did, did_pkh::DidPkh};
 use crate::models::{
     cleanup::{
         find_orphaned_files,

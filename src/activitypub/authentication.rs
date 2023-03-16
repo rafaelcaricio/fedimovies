@@ -2,7 +2,10 @@ use actix_web::HttpRequest;
 use serde_json::Value;
 
 use mitra_config::Config;
-use mitra_utils::crypto_rsa::deserialize_public_key;
+use mitra_utils::{
+    crypto_rsa::deserialize_public_key,
+    did::Did,
+};
 
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::http_signatures::verify::{
@@ -10,7 +13,6 @@ use crate::http_signatures::verify::{
     verify_http_signature,
     HttpSignatureVerificationError as HttpSignatureError,
 };
-use crate::identity::did::Did;
 use crate::json_signatures::{
     proofs::ProofType,
     verify::{

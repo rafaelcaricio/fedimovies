@@ -8,7 +8,10 @@ use serde::{
 };
 use uuid::Uuid;
 
-use mitra_utils::caip2::ChainId;
+use mitra_utils::{
+    caip2::ChainId,
+    did::Did,
+};
 
 use crate::activitypub::{
     actors::types::Actor,
@@ -19,7 +22,6 @@ use crate::database::{
     DatabaseTypeError,
 };
 use crate::errors::ValidationError;
-use crate::identity::did::Did;
 use crate::models::emojis::types::DbEmoji;
 use crate::webfinger::types::ActorAddress;
 use super::validators::{

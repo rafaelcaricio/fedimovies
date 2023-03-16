@@ -4,7 +4,10 @@ use regex::Regex;
 use url::Url;
 
 use mitra_config::Config;
-use mitra_utils::currencies::Currency;
+use mitra_utils::{
+    currencies::Currency,
+    did::Did,
+};
 
 use crate::activitypub::{
     fetcher::helpers::{
@@ -18,7 +21,6 @@ use crate::activitypub::{
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::ethereum::utils::validate_ethereum_address;
-use crate::identity::did::Did;
 use crate::models::{
     posts::{
         helpers::{can_view_post, get_local_post_by_id},

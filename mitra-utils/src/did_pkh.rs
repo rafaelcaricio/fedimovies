@@ -4,12 +4,11 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-use mitra_utils::{
+use super::{
     caip2::ChainId,
     currencies::Currency,
+    did::DidParseError,
 };
-
-use super::did::DidParseError;
 
 // https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-10.md#syntax
 const DID_PKH_RE: &str = r"did:pkh:(?P<network>[-a-z0-9]{3,8}):(?P<chain>[-a-zA-Z0-9]{1,32}):(?P<address>[a-zA-Z0-9]{1,64})";

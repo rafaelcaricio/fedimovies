@@ -7,7 +7,7 @@ use ed25519_dalek::{
     Verifier,
 };
 
-use super::did_key::{DidKey, MulticodecError};
+use mitra_utils::did_key::{DidKey, MulticodecError};
 
 const MINISIGN_SIGNATURE_CODE: [u8; 2] = *b"Ed";
 const MINISIGN_SIGNATURE_HASHED_CODE: [u8; 2] = *b"ED";

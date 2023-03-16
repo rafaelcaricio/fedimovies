@@ -9,13 +9,11 @@ use mitra_utils::{
         CanonicalizationError,
     },
     crypto_rsa::create_rsa_signature,
+    did_key::DidKey,
+    did_pkh::DidPkh,
     multibase::encode_multibase_base58btc,
 };
 
-use crate::identity::{
-    did_key::DidKey,
-    did_pkh::DidPkh,
-};
 use super::proofs::{
     PROOF_TYPE_JCS_ED25519,
     PROOF_TYPE_JCS_EIP191,

@@ -1,5 +1,7 @@
 use uuid::Uuid;
 
+use mitra_utils::did::Did;
+
 use crate::activitypub::vocabulary::{
     IDENTITY_PROOF,
     LINK,
@@ -9,7 +11,6 @@ use crate::errors::ValidationError;
 use crate::ethereum::identity::verify_eip191_signature;
 use crate::identity::{
     claims::create_identity_claim,
-    did::Did,
     minisign::{
         parse_minisign_signature,
         verify_minisign_signature,

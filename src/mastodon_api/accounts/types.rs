@@ -4,11 +4,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use mitra_utils::markdown::markdown_basic_to_html;
+use mitra_utils::{
+    did::Did,
+    markdown::markdown_basic_to_html,
+};
 
 use crate::activitypub::actors::helpers::ACTOR_IMAGE_MAX_SIZE;
 use crate::errors::ValidationError;
-use crate::identity::did::Did;
 use crate::mastodon_api::{
     custom_emojis::types::CustomEmoji,
     errors::MastodonError,

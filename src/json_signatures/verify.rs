@@ -10,14 +10,14 @@ use mitra_utils::{
         CanonicalizationError,
     },
     crypto_rsa::verify_rsa_signature,
+    did::Did,
+    did_key::DidKey,
+    did_pkh::DidPkh,
     multibase::{decode_multibase_base58btc, MultibaseError},
 };
 
 use crate::ethereum::identity::verify_eip191_signature;
 use crate::identity::{
-    did::Did,
-    did_key::DidKey,
-    did_pkh::DidPkh,
     minisign::verify_minisign_signature,
 };
 use super::create::{

@@ -1,13 +1,16 @@
 use uuid::Uuid;
 
-use mitra_utils::currencies::Currency;
+use mitra_utils::{
+    currencies::Currency,
+    did::Did,
+    did_pkh::DidPkh,
+};
 
 use crate::database::{
     catch_unique_violation,
     DatabaseClient,
     DatabaseError,
 };
-use crate::identity::{did::Did, did_pkh::DidPkh};
 use crate::models::{
     profiles::queries::create_profile,
     profiles::types::{DbActorProfile, ProfileCreateData},

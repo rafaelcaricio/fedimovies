@@ -1,4 +1,5 @@
-use crate::identity::did_pkh::DidPkh;
+use mitra_utils::did_pkh::DidPkh;
+
 use super::signatures::{recover_address, SignatureError};
 use super::utils::address_to_string;
 

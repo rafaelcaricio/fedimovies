@@ -20,6 +20,8 @@ use mitra_utils::{
         serialize_private_key,
     },
     currencies::Currency,
+    did::Did,
+    did_pkh::DidPkh,
     id::generate_ulid,
     passwords::hash_password,
 };
@@ -42,8 +44,6 @@ use crate::ethereum::{
 use crate::http::get_request_base_url;
 use crate::identity::{
     claims::create_identity_claim,
-    did::Did,
-    did_pkh::DidPkh,
     minisign::{
         minisign_key_to_did,
         parse_minisign_signature,

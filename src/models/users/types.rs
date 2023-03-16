@@ -3,14 +3,16 @@ use postgres_types::FromSql;
 use regex::Regex;
 use uuid::Uuid;
 
-use mitra_utils::currencies::Currency;
+use mitra_utils::{
+    currencies::Currency,
+    did::Did,
+};
 
 use crate::database::{
     int_enum::{int_enum_from_sql, int_enum_to_sql},
     DatabaseTypeError,
 };
 use crate::errors::ValidationError;
-use crate::identity::did::Did;
 use crate::models::profiles::types::DbActorProfile;
 
 #[allow(dead_code)]

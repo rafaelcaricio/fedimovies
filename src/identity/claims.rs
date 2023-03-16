@@ -1,11 +1,12 @@
 use serde::Serialize;
 
-use mitra_utils::canonicalization::{
-    canonicalize_object,
-    CanonicalizationError,
+use mitra_utils::{
+    canonicalization::{
+        canonicalize_object,
+        CanonicalizationError,
+    },
+    did::Did,
 };
-
-use super::did::Did;
 
 // https://www.w3.org/TR/vc-data-model/#credential-subject
 #[derive(Serialize)]
@@ -30,8 +31,10 @@ pub fn create_identity_claim(
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::currencies::Currency;
-    use crate::identity::did_pkh::DidPkh;
+    use mitra_utils::{
+        currencies::Currency,
+        did_pkh::DidPkh,
+    };
     use super::*;
 
     #[test]
