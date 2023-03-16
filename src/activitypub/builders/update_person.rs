@@ -14,6 +14,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError, DatabaseTypeError};
 use crate::models::{
+    profiles::types::DbActor,
     relationships::queries::get_followers,
     users::types::User,
 };
@@ -60,9 +61,9 @@ pub fn build_update_person(
 async fn get_update_person_recipients(
     db_client: &impl DatabaseClient,
     user_id: &Uuid,
-) -> Result<Vec<Actor>, DatabaseError> {
+) -> Result<Vec<DbActor>, DatabaseError> {
     let followers = get_followers(db_client, user_id).await?;
-    let mut recipients: Vec<Actor> = Vec::new();
+    let mut recipients = vec![];
     for profile in followers {
         if let Some(remote_actor) = profile.actor_json {
             recipients.push(remote_actor);

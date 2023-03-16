@@ -25,9 +25,11 @@ use crate::json_signatures::create::{
     sign_object,
     JsonSignatureError,
 };
-use crate::models::users::types::User;
+use crate::models::{
+    profiles::types::DbActor,
+    users::types::User,
+};
 use super::{
-    actors::types::Actor,
     constants::AP_MEDIA_TYPE,
     http_client::build_federation_client,
     identifiers::{local_actor_id, local_actor_key_id},
@@ -186,7 +188,7 @@ impl OutgoingActivity {
         instance: &Instance,
         sender: &User,
         activity: impl Serialize,
-        recipients: Vec<Actor>,
+        recipients: Vec<DbActor>,
     ) -> Self {
         // Sort and de-duplicate recipients
         let mut recipient_map = BTreeMap::new();

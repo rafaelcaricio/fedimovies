@@ -199,7 +199,7 @@ pub async fn move_followers_task(
 
 #[cfg(test)]
 mod tests {
-    use crate::activitypub::actors::types::Actor;
+    use crate::models::profiles::types::DbActor;
     use super::*;
 
     #[test]
@@ -211,7 +211,7 @@ mod tests {
         let profile_2 = DbActorProfile {
             username: "user2".to_string(),
             hostname: Some("test.net".to_string()),
-            actor_json: Some(Actor::default()),
+            actor_json: Some(DbActor::default()),
             ..Default::default()
         };
         let csv = export_profiles_to_csv(

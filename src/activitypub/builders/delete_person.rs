@@ -4,7 +4,6 @@ use uuid::Uuid;
 use mitra_config::Instance;
 
 use crate::activitypub::{
-    actors::types::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::local_actor_id,
@@ -13,6 +12,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
+    profiles::types::DbActor,
     relationships::queries::{get_followers, get_following},
     users::types::User,
 };
@@ -51,7 +51,7 @@ fn build_delete_person(
 async fn get_delete_person_recipients(
     db_client: &impl DatabaseClient,
     user_id: &Uuid,
-) -> Result<Vec<Actor>, DatabaseError> {
+) -> Result<Vec<DbActor>, DatabaseError> {
     let followers = get_followers(db_client, user_id).await?;
     let following = get_following(db_client, user_id).await?;
     let mut recipients = vec![];

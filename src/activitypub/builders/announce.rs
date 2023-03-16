@@ -4,7 +4,6 @@ use serde::Serialize;
 use mitra_config::Instance;
 
 use crate::activitypub::{
-    actors::types::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::{
@@ -20,6 +19,7 @@ use crate::activitypub::{
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     posts::types::Post,
+    profiles::types::DbActor,
     relationships::queries::get_followers,
     users::types::User,
 };
@@ -70,9 +70,9 @@ pub async fn get_announce_recipients(
     instance_url: &str,
     current_user: &User,
     post: &Post,
-) -> Result<(Vec<Actor>, String), DatabaseError> {
+) -> Result<(Vec<DbActor>, String), DatabaseError> {
     let followers = get_followers(db_client, &current_user.id).await?;
-    let mut recipients: Vec<Actor> = Vec::new();
+    let mut recipients = vec![];
     for profile in followers {
         if let Some(remote_actor) = profile.actor_json {
             recipients.push(remote_actor);
@@ -113,7 +113,6 @@ pub async fn prepare_announce(
 
 #[cfg(test)]
 mod tests {
-    use crate::activitypub::actors::types::Actor;
     use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
@@ -123,7 +122,7 @@ mod tests {
     fn test_build_announce() {
         let post_author_id = "https://test.net/user/test";
         let post_author = DbActorProfile {
-            actor_json: Some(Actor {
+            actor_json: Some(DbActor {
                 id: post_author_id.to_string(),
                 ..Default::default()
             }),

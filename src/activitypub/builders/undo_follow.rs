@@ -4,14 +4,13 @@ use uuid::Uuid;
 use mitra_config::Instance;
 
 use crate::activitypub::{
-    actors::types::Actor,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
     types::{build_default_context, Context},
     vocabulary::{FOLLOW, UNDO},
 };
 use crate::models::{
-    profiles::types::DbActorProfile,
+    profiles::types::{DbActor, DbActorProfile},
     users::types::User,
 };
 use super::follow::Follow;
@@ -68,7 +67,7 @@ fn build_undo_follow(
 pub fn prepare_undo_follow(
     instance: &Instance,
     sender: &User,
-    target_actor: &Actor,
+    target_actor: &DbActor,
     follow_request_id: &Uuid,
 ) -> OutgoingActivity {
     let activity = build_undo_follow(

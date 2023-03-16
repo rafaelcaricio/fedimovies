@@ -4,7 +4,6 @@ use serde::Serialize;
 use mitra_config::Instance;
 
 use crate::activitypub::{
-    actors::types::Actor,
     constants::{AP_MEDIA_TYPE, AP_PUBLIC},
     deliverer::OutgoingActivity,
     identifiers::{
@@ -34,6 +33,7 @@ use crate::models::{
     emojis::types::DbEmoji,
     posts::queries::get_post_author,
     posts::types::{Post, Visibility},
+    profiles::types::DbActor,
     relationships::queries::{get_followers, get_subscribers},
     users::types::User,
 };
@@ -256,7 +256,7 @@ pub async fn get_note_recipients(
     db_client: &impl DatabaseClient,
     current_user: &User,
     post: &Post,
-) -> Result<Vec<Actor>, DatabaseError> {
+) -> Result<Vec<DbActor>, DatabaseError> {
     let mut audience = vec![];
     match post.visibility {
         Visibility::Public | Visibility::Followers => {
@@ -276,7 +276,7 @@ pub async fn get_note_recipients(
     };
     audience.extend(post.mentions.clone());
 
-    let mut recipients: Vec<Actor> = Vec::new();
+    let mut recipients = vec![];
     for profile in audience {
         if let Some(remote_actor) = profile.actor_json {
             recipients.push(remote_actor);
@@ -399,7 +399,7 @@ mod tests {
         let subscriber = DbActorProfile {
             username: "subscriber".to_string(),
             hostname: Some("test.com".to_string()),
-            actor_json: Some(Actor {
+            actor_json: Some(DbActor {
                 id: subscriber_id.to_string(),
                 ..Default::default()
             }),
@@ -426,7 +426,7 @@ mod tests {
         let mentioned = DbActorProfile {
             username: "mention".to_string(),
             hostname: Some("test.com".to_string()),
-            actor_json: Some(Actor {
+            actor_json: Some(DbActor {
                 id: mentioned_id.to_string(),
                 ..Default::default()
             }),
@@ -473,7 +473,7 @@ mod tests {
             username: "test".to_string(),
             hostname: Some("test.net".to_string()),
             acct: parent_author_acct.to_string(),
-            actor_json: Some(Actor {
+            actor_json: Some(DbActor {
                 id: parent_author_actor_id.to_string(),
                 url: Some(parent_author_actor_url.to_string()),
                 ..Default::default()

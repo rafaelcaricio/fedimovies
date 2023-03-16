@@ -105,7 +105,7 @@ pub fn replace_mentions(
 
 #[cfg(test)]
 mod tests {
-    use crate::activitypub::actors::types::Actor;
+    use crate::models::profiles::types::DbActor;
     use super::*;
 
     const INSTANCE_HOSTNAME: &str = "server1.com";
@@ -147,7 +147,7 @@ mod tests {
         // Remote actors
         let profile_3 = DbActorProfile {
             username: "user2".to_string(),
-            actor_json: Some(Actor {
+            actor_json: Some(DbActor {
                 id: "https://server2.com/actors/user2".to_string(),
                 url: Some("https://server2.com/@user2".to_string()),
                 ..Default::default()
@@ -156,7 +156,7 @@ mod tests {
         };
         let profile_4 = DbActorProfile {
             username: "user3".to_string(),
-            actor_json: Some(Actor {
+            actor_json: Some(DbActor {
                 id: "https://server2.com/actors/user3".to_string(),
                 url: Some("https://server2.com/@user3".to_string()),
                 ..Default::default()

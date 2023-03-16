@@ -129,7 +129,7 @@ pub fn clean_profile_update_data(
 
 #[cfg(test)]
 mod tests {
-    use crate::activitypub::actors::types::Actor;
+    use crate::models::profiles::types::DbActor;
     use super::*;
 
     #[test]
@@ -185,7 +185,7 @@ mod tests {
             username: "test".to_string(),
             hostname: Some("example.org".to_string()),
             display_name: Some("Test Test".to_string()),
-            actor_json: Some(Actor {
+            actor_json: Some(DbActor {
                 id: "https://example.org/test".to_string(),
                 ..Default::default()
             }),

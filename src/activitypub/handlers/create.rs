@@ -667,10 +667,10 @@ pub async fn handle_create(
 mod tests {
     use serde_json::json;
     use crate::activitypub::{
-        actors::types::Actor,
         types::Object,
         vocabulary::NOTE,
     };
+    use crate::models::profiles::types::DbActor;
     use super::*;
 
     #[test]
@@ -742,7 +742,7 @@ mod tests {
     fn test_get_object_visibility_followers() {
         let author_followers = "https://example.com/users/author/followers";
         let author = DbActorProfile {
-            actor_json: Some(Actor {
+            actor_json: Some(DbActor {
                 followers: Some(author_followers.to_string()),
                 ..Default::default()
             }),
@@ -763,7 +763,7 @@ mod tests {
         let author_followers = "https://example.com/users/author/followers";
         let author_subscribers = "https://example.com/users/author/subscribers";
         let author = DbActorProfile {
-            actor_json: Some(Actor {
+            actor_json: Some(DbActor {
                 followers: Some(author_followers.to_string()),
                 subscribers: Some(author_subscribers.to_string()),
                 ..Default::default()
@@ -783,7 +783,7 @@ mod tests {
     #[test]
     fn test_get_object_visibility_direct() {
         let author = DbActorProfile {
-            actor_json: Some(Actor::default()),
+            actor_json: Some(DbActor::default()),
             ..Default::default()
         };
         let primary_audience = vec!["https://example.com/users/1".to_string()];

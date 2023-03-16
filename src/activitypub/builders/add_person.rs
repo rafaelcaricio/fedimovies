@@ -4,13 +4,15 @@ use mitra_config::Instance;
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
-    actors::types::Actor,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id, LocalActorCollection},
     types::{build_default_context, Context},
     vocabulary::{ADD, REMOVE},
 };
-use crate::models::users::types::User;
+use crate::models::{
+    profiles::types::DbActor,
+    users::types::User,
+};
 
 #[derive(Serialize)]
 struct AddOrRemovePerson {
@@ -53,7 +55,7 @@ fn build_update_collection(
 pub fn prepare_update_collection(
     instance: &Instance,
     sender: &User,
-    person: &Actor,
+    person: &DbActor,
     collection: LocalActorCollection,
     remove: bool,
 ) -> OutgoingActivity {
@@ -76,7 +78,7 @@ pub fn prepare_update_collection(
 pub fn prepare_add_person(
     instance: &Instance,
     sender: &User,
-    person: &Actor,
+    person: &DbActor,
     collection: LocalActorCollection,
 ) -> OutgoingActivity {
     prepare_update_collection(instance, sender, person, collection, false)

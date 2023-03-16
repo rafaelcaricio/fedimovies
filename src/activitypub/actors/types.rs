@@ -36,6 +36,8 @@ use crate::errors::ValidationError;
 use crate::media::get_file_url;
 use crate::models::{
     profiles::types::{
+        DbActor,
+        DbActorPublicKey,
         ExtraField,
         IdentityProof,
         PaymentOption,
@@ -52,7 +54,7 @@ use super::attachments::{
     parse_payment_option,
 };
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKey {
@@ -61,7 +63,7 @@ pub struct PublicKey {
     pub public_key_pem: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActorImage {
     #[serde(rename = "type")]
@@ -70,7 +72,7 @@ pub struct ActorImage {
     pub media_type: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActorAttachment {
     pub name: String,
@@ -130,8 +132,7 @@ fn deserialize_attachments<'de, D>(
     Ok(attachments)
 }
 
-// Clone and Debug traits are required by FromSql
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 #[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
 pub struct Actor {
@@ -208,6 +209,23 @@ impl Actor {
             hostname: hostname,
         };
         Ok(actor_address)
+    }
+
+    pub fn into_db_actor(self) -> DbActor {
+        DbActor {
+            object_type: self.object_type,
+            id: self.id,
+            inbox: self.inbox,
+            outbox: self.outbox,
+            followers: self.followers,
+            subscribers: self.subscribers,
+            url: self.url,
+            public_key: DbActorPublicKey {
+                id: self.public_key.id,
+                owner: self.public_key.owner,
+                public_key_pem: self.public_key.public_key_pem,
+            },
+        }
     }
 
     pub fn parse_attachments(&self) -> (

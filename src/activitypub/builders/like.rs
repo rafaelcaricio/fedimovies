@@ -4,7 +4,6 @@ use uuid::Uuid;
 use mitra_config::Instance;
 
 use crate::activitypub::{
-    actors::types::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::{
@@ -19,7 +18,7 @@ use crate::activitypub::{
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     posts::types::{Post, Visibility},
-    profiles::types::DbActorProfile,
+    profiles::types::{DbActor, DbActorProfile},
     users::types::User,
 };
 
@@ -78,8 +77,8 @@ pub async fn get_like_recipients(
     _db_client: &impl DatabaseClient,
     _instance_url: &str,
     post: &Post,
-) -> Result<Vec<Actor>, DatabaseError> {
-    let mut recipients: Vec<Actor> = Vec::new();
+) -> Result<Vec<DbActor>, DatabaseError> {
+    let mut recipients = vec![];
     if let Some(remote_actor) = post.author.actor_json.as_ref() {
         recipients.push(remote_actor.clone());
     };

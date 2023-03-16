@@ -5,13 +5,15 @@ use mitra_config::Instance;
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
-    actors::types::Actor,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
     types::{build_default_context, Context},
     vocabulary::MOVE,
 };
-use crate::models::users::types::User;
+use crate::models::{
+    profiles::types::DbActor,
+    users::types::User,
+};
 
 #[derive(Serialize)]
 pub struct MovePerson {
@@ -55,7 +57,7 @@ pub fn prepare_move_person(
     instance: &Instance,
     sender: &User,
     from_actor_id: &str,
-    followers: Vec<Actor>,
+    followers: Vec<DbActor>,
     maybe_internal_activity_id: Option<&Uuid>,
 ) -> OutgoingActivity {
     let followers_ids: Vec<String> = followers.iter()

@@ -13,9 +13,6 @@ use mitra_utils::{
     did::Did,
 };
 
-use crate::activitypub::{
-    actors::types::Actor,
-};
 use crate::database::{
     json_macro::{json_from_sql, json_to_sql},
     DatabaseTypeError,
@@ -336,8 +333,34 @@ impl ProfileEmojis {
 
 json_from_sql!(ProfileEmojis);
 
-json_from_sql!(Actor);
-json_to_sql!(Actor);
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(test, derive(Default))]
+#[serde(rename_all = "camelCase")]
+pub struct DbActorPublicKey {
+    pub id: String,
+    pub owner: String,
+    pub public_key_pem: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(test, derive(Default))]
+#[serde(rename_all = "camelCase")]
+pub struct DbActor {
+    #[serde(rename = "type")]
+    pub object_type: String,
+
+    pub id: String,
+    pub inbox: String,
+    pub outbox: String,
+    pub followers: Option<String>,
+    pub subscribers: Option<String>,
+    pub url: Option<String>,
+
+    pub public_key: DbActorPublicKey,
+}
+
+json_from_sql!(DbActor);
+json_to_sql!(DbActor);
 
 #[derive(Clone, FromSql)]
 #[postgres(name = "actor_profile")]
@@ -360,7 +383,7 @@ pub struct DbActorProfile {
     pub subscriber_count: i32,
     pub post_count: i32,
     pub emojis: ProfileEmojis,
-    pub actor_json: Option<Actor>,
+    pub actor_json: Option<DbActor>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub unreachable_since: Option<DateTime<Utc>>,
@@ -446,7 +469,7 @@ pub struct ProfileCreateData {
     pub extra_fields: Vec<ExtraField>,
     pub aliases: Vec<String>,
     pub emojis: Vec<Uuid>,
-    pub actor_json: Option<Actor>,
+    pub actor_json: Option<DbActor>,
 }
 
 pub struct ProfileUpdateData {
@@ -461,7 +484,7 @@ pub struct ProfileUpdateData {
     pub extra_fields: Vec<ExtraField>,
     pub aliases: Vec<String>,
     pub emojis: Vec<Uuid>,
-    pub actor_json: Option<Actor>,
+    pub actor_json: Option<DbActor>,
 }
 
 impl ProfileUpdateData {

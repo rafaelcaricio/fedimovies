@@ -175,7 +175,7 @@ pub async fn create_remote_profile(
         extra_fields,
         aliases,
         emojis,
-        actor_json: Some(actor),
+        actor_json: Some(actor.into_db_actor()),
     };
     clean_profile_create_data(&mut profile_data)?;
     let profile = create_profile(db_client, profile_data).await?;
@@ -233,7 +233,7 @@ pub async fn update_remote_profile(
         extra_fields,
         aliases,
         emojis,
-        actor_json: Some(actor),
+        actor_json: Some(actor.into_db_actor()),
     };
     clean_profile_update_data(&mut profile_data)?;
     let profile = update_profile(db_client, &profile.id, profile_data).await?;

@@ -557,15 +557,16 @@ pub async fn show_replies(
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
-    use crate::activitypub::actors::types::Actor;
     use crate::database::{
         test_utils::create_test_database,
         DatabaseError,
     };
-    use crate::models::profiles::queries::create_profile;
-    use crate::models::profiles::types::ProfileCreateData;
-    use crate::models::users::queries::create_user;
-    use crate::models::users::types::UserCreateData;
+    use crate::models::{
+        profiles::queries::create_profile,
+        profiles::types::{DbActor, ProfileCreateData},
+        users::queries::create_user,
+        users::types::UserCreateData,
+    };
     use super::*;
 
     #[tokio::test]
@@ -580,7 +581,7 @@ mod tests {
         let target_data = ProfileCreateData {
             username: "followed".to_string(),
             hostname: Some("example.org".to_string()),
-            actor_json: Some(Actor::default()),
+            actor_json: Some(DbActor::default()),
             ..Default::default()
         };
         let target = create_profile(db_client, target_data).await.unwrap();
@@ -621,7 +622,7 @@ mod tests {
         let source_data = ProfileCreateData {
             username: "follower".to_string(),
             hostname: Some("example.org".to_string()),
-            actor_json: Some(Actor::default()),
+            actor_json: Some(DbActor::default()),
             ..Default::default()
         };
         let source = create_profile(db_client, source_data).await.unwrap();

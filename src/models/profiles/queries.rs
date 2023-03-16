@@ -828,13 +828,13 @@ pub async fn find_empty_profiles(
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
-    use crate::activitypub::actors::types::Actor;
     use crate::database::test_utils::create_test_database;
     use crate::models::{
         emojis::queries::create_emoji,
         emojis::types::EmojiImage,
         profiles::queries::create_profile,
         profiles::types::{
+            DbActor,
             ExtraField,
             IdentityProof,
             IdentityProofType,
@@ -845,8 +845,8 @@ mod tests {
     };
     use super::*;
 
-    fn create_test_actor(actor_id: &str) -> Actor {
-        Actor { id: actor_id.to_string(), ..Default::default() }
+    fn create_test_actor(actor_id: &str) -> DbActor {
+        DbActor { id: actor_id.to_string(), ..Default::default() }
     }
 
     #[tokio::test]

@@ -4,14 +4,13 @@ use mitra_config::Instance;
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
-    actors::types::Actor,
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
     types::{build_default_context, Context},
     vocabulary::ACCEPT,
 };
 use crate::models::{
-    profiles::types::DbActorProfile,
+    profiles::types::{DbActor, DbActorProfile},
     users::types::User,
 };
 
@@ -52,7 +51,7 @@ fn build_accept_follow(
 pub fn prepare_accept_follow(
     instance: &Instance,
     sender: &User,
-    source_actor: &Actor,
+    source_actor: &DbActor,
     follow_activity_id: &str,
 ) -> OutgoingActivity {
     let activity = build_accept_follow(
