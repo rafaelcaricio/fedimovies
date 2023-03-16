@@ -132,6 +132,7 @@ impl Account {
             .map(|image| get_file_url(base_url, &image.file_name));
         let header_url = profile.banner
             .map(|image| get_file_url(base_url, &image.file_name));
+        // TODO: use profile.manually_approves_followers
         let is_locked = profile.actor_json
             .map(|actor| actor.manually_approves_followers)
             .unwrap_or(false);
@@ -367,6 +368,7 @@ impl AccountUpdateData {
             bio_source: self.note,
             avatar,
             banner,
+            manually_approves_followers: false,
             identity_proofs,
             payment_options,
             extra_fields,

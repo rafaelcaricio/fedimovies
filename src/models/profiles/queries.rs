@@ -133,12 +133,21 @@ pub async fn create_profile(
     transaction.execute(
         "
         INSERT INTO actor_profile (
-            id, username, hostname, display_name, bio, bio_source,
-            avatar, banner,
-            identity_proofs, payment_options, extra_fields,
+            id,
+            username,
+            hostname,
+            display_name,
+            bio,
+            bio_source,
+            avatar,
+            banner,
+            manually_approves_followers,
+            identity_proofs,
+            payment_options,
+            extra_fields,
             actor_json
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING actor_profile
         ",
         &[
@@ -150,6 +159,7 @@ pub async fn create_profile(
             &profile_data.bio,
             &profile_data.avatar,
             &profile_data.banner,
+            &profile_data.manually_approves_followers,
             &IdentityProofs(profile_data.identity_proofs),
             &PaymentOptions(profile_data.payment_options),
             &ExtraFields(profile_data.extra_fields),
@@ -184,12 +194,13 @@ pub async fn update_profile(
             bio_source = $3,
             avatar = $4,
             banner = $5,
-            identity_proofs = $6,
-            payment_options = $7,
-            extra_fields = $8,
-            actor_json = $9,
+            manually_approves_followers = $6,
+            identity_proofs = $7,
+            payment_options = $8,
+            extra_fields = $9,
+            actor_json = $10,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $10
+        WHERE id = $11
         RETURNING actor_profile
         ",
         &[
@@ -198,6 +209,7 @@ pub async fn update_profile(
             &profile_data.bio_source,
             &profile_data.avatar,
             &profile_data.banner,
+            &profile_data.manually_approves_followers,
             &IdentityProofs(profile_data.identity_proofs),
             &PaymentOptions(profile_data.payment_options),
             &ExtraFields(profile_data.extra_fields),
