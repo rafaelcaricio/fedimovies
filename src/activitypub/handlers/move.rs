@@ -74,12 +74,13 @@ pub async fn handle_move(
     let new_actor = new_profile.actor_json.as_ref()
         .expect("target should be a remote actor");
 
-    // Find aliases by DIDs
+    // Find aliases by DIDs (signed)
     let mut aliases = find_aliases(db_client, &new_profile).await?
         .into_iter()
         .map(|profile| profile.actor_id(&instance.url()))
         .collect::<Vec<_>>();
     // Read aliases from alsoKnownAs property
+    // TODO: use new_profile.aliases.into_actor_ids()
     if let Some(ref value) = new_actor.also_known_as {
         let also_known_as = parse_array(value)
             .map_err(|_| ValidationError("invalid alias list"))?;

@@ -25,6 +25,7 @@ use crate::models::{
     relationships::types::RelationshipType,
 };
 use super::types::{
+    Aliases,
     DbActorProfile,
     ExtraFields,
     IdentityProofs,
@@ -145,9 +146,10 @@ pub async fn create_profile(
             identity_proofs,
             payment_options,
             extra_fields,
+            aliases,
             actor_json
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING actor_profile
         ",
         &[
@@ -163,6 +165,7 @@ pub async fn create_profile(
             &IdentityProofs(profile_data.identity_proofs),
             &PaymentOptions(profile_data.payment_options),
             &ExtraFields(profile_data.extra_fields),
+            &Aliases::new(profile_data.aliases),
             &profile_data.actor_json,
         ],
     ).await.map_err(catch_unique_violation("profile"))?;
@@ -198,9 +201,10 @@ pub async fn update_profile(
             identity_proofs = $7,
             payment_options = $8,
             extra_fields = $9,
-            actor_json = $10,
+            aliases = $10,
+            actor_json = $11,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $11
+        WHERE id = $12
         RETURNING actor_profile
         ",
         &[
@@ -213,6 +217,7 @@ pub async fn update_profile(
             &IdentityProofs(profile_data.identity_proofs),
             &PaymentOptions(profile_data.payment_options),
             &ExtraFields(profile_data.extra_fields),
+            &Aliases::new(profile_data.aliases),
             &profile_data.actor_json,
             &profile_id,
         ],

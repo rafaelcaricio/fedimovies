@@ -307,6 +307,32 @@ impl ExtraFields {
 json_from_sql!(ExtraFields);
 json_to_sql!(ExtraFields);
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Alias {
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Aliases(Vec<Alias>);
+
+impl Aliases {
+    pub fn new(actor_ids: Vec<String>) -> Self {
+        // Not signed
+        let aliases = actor_ids.into_iter()
+            .map(|actor_id| Alias { id: actor_id })
+            .collect();
+        Self(aliases)
+    }
+
+    pub fn into_actor_ids(self) -> Vec<String> {
+        let Self(aliases) = self;
+        aliases.into_iter().map(|alias| alias.id).collect()
+    }
+}
+
+json_from_sql!(Aliases);
+json_to_sql!(Aliases);
+
 #[derive(Clone, Deserialize)]
 pub struct ProfileEmojis(Vec<DbEmoji>);
 
@@ -337,6 +363,7 @@ pub struct DbActorProfile {
     pub identity_proofs: IdentityProofs,
     pub payment_options: PaymentOptions,
     pub extra_fields: ExtraFields,
+    pub aliases: Aliases,
     pub follower_count: i32,
     pub following_count: i32,
     pub subscriber_count: i32,
@@ -426,6 +453,7 @@ impl Default for DbActorProfile {
             identity_proofs: IdentityProofs(vec![]),
             payment_options: PaymentOptions(vec![]),
             extra_fields: ExtraFields(vec![]),
+            aliases: Aliases(vec![]),
             follower_count: 0,
             following_count: 0,
             subscriber_count: 0,
@@ -452,6 +480,7 @@ pub struct ProfileCreateData {
     pub identity_proofs: Vec<IdentityProof>,
     pub payment_options: Vec<PaymentOption>,
     pub extra_fields: Vec<ExtraField>,
+    pub aliases: Vec<String>,
     pub emojis: Vec<Uuid>,
     pub actor_json: Option<Actor>,
 }
@@ -485,6 +514,7 @@ pub struct ProfileUpdateData {
     pub identity_proofs: Vec<IdentityProof>,
     pub payment_options: Vec<PaymentOption>,
     pub extra_fields: Vec<ExtraField>,
+    pub aliases: Vec<String>,
     pub emojis: Vec<Uuid>,
     pub actor_json: Option<Actor>,
 }
@@ -534,6 +564,7 @@ impl From<&DbActorProfile> for ProfileUpdateData {
             identity_proofs: profile.identity_proofs.into_inner(),
             payment_options: profile.payment_options.into_inner(),
             extra_fields: profile.extra_fields.into_inner(),
+            aliases: profile.aliases.into_actor_ids(),
             emojis: profile.emojis.into_inner().into_iter()
                 .map(|emoji| emoji.id)
                 .collect(),

@@ -8,7 +8,7 @@ use crate::activitypub::{
     actors::types::Actor,
     fetcher::fetchers::fetch_file,
     handlers::create::handle_emoji,
-    receiver::HandlerError,
+    receiver::{parse_array, HandlerError},
     vocabulary::{EMOJI, HASHTAG},
 };
 use crate::database::DatabaseClient;
@@ -83,6 +83,21 @@ async fn fetch_actor_images(
     (maybe_avatar, maybe_banner)
 }
 
+fn parse_aliases(actor: &Actor) -> Vec<String> {
+    // Aliases reported by server (not signed)
+    actor.also_known_as.as_ref()
+        .and_then(|value| {
+            match parse_array(value) {
+                Ok(array) => Some(array),
+                Err(_) => {
+                    log::warn!("invalid alias list: {}", value);
+                    None
+                },
+            }
+        })
+        .unwrap_or_default()
+}
+
 async fn parse_tags(
     db_client: &impl DatabaseClient,
     instance: &Instance,
@@ -136,6 +151,7 @@ pub async fn create_remote_profile(
     ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
+    let aliases = parse_aliases(&actor);
     let emojis = parse_tags(
         db_client,
         instance,
@@ -153,6 +169,7 @@ pub async fn create_remote_profile(
         identity_proofs,
         payment_options,
         extra_fields,
+        aliases,
         emojis,
         actor_json: Some(actor),
     };
@@ -193,6 +210,7 @@ pub async fn update_remote_profile(
     ).await;
     let (identity_proofs, payment_options, extra_fields) =
         actor.parse_attachments();
+    let aliases = parse_aliases(&actor);
     let emojis = parse_tags(
         db_client,
         instance,
@@ -209,6 +227,7 @@ pub async fn update_remote_profile(
         identity_proofs,
         payment_options,
         extra_fields,
+        aliases,
         emojis,
         actor_json: Some(actor),
     };

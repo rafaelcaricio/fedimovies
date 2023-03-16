@@ -1,0 +1,1 @@
+ALTER TABLE actor_profile ADD COLUMN aliases JSONB NOT NULL DEFAULT '[]';
