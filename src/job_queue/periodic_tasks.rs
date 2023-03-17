@@ -17,6 +17,7 @@ use crate::ethereum::{
         update_expired_subscriptions,
     },
 };
+use crate::media::remove_media;
 use crate::monero::subscriptions::check_monero_subscriptions;
 use crate::models::{
     posts::queries::{delete_post, find_extraneous_posts},
@@ -138,7 +139,7 @@ pub async fn delete_extraneous_posts(
     let posts = find_extraneous_posts(db_client, &updated_before).await?;
     for post_id in posts {
         let deletion_queue = delete_post(db_client, &post_id).await?;
-        deletion_queue.process(config).await;
+        remove_media(config, deletion_queue).await;
         log::info!("deleted post {}", post_id);
     };
     Ok(())
@@ -157,7 +158,7 @@ pub async fn delete_empty_profiles(
     for profile_id in profiles {
         let profile = get_profile_by_id(db_client, &profile_id).await?;
         let deletion_queue = delete_profile(db_client, &profile.id).await?;
-        deletion_queue.process(config).await;
+        remove_media(config, deletion_queue).await;
         log::info!("deleted profile {}", profile.acct);
     };
     Ok(())

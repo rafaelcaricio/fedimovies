@@ -1,32 +1,8 @@
-use mitra_config::Config;
-
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::ipfs::store as ipfs_store;
-use crate::media::remove_files;
 
 pub struct DeletionQueue {
     pub files: Vec<String>,
     pub ipfs_objects: Vec<String>,
-}
-
-impl DeletionQueue {
-    pub async fn process(self, config: &Config) -> () {
-        remove_files(self.files, &config.media_dir());
-        if !self.ipfs_objects.is_empty() {
-            match &config.ipfs_api_url {
-                Some(ipfs_api_url) => {
-                    ipfs_store::remove(ipfs_api_url, self.ipfs_objects).await
-                        .unwrap_or_else(|err| log::error!("{}", err));
-                },
-                None => {
-                    log::error!(
-                        "can not remove objects because IPFS API URL is not set: {:?}",
-                        self.ipfs_objects,
-                    );
-                },
-            }
-        }
-    }
 }
 
 pub async fn find_orphaned_files(

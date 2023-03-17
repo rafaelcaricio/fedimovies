@@ -34,6 +34,7 @@ use crate::mastodon_api::{
     errors::MastodonError,
     oauth::auth::get_current_user,
 };
+use crate::media::remove_media;
 use crate::models::{
     posts::helpers::{can_create_post, can_view_post},
     posts::queries::{
@@ -286,7 +287,7 @@ async fn delete_status(
     ).await?;
     let deletion_queue = delete_post(db_client, &status_id).await?;
     tokio::spawn(async move {
-        deletion_queue.process(&config).await;
+        remove_media(&config, deletion_queue).await;
     });
     delete_note.enqueue(db_client).await?;
 

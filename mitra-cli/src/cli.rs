@@ -14,7 +14,7 @@ use mitra::ethereum::{
     sync::save_current_block_number,
     utils::key_to_ethereum_address,
 };
-use mitra::media::remove_files;
+use mitra::media::{remove_files, remove_media};
 use mitra::models::{
     attachments::queries::delete_unused_attachments,
     cleanup::find_orphaned_files,
@@ -252,7 +252,7 @@ impl DeleteProfile {
             maybe_delete_person = Some(activity);
         };
         let deletion_queue = delete_profile(db_client, &profile.id).await?;
-        deletion_queue.process(config).await;
+        remove_media(config, deletion_queue).await;
         // Send Delete(Person) activities
         if let Some(activity) = maybe_delete_person {
             activity.enqueue(db_client).await?;
@@ -287,7 +287,7 @@ impl DeletePost {
             maybe_delete_note = Some(activity);
         };
         let deletion_queue = delete_post(db_client, &post.id).await?;
-        deletion_queue.process(config).await;
+        remove_media(config, deletion_queue).await;
         // Send Delete(Note) activity
         if let Some(activity) = maybe_delete_note {
             activity.enqueue(db_client).await?;
@@ -316,7 +316,7 @@ impl DeleteEmoji {
             self.hostname.as_deref(),
         ).await?;
         let deletion_queue = delete_emoji(db_client, &emoji.id).await?;
-        deletion_queue.process(config).await;
+        remove_media(config, deletion_queue).await;
         println!("emoji deleted");
         Ok(())
     }
@@ -338,7 +338,7 @@ impl DeleteExtraneousPosts {
         let posts = find_extraneous_posts(db_client, &updated_before).await?;
         for post_id in posts {
             let deletion_queue = delete_post(db_client, &post_id).await?;
-            deletion_queue.process(config).await;
+            remove_media(config, deletion_queue).await;
             println!("post {} deleted", post_id);
         };
         Ok(())
@@ -362,7 +362,7 @@ impl DeleteUnusedAttachments {
             db_client,
             &created_before,
         ).await?;
-        deletion_queue.process(config).await;
+        remove_media(config, deletion_queue).await;
         println!("unused attachments deleted");
         Ok(())
     }
@@ -412,7 +412,7 @@ impl DeleteEmptyProfiles {
         for profile_id in profiles {
             let profile = get_profile_by_id(db_client, &profile_id).await?;
             let deletion_queue = delete_profile(db_client, &profile.id).await?;
-            deletion_queue.process(config).await;
+            remove_media(config, deletion_queue).await;
             println!("profile {} deleted", profile.acct);
         };
         Ok(())

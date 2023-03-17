@@ -9,6 +9,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
+use crate::media::remove_media;
 use crate::models::{
     posts::queries::{
         delete_post,
@@ -49,7 +50,7 @@ pub async fn handle_delete(
         let deletion_queue = delete_profile(db_client, &profile.id).await?;
         let config = config.clone();
         tokio::spawn(async move {
-            deletion_queue.process(&config).await;
+            remove_media(&config, deletion_queue).await;
         });
         log::info!("deleted profile {}", profile.acct);
         return Ok(Some(PERSON));
@@ -73,7 +74,7 @@ pub async fn handle_delete(
     let deletion_queue = delete_post(db_client, &post.id).await?;
     let config = config.clone();
     tokio::spawn(async move {
-        deletion_queue.process(&config).await;
+        remove_media(&config, deletion_queue).await;
     });
     Ok(Some(NOTE))
 }

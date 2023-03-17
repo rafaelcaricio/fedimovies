@@ -4,7 +4,11 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
+use mitra_config::Config;
 use mitra_utils::files::{get_media_type_extension, write_file};
+
+use crate::ipfs::store as ipfs_store;
+use crate::models::cleanup::DeletionQueue;
 
 pub const SUPPORTED_MEDIA_TYPES: [&str; 11] = [
     "audio/mpeg",
@@ -60,6 +64,27 @@ pub fn remove_files(files: Vec<String>, from_dir: &Path) -> () {
             },
         };
     };
+}
+
+pub async fn remove_media(
+    config: &Config,
+    queue: DeletionQueue,
+) -> () {
+    remove_files(queue.files, &config.media_dir());
+    if !queue.ipfs_objects.is_empty() {
+        match &config.ipfs_api_url {
+            Some(ipfs_api_url) => {
+                ipfs_store::remove(ipfs_api_url, queue.ipfs_objects).await
+                    .unwrap_or_else(|err| log::error!("{}", err));
+            },
+            None => {
+                log::error!(
+                    "can not remove objects because IPFS API URL is not set: {:?}",
+                    queue.ipfs_objects,
+                );
+            },
+        }
+    }
 }
 
 #[cfg(test)]
