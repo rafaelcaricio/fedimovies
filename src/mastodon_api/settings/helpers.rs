@@ -20,6 +20,7 @@ use mitra_models::{
 
 use crate::activitypub::{
     builders::{
+        follow::follow_or_create_request,
         move_person::prepare_move_person,
         undo_follow::prepare_undo_follow,
     },
@@ -27,7 +28,6 @@ use crate::activitypub::{
     HandlerError,
 };
 use crate::errors::ValidationError;
-use crate::mastodon_api::accounts::helpers::follow_or_create_request;
 use crate::media::MediaStorage;
 use crate::webfinger::types::ActorAddress;
 

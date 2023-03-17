@@ -3,11 +3,10 @@ use serde_json::Value;
 
 use mitra_config::Config;
 use mitra_models::{
-    database::{DatabaseClient, DatabaseError},
+    database::DatabaseClient,
     notifications::queries::create_move_notification,
     profiles::helpers::find_verified_aliases,
     relationships::queries::{
-        create_follow_request,
         get_followers,
         unfollow,
     },
@@ -16,7 +15,7 @@ use mitra_models::{
 
 use crate::activitypub::{
     builders::{
-        follow::prepare_follow,
+        follow::follow_or_create_request,
         undo_follow::prepare_undo_follow,
     },
     fetcher::helpers::get_or_import_profile_by_actor_id,
@@ -66,14 +65,21 @@ pub async fn handle_move(
         ).await?
     };
     let old_actor_id = profile_actor_id(&instance.url(), &old_profile);
-    let new_profile = get_or_import_profile_by_actor_id(
-        db_client,
-        &instance,
-        &storage,
+
+    let new_profile = if let Ok(username) = parse_local_actor_id(
+        &instance.url(),
         &activity.target,
-    ).await?;
-    let new_actor = new_profile.actor_json.as_ref()
-        .expect("target should be a remote actor");
+    ) {
+        let new_user = get_user_by_name(db_client, &username).await?;
+        new_user.profile
+    } else {
+        get_or_import_profile_by_actor_id(
+            db_client,
+            &instance,
+            &storage,
+            &activity.target,
+        ).await?
+    };
 
     // Find aliases by DIDs (verified)
     let mut aliases = find_verified_aliases(db_client, &new_profile).await?
@@ -81,7 +87,7 @@ pub async fn handle_move(
         .map(|profile| profile_actor_id(&instance.url(), &profile))
         .collect::<Vec<_>>();
     // Add aliases reported by server (actor's alsoKnownAs property)
-    aliases.extend(new_profile.aliases.into_actor_ids());
+    aliases.extend(new_profile.aliases.clone().into_actor_ids());
     if !aliases.contains(&old_actor_id) {
         return Err(ValidationError("target ID is not an alias").into());
     };
@@ -106,23 +112,17 @@ pub async fn handle_move(
                 &follow_request_id,
             ).enqueue(db_client).await?;
         };
-        // Follow new profile
-        match create_follow_request(
-            db_client,
-            &follower.id,
-            &new_profile.id,
-        ).await {
-            Ok(follow_request) => {
-                prepare_follow(
-                    &instance,
-                    &follower,
-                    new_actor,
-                    &follow_request.id,
-                ).enqueue(db_client).await?;
-            },
-            Err(DatabaseError::AlreadyExists(_)) => (), // already following
-            Err(other_error) => return Err(other_error.into()),
+        if follower.id == new_profile.id {
+            // Don't self-follow
+            continue;
         };
+        // Follow new profile
+        follow_or_create_request(
+            db_client,
+            &instance,
+            &follower,
+            &new_profile,
+        ).await?;
         create_move_notification(
             db_client,
             &new_profile.id,

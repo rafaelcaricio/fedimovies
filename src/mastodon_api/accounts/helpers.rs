@@ -1,6 +1,5 @@
 use uuid::Uuid;
 
-use mitra_config::Instance;
 use mitra_models::{
     database::{DatabaseClient, DatabaseError},
     profiles::helpers::{
@@ -9,51 +8,12 @@ use mitra_models::{
     },
     profiles::types::DbActorProfile,
     relationships::queries::{
-        create_follow_request,
-        follow,
         get_relationships,
     },
     relationships::types::RelationshipType,
-    users::types::User,
 };
 
-use crate::activitypub::builders::follow::prepare_follow;
-
 use super::types::{Account, Aliases, RelationshipMap};
-
-pub async fn follow_or_create_request(
-    db_client: &mut impl DatabaseClient,
-    instance: &Instance,
-    current_user: &User,
-    target_profile: &DbActorProfile,
-) -> Result<(), DatabaseError> {
-    if let Some(ref remote_actor) = target_profile.actor_json {
-        // Create follow request if target is remote
-        match create_follow_request(
-            db_client,
-            &current_user.id,
-            &target_profile.id,
-        ).await {
-            Ok(follow_request) => {
-                prepare_follow(
-                    instance,
-                    current_user,
-                    remote_actor,
-                    &follow_request.id,
-                ).enqueue(db_client).await?;
-            },
-            Err(DatabaseError::AlreadyExists(_)) => (), // already following
-            Err(other_error) => return Err(other_error),
-        };
-    } else {
-        match follow(db_client, &current_user.id, &target_profile.id).await {
-            Ok(_) => (),
-            Err(DatabaseError::AlreadyExists(_)) => (), // already following
-            Err(other_error) => return Err(other_error),
-        };
-    };
-    Ok(())
-}
 
 pub async fn get_relationship(
     db_client: &impl DatabaseClient,

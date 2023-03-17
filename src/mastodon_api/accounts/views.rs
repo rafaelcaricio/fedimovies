@@ -60,6 +60,7 @@ use mitra_utils::{
 
 use crate::activitypub::{
     builders::{
+        follow::follow_or_create_request,
         undo_follow::prepare_undo_follow,
         update_person::{
             build_update_person,
@@ -101,7 +102,6 @@ use crate::mastodon_api::{
 };
 use crate::validators::profiles::clean_profile_update_data;
 use super::helpers::{
-    follow_or_create_request,
     get_aliases,
     get_relationship,
 };
