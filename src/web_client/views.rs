@@ -14,7 +14,7 @@ use uuid::Uuid;
 use mitra_config::Config;
 
 use crate::activitypub::{
-    identifiers::post_object_id,
+    identifiers::{post_object_id, profile_actor_id},
     views::is_activitypub_request,
 };
 use crate::database::{get_database_client, DbPool};
@@ -53,7 +53,7 @@ async fn profile_page_redirect_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_id(db_client, &profile_id).await?;
-    let actor_id = profile.actor_id(&config.instance_url());
+    let actor_id = profile_actor_id(&config.instance_url(), &profile);
     let response = HttpResponse::Found()
         .append_header(("Location", actor_id))
         .finish();
@@ -75,7 +75,7 @@ async fn profile_acct_page_redirect_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_acct(db_client, &acct).await?;
-    let actor_id = profile.actor_id(&config.instance_url());
+    let actor_id = profile_actor_id(&config.instance_url(), &profile);
     let response = HttpResponse::Found()
         .append_header(("Location", actor_id))
         .finish();

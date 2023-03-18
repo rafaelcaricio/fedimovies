@@ -5,7 +5,7 @@ use mitra_config::Instance;
 
 use crate::activitypub::{
     deliverer::OutgoingActivity,
-    identifiers::{local_actor_id, local_object_id},
+    identifiers::{local_actor_id, local_object_id, profile_actor_id},
     types::{build_default_context, Context},
     vocabulary::UNDO,
 };
@@ -71,7 +71,7 @@ pub async fn prepare_undo_like(
         &instance.url(),
         post,
     ).await?;
-    let post_author_id = post.author.actor_id(&instance.url());
+    let post_author_id = profile_actor_id(&instance.url(), &post.author);
     let activity = build_undo_like(
         &instance.url(),
         &sender.profile,

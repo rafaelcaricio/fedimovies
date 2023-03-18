@@ -26,12 +26,15 @@ use mitra_utils::{
     passwords::hash_password,
 };
 
-use crate::activitypub::builders::{
-    undo_follow::prepare_undo_follow,
-    update_person::{
-        build_update_person,
-        prepare_update_person,
+use crate::activitypub::{
+    builders::{
+        undo_follow::prepare_undo_follow,
+        update_person::{
+            build_update_person,
+            prepare_update_person,
+        },
     },
+    identifiers::local_actor_id,
 };
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::ValidationError;
@@ -369,7 +372,10 @@ async fn get_identity_claim(
         },
         _ => return Err(ValidationError("unknown proof type").into()),
     };
-    let actor_id = current_user.profile.actor_id(&config.instance_url());
+    let actor_id = local_actor_id(
+        &config.instance_url(),
+        &current_user.profile.username,
+    );
     let claim = create_identity_claim(&actor_id, &did)
         .map_err(|_| MastodonError::InternalError)?;
     let response = IdentityClaim { did, claim };
@@ -399,7 +405,10 @@ async fn create_identity_proof(
         Err(DatabaseError::NotFound(_)) => (),
         Err(other_error) => return Err(other_error.into()),
     };
-    let actor_id = current_user.profile.actor_id(&config.instance_url());
+    let actor_id = local_actor_id(
+        &config.instance_url(),
+        &current_user.profile.username,
+    );
     let message = create_identity_claim(&actor_id, &did)
         .map_err(|_| ValidationError("invalid claim"))?;
 

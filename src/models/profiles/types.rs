@@ -15,7 +15,6 @@ use mitra_utils::{
 
 use crate::activitypub::{
     actors::types::Actor,
-    identifiers::local_actor_id,
 };
 use crate::database::{
     json_macro::{json_from_sql, json_to_sql},
@@ -397,13 +396,6 @@ impl DbActorProfile {
 
     pub fn is_local(&self) -> bool {
         self.actor_json.is_none()
-    }
-
-    pub fn actor_id(&self, instance_url: &str) -> String {
-        match self.actor_json {
-            Some(ref actor) => actor.id.clone(),
-            None => local_actor_id(instance_url, &self.username),
-        }
     }
 
     pub fn actor_address(&self, local_hostname: &str) -> ActorAddress {

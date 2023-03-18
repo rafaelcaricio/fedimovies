@@ -12,6 +12,7 @@ use crate::activitypub::{
         local_actor_id,
         local_object_id,
         post_object_id,
+        profile_actor_id,
     },
     types::{build_default_context, Context},
     vocabulary::ANNOUNCE,
@@ -50,7 +51,7 @@ fn build_announce(
         .expect("repost_of field should be populated");
     let object_id = post_object_id(instance_url, post);
     let activity_id = local_object_id(instance_url, &repost.id);
-    let recipient_id = post.author.actor_id(instance_url);
+    let recipient_id = profile_actor_id(instance_url, &post.author);
     let followers = local_actor_followers(instance_url, sender_username);
     Announce {
         context: build_default_context(),
@@ -77,7 +78,7 @@ pub async fn get_announce_recipients(
             recipients.push(remote_actor);
         };
     };
-    let primary_recipient = post.author.actor_id(instance_url);
+    let primary_recipient = profile_actor_id(instance_url, &post.author);
     if let Some(remote_actor) = post.author.actor_json.as_ref() {
         recipients.push(remote_actor.clone());
     };

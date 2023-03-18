@@ -15,6 +15,7 @@ use crate::activitypub::{
         local_object_id,
         local_tag_collection,
         post_object_id,
+        profile_actor_id,
     },
     types::{
         build_default_context,
@@ -134,7 +135,7 @@ pub fn build_note(
     let mut tags = vec![];
     for profile in &post.mentions {
         let tag_name = format!("@{}", profile.actor_address(instance_hostname));
-        let actor_id = profile.actor_id(instance_url);
+        let actor_id = profile_actor_id(instance_url, profile);
         if !primary_audience.contains(&actor_id) {
             primary_audience.push(actor_id.clone());
         };
@@ -183,7 +184,10 @@ pub fn build_note(
             let in_reply_to = post.in_reply_to.as_ref()
                 .expect("in_reply_to should be populated");
             assert_eq!(in_reply_to.id, in_reply_to_id);
-            let in_reply_to_actor_id = in_reply_to.author.actor_id(instance_url);
+            let in_reply_to_actor_id = profile_actor_id(
+                instance_url,
+                &in_reply_to.author,
+            );
             if !primary_audience.contains(&in_reply_to_actor_id) {
                 primary_audience.push(in_reply_to_actor_id);
             };

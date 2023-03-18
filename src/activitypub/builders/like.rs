@@ -7,7 +7,12 @@ use crate::activitypub::{
     actors::types::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
-    identifiers::{local_actor_id, local_object_id, post_object_id},
+    identifiers::{
+        local_actor_id,
+        local_object_id,
+        post_object_id,
+        profile_actor_id,
+    },
     types::{build_default_context, Context},
     vocabulary::LIKE,
 };
@@ -94,7 +99,7 @@ pub async fn prepare_like(
         post,
     ).await?;
     let object_id = post_object_id(&instance.url(), post);
-    let post_author_id = post.author.actor_id(&instance.url());
+    let post_author_id = profile_actor_id(&instance.url(), &post.author);
     let activity = build_like(
         &instance.url(),
         &sender.profile,

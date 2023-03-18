@@ -125,13 +125,20 @@ pub fn post_object_id(instance_url: &str, post: &Post) -> String {
     }
 }
 
+pub fn profile_actor_id(instance_url: &str, profile: &DbActorProfile) -> String {
+    match profile.actor_json {
+        Some(ref actor) => actor.id.clone(),
+        None => local_actor_id(instance_url, &profile.username),
+    }
+}
+
 pub fn profile_actor_url(instance_url: &str, profile: &DbActorProfile) -> String {
     if let Some(ref actor) = profile.actor_json {
         if let Some(ref actor_url) = actor.url {
             return actor_url.to_string();
         };
     };
-    profile.actor_id(instance_url)
+    profile_actor_id(instance_url, profile)
 }
 
 #[cfg(test)]

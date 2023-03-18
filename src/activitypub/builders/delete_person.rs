@@ -7,6 +7,7 @@ use crate::activitypub::{
     actors::types::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
+    identifiers::local_actor_id,
     types::{build_default_context, Context},
     vocabulary::DELETE,
 };
@@ -35,7 +36,7 @@ fn build_delete_person(
     instance_url: &str,
     user: &User,
 ) -> DeletePerson {
-    let actor_id = user.profile.actor_id(instance_url);
+    let actor_id = local_actor_id(instance_url, &user.profile.username);
     let activity_id = format!("{}/delete", actor_id);
     DeletePerson {
         context: build_default_context(),

@@ -35,6 +35,7 @@ use super::handlers::{
     undo::handle_undo,
     update::handle_update,
 };
+use super::identifiers::profile_actor_id;
 use super::queues::IncomingActivityJobData;
 use super::vocabulary::*;
 
@@ -298,7 +299,7 @@ pub async fn receive_activity(
         return Ok(());
     };
 
-    let signer_id = signer.actor_id(&config.instance_url());
+    let signer_id = profile_actor_id(&config.instance_url(), &signer);
     let is_authenticated = activity_actor == signer_id;
     if !is_authenticated {
         match activity_type {

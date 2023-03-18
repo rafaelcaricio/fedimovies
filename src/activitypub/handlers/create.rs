@@ -19,7 +19,7 @@ use crate::activitypub::{
         get_or_import_profile_by_actor_id,
         import_post,
     },
-    identifiers::parse_local_actor_id,
+    identifiers::{parse_local_actor_id, profile_actor_id},
     receiver::{parse_array, parse_property_value, HandlerError},
     types::{Attachment, EmojiTag, Link, LinkTag, Object, Tag},
     vocabulary::*,
@@ -150,7 +150,7 @@ pub async fn get_object_attachments(
                 },
             };
             if is_gnu_social_link(
-                &author.actor_id(&instance.url()),
+                &profile_actor_id(&instance.url(), author),
                 &attachment,
             ) {
                 // Don't fetch HTML pages attached by GNU Social

@@ -9,7 +9,7 @@ use crate::activitypub::{
         undo_follow::prepare_undo_follow,
     },
     fetcher::helpers::get_or_import_profile_by_actor_id,
-    identifiers::parse_local_actor_id,
+    identifiers::{parse_local_actor_id, profile_actor_id},
     receiver::parse_array,
     vocabulary::PERSON,
 };
@@ -64,7 +64,7 @@ pub async fn handle_move(
             &activity.object,
         ).await?
     };
-    let old_actor_id = old_profile.actor_id(&instance.url());
+    let old_actor_id = profile_actor_id(&instance.url(), &old_profile);
     let new_profile = get_or_import_profile_by_actor_id(
         db_client,
         &instance,
@@ -77,7 +77,7 @@ pub async fn handle_move(
     // Find aliases by DIDs (signed)
     let mut aliases = find_aliases(db_client, &new_profile).await?
         .into_iter()
-        .map(|profile| profile.actor_id(&instance.url()))
+        .map(|profile| profile_actor_id(&instance.url(), &profile))
         .collect::<Vec<_>>();
     // Read aliases from alsoKnownAs property
     // TODO: use new_profile.aliases.into_actor_ids()

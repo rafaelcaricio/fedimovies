@@ -11,6 +11,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use mitra_config::Config;
 use mitra_utils::passwords::hash_password;
 
+use crate::activitypub::identifiers::profile_actor_id;
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::ValidationError;
 use crate::http::get_request_base_url;
@@ -147,7 +148,7 @@ async fn move_followers(
         // Find known aliases of the current user
         let mut aliases = find_aliases(db_client, &current_user.profile).await?
             .into_iter()
-            .map(|profile| profile.actor_id(&instance.url()));
+            .map(|profile| profile_actor_id(&instance.url(), &profile));
         if !aliases.any(|actor_id| actor_id == request_data.from_actor_id) {
             return Err(ValidationError("old profile is not an alias").into());
         };
