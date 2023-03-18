@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use regex::{Captures, Regex};
 
+use crate::activitypub::identifiers::profile_actor_url;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{
@@ -85,7 +86,7 @@ pub fn replace_mentions(
             if let Some(profile) = mention_map.get(&acct) {
                 // Replace with a link to profile.
                 // Actor URL may differ from actor ID.
-                let url = profile.actor_url(instance_url);
+                let url = profile_actor_url(instance_url, profile);
                 #[allow(clippy::to_string_in_format_args)]
                 return format!(
                     // https://microformats.org/wiki/h-card

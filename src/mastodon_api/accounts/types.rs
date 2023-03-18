@@ -9,7 +9,10 @@ use mitra_utils::{
     markdown::markdown_basic_to_html,
 };
 
-use crate::activitypub::actors::helpers::ACTOR_IMAGE_MAX_SIZE;
+use crate::activitypub::{
+    actors::helpers::ACTOR_IMAGE_MAX_SIZE,
+    identifiers::profile_actor_url,
+};
 use crate::errors::ValidationError;
 use crate::mastodon_api::{
     custom_emojis::types::CustomEmoji,
@@ -127,7 +130,7 @@ impl Account {
         instance_url: &str,
         profile: DbActorProfile,
     ) -> Self {
-        let profile_url = profile.actor_url(instance_url);
+        let profile_url = profile_actor_url(instance_url, &profile);
         let avatar_url = profile.avatar
             .map(|image| get_file_url(base_url, &image.file_name));
         let header_url = profile.banner

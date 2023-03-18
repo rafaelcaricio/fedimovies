@@ -2,7 +2,10 @@ use regex::Regex;
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
-use crate::models::posts::types::Post;
+use crate::models::{
+    posts::types::Post,
+    profiles::types::DbActorProfile,
+};
 
 const ACTOR_KEY_SUFFIX: &str = "#main-key";
 
@@ -122,6 +125,15 @@ pub fn post_object_id(instance_url: &str, post: &Post) -> String {
     }
 }
 
+pub fn profile_actor_url(instance_url: &str, profile: &DbActorProfile) -> String {
+    if let Some(ref actor) = profile.actor_json {
+        if let Some(ref actor_url) = actor.url {
+            return actor_url.to_string();
+        };
+    };
+    profile.actor_id(instance_url)
+}
+
 #[cfg(test)]
 mod tests {
     use mitra_utils::id::generate_ulid;
@@ -187,5 +199,18 @@ mod tests {
             object_id,
         ).unwrap_err();
         assert_eq!(error.to_string(), "invalid object ID");
+    }
+
+    #[test]
+    fn test_profile_actor_url() {
+        let profile = DbActorProfile {
+            username: "test".to_string(),
+            ..Default::default()
+        };
+        let profile_url = profile_actor_url(INSTANCE_URL, &profile);
+        assert_eq!(
+            profile_url,
+            "https://example.org/users/test",
+        );
     }
 }

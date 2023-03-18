@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::activitypub::identifiers::{
     local_tag_collection,
     post_object_id,
+    profile_actor_url,
 };
 use crate::mastodon_api::{
     accounts::types::Account,
@@ -32,7 +33,7 @@ impl Mention {
             id: profile.id.to_string(),
             username: profile.username.clone(),
             acct: profile.acct.clone(),
-            url: profile.actor_url(instance_url),
+            url: profile_actor_url(instance_url, &profile),
         }
     }
 }

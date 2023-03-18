@@ -406,16 +406,6 @@ impl DbActorProfile {
         }
     }
 
-    /// Profile URL
-    pub fn actor_url(&self, instance_url: &str) -> String {
-        if let Some(ref actor) = self.actor_json {
-            if let Some(ref actor_url) = actor.url {
-                return actor_url.to_string();
-            };
-        };
-        self.actor_id(instance_url)
-    }
-
     pub fn actor_address(&self, local_hostname: &str) -> ActorAddress {
         assert_eq!(self.hostname.is_none(), self.is_local());
         ActorAddress {
