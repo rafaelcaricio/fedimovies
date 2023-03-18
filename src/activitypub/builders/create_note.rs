@@ -37,6 +37,7 @@ use crate::models::{
     relationships::queries::{get_followers, get_subscribers},
     users::types::User,
 };
+use crate::webfinger::types::ActorAddress;
 
 #[allow(dead_code)]
 #[derive(Serialize)]
@@ -134,7 +135,11 @@ pub fn build_note(
 
     let mut tags = vec![];
     for profile in &post.mentions {
-        let tag_name = format!("@{}", profile.actor_address(instance_hostname));
+        let actor_address = ActorAddress::from_profile(
+            instance_hostname,
+            profile,
+        );
+        let tag_name = format!("@{}", actor_address);
         let actor_id = profile_actor_id(instance_url, profile);
         if !primary_audience.contains(&actor_id) {
             primary_audience.push(actor_id.clone());

@@ -9,6 +9,7 @@ use crate::models::{
     posts::types::Post,
     profiles::types::DbActorProfile,
 };
+use crate::webfinger::types::ActorAddress;
 
 const ENTRY_TITLE_MAX_LENGTH: usize = 75;
 
@@ -56,7 +57,10 @@ pub fn make_feed(
     let actor_id = local_actor_id(&instance.url(), &profile.username);
     let actor_name = profile.display_name.as_ref()
         .unwrap_or(&profile.username);
-    let actor_address = profile.actor_address(&instance.hostname());
+    let actor_address = ActorAddress::from_profile(
+        &instance.hostname(),
+        profile,
+    );
     let feed_url = get_feed_url(&instance.url(), &profile.username);
     let feed_title = format!("{} (@{})", actor_name, actor_address);
     let mut entries = vec![];

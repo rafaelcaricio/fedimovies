@@ -37,7 +37,10 @@ fn export_profiles_to_csv(
 ) -> String {
     let mut csv = String::new();
     for profile in profiles {
-        let actor_address = profile.actor_address(local_hostname);
+        let actor_address = ActorAddress::from_profile(
+            local_hostname,
+            &profile,
+        );
         csv += &format!("{}\n", actor_address);
     };
     csv

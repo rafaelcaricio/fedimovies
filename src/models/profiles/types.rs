@@ -22,7 +22,6 @@ use crate::database::{
 };
 use crate::errors::ValidationError;
 use crate::models::emojis::types::DbEmoji;
-use crate::webfinger::types::ActorAddress;
 use super::validators::{
     validate_username,
     validate_display_name,
@@ -398,16 +397,6 @@ impl DbActorProfile {
         self.actor_json.is_none()
     }
 
-    pub fn actor_address(&self, local_hostname: &str) -> ActorAddress {
-        assert_eq!(self.hostname.is_none(), self.is_local());
-        ActorAddress {
-            username: self.username.clone(),
-            hostname: self.hostname.as_deref()
-                .unwrap_or(local_hostname)
-                .to_string(),
-        }
-    }
-
     pub fn possibly_outdated(&self) -> bool {
         if self.is_local() {
             false
@@ -560,8 +549,6 @@ mod tests {
     use crate::activitypub::actors::types::Actor;
     use super::*;
 
-    const INSTANCE_HOSTNAME: &str = "example.com";
-
     #[test]
     fn test_identity_proof_serialization() {
         let json_data = r#"{"issuer":"did:pkh:eip155:1:0xb9c5714089478a327f09197987f16f9e5d936e8a","proof_type":1,"value":"dbfe"}"#;
@@ -600,39 +587,6 @@ mod tests {
         assert_eq!(payment_info.chain_id, ChainId::ethereum_mainnet());
         let serialized = serde_json::to_string(&payment_option).unwrap();
         assert_eq!(serialized, r#"{"payment_type":2,"chain_id":"eip155:1"}"#);
-    }
-
-    #[test]
-    fn test_local_actor_address() {
-        let local_profile = DbActorProfile {
-            username: "user".to_string(),
-            hostname: None,
-            acct: "user".to_string(),
-            actor_json: None,
-            ..Default::default()
-        };
-        assert_eq!(
-            local_profile.actor_address(INSTANCE_HOSTNAME).to_string(),
-            "user@example.com",
-        );
-    }
-
-    #[test]
-    fn test_remote_actor_address() {
-        let remote_profile = DbActorProfile {
-            username: "test".to_string(),
-            hostname: Some("remote.com".to_string()),
-            acct: "test@remote.com".to_string(),
-            actor_json: Some(Actor {
-                id: "https://test".to_string(),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        assert_eq!(
-            remote_profile.actor_address(INSTANCE_HOSTNAME).to_string(),
-            remote_profile.acct,
-        );
     }
 
     #[test]

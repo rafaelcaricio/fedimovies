@@ -9,6 +9,7 @@ use regex::Regex;
 use serde::{Serialize, Deserialize};
 
 use crate::errors::ValidationError;
+use crate::models::profiles::types::DbActorProfile;
 
 // See also: USERNAME_RE in models::profiles::validators
 const ACTOR_ADDRESS_RE: &str = r"^(?P<username>[\w\.-]+)@(?P<hostname>[\w\.-]+)$";
@@ -27,6 +28,19 @@ pub struct ActorAddress {
 }
 
 impl ActorAddress {
+    pub fn from_profile(
+        local_hostname: &str,
+        profile: &DbActorProfile,
+    ) -> Self {
+        assert_eq!(profile.hostname.is_none(), profile.is_local());
+        Self {
+            username: profile.username.clone(),
+            hostname: profile.hostname.as_deref()
+                .unwrap_or(local_hostname)
+                .to_string(),
+        }
+    }
+
     /// Returns acct string, as used in Mastodon
     pub fn acct(&self, local_hostname: &str) -> String {
         if self.hostname == local_hostname {
@@ -80,7 +94,51 @@ pub struct JsonResourceDescriptor {
 
 #[cfg(test)]
 mod tests {
+    use crate::activitypub::actors::types::Actor;
     use super::*;
+
+    #[test]
+    fn test_local_actor_address() {
+        let local_hostname = "example.com";
+        let local_profile = DbActorProfile {
+            username: "user".to_string(),
+            hostname: None,
+            acct: "user".to_string(),
+            actor_json: None,
+            ..Default::default()
+        };
+        let actor_address = ActorAddress::from_profile(
+            local_hostname,
+            &local_profile,
+        );
+        assert_eq!(
+            actor_address.to_string(),
+            "user@example.com",
+        );
+    }
+
+    #[test]
+    fn test_remote_actor_address() {
+        let local_hostname = "example.com";
+        let remote_profile = DbActorProfile {
+            username: "test".to_string(),
+            hostname: Some("remote.com".to_string()),
+            acct: "test@remote.com".to_string(),
+            actor_json: Some(Actor {
+                id: "https://test".to_string(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let actor_address = ActorAddress::from_profile(
+            local_hostname,
+            &remote_profile,
+        );
+        assert_eq!(
+            actor_address.to_string(),
+            remote_profile.acct,
+        );
+    }
 
     #[test]
     fn test_actor_address_parse_address() {
