@@ -29,7 +29,6 @@ use super::wallet::{
     get_subaddress_balance,
     open_monero_wallet,
     send_monero,
-    DEFAULT_ACCOUNT,
     MoneroError,
 };
 
@@ -68,7 +67,7 @@ pub async fn check_monero_subscriptions(
         log::info!("{} invoices are waiting for payment", address_waitlist.len());
         let incoming_transfers = wallet_client.incoming_transfers(
             TransferType::Available,
-            Some(DEFAULT_ACCOUNT),
+            Some(config.account_index),
             Some(address_waitlist),
         ).await?;
         incoming_transfers.transfers
@@ -78,7 +77,7 @@ pub async fn check_monero_subscriptions(
     if let Some(transfers) = maybe_incoming_transfers {
         for transfer in transfers {
             let address_data = wallet_client.get_address(
-                DEFAULT_ACCOUNT,
+                config.account_index,
                 Some(vec![transfer.subaddr_index.minor]),
             ).await?;
             let subaddress_data = get_single_item(address_data.addresses)?;
@@ -143,6 +142,7 @@ pub async fn check_monero_subscriptions(
         let payout_address = Address::from_str(&payment_info.payout_address)?;
         let payout_amount = send_monero(
             &wallet_client,
+            config.account_index,
             address_index.minor,
             payout_address,
         ).await?;

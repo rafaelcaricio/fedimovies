@@ -17,8 +17,6 @@ use mitra_config::MoneroConfig;
 
 use crate::database::DatabaseError;
 
-pub const DEFAULT_ACCOUNT: u32 = 0;
-
 #[derive(thiserror::Error, Debug)]
 pub enum MoneroError {
     #[error(transparent)]
@@ -71,9 +69,10 @@ pub async fn create_monero_address(
     config: &MoneroConfig,
 ) -> Result<Address, MoneroError> {
     let wallet_client = open_monero_wallet(config).await?;
+    let account_index = config.account_index;
     let (address, address_index) =
-        wallet_client.create_address(DEFAULT_ACCOUNT, None).await?;
-    log::info!("created monero address {}/{}", DEFAULT_ACCOUNT, address_index);
+        wallet_client.create_address(account_index, None).await?;
+    log::info!("created monero address {}/{}", account_index, address_index);
     Ok(address)
 }
 
@@ -100,12 +99,13 @@ pub async fn get_subaddress_balance(
 /// https://monerodocs.org/interacting/monero-wallet-rpc-reference/#sweep_all
 pub async fn send_monero(
     wallet_client: &WalletClient,
+    from_account: u32,
     from_address: u32,
     to_address: Address,
 ) -> Result<Amount, MoneroError> {
     let sweep_args = SweepAllArgs {
         address: to_address,
-        account_index: DEFAULT_ACCOUNT,
+        account_index: from_account,
         subaddr_indices: Some(vec![from_address]),
         priority: TransferPriority::Default,
         mixin: 15,
@@ -126,7 +126,7 @@ pub async fn send_monero(
     // https://github.com/monero-project/monero/issues/8372
     let maybe_transfer = wallet_client.get_transfer(
         tx_hash,
-        Some(DEFAULT_ACCOUNT),
+        Some(from_account),
     ).await?;
     let transfer_status = maybe_transfer
         .map(|data| data.transfer_type.into())
@@ -135,7 +135,7 @@ pub async fn send_monero(
         log::error!(
             "sent transaction {:x} from {}/{}, {}",
             tx_hash,
-            DEFAULT_ACCOUNT,
+            from_account,
             from_address,
             transfer_status,
         );
@@ -145,7 +145,7 @@ pub async fn send_monero(
     log::info!(
         "sent transaction {:x} from {}/{}, amount {}, fee {}",
         tx_hash,
-        DEFAULT_ACCOUNT,
+        from_account,
         from_address,
         amount,
         fee,

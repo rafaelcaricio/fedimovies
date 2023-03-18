@@ -49,6 +49,8 @@ impl EthereumConfig {
     }
 }
 
+fn default_wallet_account_index() -> u32 { 0 }
+
 #[derive(Clone, Deserialize)]
 pub struct MoneroConfig {
     pub chain_id: ChainId,
@@ -59,6 +61,8 @@ pub struct MoneroConfig {
     // monero-wallet-rpc is running with --wallet-dir option
     pub wallet_name: Option<String>,
     pub wallet_password: Option<String>,
+    #[serde(default = "default_wallet_account_index")]
+    pub account_index: u32,
 }
 
 #[derive(Clone, Deserialize)]

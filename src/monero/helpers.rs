@@ -17,7 +17,6 @@ use crate::models::{
 };
 use super::wallet::{
     open_monero_wallet,
-    DEFAULT_ACCOUNT,
     MoneroError,
 };
 
@@ -45,7 +44,7 @@ pub async fn check_expired_invoice(
     let address_index = wallet_client.get_address_index(address).await?;
     let transfers = wallet_client.incoming_transfers(
         TransferType::Available,
-        Some(DEFAULT_ACCOUNT),
+        Some(config.account_index),
         Some(vec![address_index.minor]),
     ).await?
         .transfers

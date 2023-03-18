@@ -65,6 +65,7 @@ retention:
 #    wallet_url: 'http://127.0.0.1:18083'
 #    wallet_name: null
 #    wallet_password: null
+#    account_index: 0
 #  - chain_id: eip155:31337
 #    chain_metadata:
 #      chain_name: localhost
