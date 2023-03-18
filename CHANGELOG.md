@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Make webclient-to-object redirects work for remote profiles and posts.
+- Added webclient redirection rule for `/@username` routes.
 
 ## [1.17.0] - 2023-03-15
 
