@@ -14,12 +14,14 @@ use uuid::Uuid;
 use mitra_config::Config;
 
 use crate::activitypub::{
-    identifiers::{local_actor_id, local_object_id},
     views::is_activitypub_request,
 };
 use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
-use crate::models::users::queries::get_user_by_id;
+use crate::models::{
+    posts::queries::get_post_by_id,
+    profiles::queries::get_profile_by_id,
+};
 
 pub fn static_service(web_client_dir: &Path) -> Files {
     Files::new("/", web_client_dir)
@@ -48,11 +50,8 @@ async fn profile_page_redirect_view(
     profile_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let user = get_user_by_id(db_client, &profile_id).await?;
-    let actor_id = local_actor_id(
-        &config.instance_url(),
-        &user.profile.username,
-    );
+    let profile = get_profile_by_id(db_client, &profile_id).await?;
+    let actor_id = profile.actor_id(&config.instance_url());
     let response = HttpResponse::Found()
         .append_header(("Location", actor_id))
         .finish();
@@ -69,12 +68,12 @@ pub fn profile_page_redirect() -> Resource {
 
 async fn post_page_redirect_view(
     config: web::Data<Config>,
-    internal_object_id: web::Path<Uuid>,
+    db_pool: web::Data<DbPool>,
+    post_id: web::Path<Uuid>,
 ) -> Result<HttpResponse, HttpError> {
-    let object_id = local_object_id(
-        &config.instance_url(),
-        &internal_object_id,
-    );
+    let db_client = &**get_database_client(&db_pool).await?;
+    let post = get_post_by_id(db_client, &post_id).await?;
+    let object_id = post.object_id(&config.instance_url());
     let response = HttpResponse::Found()
         .append_header(("Location", object_id))
         .finish();
