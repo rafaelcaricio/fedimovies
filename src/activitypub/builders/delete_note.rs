@@ -4,7 +4,7 @@ use mitra_config::Instance;
 
 use crate::activitypub::{
     deliverer::OutgoingActivity,
-    identifiers::local_actor_id,
+    identifiers::{local_actor_id, local_object_id},
     types::{build_default_context, Context},
     vocabulary::{DELETE, NOTE, TOMBSTONE},
 };
@@ -52,7 +52,8 @@ fn build_delete_note(
     instance_url: &str,
     post: &Post,
 ) -> DeleteNote {
-    let object_id = post.object_id(instance_url);
+    assert!(post.is_local());
+    let object_id = local_object_id(instance_url, &post.id);
     let activity_id = format!("{}/delete", object_id);
     let actor_id = local_actor_id(instance_url, &post.author.username);
     let Note { to, cc, .. } = build_note(

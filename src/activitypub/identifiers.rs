@@ -2,6 +2,7 @@ use regex::Regex;
 use uuid::Uuid;
 
 use crate::errors::ValidationError;
+use crate::models::posts::types::Post;
 
 const ACTOR_KEY_SUFFIX: &str = "#main-key";
 
@@ -112,6 +113,13 @@ pub fn parse_local_object_id(
         .as_str().parse()
         .map_err(|_| ValidationError("invalid object ID"))?;
     Ok(internal_object_id)
+}
+
+pub fn post_object_id(instance_url: &str, post: &Post) -> String {
+    match post.object_id {
+        Some(ref object_id) => object_id.to_string(),
+        None => local_object_id(instance_url, &post.id),
+    }
 }
 
 #[cfg(test)]

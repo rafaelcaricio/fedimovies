@@ -15,13 +15,16 @@ use uuid::Uuid;
 use mitra_config::Config;
 use mitra_utils::markdown::markdown_lite_to_html;
 
-use crate::activitypub::builders::{
-    announce::prepare_announce,
-    create_note::prepare_create_note,
-    delete_note::prepare_delete_note,
-    like::prepare_like,
-    undo_announce::prepare_undo_announce,
-    undo_like::prepare_undo_like,
+use crate::activitypub::{
+    builders::{
+        announce::prepare_announce,
+        create_note::prepare_create_note,
+        delete_note::prepare_delete_note,
+        like::prepare_like,
+        undo_announce::prepare_undo_announce,
+        undo_like::prepare_undo_like,
+    },
+    identifiers::local_object_id,
 };
 use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::ValidationError;
@@ -565,7 +568,8 @@ async fn make_permanent(
         attachment.ipfs_cid = Some(image_cid.clone());
         attachments.push((attachment.id, image_cid));
     };
-    let post_url = post.object_id(&config.instance_url());
+    assert!(post.is_local());
+    let post_url = local_object_id(&config.instance_url(), &post.id);
     let maybe_post_image_cid = post.attachments.first()
         .and_then(|attachment| attachment.ipfs_cid.as_deref());
     let post_metadata = PostMetadata::new(

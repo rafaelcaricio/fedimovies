@@ -7,7 +7,12 @@ use crate::activitypub::{
     actors::types::Actor,
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
-    identifiers::{local_actor_followers, local_actor_id, local_object_id},
+    identifiers::{
+        local_actor_followers,
+        local_actor_id,
+        local_object_id,
+        post_object_id,
+    },
     types::{build_default_context, Context},
     vocabulary::ANNOUNCE,
 };
@@ -41,8 +46,9 @@ fn build_announce(
     repost: &Post,
 ) -> Announce {
     let actor_id = local_actor_id(instance_url, sender_username);
-    let post = repost.repost_of.as_ref().unwrap();
-    let object_id = post.object_id(instance_url);
+    let post = repost.repost_of.as_ref()
+        .expect("repost_of field should be populated");
+    let object_id = post_object_id(instance_url, post);
     let activity_id = local_object_id(instance_url, &repost.id);
     let recipient_id = post.author.actor_id(instance_url);
     let followers = local_actor_followers(instance_url, sender_username);

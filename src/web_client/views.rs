@@ -14,6 +14,7 @@ use uuid::Uuid;
 use mitra_config::Config;
 
 use crate::activitypub::{
+    identifiers::post_object_id,
     views::is_activitypub_request,
 };
 use crate::database::{get_database_client, DbPool};
@@ -96,7 +97,7 @@ async fn post_page_redirect_view(
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let post = get_post_by_id(db_client, &post_id).await?;
-    let object_id = post.object_id(&config.instance_url());
+    let object_id = post_object_id(&config.instance_url(), &post);
     let response = HttpResponse::Found()
         .append_header(("Location", object_id))
         .finish();

@@ -2,7 +2,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::activitypub::identifiers::local_tag_collection;
+use crate::activitypub::identifiers::{
+    local_tag_collection,
+    post_object_id,
+};
 use crate::mastodon_api::{
     accounts::types::Account,
     custom_emojis::types::CustomEmoji,
@@ -90,7 +93,7 @@ impl Status {
         instance_url: &str,
         post: Post,
     ) -> Self {
-        let object_id = post.object_id(instance_url);
+        let object_id = post_object_id(instance_url, &post);
         let attachments: Vec<Attachment> = post.attachments.into_iter()
             .map(|item| Attachment::from_db(base_url, item))
             .collect();

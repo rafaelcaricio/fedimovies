@@ -14,6 +14,7 @@ use crate::activitypub::{
         local_emoji_id,
         local_object_id,
         local_tag_collection,
+        post_object_id,
     },
     types::{
         build_default_context,
@@ -158,7 +159,7 @@ pub fn build_note(
     for linked in &post.linked {
         // Build FEP-e232 object link
         // https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-e232.md
-        let link_href = linked.object_id(instance_url);
+        let link_href = post_object_id(instance_url, linked);
         let tag = LinkTag {
             name: None,  // no microsyntax
             tag_type: LINK.to_string(),
@@ -170,7 +171,7 @@ pub fn build_note(
         };
     };
     let maybe_quote_url = post.linked.get(0)
-        .map(|linked| linked.object_id(instance_url));
+        .map(|linked| post_object_id(instance_url, linked));
 
     for emoji in &post.emojis {
         let tag = build_emoji_tag(instance_url, emoji);
@@ -186,7 +187,7 @@ pub fn build_note(
             if !primary_audience.contains(&in_reply_to_actor_id) {
                 primary_audience.push(in_reply_to_actor_id);
             };
-            Some(in_reply_to.object_id(instance_url))
+            Some(post_object_id(instance_url, in_reply_to))
         },
         None => None,
     };
