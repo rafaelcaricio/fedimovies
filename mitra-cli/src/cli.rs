@@ -187,6 +187,7 @@ impl SetPassword {
 #[derive(Parser)]
 pub struct SetRole {
     id: Uuid,
+    #[clap(value_parser = ["admin", "user", "read_only_user"])]
     role: String,
 }
 

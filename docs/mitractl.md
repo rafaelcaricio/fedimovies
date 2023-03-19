@@ -38,7 +38,7 @@ Set or change password:
 mitractl set-password <user-id> <password>
 ```
 
-Change user's role:
+Change user's role (admin, user or read_only_user).
 
 ```shell
 mitractl set-role <user-id> <role-name>

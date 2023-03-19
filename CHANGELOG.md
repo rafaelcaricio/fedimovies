@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `fep-e232` feature flag (disabled by default).
 - Added `account_index` parameter to Monero configuration.
 
+### Changed
+
+- Documented valid role names for `set-role` command.
+
 ### Fixed
 
 - Make webclient-to-object redirects work for remote profiles and posts.
