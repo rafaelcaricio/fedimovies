@@ -29,6 +29,8 @@ pub struct DbInviteCode {
 pub enum Permission {
     CreateFollowRequest,
     CreatePost,
+    DeleteAnyPost,
+    DeleteAnyProfile,
     ManageSubscriptionOptions,
 }
 
@@ -66,6 +68,8 @@ impl Role {
             Self::Admin => vec![
                 Permission::CreateFollowRequest,
                 Permission::CreatePost,
+                Permission::DeleteAnyPost,
+                Permission::DeleteAnyProfile,
                 Permission::ManageSubscriptionOptions,
             ],
             Self::ReadOnlyUser => vec![

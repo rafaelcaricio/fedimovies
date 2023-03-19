@@ -1782,6 +1782,8 @@ components:
             enum:
               - create_follow_request
               - create_post
+              - delete_any_post
+              - delete_any_profile
               - manage_subscription_options
     Signature:
       type: object
