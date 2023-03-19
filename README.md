@@ -107,23 +107,10 @@ An HTTP server will be needed to handle HTTPS requests. See the example of [ngin
 
 See [guide](./docs/onion.md).
 
-### Monero
+### Blockchain integrations
 
-Install Monero node or choose a [public one](https://monero.fail/).
-
-Configure and start [monero-wallet-rpc](https://monerodocs.org/interacting/monero-wallet-rpc-reference/) daemon. Add `disable-rpc-login=1` to your `monero-wallet-rpc` config (currently RPC auth is not supported in Mitra).
-
-Create a wallet for your instance.
-
-Add blockchain configuration to `blockchains` array in your configuration file.
-
-### Ethereum
-
-Install Ethereum client or choose a JSON-RPC API provider.
-
-Deploy contracts on the blockchain. Instructions can be found at https://codeberg.org/silverpill/mitra-contracts.
-
-Add blockchain configuration to `blockchains` array in your configuration file.
+- [Monero](./docs/monero.md)
+- [Ethereum](./docs/ethereum.md)
 
 ## Development
 
