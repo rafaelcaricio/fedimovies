@@ -14,6 +14,21 @@ pub async fn create_instance(
     Ok(())
 }
 
+pub async fn get_peers(
+    db_client: &impl DatabaseClient,
+) -> Result<Vec<String>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT instance.hostname FROM instance
+        ",
+        &[],
+    ).await?;
+    let peers = rows.iter()
+        .map(|row| row.try_get("hostname"))
+        .collect::<Result<_, _>>()?;
+    Ok(peers)
+}
+
 pub async fn get_peer_count(
     db_client: &impl DatabaseClient,
 ) -> Result<i64, DatabaseError> {

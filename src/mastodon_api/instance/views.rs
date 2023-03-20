@@ -6,7 +6,7 @@ use crate::database::{get_database_client, DbPool};
 use crate::ethereum::contracts::ContractSet;
 use crate::mastodon_api::errors::MastodonError;
 use crate::models::{
-    instances::queries::get_peer_count,
+    instances::queries::{get_peers, get_peer_count},
     posts::queries::get_local_post_count,
     users::queries::get_user_count,
 };
@@ -33,7 +33,17 @@ async fn instance_view(
     Ok(HttpResponse::Ok().json(instance))
 }
 
+#[get("/peers")]
+async fn instance_peers_view(
+    db_pool: web::Data<DbPool>,
+) -> Result<HttpResponse, MastodonError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let peers = get_peers(db_client).await?;
+    Ok(HttpResponse::Ok().json(peers))
+}
+
 pub fn instance_api_scope() -> Scope {
     web::scope("/api/v1/instance")
         .service(instance_view)
+        .service(instance_peers_view)
 }
