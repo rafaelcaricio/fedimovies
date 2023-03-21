@@ -130,6 +130,9 @@ async fn move_followers(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
+    if current_user.profile.identity_proofs.inner().is_empty() {
+        return Err(ValidationError("identity proof is required").into());
+    };
     let instance = config.instance();
     if request_data.from_actor_id.starts_with(&instance.url()) {
         return Err(ValidationError("can't move from local actor").into());
