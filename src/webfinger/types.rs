@@ -115,6 +115,10 @@ mod tests {
             actor_address.to_string(),
             "user@example.com",
         );
+        assert_eq!(
+            actor_address.acct(local_hostname),
+            local_profile.acct,
+        );
     }
 
     #[test]
@@ -136,6 +140,10 @@ mod tests {
         );
         assert_eq!(
             actor_address.to_string(),
+            remote_profile.acct,
+        );
+        assert_eq!(
+            actor_address.acct(local_hostname),
             remote_profile.acct,
         );
     }

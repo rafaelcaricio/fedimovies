@@ -1,5 +1,3 @@
-use uuid::Uuid;
-
 use mitra_utils::did::Did;
 
 use crate::activitypub::vocabulary::{
@@ -101,7 +99,7 @@ pub fn parse_identity_proof(
 
 pub fn attach_payment_option(
     instance_url: &str,
-    user_id: &Uuid,
+    username: &str,
     payment_option: PaymentOption,
 ) -> ActorAttachment {
     let (name, href) = match payment_option {
@@ -109,12 +107,12 @@ pub fn attach_payment_option(
         PaymentOption::Link(_) => unimplemented!(),
         PaymentOption::EthereumSubscription(_) => {
             let name = "EthereumSubscription".to_string();
-            let href = get_subscription_page_url(instance_url, user_id);
+            let href = get_subscription_page_url(instance_url, username);
             (name, href)
         },
         PaymentOption::MoneroSubscription(_) => {
             let name = "MoneroSubscription".to_string();
-            let href = get_subscription_page_url(instance_url, user_id);
+            let href = get_subscription_page_url(instance_url, username);
             (name, href)
         },
     };
@@ -177,7 +175,6 @@ pub fn parse_extra_field(
 mod tests {
     use mitra_utils::{
         caip2::ChainId,
-        id::generate_ulid,
     };
     use super::*;
 
@@ -200,14 +197,14 @@ mod tests {
 
     #[test]
     fn test_payment_option() {
-        let user_id = generate_ulid();
+        let username = "testuser";
         let payment_option =
             PaymentOption::ethereum_subscription(ChainId::ethereum_mainnet());
         let subscription_page_url =
-            format!("https://example.com/profile/{}/subscription", user_id);
+            "https://example.com/@testuser/subscription";
         let attachment = attach_payment_option(
             INSTANCE_URL,
-            &user_id,
+            username,
             payment_option,
         );
         assert_eq!(attachment.object_type, LINK);

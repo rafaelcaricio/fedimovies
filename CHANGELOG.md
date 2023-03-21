@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Documented valid role names for `set-role` command.
 - Granted `delete_any_post` and `delete_any_profile` permissions to admin role.
+- Updated profile page URL template to match mitra-web.
 
 ### Fixed
 

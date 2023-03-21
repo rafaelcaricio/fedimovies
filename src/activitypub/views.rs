@@ -84,7 +84,10 @@ async fn actor_view(
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
     if !is_activitypub_request(request.headers()) {
-        let page_url = get_profile_page_url(&config.instance_url(), &user.id);
+        let page_url = get_profile_page_url(
+            &config.instance_url(),
+            &user.profile.username,
+        );
         let response = HttpResponse::Found()
             .append_header((http_header::LOCATION, page_url))
             .finish();

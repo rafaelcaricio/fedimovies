@@ -329,7 +329,7 @@ pub fn get_local_actor(
     for payment_option in user.profile.payment_options.clone().into_inner() {
         let attachment = attach_payment_option(
             instance_url,
-            &user.id,
+            &user.profile.username,
             payment_option,
         );
         attachments.push(attachment);
