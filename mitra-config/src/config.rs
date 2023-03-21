@@ -73,7 +73,7 @@ pub struct Config {
     pub(super) proxy_url: Option<String>,
 
     #[serde(default)]
-    pub(super) federation: FederationConfig,
+    pub federation: FederationConfig,
 
     #[serde(default)]
     pub blocked_instances: Vec<String>,
@@ -100,7 +100,10 @@ impl Config {
             actor_key: self.instance_rsa_key.clone().unwrap(),
             proxy_url: self.federation.proxy_url.clone(),
             onion_proxy_url: self.federation.onion_proxy_url.clone(),
-            is_private: matches!(self.environment, Environment::Development),
+            // Private instance doesn't send activities and sign requests
+            is_private:
+                !self.federation.enabled ||
+                matches!(self.environment, Environment::Development),
         }
     }
 

@@ -75,7 +75,7 @@ fn build_request(
 ) -> RequestBuilder {
     let mut request_builder = client.request(method, url);
     if !instance.is_private {
-        // Public instance should set User-Agent header
+        // Public instances should set User-Agent header
         request_builder = request_builder
             .header(reqwest::header::USER_AGENT, instance.agent());
     };
@@ -96,7 +96,7 @@ async fn send_request(
         request_builder = request_builder.query(query_params);
     };
     if !instance.is_private {
-        // Only public instance can send signed request
+        // Only public instances can send signed requests
         let instance_actor_id = local_instance_actor_id(&instance.url());
         let instance_actor_key_id = local_actor_key_id(&instance_actor_id);
         let headers = create_http_signature(

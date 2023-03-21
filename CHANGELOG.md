@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `fep-e232` feature flag (disabled by default).
 - Added `account_index` parameter to Monero configuration.
 - Added `/api/v1/instance/peers` API endpoint.
+- Added `federation.enabled` configuration parameter that can be used to disable federation.
 
 ### Changed
 

@@ -106,6 +106,9 @@ async fn inbox(
     request: HttpRequest,
     activity: web::Json<serde_json::Value>,
 ) -> Result<HttpResponse, HttpError> {
+    if !config.federation.enabled {
+        return Err(HttpError::PermissionError);
+    };
     log::debug!("received activity: {}", activity);
     let activity_type = activity["type"].as_str().unwrap_or("Unknown");
     log::info!("received in {}: {}", request.uri().path(), activity_type);
@@ -304,8 +307,12 @@ async fn instance_actor_view(
 
 #[post("/inbox")]
 async fn instance_actor_inbox(
+    config: web::Data<Config>,
     activity: web::Json<serde_json::Value>,
 ) -> Result<HttpResponse, HttpError> {
+    if !config.federation.enabled {
+        return Err(HttpError::PermissionError);
+    };
     log::info!(
         "received in instance inbox: {}",
         activity["type"].as_str().unwrap_or("Unknown"),

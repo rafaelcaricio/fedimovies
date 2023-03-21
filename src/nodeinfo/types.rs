@@ -69,10 +69,16 @@ pub struct Usage {
 }
 
 #[derive(Serialize)]
+struct FederationMetadata {
+    enabled: bool,
+}
+
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Metadata {
     node_name: String,
     node_description: String,
+    federation: FederationMetadata,
 }
 
 impl Metadata {
@@ -80,6 +86,9 @@ impl Metadata {
         Self {
             node_name: config.instance_title.clone(),
             node_description: config.instance_short_description.clone(),
+            federation: FederationMetadata {
+                enabled: config.federation.enabled,
+            },
         }
     }
 }

@@ -47,6 +47,7 @@ retention:
 
 # Federation parameters
 #federation:
+#  enabled: true
 #  # Proxy for outgoing requests
 #  #proxy_url: 'socks5h://127.0.0.1:9050'
 #  # Proxy for outgoing requests to .onion targets
