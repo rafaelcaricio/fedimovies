@@ -139,10 +139,6 @@ impl Account {
             .map(|image| get_file_url(base_url, &image.file_name));
         let header_url = profile.banner
             .map(|image| get_file_url(base_url, &image.file_name));
-        // TODO: use profile.manually_approves_followers
-        let is_locked = profile.actor_json
-            .map(|actor| actor.manually_approves_followers)
-            .unwrap_or(false);
 
         let mut identity_proofs = vec![];
         for proof in profile.identity_proofs.into_inner() {
@@ -213,7 +209,7 @@ impl Account {
             note: profile.bio,
             avatar: avatar_url,
             header: header_url,
-            locked: is_locked,
+            locked: profile.manually_approves_followers,
             identity_proofs,
             payment_options,
             fields: extra_fields,
