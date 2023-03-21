@@ -10,7 +10,6 @@ use crate::activitypub::{
     },
     fetcher::helpers::get_or_import_profile_by_actor_id,
     identifiers::{parse_local_actor_id, profile_actor_id},
-    receiver::parse_array,
     vocabulary::PERSON,
 };
 use crate::database::{DatabaseClient, DatabaseError};
@@ -80,13 +79,8 @@ pub async fn handle_move(
         .into_iter()
         .map(|profile| profile_actor_id(&instance.url(), &profile))
         .collect::<Vec<_>>();
-    // Read aliases from alsoKnownAs property
-    // TODO: use new_profile.aliases.into_actor_ids()
-    if let Some(ref value) = new_actor.also_known_as {
-        let also_known_as = parse_array(value)
-            .map_err(|_| ValidationError("invalid alias list"))?;
-        aliases.extend(also_known_as);
-    };
+    // Add aliases reported by server (actor's alsoKnownAs property)
+    aliases.extend(new_profile.aliases.into_actor_ids());
     if !aliases.contains(&old_actor_id) {
         return Err(ValidationError("target ID is not an alias").into());
     };

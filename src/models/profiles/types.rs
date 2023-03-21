@@ -547,4 +547,13 @@ mod tests {
         let serialized = serde_json::to_string(&payment_option).unwrap();
         assert_eq!(serialized, r#"{"payment_type":2,"chain_id":"eip155:1"}"#);
     }
+
+    #[test]
+    fn test_alias() {
+        let actor_id = "https://example.com/users/alice";
+        let aliases = Aliases::new(vec![actor_id.to_string()]);
+        let actor_ids = aliases.into_actor_ids();
+        assert_eq!(actor_ids.len(), 1);
+        assert_eq!(actor_ids[0], actor_id);
+    }
 }
