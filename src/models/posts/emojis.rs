@@ -9,7 +9,7 @@ use crate::models::{
 };
 use super::links::is_inside_code_block;
 
-// See also: EMOJI_NAME_RE in models::emojis::validators
+// See also: EMOJI_NAME_RE in validators::emojis
 const SHORTCODE_SEARCH_RE: &str = r"(?m):(?P<name>[\w.]+):";
 
 /// Finds emoji shortcodes in text

@@ -25,7 +25,6 @@ use mitra::models::{
         find_unused_remote_emojis,
         get_emoji_by_name_and_hostname,
     },
-    emojis::validators::EMOJI_LOCAL_MAX_SIZE,
     oauth::queries::delete_oauth_tokens,
     posts::queries::{delete_post, find_extraneous_posts, get_post_by_id},
     profiles::queries::{
@@ -49,6 +48,7 @@ use mitra::monero::{
     helpers::check_expired_invoice,
     wallet::create_monero_wallet,
 };
+use mitra::validators::emojis::EMOJI_LOCAL_MAX_SIZE;
 use mitra_config::Config;
 use mitra_utils::{
     crypto_rsa::{

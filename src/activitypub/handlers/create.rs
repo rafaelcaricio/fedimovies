@@ -35,24 +35,26 @@ use crate::models::{
         update_emoji,
     },
     emojis::types::{DbEmoji, EmojiImage},
-    emojis::validators::{
+    posts::{
+        hashtags::normalize_hashtag,
+        queries::create_post,
+        types::{Post, PostCreateData, Visibility},
+    },
+    profiles::types::DbActorProfile,
+    users::queries::get_user_by_name,
+};
+use crate::validators::{
+    emojis::{
         validate_emoji_name,
         EMOJI_MAX_SIZE,
         EMOJI_MEDIA_TYPES,
     },
     posts::{
-        hashtags::normalize_hashtag,
-        queries::create_post,
-        types::{Post, PostCreateData, Visibility},
-        validators::{
-            content_allowed_classes,
-            ATTACHMENTS_MAX_NUM,
-            CONTENT_MAX_SIZE,
-            EMOJIS_MAX_NUM,
-        },
+        content_allowed_classes,
+        ATTACHMENTS_MAX_NUM,
+        CONTENT_MAX_SIZE,
+        EMOJIS_MAX_NUM,
     },
-    profiles::types::DbActorProfile,
-    users::queries::get_user_by_name,
 };
 use crate::webfinger::types::ActorAddress;
 use super::HandlerResult;

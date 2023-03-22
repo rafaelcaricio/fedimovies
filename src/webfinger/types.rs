@@ -11,7 +11,7 @@ use serde::{Serialize, Deserialize};
 use crate::errors::ValidationError;
 use crate::models::profiles::types::DbActorProfile;
 
-// See also: USERNAME_RE in models::profiles::validators
+// See also: USERNAME_RE in validators::profiles
 const ACTOR_ADDRESS_RE: &str = r"^(?P<username>[\w\.-]+)@(?P<hostname>[\w\.-]+)$";
 
 pub const JRD_CONTENT_TYPE: &str = "application/jrd+json";

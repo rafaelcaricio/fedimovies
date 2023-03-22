@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use postgres_types::FromSql;
-use regex::Regex;
 use uuid::Uuid;
 
 use mitra_utils::{
@@ -12,7 +11,6 @@ use crate::database::{
     int_enum::{int_enum_from_sql, int_enum_to_sql},
     DatabaseTypeError,
 };
-use crate::errors::ValidationError;
 use crate::models::profiles::types::DbActorProfile;
 
 #[allow(dead_code)]
@@ -172,15 +170,6 @@ pub struct UserCreateData {
     pub role: Role,
 }
 
-pub fn validate_local_username(username: &str) -> Result<(), ValidationError> {
-    // The username regexp should not allow domain names and IP addresses
-    let username_regexp = Regex::new(r"^[a-z0-9_]+$").unwrap();
-    if !username_regexp.is_match(username) {
-        return Err(ValidationError("invalid username"));
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,13 +182,5 @@ mod tests {
         };
         let ethereum = Currency::Ethereum;
         assert_eq!(user.public_wallet_address(&ethereum), None);
-    }
-
-    #[test]
-    fn test_validate_local_username() {
-        let result_1 = validate_local_username("name_1");
-        assert_eq!(result_1.is_ok(), true);
-        let result_2 = validate_local_username("name&");
-        assert_eq!(result_2.is_ok(), false);
     }
 }

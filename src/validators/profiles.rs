@@ -3,7 +3,7 @@ use regex::Regex;
 use mitra_utils::html::{clean_html, clean_html_strict};
 
 use crate::errors::ValidationError;
-use super::types::ExtraField;
+use crate::models::profiles::types::ExtraField;
 
 const USERNAME_RE: &str = r"^[a-zA-Z0-9_\.-]+$";
 const DISPLAY_NAME_MAX_LENGTH: usize = 200;

@@ -22,7 +22,7 @@ use crate::database::{
 };
 use crate::errors::ValidationError;
 use crate::models::emojis::types::DbEmoji;
-use super::validators::{
+use crate::validators::profiles::{
     validate_username,
     validate_display_name,
     clean_bio,

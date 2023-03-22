@@ -13,7 +13,6 @@ use crate::activitypub::{
 };
 use crate::database::DatabaseClient;
 use crate::models::{
-    posts::validators::EMOJIS_MAX_NUM,
     profiles::queries::{create_profile, update_profile},
     profiles::types::{
         DbActorProfile,
@@ -22,6 +21,7 @@ use crate::models::{
         ProfileUpdateData,
     },
 };
+use crate::validators::posts::EMOJIS_MAX_NUM;
 
 pub const ACTOR_IMAGE_MAX_SIZE: usize = 5 * 1000 * 1000; // 5 MB
 

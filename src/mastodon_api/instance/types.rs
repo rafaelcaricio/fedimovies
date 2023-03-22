@@ -12,7 +12,7 @@ use mitra_utils::markdown::markdown_to_html;
 use crate::ethereum::contracts::ContractSet;
 use crate::mastodon_api::MASTODON_API_VERSION;
 use crate::media::SUPPORTED_MEDIA_TYPES;
-use crate::models::posts::validators::ATTACHMENTS_MAX_NUM;
+use crate::validators::posts::ATTACHMENTS_MAX_NUM;
 
 #[derive(Serialize)]
 struct InstanceStats {

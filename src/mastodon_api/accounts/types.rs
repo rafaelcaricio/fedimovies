@@ -29,14 +29,16 @@ use crate::models::{
         ProfileImage,
         ProfileUpdateData,
     },
-    profiles::validators::validate_username,
     subscriptions::types::Subscription,
     users::types::{
-        validate_local_username,
         Role,
         Permission,
         User,
     },
+};
+use crate::validators::{
+    profiles::validate_username,
+    users::validate_local_username,
 };
 
 /// https://docs.joinmastodon.org/entities/field/

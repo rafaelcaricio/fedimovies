@@ -49,16 +49,16 @@ use crate::models::{
         delete_post,
     },
     posts::types::{PostCreateData, Visibility},
-    posts::validators::{
-        clean_content,
-        ATTACHMENTS_MAX_NUM,
-        EMOJIS_MAX_NUM,
-    },
     reactions::queries::{
         create_reaction,
         delete_reaction,
     },
     relationships::queries::get_subscribers,
+};
+use crate::validators::posts::{
+    clean_content,
+    ATTACHMENTS_MAX_NUM,
+    EMOJIS_MAX_NUM,
 };
 use super::helpers::{
     build_status,

@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::database::json_macro::{json_from_sql, json_to_sql};
-use super::validators::EMOJI_MAX_SIZE;
 
-fn default_emoji_file_size() -> usize { EMOJI_MAX_SIZE }
+// Migration
+fn default_emoji_file_size() -> usize { 250 * 1000 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(test, derive(Default))]

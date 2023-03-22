@@ -15,5 +15,6 @@ pub mod media;
 pub mod models;
 pub mod monero;
 pub mod nodeinfo;
+pub mod validators;
 pub mod webfinger;
 pub mod web_client;
