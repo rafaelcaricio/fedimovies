@@ -1,6 +1,5 @@
 use uuid::Uuid;
 
-use crate::activitypub::identifiers::parse_local_object_id;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     reactions::queries::find_favourited_by_user,
@@ -10,7 +9,6 @@ use crate::models::{
 };
 use super::queries::{
     get_post_by_id,
-    get_post_by_remote_object_id,
     get_related_posts,
     find_reposted_by_user,
 };
@@ -140,25 +138,6 @@ pub async fn get_local_post_by_id(
         return Err(DatabaseError::NotFound("post"));
     };
     Ok(post)
-}
-
-pub async fn get_post_by_object_id(
-    db_client: &impl DatabaseClient,
-    instance_url: &str,
-    object_id: &str,
-) -> Result<Post, DatabaseError> {
-    match parse_local_object_id(instance_url, object_id) {
-        Ok(post_id) => {
-            // Local post
-            let post = get_local_post_by_id(db_client, &post_id).await?;
-            Ok(post)
-        },
-        Err(_) => {
-            // Remote post
-            let post = get_post_by_remote_object_id(db_client, object_id).await?;
-            Ok(post)
-        },
-    }
 }
 
 #[cfg(test)]

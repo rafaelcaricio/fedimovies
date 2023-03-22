@@ -17,6 +17,7 @@ use crate::activitypub::{
     fetcher::helpers::{
         get_or_import_profile_by_actor_address,
         get_or_import_profile_by_actor_id,
+        get_post_by_object_id,
         import_post,
     },
     identifiers::{parse_local_actor_id, profile_actor_id},
@@ -41,7 +42,6 @@ use crate::models::{
     },
     posts::{
         hashtags::normalize_hashtag,
-        helpers::get_post_by_object_id,
         mentions::mention_to_address,
         queries::create_post,
         types::{Post, PostCreateData, Visibility},

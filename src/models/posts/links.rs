@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use regex::{Captures, Match, Regex};
 
+use crate::activitypub::fetcher::helpers::get_post_by_object_id;
 use crate::database::{DatabaseClient, DatabaseError};
-use super::helpers::get_post_by_object_id;
 use super::types::{Post, Visibility};
 
 // MediaWiki-like syntax: [[url|text]]

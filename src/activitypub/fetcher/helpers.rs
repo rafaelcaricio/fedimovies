@@ -165,6 +165,25 @@ pub async fn get_or_import_profile_by_actor_address(
     Ok(profile)
 }
 
+pub async fn get_post_by_object_id(
+    db_client: &impl DatabaseClient,
+    instance_url: &str,
+    object_id: &str,
+) -> Result<Post, DatabaseError> {
+    match parse_local_object_id(instance_url, object_id) {
+        Ok(post_id) => {
+            // Local post
+            let post = get_local_post_by_id(db_client, &post_id).await?;
+            Ok(post)
+        },
+        Err(_) => {
+            // Remote post
+            let post = get_post_by_remote_object_id(db_client, object_id).await?;
+            Ok(post)
+        },
+    }
+}
+
 const RECURSION_DEPTH_MAX: usize = 50;
 
 pub async fn import_post(

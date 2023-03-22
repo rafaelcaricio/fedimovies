@@ -4,7 +4,10 @@ use serde_json::Value;
 use mitra_config::Config;
 
 use crate::activitypub::{
-    fetcher::helpers::get_or_import_profile_by_actor_id,
+    fetcher::helpers::{
+        get_or_import_profile_by_actor_id,
+        get_post_by_object_id,
+    },
     receiver::deserialize_into_object_id,
     vocabulary::NOTE,
 };
@@ -12,7 +15,6 @@ use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::models::{
     reactions::queries::create_reaction,
-    posts::helpers::get_post_by_object_id,
 };
 use super::HandlerResult;
 
