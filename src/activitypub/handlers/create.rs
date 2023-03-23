@@ -42,7 +42,6 @@ use crate::models::{
     },
     posts::{
         hashtags::normalize_hashtag,
-        mentions::mention_to_address,
         queries::create_post,
         types::{Post, PostCreateData, Visibility},
         validators::{
@@ -55,6 +54,7 @@ use crate::models::{
     profiles::types::DbActorProfile,
     users::queries::get_user_by_name,
 };
+use crate::webfinger::types::ActorAddress;
 use super::HandlerResult;
 
 fn get_object_attributed_to(object: &Object)
@@ -401,7 +401,7 @@ pub async fn get_object_tags(
                     continue;
                 },
             };
-            if let Ok(actor_address) = mention_to_address(&tag_name) {
+            if let Ok(actor_address) = ActorAddress::from_mention(&tag_name) {
                 let profile = match get_or_import_profile_by_actor_address(
                     db_client,
                     &instance,

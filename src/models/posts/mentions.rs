@@ -4,7 +4,6 @@ use regex::{Captures, Regex};
 
 use crate::activitypub::identifiers::profile_actor_url;
 use crate::database::{DatabaseClient, DatabaseError};
-use crate::errors::ValidationError;
 use crate::models::{
     profiles::queries::get_profiles_by_accts,
     profiles::types::DbActorProfile,
@@ -104,16 +103,6 @@ pub fn replace_mentions(
     result.to_string()
 }
 
-pub fn mention_to_address(
-    mention: &str,
-) -> Result<ActorAddress, ValidationError> {
-    // @ prefix is optional
-    let actor_address = mention.strip_prefix('@')
-        .unwrap_or(mention)
-        .parse()?;
-    Ok(actor_address)
-}
-
 #[cfg(test)]
 mod tests {
     use crate::activitypub::actors::types::Actor;
@@ -196,23 +185,5 @@ mod tests {
             r#"@ email@unknown.org <span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> copy some text"#,
         );
         assert_eq!(result, expected_result);
-    }
-
-    #[test]
-    fn test_mention_to_address() {
-        let mention = "@user@example.com";
-        let address_1 = mention_to_address(mention).unwrap();
-        assert_eq!(address_1.acct("example.com"), "user");
-
-        let address_2 = mention_to_address(mention).unwrap();
-        assert_eq!(address_2.acct("server.info"), "user@example.com");
-
-        let mention_without_prefix = "user@test.com";
-        let address_3 = mention_to_address(mention_without_prefix).unwrap();
-        assert_eq!(address_3.to_string(), mention_without_prefix);
-
-        let short_mention = "@user";
-        let result = mention_to_address(short_mention);
-        assert_eq!(result.is_err(), true);
     }
 }

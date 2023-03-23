@@ -19,7 +19,6 @@ use crate::database::{
 use crate::errors::ValidationError;
 use crate::mastodon_api::accounts::helpers::follow_or_create_request;
 use crate::models::{
-    posts::mentions::mention_to_address,
     profiles::types::DbActorProfile,
     relationships::queries::{
         follow,
@@ -72,7 +71,7 @@ pub fn parse_address_list(csv: &str)
     let mut addresses: Vec<_> = csv.lines()
         .map(|line| line.trim().to_string())
         .filter(|line| !line.is_empty())
-        .map(|line| mention_to_address(&line))
+        .map(|line| ActorAddress::from_mention(&line))
         .collect::<Result<_, _>>()?;
     addresses.sort();
     addresses.dedup();

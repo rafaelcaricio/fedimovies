@@ -28,6 +28,16 @@ pub struct ActorAddress {
 }
 
 impl ActorAddress {
+    pub fn from_mention(
+        mention: &str,
+    ) -> Result<Self, ValidationError> {
+        // @ prefix is optional
+        let actor_address = mention.strip_prefix('@')
+            .unwrap_or(mention)
+            .parse()?;
+        Ok(actor_address)
+    }
+
     pub fn from_profile(
         local_hostname: &str,
         profile: &DbActorProfile,
@@ -161,6 +171,24 @@ mod tests {
     fn test_actor_address_parse_mention() {
         let value = "@user_1@example.com";
         let result = value.parse::<ActorAddress>();
+        assert_eq!(result.is_err(), true);
+    }
+
+    #[test]
+    fn test_actor_address_from_mention() {
+        let mention = "@user@example.com";
+        let address_1 = ActorAddress::from_mention(mention).unwrap();
+        assert_eq!(address_1.acct("example.com"), "user");
+
+        let address_2 = ActorAddress::from_mention(mention).unwrap();
+        assert_eq!(address_2.acct("server.info"), "user@example.com");
+
+        let mention_without_prefix = "user@test.com";
+        let address_3 = ActorAddress::from_mention(mention_without_prefix).unwrap();
+        assert_eq!(address_3.to_string(), mention_without_prefix);
+
+        let short_mention = "@user";
+        let result = ActorAddress::from_mention(short_mention);
         assert_eq!(result.is_err(), true);
     }
 }
