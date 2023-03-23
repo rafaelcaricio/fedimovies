@@ -1,12 +1,11 @@
 use regex::{Captures, Regex};
 
 use crate::activitypub::identifiers::local_tag_collection;
-use crate::errors::ValidationError;
 use super::links::is_inside_code_block;
 
+// See also: HASHTAG_NAME_RE in validators::tags
 const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])#(?P<tag>[^\s<]+)";
 const HASHTAG_SECONDARY_RE: &str = r"^(?P<tag>[0-9A-Za-z]+)(?P<after>[\.,:?!\)]?)$";
-const HASHTAG_NAME_RE: &str = r"^\w+$";
 
 /// Finds anything that looks like a hashtag
 pub fn find_hashtags(text: &str) -> Vec<String> {
@@ -60,15 +59,6 @@ pub fn replace_hashtags(instance_url: &str, text: &str, tags: &[String]) -> Stri
     result.to_string()
 }
 
-pub fn normalize_hashtag(tag: &str) -> Result<String, ValidationError> {
-    let hashtag_name_re = Regex::new(HASHTAG_NAME_RE).unwrap();
-    let tag_name = tag.trim_start_matches('#');
-    if !hashtag_name_re.is_match(tag_name) {
-        return Err(ValidationError("invalid tag name"));
-    };
-    Ok(tag_name.to_lowercase())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,13 +101,5 @@ mod tests {
             r#"end with <a class="hashtag" href="https://example.com/collections/tags/tag5">#tag5</a>"#,
         );
         assert_eq!(output, expected_output);
-    }
-
-    #[test]
-    fn test_normalize_hashtag() {
-        let tag = "#ActivityPub";
-        let output = normalize_hashtag(tag).unwrap();
-
-        assert_eq!(output, "activitypub");
     }
 }

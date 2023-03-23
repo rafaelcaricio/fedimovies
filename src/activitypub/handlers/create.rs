@@ -36,7 +36,6 @@ use crate::models::{
     },
     emojis::types::{DbEmoji, EmojiImage},
     posts::{
-        hashtags::normalize_hashtag,
         queries::create_post,
         types::{Post, PostCreateData, Visibility},
     },
@@ -55,6 +54,7 @@ use crate::validators::{
         CONTENT_MAX_SIZE,
         EMOJIS_MAX_NUM,
     },
+    tags::validate_hashtag,
 };
 use crate::webfinger::types::ActorAddress;
 use super::HandlerResult;
@@ -198,6 +198,12 @@ pub async fn get_object_attachments(
         };
     };
     Ok((attachments, unprocessed))
+}
+
+fn normalize_hashtag(tag: &str) -> Result<String, ValidationError> {
+    let tag_name = tag.trim_start_matches('#');
+    validate_hashtag(tag_name)?;
+    Ok(tag_name.to_lowercase())
 }
 
 pub fn get_object_links(
@@ -705,6 +711,14 @@ mod tests {
             content,
             r#"test-content<p><a href="https://example.org/xyz" rel="noopener">https://example.org/xyz</a></p>"#,
         );
+    }
+
+    #[test]
+    fn test_normalize_hashtag() {
+        let tag = "#ActivityPub";
+        let output = normalize_hashtag(tag).unwrap();
+
+        assert_eq!(output, "activitypub");
     }
 
     #[test]
