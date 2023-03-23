@@ -6,14 +6,16 @@ use crate::database::{DatabaseClient, DatabaseError};
 use crate::models::{
     emojis::types::DbEmoji,
     posts::{
-        emojis::find_emojis,
-        hashtags::{find_hashtags, replace_hashtags},
         helpers::{add_related_posts, add_user_actions},
-        links::{replace_object_links, find_linked_posts},
-        mentions::{find_mentioned_profiles, replace_mentions},
         types::Post,
     },
     users::types::User,
+};
+use super::microsyntax::{
+    emojis::find_emojis,
+    hashtags::{find_hashtags, replace_hashtags},
+    links::{replace_object_links, find_linked_posts},
+    mentions::{find_mentioned_profiles, replace_mentions},
 };
 use super::types::Status;
 
