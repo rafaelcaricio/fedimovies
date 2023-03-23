@@ -20,14 +20,7 @@ use crate::database::{
     json_macro::{json_from_sql, json_to_sql},
     DatabaseTypeError,
 };
-use crate::errors::ValidationError;
 use crate::models::emojis::types::DbEmoji;
-use crate::validators::profiles::{
-    validate_username,
-    validate_display_name,
-    clean_bio,
-    clean_extra_fields,
-};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProfileImage {
@@ -456,25 +449,6 @@ pub struct ProfileCreateData {
     pub actor_json: Option<Actor>,
 }
 
-impl ProfileCreateData {
-    pub fn clean(&mut self) -> Result<(), ValidationError> {
-        validate_username(&self.username)?;
-        if self.hostname.is_some() != self.actor_json.is_some() {
-            return Err(ValidationError("hostname and actor_json field mismatch"));
-        };
-        if let Some(display_name) = &self.display_name {
-            validate_display_name(display_name)?;
-        };
-        let is_remote = self.actor_json.is_some();
-        if let Some(bio) = &self.bio {
-            let cleaned_bio = clean_bio(bio, is_remote)?;
-            self.bio = Some(cleaned_bio);
-        };
-        self.extra_fields = clean_extra_fields(&self.extra_fields, is_remote)?;
-        Ok(())
-    }
-}
-
 pub struct ProfileUpdateData {
     pub display_name: Option<String>,
     pub bio: Option<String>,
@@ -506,20 +480,6 @@ impl ProfileUpdateData {
         });
         self.payment_options.push(option);
     }
-
-    pub fn clean(&mut self) -> Result<(), ValidationError> {
-        if let Some(display_name) = &self.display_name {
-            validate_display_name(display_name)?;
-        };
-        let is_remote = self.actor_json.is_some();
-        // Validate and clean bio
-        if let Some(bio) = &self.bio {
-            let cleaned_bio = clean_bio(bio, is_remote)?;
-            self.bio = Some(cleaned_bio);
-        };
-        self.extra_fields = clean_extra_fields(&self.extra_fields, is_remote)?;
-        Ok(())
-    }
 }
 
 impl From<&DbActorProfile> for ProfileUpdateData {
@@ -546,7 +506,6 @@ impl From<&DbActorProfile> for ProfileUpdateData {
 
 #[cfg(test)]
 mod tests {
-    use crate::activitypub::actors::types::Actor;
     use super::*;
 
     #[test]
@@ -587,21 +546,5 @@ mod tests {
         assert_eq!(payment_info.chain_id, ChainId::ethereum_mainnet());
         let serialized = serde_json::to_string(&payment_option).unwrap();
         assert_eq!(serialized, r#"{"payment_type":2,"chain_id":"eip155:1"}"#);
-    }
-
-    #[test]
-    fn test_clean_profile_create_data() {
-        let mut profile_data = ProfileCreateData {
-            username: "test".to_string(),
-            hostname: Some("example.org".to_string()),
-            display_name: Some("Test Test".to_string()),
-            actor_json: Some(Actor {
-                id: "https://example.org/test".to_string(),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let result = profile_data.clean();
-        assert_eq!(result.is_ok(), true);
     }
 }

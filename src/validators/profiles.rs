@@ -3,7 +3,11 @@ use regex::Regex;
 use mitra_utils::html::{clean_html, clean_html_strict};
 
 use crate::errors::ValidationError;
-use crate::models::profiles::types::ExtraField;
+use crate::models::profiles::types::{
+    ExtraField,
+    ProfileCreateData,
+    ProfileUpdateData,
+};
 
 const USERNAME_RE: &str = r"^[a-zA-Z0-9_\.-]+$";
 const DISPLAY_NAME_MAX_LENGTH: usize = 200;
@@ -26,7 +30,7 @@ pub fn validate_username(username: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-pub fn validate_display_name(display_name: &str)
+fn validate_display_name(display_name: &str)
     -> Result<(), ValidationError>
 {
     if display_name.chars().count() > DISPLAY_NAME_MAX_LENGTH {
@@ -35,7 +39,7 @@ pub fn validate_display_name(display_name: &str)
     Ok(())
 }
 
-pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> {
+fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> {
     let cleaned_bio = if is_remote {
         // Remote profile
         let truncated_bio: String = bio.chars().take(BIO_MAX_LENGTH).collect();
@@ -51,7 +55,7 @@ pub fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> 
 }
 
 /// Validates extra fields and removes fields with empty labels
-pub fn clean_extra_fields(
+fn clean_extra_fields(
     extra_fields: &[ExtraField],
     is_remote: bool,
 ) -> Result<Vec<ExtraField>, ValidationError> {
@@ -83,8 +87,49 @@ pub fn clean_extra_fields(
     Ok(cleaned_extra_fields)
 }
 
+pub fn clean_profile_create_data(
+    profile_data: &mut ProfileCreateData,
+) -> Result<(), ValidationError> {
+    validate_username(&profile_data.username)?;
+    if profile_data.hostname.is_some() != profile_data.actor_json.is_some() {
+        return Err(ValidationError("hostname and actor_json field mismatch"));
+    };
+    if let Some(display_name) = &profile_data.display_name {
+        validate_display_name(display_name)?;
+    };
+    let is_remote = profile_data.actor_json.is_some();
+    if let Some(bio) = &profile_data.bio {
+        let cleaned_bio = clean_bio(bio, is_remote)?;
+        profile_data.bio = Some(cleaned_bio);
+    };
+    profile_data.extra_fields = clean_extra_fields(
+        &profile_data.extra_fields,
+        is_remote,
+    )?;
+    Ok(())
+}
+
+pub fn clean_profile_update_data(
+    profile_data: &mut ProfileUpdateData,
+) -> Result<(), ValidationError> {
+    if let Some(display_name) = &profile_data.display_name {
+        validate_display_name(display_name)?;
+    };
+    let is_remote = profile_data.actor_json.is_some();
+    if let Some(bio) = &profile_data.bio {
+        let cleaned_bio = clean_bio(bio, is_remote)?;
+        profile_data.bio = Some(cleaned_bio);
+    };
+    profile_data.extra_fields = clean_extra_fields(
+        &profile_data.extra_fields,
+        is_remote,
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::activitypub::actors::types::Actor;
     use super::*;
 
     #[test]
@@ -132,5 +177,21 @@ mod tests {
             .unwrap().pop().unwrap();
         assert_eq!(result.name, "$ETH");
         assert_eq!(result.value, "0x1234");
+    }
+
+    #[test]
+    fn test_clean_profile_create_data() {
+        let mut profile_data = ProfileCreateData {
+            username: "test".to_string(),
+            hostname: Some("example.org".to_string()),
+            display_name: Some("Test Test".to_string()),
+            actor_json: Some(Actor {
+                id: "https://example.org/test".to_string(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let result = clean_profile_create_data(&mut profile_data);
+        assert_eq!(result.is_ok(), true);
     }
 }

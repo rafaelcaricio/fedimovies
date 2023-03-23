@@ -99,6 +99,7 @@ use crate::models::{
     },
     users::types::{Role, UserCreateData},
 };
+use crate::validators::profiles::clean_profile_update_data;
 use super::helpers::{follow_or_create_request, get_relationship};
 use super::types::{
     Account,
@@ -246,7 +247,7 @@ async fn update_credentials(
             &current_user.profile,
             &config.media_dir(),
         )?;
-    profile_data.clean()?;
+    clean_profile_update_data(&mut profile_data)?;
     current_user.profile = update_profile(
         db_client,
         &current_user.id,

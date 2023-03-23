@@ -21,7 +21,10 @@ use crate::models::{
         ProfileUpdateData,
     },
 };
-use crate::validators::posts::EMOJIS_MAX_NUM;
+use crate::validators::{
+    posts::EMOJIS_MAX_NUM,
+    profiles::{clean_profile_create_data, clean_profile_update_data},
+};
 
 pub const ACTOR_IMAGE_MAX_SIZE: usize = 5 * 1000 * 1000; // 5 MB
 
@@ -173,7 +176,7 @@ pub async fn create_remote_profile(
         emojis,
         actor_json: Some(actor),
     };
-    profile_data.clean()?;
+    clean_profile_create_data(&mut profile_data)?;
     let profile = create_profile(db_client, profile_data).await?;
     Ok(profile)
 }
@@ -231,7 +234,7 @@ pub async fn update_remote_profile(
         emojis,
         actor_json: Some(actor),
     };
-    profile_data.clean()?;
+    clean_profile_update_data(&mut profile_data)?;
     let profile = update_profile(db_client, &profile.id, profile_data).await?;
     Ok(profile)
 }
