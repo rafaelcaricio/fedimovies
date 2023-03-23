@@ -196,7 +196,12 @@ impl SetRole {
         &self,
         db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        let role = Role::from_name(&self.role)?;
+        let role = match self.role.as_str() {
+            "user" => Role::NormalUser,
+            "admin" => Role::Admin,
+            "read_only_user" => Role::ReadOnlyUser,
+            _ => return Err(anyhow!("unknown role")),
+        };
         set_user_role(db_client, &self.id, role).await?;
         println!("role changed");
         Ok(())

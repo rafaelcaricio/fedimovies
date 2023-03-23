@@ -47,16 +47,6 @@ impl Default for Role {
 }
 
 impl Role {
-    pub fn from_name(name: &str) -> Result<Self, ValidationError> {
-        let role = match name {
-            "user" => Self::NormalUser,
-            "admin" => Self::Admin,
-            "read_only_user" => Self::ReadOnlyUser,
-            _ => return Err(ValidationError("unknown role")),
-        };
-        Ok(role)
-    }
-
     pub fn get_permissions(&self) -> Vec<Permission> {
         match self {
             Self::Guest => vec![],
