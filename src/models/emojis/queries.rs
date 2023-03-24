@@ -65,7 +65,7 @@ pub async fn update_emoji(
         SET
             image = $1,
             updated_at = $2
-        WHERE id = $4
+        WHERE id = $3
         RETURNING emoji
         ",
         &[
@@ -222,6 +222,28 @@ mod tests {
         assert_eq!(emoji.id, emoji_id);
         assert_eq!(emoji.emoji_name, emoji_name);
         assert_eq!(emoji.hostname, Some(hostname.to_string()));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_update_emoji() {
+        let db_client = &create_test_database().await;
+        let image = EmojiImage::default();
+        let emoji = create_emoji(
+            db_client,
+            "test",
+            None,
+            image.clone(),
+            None,
+            &Utc::now(),
+        ).await.unwrap();
+        let updated_emoji = update_emoji(
+            db_client,
+            &emoji.id,
+            image,
+            &Utc::now(),
+        ).await.unwrap();
+        assert_ne!(updated_emoji.updated_at, emoji.updated_at);
     }
 
     #[tokio::test]
