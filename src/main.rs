@@ -50,7 +50,9 @@ async fn main() -> std::io::Result<()> {
         log::warn!("{}", warning);
     };
 
-    let db_pool = create_pool(&config.database_url);
+    // https://wiki.postgresql.org/wiki/Number_Of_Database_Connections
+    let db_pool_size = num_cpus::get() * 2;
+    let db_pool = create_pool(&config.database_url, db_pool_size);
     let mut db_client = get_database_client(&db_pool).await.unwrap();
     apply_migrations(&mut db_client).await;
 

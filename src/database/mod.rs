@@ -50,13 +50,11 @@ pub async fn create_database_client(db_config: &DatabaseConfig)
     client
 }
 
-pub fn create_pool(database_url: &str) -> DbPool {
+pub fn create_pool(database_url: &str, pool_size: usize) -> DbPool {
     let manager = deadpool_postgres::Manager::new(
         database_url.parse().expect("invalid database URL"),
         tokio_postgres::NoTls,
     );
-    // https://wiki.postgresql.org/wiki/Number_Of_Database_Connections
-    let pool_size = num_cpus::get() * 2;
     DbPool::builder(manager).max_size(pool_size).build().unwrap()
 }
 
