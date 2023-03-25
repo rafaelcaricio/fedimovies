@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Allow emoji names containing hyphens.
+- Increased remote emoji size limit to 500 kB.
 
 ### Fixed
 
