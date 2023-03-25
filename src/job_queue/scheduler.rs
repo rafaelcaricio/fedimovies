@@ -18,6 +18,7 @@ enum PeriodicTask {
     OutgoingActivityQueueExecutor,
     DeleteExtraneousPosts,
     DeleteEmptyProfiles,
+    PruneRemoteEmojis,
 
     #[cfg(feature = "ethereum-extras")]
     NftMonitor,
@@ -34,6 +35,7 @@ impl PeriodicTask {
             Self::OutgoingActivityQueueExecutor => 5,
             Self::DeleteExtraneousPosts => 3600,
             Self::DeleteEmptyProfiles => 3600,
+            Self::PruneRemoteEmojis => 3600,
 
             #[cfg(feature = "ethereum-extras")]
             Self::NftMonitor => 30,
@@ -63,6 +65,7 @@ pub fn run(
             (PeriodicTask::MoneroPaymentMonitor, None),
             (PeriodicTask::IncomingActivityQueueExecutor, None),
             (PeriodicTask::OutgoingActivityQueueExecutor, None),
+            (PeriodicTask::PruneRemoteEmojis, None),
 
             #[cfg(feature = "ethereum-extras")]
             (PeriodicTask::NftMonitor, None),
@@ -107,6 +110,9 @@ pub fn run(
                     },
                     PeriodicTask::DeleteEmptyProfiles => {
                         delete_empty_profiles(&config, &db_pool).await
+                    },
+                    PeriodicTask::PruneRemoteEmojis => {
+                        prune_remote_emojis(&config, &db_pool).await
                     },
                     #[cfg(feature = "ethereum-extras")]
                     PeriodicTask::NftMonitor => {

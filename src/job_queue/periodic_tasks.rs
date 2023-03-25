@@ -20,6 +20,10 @@ use crate::ethereum::{
 use crate::media::remove_media;
 use crate::monero::subscriptions::check_monero_subscriptions;
 use crate::models::{
+    emojis::queries::{
+        delete_emoji,
+        find_unused_remote_emojis,
+    },
     posts::queries::{delete_post, find_extraneous_posts},
     profiles::queries::{
         delete_profile,
@@ -160,6 +164,20 @@ pub async fn delete_empty_profiles(
         let deletion_queue = delete_profile(db_client, &profile.id).await?;
         remove_media(config, deletion_queue).await;
         log::info!("deleted profile {}", profile.acct);
+    };
+    Ok(())
+}
+
+pub async fn prune_remote_emojis(
+    config: &Config,
+    db_pool: &DbPool,
+) -> Result<(), Error> {
+    let db_client = &mut **get_database_client(db_pool).await?;
+    let emojis = find_unused_remote_emojis(db_client).await?;
+    for emoji_id in emojis {
+        let deletion_queue = delete_emoji(db_client, &emoji_id).await?;
+        remove_media(config, deletion_queue).await;
+        log::info!("deleted emoji {}", emoji_id);
     };
     Ok(())
 }
