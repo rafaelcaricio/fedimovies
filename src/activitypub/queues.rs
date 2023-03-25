@@ -26,6 +26,8 @@ use super::deliverer::{OutgoingActivity, Recipient};
 use super::fetcher::fetchers::FetchError;
 use super::receiver::{handle_activity, HandlerError};
 
+const JOB_TIMEOUT: u32 = 3600; // 1 hour
+
 #[derive(Deserialize, Serialize)]
 pub struct IncomingActivityJobData {
     activity: Value,
@@ -75,6 +77,7 @@ pub async fn process_queued_incoming_activities(
         db_client,
         &JobType::IncomingActivity,
         INCOMING_QUEUE_BATCH_SIZE,
+        JOB_TIMEOUT,
     ).await?;
     for job in batch {
         let mut job_data: IncomingActivityJobData =
@@ -152,6 +155,7 @@ pub async fn process_queued_outgoing_activities(
         db_client,
         &JobType::OutgoingActivity,
         OUTGOING_QUEUE_BATCH_SIZE,
+        JOB_TIMEOUT,
     ).await?;
     for job in batch {
         let mut job_data: OutgoingActivityJobData =

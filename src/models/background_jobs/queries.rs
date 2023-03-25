@@ -31,7 +31,10 @@ pub async fn get_job_batch(
     db_client: &impl DatabaseClient,
     job_type: &JobType,
     batch_size: u32,
+    job_timeout: u32,
 ) -> Result<Vec<DbBackgroundJob>, DatabaseError> {
+    // https://github.com/sfackler/rust-postgres/issues/60
+    let job_timeout_pg = format!("{}S", job_timeout); // interval
     let rows = db_client.query(
         "
         UPDATE background_job
@@ -43,8 +46,12 @@ pub async fn get_job_batch(
             FROM background_job
             WHERE
                 job_type = $2
-                AND job_status = $3
                 AND scheduled_for < CURRENT_TIMESTAMP
+                AND (
+                    job_status = $3 --queued
+                    OR job_status = $1 --running
+                    AND updated_at < CURRENT_TIMESTAMP - $5::text::interval
+                )
             ORDER BY scheduled_for ASC
             LIMIT $4
         )
@@ -55,6 +62,7 @@ pub async fn get_job_batch(
             &job_type,
             &JobStatus::Queued,
             &i64::from(batch_size),
+            &job_timeout_pg,
         ],
     ).await?;
     let jobs = rows.iter()
@@ -100,18 +108,18 @@ mod tests {
         let scheduled_for = Utc::now();
         enqueue_job(db_client, &job_type, &job_data, &scheduled_for).await.unwrap();
 
-        let batch_1 = get_job_batch(db_client, &job_type, 10).await.unwrap();
+        let batch_1 = get_job_batch(db_client, &job_type, 10, 3600).await.unwrap();
         assert_eq!(batch_1.len(), 1);
         let job = &batch_1[0];
         assert_eq!(job.job_type, job_type);
         assert_eq!(job.job_data, job_data);
         assert_eq!(job.job_status, JobStatus::Running);
 
-        let batch_2 = get_job_batch(db_client, &job_type, 10).await.unwrap();
+        let batch_2 = get_job_batch(db_client, &job_type, 10, 3600).await.unwrap();
         assert_eq!(batch_2.len(), 0);
 
         delete_job_from_queue(db_client, &job.id).await.unwrap();
-        let batch_3 = get_job_batch(db_client, &job_type, 10).await.unwrap();
+        let batch_3 = get_job_batch(db_client, &job_type, 10, 3600).await.unwrap();
         assert_eq!(batch_3.len(), 0);
     }
 }
