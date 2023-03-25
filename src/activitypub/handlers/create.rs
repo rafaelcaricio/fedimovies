@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::Path;
 
 use chrono::Utc;
 use serde_json::{Value as JsonValue};
@@ -27,6 +26,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
+use crate::media::MediaStorage;
 use crate::models::{
     attachments::queries::create_attachment,
     emojis::queries::{
@@ -45,7 +45,6 @@ use crate::models::{
 use crate::validators::{
     emojis::{
         validate_emoji_name,
-        EMOJI_MAX_SIZE,
         EMOJI_MEDIA_TYPES,
     },
     posts::{
@@ -242,7 +241,7 @@ pub fn get_object_links(
 pub async fn handle_emoji(
     db_client: &impl DatabaseClient,
     instance: &Instance,
-    media_dir: &Path,
+    storage: &MediaStorage,
     tag_value: JsonValue,
 ) -> Result<Option<DbEmoji>, HandlerError> {
     let tag: EmojiTag = match serde_json::from_value(tag_value) {
@@ -279,8 +278,8 @@ pub async fn handle_emoji(
         instance,
         &tag.icon.url,
         tag.icon.media_type.as_deref(),
-        EMOJI_MAX_SIZE,
-        media_dir,
+        storage.emoji_size_limit,
+        &storage.media_dir,
     ).await {
         Ok(file) => file,
         Err(error) => {
@@ -338,7 +337,7 @@ pub async fn get_object_tags(
     redirects: &HashMap<String, String>,
 ) -> Result<(Vec<Uuid>, Vec<String>, Vec<Uuid>, Vec<Uuid>), HandlerError> {
     let instance = config.instance();
-    let media_dir = config.media_dir();
+    let storage = MediaStorage::from(config);
     let mut mentions = vec![];
     let mut hashtags = vec![];
     let mut links = vec![];
@@ -383,7 +382,7 @@ pub async fn get_object_tags(
                 match get_or_import_profile_by_actor_id(
                     db_client,
                     &instance,
-                    &media_dir,
+                    &storage,
                     &href,
                 ).await {
                     Ok(profile) => {
@@ -413,7 +412,7 @@ pub async fn get_object_tags(
                 let profile = match get_or_import_profile_by_actor_address(
                     db_client,
                     &instance,
-                    &media_dir,
+                    &storage,
                     &actor_address,
                 ).await {
                     Ok(profile) => profile,
@@ -469,7 +468,7 @@ pub async fn get_object_tags(
             match handle_emoji(
                 db_client,
                 &instance,
-                &media_dir,
+                &storage,
                 tag_value,
             ).await? {
                 Some(emoji) => {
@@ -534,7 +533,7 @@ pub async fn handle_note(
     redirects: &HashMap<String, String>,
 ) -> Result<Post, HandlerError> {
     let instance = config.instance();
-    let media_dir = config.media_dir();
+    let storage = MediaStorage::from(config);
     match object.object_type.as_str() {
         NOTE => (),
         ARTICLE | EVENT | QUESTION | PAGE | VIDEO => {
@@ -550,7 +549,7 @@ pub async fn handle_note(
     let author = get_or_import_profile_by_actor_id(
         db_client,
         &instance,
-        &media_dir,
+        &storage,
         &author_id,
     ).await.map_err(|err| {
         log::warn!("failed to import {} ({})", author_id, err);

@@ -14,7 +14,11 @@ use mitra::ethereum::{
     sync::save_current_block_number,
     utils::key_to_ethereum_address,
 };
-use mitra::media::{remove_files, remove_media};
+use mitra::media::{
+    remove_files,
+    remove_media,
+    MediaStorage,
+};
 use mitra::models::{
     attachments::queries::delete_unused_attachments,
     cleanup::find_orphaned_files,
@@ -230,7 +234,7 @@ impl RefetchActor {
         update_remote_profile(
             db_client,
             &config.instance(),
-            &config.media_dir(),
+            &MediaStorage::from(config),
             profile,
             actor,
         ).await?;

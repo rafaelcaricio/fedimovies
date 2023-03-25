@@ -11,6 +11,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
+use crate::media::MediaStorage;
 use crate::models::{
     posts::queries::{
         create_post,
@@ -54,7 +55,7 @@ pub async fn handle_announce(
     let author = get_or_import_profile_by_actor_id(
         db_client,
         &config.instance(),
-        &config.media_dir(),
+        &MediaStorage::from(config),
         &activity.actor,
     ).await?;
     let post_id = match parse_local_object_id(

@@ -23,6 +23,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
+use crate::media::MediaStorage;
 use crate::models::{
     posts::queries::{
         get_post_by_remote_object_id,
@@ -110,7 +111,7 @@ async fn handle_update_person(
     update_remote_profile(
         db_client,
         &config.instance(),
-        &config.media_dir(),
+        &MediaStorage::from(config),
         profile,
         activity.object,
     ).await?;

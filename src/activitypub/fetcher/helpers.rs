@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::Path;
 
 use mitra_config::{Config, Instance};
 
@@ -12,6 +11,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
+use crate::media::MediaStorage;
 use crate::models::{
     posts::helpers::get_local_post_by_id,
     posts::queries::get_post_by_remote_object_id,
@@ -33,7 +33,7 @@ use super::fetchers::{
 pub async fn get_or_import_profile_by_actor_id(
     db_client: &mut impl DatabaseClient,
     instance: &Instance,
-    media_dir: &Path,
+    storage: &MediaStorage,
     actor_id: &str,
 ) -> Result<DbActorProfile, HandlerError> {
     if actor_id.starts_with(&instance.url()) {
@@ -52,7 +52,7 @@ pub async fn get_or_import_profile_by_actor_id(
                         let profile_updated = update_remote_profile(
                             db_client,
                             instance,
-                            media_dir,
+                            storage,
                             profile,
                             actor,
                         ).await?;
@@ -81,7 +81,7 @@ pub async fn get_or_import_profile_by_actor_id(
                     let profile_updated = update_remote_profile(
                         db_client,
                         instance,
-                        media_dir,
+                        storage,
                         profile,
                         actor,
                     ).await?;
@@ -92,7 +92,7 @@ pub async fn get_or_import_profile_by_actor_id(
                     let profile = create_remote_profile(
                         db_client,
                         instance,
-                        media_dir,
+                        storage,
                         actor,
                     ).await?;
                     profile
@@ -109,7 +109,7 @@ pub async fn get_or_import_profile_by_actor_id(
 pub async fn import_profile_by_actor_address(
     db_client: &mut impl DatabaseClient,
     instance: &Instance,
-    media_dir: &Path,
+    storage: &MediaStorage,
     actor_address: &ActorAddress,
 ) -> Result<DbActorProfile, HandlerError> {
     if actor_address.hostname == instance.hostname() {
@@ -130,7 +130,7 @@ pub async fn import_profile_by_actor_address(
     let profile = create_remote_profile(
         db_client,
         instance,
-        media_dir,
+        storage,
         actor,
     ).await?;
     Ok(profile)
@@ -140,7 +140,7 @@ pub async fn import_profile_by_actor_address(
 pub async fn get_or_import_profile_by_actor_address(
     db_client: &mut impl DatabaseClient,
     instance: &Instance,
-    media_dir: &Path,
+    storage: &MediaStorage,
     actor_address: &ActorAddress,
 ) -> Result<DbActorProfile, HandlerError> {
     let acct = actor_address.acct(&instance.hostname());
@@ -156,7 +156,7 @@ pub async fn get_or_import_profile_by_actor_address(
             import_profile_by_actor_address(
                 db_client,
                 instance,
-                media_dir,
+                storage,
                 actor_address,
             ).await?
         },

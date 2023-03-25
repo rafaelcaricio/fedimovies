@@ -18,6 +18,7 @@ use crate::database::{
 };
 use crate::errors::ValidationError;
 use crate::mastodon_api::accounts::helpers::follow_or_create_request;
+use crate::media::MediaStorage;
 use crate::models::{
     profiles::types::DbActorProfile,
     relationships::queries::{
@@ -88,11 +89,12 @@ pub async fn import_follows_task(
     address_list: Vec<ActorAddress>,
 ) -> Result<(), anyhow::Error> {
     let db_client = &mut **get_database_client(db_pool).await?;
+    let storage = MediaStorage::from(config);
     for actor_address in address_list {
         let profile = match get_or_import_profile_by_actor_address(
             db_client,
             &config.instance(),
-            &config.media_dir(),
+            &storage,
             &actor_address,
         ).await {
             Ok(profile) => profile,
@@ -129,12 +131,13 @@ pub async fn move_followers_task(
 ) -> Result<(), anyhow::Error> {
     let db_client = &mut **get_database_client(db_pool).await?;
     let instance = config.instance();
+    let storage = MediaStorage::from(config);
     let mut remote_followers = vec![];
     for follower_address in address_list {
         let follower = match get_or_import_profile_by_actor_address(
             db_client,
             &instance,
-            &config.media_dir(),
+            &storage,
             &follower_address,
         ).await {
             Ok(profile) => profile,

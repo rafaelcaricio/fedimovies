@@ -13,6 +13,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
+use crate::media::MediaStorage;
 use crate::models::{
     reactions::queries::create_reaction,
 };
@@ -36,7 +37,7 @@ pub async fn handle_like(
     let author = get_or_import_profile_by_actor_id(
         db_client,
         &config.instance(),
-        &config.media_dir(),
+        &MediaStorage::from(config),
         &activity.actor,
     ).await?;
     let post_id = match get_post_by_object_id(

@@ -38,6 +38,7 @@ fn deserialize_file_size<'de, D>(
 }
 
 const fn default_file_size_limit() -> usize { 20_000_000 } // 20 MB
+const fn default_emoji_size_limit() -> usize { 500_000 } // 500 kB
 
 #[derive(Clone, Deserialize)]
 pub struct MediaLimits {
@@ -46,12 +47,19 @@ pub struct MediaLimits {
         deserialize_with = "deserialize_file_size",
     )]
     pub file_size_limit: usize,
+
+    #[serde(
+        default = "default_emoji_size_limit",
+        deserialize_with = "deserialize_file_size",
+    )]
+    pub emoji_size_limit: usize,
 }
 
 impl Default for MediaLimits {
     fn default() -> Self {
         Self {
             file_size_limit: default_file_size_limit(),
+            emoji_size_limit: default_emoji_size_limit(),
         }
     }
 }

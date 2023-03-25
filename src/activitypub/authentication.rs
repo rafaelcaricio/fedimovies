@@ -24,6 +24,7 @@ use crate::json_signatures::{
         JsonSigner,
     },
 };
+use crate::media::MediaStorage;
 use crate::models::{
     profiles::queries::get_profile_by_remote_actor_id,
     profiles::types::DbActorProfile,
@@ -89,7 +90,7 @@ async fn get_signer(
         match get_or_import_profile_by_actor_id(
             db_client,
             &config.instance(),
-            &config.media_dir(),
+            &MediaStorage::from(config),
             signer_id,
         ).await {
             Ok(profile) => profile,

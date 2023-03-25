@@ -1,6 +1,6 @@
 use std::fs::remove_file;
 use std::io::Error;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
@@ -83,6 +83,20 @@ pub async fn remove_media(
                     queue.ipfs_objects,
                 );
             },
+        }
+    }
+}
+
+pub struct MediaStorage {
+    pub media_dir: PathBuf,
+    pub emoji_size_limit: usize,
+}
+
+impl From<&Config> for MediaStorage {
+    fn from(config: &Config) -> Self {
+        Self {
+            media_dir: config.media_dir(),
+            emoji_size_limit: config.limits.media.emoji_size_limit,
         }
     }
 }

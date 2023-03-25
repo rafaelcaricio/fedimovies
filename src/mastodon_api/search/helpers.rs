@@ -21,6 +21,7 @@ use crate::activitypub::{
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::ethereum::utils::validate_ethereum_address;
+use crate::media::MediaStorage;
 use crate::models::{
     posts::{
         helpers::{can_view_post, get_local_post_by_id},
@@ -124,7 +125,7 @@ async fn search_profiles_or_import(
             match import_profile_by_actor_address(
                 db_client,
                 &config.instance(),
-                &config.media_dir(),
+                &MediaStorage::from(config),
                 &actor_address,
             ).await {
                 Ok(profile) => {
@@ -204,7 +205,7 @@ async fn find_profile_by_url(
             get_or_import_profile_by_actor_id(
                 db_client,
                 &config.instance(),
-                &config.media_dir(),
+                &MediaStorage::from(config),
                 url,
             ).await
                 .map_err(|err| log::warn!("{}", err))

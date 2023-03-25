@@ -12,6 +12,7 @@ use crate::activitypub::{
     vocabulary::{EMOJI, HASHTAG},
 };
 use crate::database::DatabaseClient;
+use crate::media::MediaStorage;
 use crate::models::{
     profiles::queries::{create_profile, update_profile},
     profiles::types::{
@@ -104,7 +105,7 @@ fn parse_aliases(actor: &Actor) -> Vec<String> {
 async fn parse_tags(
     db_client: &impl DatabaseClient,
     instance: &Instance,
-    media_dir: &Path,
+    storage: &MediaStorage,
     actor: &Actor,
 ) -> Result<Vec<Uuid>, HandlerError> {
     let mut emojis = vec![];
@@ -118,7 +119,7 @@ async fn parse_tags(
             match handle_emoji(
                 db_client,
                 instance,
-                media_dir,
+                storage,
                 tag_value,
             ).await? {
                 Some(emoji) => {
@@ -138,7 +139,7 @@ async fn parse_tags(
 pub async fn create_remote_profile(
     db_client: &mut impl DatabaseClient,
     instance: &Instance,
-    media_dir: &Path,
+    storage: &MediaStorage,
     actor: Actor,
 ) -> Result<DbActorProfile, HandlerError> {
     let actor_address = actor.address()?;
@@ -148,7 +149,7 @@ pub async fn create_remote_profile(
     let (maybe_avatar, maybe_banner) = fetch_actor_images(
         instance,
         &actor,
-        media_dir,
+        &storage.media_dir,
         None,
         None,
     ).await;
@@ -158,7 +159,7 @@ pub async fn create_remote_profile(
     let emojis = parse_tags(
         db_client,
         instance,
-        media_dir,
+        storage,
         &actor,
     ).await?;
     let mut profile_data = ProfileCreateData {
@@ -185,7 +186,7 @@ pub async fn create_remote_profile(
 pub async fn update_remote_profile(
     db_client: &mut impl DatabaseClient,
     instance: &Instance,
-    media_dir: &Path,
+    storage: &MediaStorage,
     profile: DbActorProfile,
     actor: Actor,
 ) -> Result<DbActorProfile, HandlerError> {
@@ -207,7 +208,7 @@ pub async fn update_remote_profile(
     let (maybe_avatar, maybe_banner) = fetch_actor_images(
         instance,
         &actor,
-        media_dir,
+        &storage.media_dir,
         profile.avatar,
         profile.banner,
     ).await;
@@ -217,7 +218,7 @@ pub async fn update_remote_profile(
     let emojis = parse_tags(
         db_client,
         instance,
-        media_dir,
+        storage,
         &actor,
     ).await?;
     let mut profile_data = ProfileUpdateData {

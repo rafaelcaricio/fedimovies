@@ -12,6 +12,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
+use crate::media::MediaStorage;
 use crate::models::{
     relationships::queries::{
         create_remote_follow_request_opt,
@@ -40,7 +41,7 @@ pub async fn handle_follow(
     let source_profile = get_or_import_profile_by_actor_id(
         db_client,
         &config.instance(),
-        &config.media_dir(),
+        &MediaStorage::from(config),
         &activity.actor,
     ).await?;
     let source_actor = source_profile.actor_json

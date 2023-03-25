@@ -15,6 +15,7 @@ use crate::activitypub::{
 };
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
+use crate::media::MediaStorage;
 use crate::models::{
     notifications::queries::create_move_notification,
     profiles::helpers::find_aliases,
@@ -49,7 +50,7 @@ pub async fn handle_move(
     };
 
     let instance = config.instance();
-    let media_dir = config.media_dir();
+    let storage = MediaStorage::from(config);
     let old_profile = if let Ok(username) = parse_local_actor_id(
         &instance.url(),
         &activity.object,
@@ -60,7 +61,7 @@ pub async fn handle_move(
         get_or_import_profile_by_actor_id(
             db_client,
             &instance,
-            &media_dir,
+            &storage,
             &activity.object,
         ).await?
     };
@@ -68,7 +69,7 @@ pub async fn handle_move(
     let new_profile = get_or_import_profile_by_actor_id(
         db_client,
         &instance,
-        &media_dir,
+        &storage,
         &activity.target,
     ).await?;
     let new_actor = new_profile.actor_json.as_ref()
