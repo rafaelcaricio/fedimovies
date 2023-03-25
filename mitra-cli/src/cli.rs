@@ -22,6 +22,7 @@ use mitra::models::{
     emojis::queries::{
         create_emoji,
         delete_emoji,
+        find_unused_remote_emojis,
         get_emoji_by_name_and_hostname,
     },
     emojis::validators::EMOJI_LOCAL_MAX_SIZE,
@@ -82,6 +83,7 @@ pub enum SubCommand {
     DeleteUnusedAttachments(DeleteUnusedAttachments),
     DeleteOrphanedFiles(DeleteOrphanedFiles),
     DeleteEmptyProfiles(DeleteEmptyProfiles),
+    PruneRemoteEmojis(PruneRemoteEmojis),
     ListUnreachableActors(ListUnreachableActors),
     ImportEmoji(ImportEmoji),
     UpdateCurrentBlock(UpdateCurrentBlock),
@@ -420,6 +422,26 @@ impl DeleteEmptyProfiles {
             let deletion_queue = delete_profile(db_client, &profile.id).await?;
             remove_media(config, deletion_queue).await;
             println!("profile {} deleted", profile.acct);
+        };
+        Ok(())
+    }
+}
+
+/// Delete unused remote emojis
+#[derive(Parser)]
+pub struct PruneRemoteEmojis;
+
+impl PruneRemoteEmojis {
+    pub async fn execute(
+        &self,
+        config: &Config,
+        db_client: &mut impl DatabaseClient,
+    ) -> Result<(), Error> {
+        let emojis = find_unused_remote_emojis(db_client).await?;
+        for emoji_id in emojis {
+            let deletion_queue = delete_emoji(db_client, &emoji_id).await?;
+            remove_media(config, deletion_queue).await;
+            println!("emoji {} deleted", emoji_id);
         };
         Ok(())
     }

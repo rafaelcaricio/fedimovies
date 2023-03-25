@@ -80,6 +80,12 @@ Delete empty remote profiles:
 mitractl delete-empty-profiles 100
 ```
 
+Delete unused remote emojis:
+
+```shell
+mitractl prune-remote-emojis
+```
+
 Import custom emoji from another instance:
 
 ```shell

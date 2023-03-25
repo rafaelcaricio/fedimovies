@@ -188,6 +188,34 @@ pub async fn delete_emoji(
     })
 }
 
+pub async fn find_unused_remote_emojis(
+    db_client: &impl DatabaseClient,
+) -> Result<Vec<Uuid>, DatabaseError> {
+    let rows = db_client.query(
+        "
+        SELECT emoji.id
+        FROM emoji
+        WHERE
+            emoji.object_id IS NOT NULL
+            AND NOT EXISTS (
+                SELECT 1
+                FROM post_emoji
+                WHERE post_emoji.emoji_id = emoji.id
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM profile_emoji
+                WHERE profile_emoji.emoji_id = emoji.id
+            )
+        ",
+        &[],
+    ).await?;
+    let ids: Vec<Uuid> = rows.iter()
+        .map(|row| row.try_get("id"))
+        .collect::<Result<_, _>>()?;
+    Ok(ids)
+}
+
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
