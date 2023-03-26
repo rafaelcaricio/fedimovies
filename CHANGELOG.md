@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Allow emoji names containing hyphens.
 - Increased remote emoji size limit to 500 kB.
+- Set fetcher timeout to 5 seconds when processing search queries.
 
 ### Fixed
 

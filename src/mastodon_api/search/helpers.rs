@@ -41,6 +41,8 @@ use crate::models::{
 };
 use crate::webfinger::types::ActorAddress;
 
+const SEARCH_FETCHER_TIMEOUT: u64 = 5;
+
 enum SearchQuery {
     ProfileQuery(String, Option<String>),
     TagQuery(String),
@@ -107,8 +109,9 @@ async fn search_profiles_or_import(
     mut maybe_hostname: Option<String>,
     limit: u16,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
+    let mut instance = config.instance();
     if let Some(ref hostname) = maybe_hostname {
-        if hostname == &config.instance().hostname() {
+        if hostname == &instance.hostname() {
             // This is a local profile
             maybe_hostname = None;
         };
@@ -122,9 +125,10 @@ async fn search_profiles_or_import(
     if profiles.is_empty() {
         if let Some(hostname) = maybe_hostname {
             let actor_address = ActorAddress { username, hostname };
+            instance.fetcher_timeout = SEARCH_FETCHER_TIMEOUT;
             match import_profile_by_actor_address(
                 db_client,
-                &config.instance(),
+                &instance,
                 &MediaStorage::from(config),
                 &actor_address,
             ).await {
@@ -154,12 +158,9 @@ async fn find_post_by_url(
     db_client: &mut impl DatabaseClient,
     url: &str,
 ) -> Result<Option<Post>, DatabaseError> {
-    let instance = config.instance();
+    let mut instance = config.instance();
     let storage = MediaStorage::from(config);
-    let maybe_post = match parse_local_object_id(
-        &instance.url(),
-        url,
-    ) {
+    let maybe_post = match parse_local_object_id(&instance.url(), url) {
         Ok(post_id) => {
             // Local URL
             match get_local_post_by_id(db_client, &post_id).await {
@@ -169,6 +170,7 @@ async fn find_post_by_url(
             }
         },
         Err(_) => {
+            instance.fetcher_timeout = SEARCH_FETCHER_TIMEOUT;
             match import_post(
                 db_client,
                 &instance,
@@ -192,10 +194,8 @@ async fn find_profile_by_url(
     db_client: &mut impl DatabaseClient,
     url: &str,
 ) -> Result<Option<DbActorProfile>, DatabaseError> {
-    let profile = match parse_local_actor_id(
-        &config.instance_url(),
-        url,
-    ) {
+    let mut instance = config.instance();
+    let profile = match parse_local_actor_id(&instance.url(), url) {
         Ok(username) => {
             // Local URL
             match get_user_by_name(db_client, &username).await {
@@ -205,9 +205,10 @@ async fn find_profile_by_url(
             }
         },
         Err(_) => {
+            instance.fetcher_timeout = SEARCH_FETCHER_TIMEOUT;
             get_or_import_profile_by_actor_id(
                 db_client,
-                &config.instance(),
+                &instance,
                 &MediaStorage::from(config),
                 url,
             ).await
