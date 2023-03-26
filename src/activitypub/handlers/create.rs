@@ -126,13 +126,12 @@ fn is_gnu_social_link(author_id: &str, attachment: &Attachment) -> bool {
 }
 
 pub async fn get_object_attachments(
-    config: &Config,
     db_client: &impl DatabaseClient,
+    instance: &Instance,
+    storage: &MediaStorage,
     object: &Object,
     author: &DbActorProfile,
 ) -> Result<(Vec<Uuid>, Vec<String>), HandlerError> {
-    let instance = config.instance();
-    let media_dir = config.media_dir();
     let mut attachments = vec![];
     let mut unprocessed = vec![];
     if let Some(ref value) = object.attachment {
@@ -160,11 +159,11 @@ pub async fn get_object_attachments(
             let attachment_url = attachment.url
                 .ok_or(ValidationError("attachment URL is missing"))?;
             let (file_name, file_size, maybe_media_type) = match fetch_file(
-                &instance,
+                instance,
                 &attachment_url,
                 attachment.media_type.as_deref(),
-                config.limits.media.file_size_limit,
-                &media_dir,
+                storage.file_size_limit,
+                &storage.media_dir,
             ).await {
                 Ok(file) => file,
                 Err(FetchError::FileTooLarge) => {
@@ -331,13 +330,12 @@ pub async fn handle_emoji(
 }
 
 pub async fn get_object_tags(
-    config: &Config,
     db_client: &mut impl DatabaseClient,
+    instance: &Instance,
+    storage: &MediaStorage,
     object: &Object,
     redirects: &HashMap<String, String>,
 ) -> Result<(Vec<Uuid>, Vec<String>, Vec<Uuid>, Vec<Uuid>), HandlerError> {
-    let instance = config.instance();
-    let storage = MediaStorage::from(config);
     let mut mentions = vec![];
     let mut hashtags = vec![];
     let mut links = vec![];
@@ -381,8 +379,8 @@ pub async fn get_object_tags(
                 // but also can be actor URL (profile link).
                 match get_or_import_profile_by_actor_id(
                     db_client,
-                    &instance,
-                    &storage,
+                    instance,
+                    storage,
                     &href,
                 ).await {
                     Ok(profile) => {
@@ -411,8 +409,8 @@ pub async fn get_object_tags(
             if let Ok(actor_address) = ActorAddress::from_mention(&tag_name) {
                 let profile = match get_or_import_profile_by_actor_address(
                     db_client,
-                    &instance,
-                    &storage,
+                    instance,
+                    storage,
                     &actor_address,
                 ).await {
                     Ok(profile) => profile,
@@ -467,8 +465,8 @@ pub async fn get_object_tags(
             };
             match handle_emoji(
                 db_client,
-                &instance,
-                &storage,
+                instance,
+                storage,
                 tag_value,
             ).await? {
                 Some(emoji) => {
@@ -527,13 +525,12 @@ fn get_object_visibility(
 }
 
 pub async fn handle_note(
-    config: &Config,
     db_client: &mut impl DatabaseClient,
+    instance: &Instance,
+    storage: &MediaStorage,
     object: Object,
     redirects: &HashMap<String, String>,
 ) -> Result<Post, HandlerError> {
-    let instance = config.instance();
-    let storage = MediaStorage::from(config);
     match object.object_type.as_str() {
         NOTE => (),
         ARTICLE | EVENT | QUESTION | PAGE | VIDEO => {
@@ -548,8 +545,8 @@ pub async fn handle_note(
     let author_id = get_object_attributed_to(&object)?;
     let author = get_or_import_profile_by_actor_id(
         db_client,
-        &instance,
-        &storage,
+        instance,
+        storage,
         &author_id,
     ).await.map_err(|err| {
         log::warn!("failed to import {} ({})", author_id, err);
@@ -563,8 +560,9 @@ pub async fn handle_note(
         content += &create_content_link(object_url);
     };
     let (attachments, unprocessed) = get_object_attachments(
-        config,
         db_client,
+        instance,
+        storage,
         &object,
         &author,
     ).await?;
@@ -576,8 +574,9 @@ pub async fn handle_note(
     };
 
     let (mentions, hashtags, links, emojis) = get_object_tags(
-        config,
         db_client,
+        instance,
+        storage,
         &object,
         redirects,
     ).await?;
@@ -654,7 +653,13 @@ pub async fn handle_create(
         // Most likely it's a forwarded reply.
         None
     };
-    import_post(config, db_client, object_id, object_received).await?;
+    import_post(
+        db_client,
+        &config.instance(),
+        &MediaStorage::from(config),
+        object_id,
+        object_received,
+    ).await?;
     Ok(Some(NOTE))
 }
 

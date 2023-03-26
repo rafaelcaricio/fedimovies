@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use mitra_config::{Config, Instance};
+use mitra_config::Instance;
 
 use crate::activitypub::{
     actors::helpers::{create_remote_profile, update_remote_profile},
@@ -187,12 +187,12 @@ pub async fn get_post_by_object_id(
 const RECURSION_DEPTH_MAX: usize = 50;
 
 pub async fn import_post(
-    config: &Config,
     db_client: &mut impl DatabaseClient,
+    instance: &Instance,
+    storage: &MediaStorage,
     object_id: String,
     object_received: Option<Object>,
 ) -> Result<Post, HandlerError> {
-    let instance = config.instance();
     if parse_local_object_id(&instance.url(), &object_id).is_ok() {
         return Err(HandlerError::LocalObject);
     };
@@ -250,7 +250,7 @@ pub async fn import_post(
                     // TODO: create tombstone
                     return Err(FetchError::RecursionError.into());
                 };
-                let object = fetch_object(&instance, &object_id).await
+                let object = fetch_object(instance, &object_id).await
                     .map_err(|err| {
                         log::warn!("{}", err);
                         ValidationError("failed to fetch object")
@@ -287,8 +287,9 @@ pub async fn import_post(
     objects.reverse();
     for object in objects {
         let post = handle_note(
-            config,
             db_client,
+            instance,
+            storage,
             object,
             &redirects,
         ).await?;

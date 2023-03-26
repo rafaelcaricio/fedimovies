@@ -154,8 +154,10 @@ async fn find_post_by_url(
     db_client: &mut impl DatabaseClient,
     url: &str,
 ) -> Result<Option<Post>, DatabaseError> {
+    let instance = config.instance();
+    let storage = MediaStorage::from(config);
     let maybe_post = match parse_local_object_id(
-        &config.instance_url(),
+        &instance.url(),
         url,
     ) {
         Ok(post_id) => {
@@ -168,8 +170,9 @@ async fn find_post_by_url(
         },
         Err(_) => {
             match import_post(
-                config,
                 db_client,
+                &instance,
+                &storage,
                 url.to_string(),
                 None,
             ).await {

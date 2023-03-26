@@ -89,6 +89,7 @@ pub async fn remove_media(
 
 pub struct MediaStorage {
     pub media_dir: PathBuf,
+    pub file_size_limit: usize,
     pub emoji_size_limit: usize,
 }
 
@@ -96,6 +97,7 @@ impl From<&Config> for MediaStorage {
     fn from(config: &Config) -> Self {
         Self {
             media_dir: config.media_dir(),
+            file_size_limit: config.limits.media.file_size_limit,
             emoji_size_limit: config.limits.media.emoji_size_limit,
         }
     }

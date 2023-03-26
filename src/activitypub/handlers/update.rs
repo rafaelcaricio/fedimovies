@@ -56,9 +56,12 @@ async fn handle_update_note(
         let object_url = get_object_url(&object)?;
         content += &create_content_link(object_url);
     };
+    let instance = config.instance();
+    let storage = MediaStorage::from(config);
     let (attachments, unprocessed) = get_object_attachments(
-        config,
         db_client,
+        &instance,
+        &storage,
         &object,
         &post.author,
     ).await?;
@@ -69,8 +72,9 @@ async fn handle_update_note(
         return Err(ValidationError("post is empty").into());
     };
     let (mentions, hashtags, links, emojis) = get_object_tags(
-        config,
         db_client,
+        &instance,
+        &storage,
         &object,
         &HashMap::new(),
     ).await?;

@@ -52,20 +52,28 @@ pub async fn handle_announce(
         Err(DatabaseError::NotFound(_)) => (),
         Err(other_error) => return Err(other_error.into()),
     };
+    let instance = config.instance();
+    let storage = MediaStorage::from(config);
     let author = get_or_import_profile_by_actor_id(
         db_client,
-        &config.instance(),
-        &MediaStorage::from(config),
+        &instance,
+        &storage,
         &activity.actor,
     ).await?;
     let post_id = match parse_local_object_id(
-        &config.instance_url(),
+        &instance.url(),
         &activity.object,
     ) {
         Ok(post_id) => post_id,
         Err(_) => {
             // Try to get remote post
-            let post = import_post(config, db_client, activity.object, None).await?;
+            let post = import_post(
+                db_client,
+                &instance,
+                &storage,
+                activity.object,
+                None,
+            ).await?;
             post.id
         },
     };
