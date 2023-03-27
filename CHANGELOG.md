@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fixed error in emoji update SQL query.
 - Restart stalled background jobs.
+- Order attachments by creation date.
 
 ## [1.18.0] - 2023-03-21
 

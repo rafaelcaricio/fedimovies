@@ -391,6 +391,7 @@ pub const RELATED_ATTACHMENTS: &str =
     "ARRAY(
         SELECT media_attachment
         FROM media_attachment WHERE post_id = post.id
+        ORDER BY media_attachment.created_at
     ) AS attachments";
 
 pub const RELATED_MENTIONS: &str =
