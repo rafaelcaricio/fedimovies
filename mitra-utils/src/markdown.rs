@@ -68,7 +68,7 @@ fn replace_with_markdown<'a>(
     for child in node.children() {
         child.detach();
     };
-    let text = NodeValue::Text(markdown.as_bytes().to_vec());
+    let text = NodeValue::Text(markdown);
     let mut borrowed_node = node.data.borrow_mut();
     *borrowed_node = Ast::new(text);
     Ok(())
@@ -79,15 +79,14 @@ fn fix_microsyntaxes<'a>(
 ) -> Result<(), MarkdownError> {
     if let Some(prev) = node.previous_sibling() {
         if let NodeValue::Text(ref prev_text) = prev.data.borrow().value {
-            let prev_text = String::from_utf8(prev_text.to_vec())?;
             // Remove autolink if mention or object link syntax is found
             if prev_text.ends_with('@') || prev_text.ends_with("[[") {
-                let mut link_text = vec![];
+                let mut link_text = String::new();
                 for child in node.children() {
                     child.detach();
                     let child_value = &child.data.borrow().value;
                     if let NodeValue::Text(child_text) = child_value {
-                        link_text.extend(child_text);
+                        link_text.push_str(child_text);
                     };
                 };
                 let text = NodeValue::Text(link_text);
@@ -151,7 +150,7 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                 for child in node.children() {
                     child.detach();
                 };
-                let text = NodeValue::Text(markdown.as_bytes().to_vec());
+                let text = NodeValue::Text(markdown);
                 let text_node = arena.alloc(AstNode::from(text));
                 node.append(text_node);
                 let mut borrowed_node = node.data.borrow_mut();
@@ -180,8 +179,7 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                                 list_prefix_markdown.replace('1', &item_index_str);
                         };
                     };
-                    let list_prefix =
-                        NodeValue::Text(list_prefix_markdown.as_bytes().to_vec());
+                    let list_prefix = NodeValue::Text(list_prefix_markdown);
                     if !replacements.is_empty() {
                         // Insert line break before next list item
                         let linebreak = NodeValue::LineBreak;

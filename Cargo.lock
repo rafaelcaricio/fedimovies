@@ -576,16 +576,14 @@ dependencies = [
 
 [[package]]
 name = "comrak"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c11e55664fcff7f4d37cc2adf3a1996913692f037312f4ab0909047fdd2bf962"
+version = "0.17.1"
+source = "git+https://github.com/kivikakk/comrak?rev=93a94858168536704c5772d5573cdfce0e4e7ed4#93a94858168536704c5772d5573cdfce0e4e7ed4"
 dependencies = [
  "entities",
  "memchr",
  "once_cell",
- "pest",
- "pest_derive",
  "regex",
+ "slug",
  "typed-arena",
  "unicode_categories",
 ]
@@ -809,6 +807,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "deunicode"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "850878694b7933ca4c9569d30a34b55031b9b139ee1fc7b94a527c4ef960d690"
 
 [[package]]
 name = "digest"
@@ -2194,50 +2198,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
-name = "pest"
-version = "2.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbc7bc69c062e492337d74d59b120c274fd3d261b6bf6d3207d499b4b379c41a"
-dependencies = [
- "thiserror",
- "ucd-trie",
-]
-
-[[package]]
-name = "pest_derive"
-version = "2.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60b75706b9642ebcb34dab3bc7750f811609a0eb1dd8b88c2d15bf628c1c65b2"
-dependencies = [
- "pest",
- "pest_generator",
-]
-
-[[package]]
-name = "pest_generator"
-version = "2.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4f9272122f5979a6511a749af9db9bfc810393f63119970d7085fed1c4ea0db"
-dependencies = [
- "pest",
- "pest_meta",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "pest_meta"
-version = "2.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c8717927f9b79515e565a64fe46c38b8cd0427e64c40680b14a7365ab09ac8d"
-dependencies = [
- "once_cell",
- "pest",
- "sha1",
-]
-
-[[package]]
 name = "phf"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3114,17 +3074,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha1"
-version = "0.10.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "006769ba83e921b3085caa8334186b00cf92b4cb1a6cf4632fbccc8eff5c7549"
-dependencies = [
- "cfg-if",
- "cpufeatures",
- "digest 0.10.3",
-]
-
-[[package]]
 name = "sha2"
 version = "0.9.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3206,6 +3155,15 @@ name = "slab"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
+
+[[package]]
+name = "slug"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3bc762e6a4b6c6fcaade73e77f9ebc6991b676f88bb2358bddb56560f073373"
+dependencies = [
+ "deunicode",
+]
 
 [[package]]
 name = "smallvec"
@@ -3570,12 +3528,6 @@ name = "typenum"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
-
-[[package]]
-name = "ucd-trie"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e79c4d996edb816c91e4308506774452e55e95c3c9de07b6729e17e15a5ef81"
 
 [[package]]
 name = "uint"
