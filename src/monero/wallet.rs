@@ -56,11 +56,20 @@ pub async fn open_monero_wallet(
     let wallet_client = RpcClientBuilder::new()
         .build(config.wallet_url.clone())?
         .wallet();
-    if let Some(ref wallet_name) = config.wallet_name {
-        wallet_client.open_wallet(
-            wallet_name.clone(),
-            config.wallet_password.clone(),
-        ).await?;
+    if let Err(error) = wallet_client.refresh(None).await {
+        if error.to_string() == "Server error: No wallet file" {
+            // Try to open wallet
+            if let Some(ref wallet_name) = config.wallet_name {
+                wallet_client.open_wallet(
+                    wallet_name.clone(),
+                    config.wallet_password.clone(),
+                ).await?;
+            } else {
+                return Err(MoneroError::WalletRpcError("wallet file is required"));
+            };
+        } else {
+            return Err(error.into());
+        };
     };
     Ok(wallet_client)
 }
