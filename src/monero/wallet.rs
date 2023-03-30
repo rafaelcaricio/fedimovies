@@ -82,6 +82,8 @@ pub async fn create_monero_address(
     let (address, address_index) =
         wallet_client.create_address(account_index, None).await?;
     log::info!("created monero address {}/{}", account_index, address_index);
+    // Save wallet
+    wallet_client.close_wallet().await?;
     Ok(address)
 }
 
@@ -159,5 +161,7 @@ pub async fn send_monero(
         amount,
         fee,
     );
+    // Save wallet
+    wallet_client.close_wallet().await?;
     Ok(amount)
 }
