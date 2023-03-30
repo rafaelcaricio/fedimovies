@@ -15,15 +15,15 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use mitra_config::Config;
-
-use crate::database::{get_database_client, DbPool};
-use crate::errors::HttpError;
-use crate::models::{
+use mitra_models::{
+    database::{get_database_client, DbPool},
     emojis::queries::get_local_emoji_by_name,
     posts::helpers::{add_related_posts, can_view_post},
     posts::queries::{get_post_by_id, get_posts_by_author},
     users::queries::get_user_by_name,
 };
+
+use crate::errors::HttpError;
 use crate::web_client::urls::{
     get_post_page_url,
     get_profile_page_url,

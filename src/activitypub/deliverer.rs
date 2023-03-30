@@ -7,15 +7,19 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use mitra_config::Instance;
+use mitra_models::{
+    database::{
+        DatabaseClient,
+        DatabaseError,
+    },
+    profiles::types::DbActor,
+    users::types::User,
+};
 use mitra_utils::{
     crypto_rsa::deserialize_private_key,
     urls::get_hostname,
 };
 
-use crate::database::{
-    DatabaseClient,
-    DatabaseError,
-};
 use crate::http_signatures::create::{
     create_http_signature,
     HttpSignatureError,
@@ -25,10 +29,7 @@ use crate::json_signatures::create::{
     sign_object,
     JsonSignatureError,
 };
-use crate::models::{
-    profiles::types::DbActor,
-    users::types::User,
-};
+
 use super::{
     constants::AP_MEDIA_TYPE,
     http_client::build_federation_client,

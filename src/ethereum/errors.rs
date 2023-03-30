@@ -1,4 +1,5 @@
-use crate::database::DatabaseError;
+use mitra_models::database::DatabaseError;
+
 use super::contracts::ArtifactError;
 use super::signatures::SignatureError;
 use super::utils::AddressError;

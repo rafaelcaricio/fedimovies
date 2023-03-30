@@ -9,21 +9,21 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{get_database_client, DatabaseError, DbPool},
+    profiles::helpers::find_aliases,
+    profiles::queries::get_profile_by_remote_actor_id,
+    users::queries::set_user_password,
+};
 use mitra_utils::passwords::hash_password;
 
 use crate::activitypub::identifiers::profile_actor_id;
-use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::ValidationError;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     accounts::types::Account,
     errors::MastodonError,
     oauth::auth::get_current_user,
-};
-use crate::models::{
-    profiles::helpers::find_aliases,
-    profiles::queries::get_profile_by_remote_actor_id,
-    users::queries::set_user_password,
 };
 use super::helpers::{
     export_followers,

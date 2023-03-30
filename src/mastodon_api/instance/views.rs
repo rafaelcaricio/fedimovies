@@ -1,15 +1,16 @@
 use actix_web::{get, web, HttpResponse, Scope};
 
 use mitra_config::Config;
-
-use crate::database::{get_database_client, DbPool};
-use crate::ethereum::contracts::ContractSet;
-use crate::mastodon_api::errors::MastodonError;
-use crate::models::{
+use mitra_models::{
+    database::{get_database_client, DbPool},
     instances::queries::{get_peers, get_peer_count},
     posts::queries::get_local_post_count,
     users::queries::get_user_count,
 };
+
+use crate::ethereum::contracts::ContractSet;
+use crate::mastodon_api::errors::MastodonError;
+
 use super::types::InstanceInfo;
 
 /// https://docs.joinmastodon.org/methods/instance/#v1

@@ -1,25 +1,13 @@
 use uuid::Uuid;
 
 use mitra_config::Config;
-
-use crate::activitypub::{
-    builders::{
-        move_person::prepare_move_person,
-        undo_follow::prepare_undo_follow,
+use mitra_models::{
+    database::{
+        get_database_client,
+        DatabaseClient,
+        DatabaseError,
+        DbPool,
     },
-    fetcher::helpers::get_or_import_profile_by_actor_address,
-    HandlerError,
-};
-use crate::database::{
-    get_database_client,
-    DatabaseClient,
-    DatabaseError,
-    DbPool,
-};
-use crate::errors::ValidationError;
-use crate::mastodon_api::accounts::helpers::follow_or_create_request;
-use crate::media::MediaStorage;
-use crate::models::{
     profiles::types::DbActorProfile,
     relationships::queries::{
         follow,
@@ -29,6 +17,18 @@ use crate::models::{
     },
     users::types::User,
 };
+
+use crate::activitypub::{
+    builders::{
+        move_person::prepare_move_person,
+        undo_follow::prepare_undo_follow,
+    },
+    fetcher::helpers::get_or_import_profile_by_actor_address,
+    HandlerError,
+};
+use crate::errors::ValidationError;
+use crate::mastodon_api::accounts::helpers::follow_or_create_request;
+use crate::media::MediaStorage;
 use crate::webfinger::types::ActorAddress;
 
 fn export_profiles_to_csv(
@@ -199,7 +199,7 @@ pub async fn move_followers_task(
 
 #[cfg(test)]
 mod tests {
-    use crate::models::profiles::types::DbActor;
+    use mitra_models::profiles::types::DbActor;
     use super::*;
 
     #[test]

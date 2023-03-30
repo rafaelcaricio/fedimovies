@@ -4,24 +4,24 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use mitra_config::Config;
-
-use crate::database::{
-    get_database_client,
-    DatabaseClient,
-    DatabaseError,
-    DatabaseTypeError,
-    DbPool,
-};
-use crate::models::{
+use mitra_models::{
     background_jobs::queries::{
         enqueue_job,
         get_job_batch,
         delete_job_from_queue,
     },
     background_jobs::types::JobType,
+    database::{
+        get_database_client,
+        DatabaseClient,
+        DatabaseError,
+        DatabaseTypeError,
+        DbPool,
+    },
     profiles::queries::set_reachability_status,
     users::queries::get_user_by_id,
 };
+
 use super::deliverer::{OutgoingActivity, Recipient};
 use super::fetcher::fetchers::FetchError;
 use super::receiver::{handle_activity, HandlerError};

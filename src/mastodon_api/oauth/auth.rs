@@ -1,9 +1,10 @@
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::mastodon_api::errors::MastodonError;
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     oauth::queries::get_user_by_oauth_token,
     users::types::User,
 };
+
+use crate::mastodon_api::errors::MastodonError;
 
 pub async fn get_current_user(
     db_client: &impl DatabaseClient,

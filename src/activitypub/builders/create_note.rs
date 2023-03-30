@@ -2,6 +2,15 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 use mitra_config::Instance;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    emojis::types::DbEmoji,
+    posts::queries::get_post_author,
+    posts::types::{Post, Visibility},
+    profiles::types::DbActor,
+    relationships::queries::{get_followers, get_subscribers},
+    users::types::User,
+};
 
 use crate::activitypub::{
     constants::{AP_MEDIA_TYPE, AP_PUBLIC},
@@ -27,16 +36,7 @@ use crate::activitypub::{
     },
     vocabulary::*,
 };
-use crate::database::{DatabaseClient, DatabaseError};
 use crate::media::get_file_url;
-use crate::models::{
-    emojis::types::DbEmoji,
-    posts::queries::get_post_author,
-    posts::types::{Post, Visibility},
-    profiles::types::DbActor,
-    relationships::queries::{get_followers, get_subscribers},
-    users::types::User,
-};
 use crate::webfinger::types::ActorAddress;
 
 #[allow(dead_code)]
@@ -309,7 +309,7 @@ pub async fn prepare_create_note(
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use crate::models::profiles::types::DbActorProfile;
+    use mitra_models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_HOSTNAME: &str = "example.com";

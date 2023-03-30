@@ -5,6 +5,22 @@ use serde_json::{Value as JsonValue};
 use uuid::Uuid;
 
 use mitra_config::{Config, Instance};
+use mitra_models::{
+    attachments::queries::create_attachment,
+    database::{DatabaseClient, DatabaseError},
+    emojis::queries::{
+        create_emoji,
+        get_emoji_by_remote_object_id,
+        update_emoji,
+    },
+    emojis::types::{DbEmoji, EmojiImage},
+    posts::{
+        queries::create_post,
+        types::{Post, PostCreateData, Visibility},
+    },
+    profiles::types::DbActorProfile,
+    users::queries::get_user_by_name,
+};
 use mitra_utils::{
     html::clean_html,
     urls::get_hostname,
@@ -24,24 +40,8 @@ use crate::activitypub::{
     types::{Attachment, EmojiTag, Link, LinkTag, Object, Tag},
     vocabulary::*,
 };
-use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
-use crate::models::{
-    attachments::queries::create_attachment,
-    emojis::queries::{
-        create_emoji,
-        get_emoji_by_remote_object_id,
-        update_emoji,
-    },
-    emojis::types::{DbEmoji, EmojiImage},
-    posts::{
-        queries::create_post,
-        types::{Post, PostCreateData, Visibility},
-    },
-    profiles::types::DbActorProfile,
-    users::queries::get_user_by_name,
-};
 use crate::validators::{
     emojis::{
         validate_emoji_name,
@@ -666,11 +666,11 @@ pub async fn handle_create(
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use mitra_models::profiles::types::DbActor;
     use crate::activitypub::{
         types::Object,
         vocabulary::NOTE,
     };
-    use crate::models::profiles::types::DbActor;
     use super::*;
 
     #[test]

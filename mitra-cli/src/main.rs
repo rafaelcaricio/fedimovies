@@ -1,9 +1,9 @@
 use clap::Parser;
 
-use mitra::database::create_database_client;
-use mitra::database::migrate::apply_migrations;
 use mitra::logger::configure_logger;
 use mitra_config::parse_config;
+use mitra_models::database::create_database_client;
+use mitra_models::database::migrate::apply_migrations;
 
 mod cli;
 use cli::{Opts, SubCommand};

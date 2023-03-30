@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use regex::Regex;
 
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     emojis::queries::get_local_emojis_by_names,
     emojis::types::DbEmoji,
 };
+
 use super::links::is_inside_code_block;
 
 // See also: EMOJI_NAME_RE in validators::emojis

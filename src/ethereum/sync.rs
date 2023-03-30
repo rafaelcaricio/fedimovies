@@ -3,11 +3,14 @@ use std::path::Path;
 
 use web3::{api::Web3, transports::Http, types::Address};
 
-use crate::database::DatabaseClient;
-use crate::models::properties::queries::{
-    get_internal_property,
-    set_internal_property,
+use mitra_models::{
+    database::DatabaseClient,
+    properties::queries::{
+        get_internal_property,
+        set_internal_property,
+    },
 };
+
 use super::errors::EthereumError;
 
 const BLOCK_NUMBER_FILE_NAME: &str = "current_block";

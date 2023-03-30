@@ -9,6 +9,16 @@ use serde::{
 use serde_json::{json, Value};
 
 use mitra_config::Instance;
+use mitra_models::{
+    profiles::types::{
+        DbActor,
+        DbActorPublicKey,
+        ExtraField,
+        IdentityProof,
+        PaymentOption,
+    },
+    users::types::User,
+};
 use mitra_utils::{
     crypto_rsa::{deserialize_private_key, get_public_key_pem},
     urls::get_hostname,
@@ -34,17 +44,8 @@ use crate::activitypub::{
 };
 use crate::errors::ValidationError;
 use crate::media::get_file_url;
-use crate::models::{
-    profiles::types::{
-        DbActor,
-        DbActorPublicKey,
-        ExtraField,
-        IdentityProof,
-        PaymentOption,
-    },
-    users::types::User,
-};
 use crate::webfinger::types::ActorAddress;
+
 use super::attachments::{
     attach_extra_field,
     attach_identity_proof,
@@ -418,11 +419,11 @@ pub fn get_instance_actor(
 
 #[cfg(test)]
 mod tests {
+    use mitra_models::profiles::types::DbActorProfile;
     use mitra_utils::crypto_rsa::{
         generate_weak_rsa_key,
         serialize_private_key,
     };
-    use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_HOSTNAME: &str = "example.com";

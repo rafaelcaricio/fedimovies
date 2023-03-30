@@ -2,6 +2,10 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use mitra_config::Instance;
+use mitra_models::{
+    profiles::types::{DbActor, DbActorProfile},
+    users::types::User,
+};
 
 use crate::activitypub::{
     deliverer::OutgoingActivity,
@@ -9,10 +13,7 @@ use crate::activitypub::{
     types::{build_default_context, Context},
     vocabulary::{FOLLOW, UNDO},
 };
-use crate::models::{
-    profiles::types::{DbActor, DbActorProfile},
-    users::types::User,
-};
+
 use super::follow::Follow;
 
 #[derive(Serialize)]

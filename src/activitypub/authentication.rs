@@ -2,12 +2,16 @@ use actix_web::HttpRequest;
 use serde_json::Value;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    profiles::queries::get_profile_by_remote_actor_id,
+    profiles::types::DbActorProfile,
+};
 use mitra_utils::{
     crypto_rsa::deserialize_public_key,
     did::Did,
 };
 
-use crate::database::{DatabaseClient, DatabaseError};
 use crate::http_signatures::verify::{
     parse_http_signature,
     verify_http_signature,
@@ -25,10 +29,7 @@ use crate::json_signatures::{
     },
 };
 use crate::media::MediaStorage;
-use crate::models::{
-    profiles::queries::get_profile_by_remote_actor_id,
-    profiles::types::DbActorProfile,
-};
+
 use super::fetcher::helpers::get_or_import_profile_by_actor_id;
 use super::receiver::HandlerError;
 

@@ -10,23 +10,13 @@ use web3::{
 };
 
 use mitra_config::{EthereumConfig, Instance};
-use mitra_utils::currencies::Currency;
-
-use crate::activitypub::{
-    builders::{
-        add_person::prepare_add_person,
-        remove_person::prepare_remove_person,
+use mitra_models::{
+    database::{
+        get_database_client,
+        DatabaseClient,
+        DatabaseError,
+        DbPool,
     },
-    identifiers::LocalActorCollection,
-};
-use crate::database::{
-    get_database_client,
-    DatabaseClient,
-    DatabaseError,
-    DbPool,
-};
-use crate::errors::ConversionError;
-use crate::models::{
     notifications::queries::{
         create_subscription_notification,
         create_subscription_expiration_notification,
@@ -49,6 +39,17 @@ use crate::models::{
     },
     users::types::User,
 };
+use mitra_utils::currencies::Currency;
+
+use crate::activitypub::{
+    builders::{
+        add_person::prepare_add_person,
+        remove_person::prepare_remove_person,
+    },
+    identifiers::LocalActorCollection,
+};
+use crate::errors::ConversionError;
+
 use super::contracts::ContractSet;
 use super::errors::EthereumError;
 use super::signatures::{

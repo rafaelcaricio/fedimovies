@@ -5,16 +5,17 @@ use monero_rpc::monero::Address;
 use uuid::Uuid;
 
 use mitra_config::MoneroConfig;
-
-use crate::database::DatabaseClient;
-use crate::errors::ValidationError;
-use crate::models::{
+use mitra_models::{
+    database::DatabaseClient,
     invoices::queries::{
         get_invoice_by_id,
         set_invoice_status,
     },
     invoices::types::InvoiceStatus,
 };
+
+use crate::errors::ValidationError;
+
 use super::wallet::{
     open_monero_wallet,
     MoneroError,

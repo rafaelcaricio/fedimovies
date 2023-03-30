@@ -2,6 +2,12 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use mitra_config::Instance;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    profiles::types::DbActor,
+    relationships::queries::{get_followers, get_following},
+    users::types::User,
+};
 
 use crate::activitypub::{
     constants::AP_PUBLIC,
@@ -9,12 +15,6 @@ use crate::activitypub::{
     identifiers::local_actor_id,
     types::{build_default_context, Context},
     vocabulary::DELETE,
-};
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::{
-    profiles::types::DbActor,
-    relationships::queries::{get_followers, get_following},
-    users::types::User,
 };
 
 #[derive(Serialize)]
@@ -80,7 +80,7 @@ pub async fn prepare_delete_person(
 
 #[cfg(test)]
 mod tests {
-    use crate::models::profiles::types::DbActorProfile;
+    use mitra_models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";

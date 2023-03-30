@@ -2,15 +2,8 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use mitra_config::Config;
-
-use crate::activitypub::{
-    receiver::deserialize_into_object_id,
-    vocabulary::{NOTE, PERSON},
-};
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::errors::ValidationError;
-use crate::media::remove_media;
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     posts::queries::{
         delete_post,
         get_post_by_remote_object_id,
@@ -20,6 +13,14 @@ use crate::models::{
         get_profile_by_remote_actor_id,
     },
 };
+
+use crate::activitypub::{
+    receiver::deserialize_into_object_id,
+    vocabulary::{NOTE, PERSON},
+};
+use crate::errors::ValidationError;
+use crate::media::remove_media;
+
 use super::HandlerResult;
 
 #[derive(Deserialize)]

@@ -4,6 +4,21 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use mitra_models::{
+    profiles::types::{
+        DbActorProfile,
+        ExtraField,
+        PaymentOption,
+        ProfileImage,
+        ProfileUpdateData,
+    },
+    subscriptions::types::Subscription,
+    users::types::{
+        Role,
+        Permission,
+        User,
+    },
+};
 use mitra_utils::{
     did::Did,
     markdown::markdown_basic_to_html,
@@ -21,21 +36,6 @@ use crate::mastodon_api::{
     uploads::{save_b64_file, UploadError},
 };
 use crate::media::get_file_url;
-use crate::models::{
-    profiles::types::{
-        DbActorProfile,
-        ExtraField,
-        PaymentOption,
-        ProfileImage,
-        ProfileUpdateData,
-    },
-    subscriptions::types::Subscription,
-    users::types::{
-        Role,
-        Permission,
-        User,
-    },
-};
 use crate::validators::{
     profiles::validate_username,
     users::validate_local_username,
@@ -545,7 +545,7 @@ impl ApiSubscription {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::profiles::types::ProfileImage;
+    use mitra_models::profiles::types::ProfileImage;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";

@@ -9,18 +9,20 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{get_database_client, DbPool},
+    posts::queries::{
+        get_home_timeline,
+        get_local_timeline,
+        get_posts_by_tag,
+    },
+};
 
-use crate::database::{get_database_client, DbPool};
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     errors::MastodonError,
     oauth::auth::get_current_user,
     statuses::helpers::build_status_list,
-};
-use crate::models::posts::queries::{
-    get_home_timeline,
-    get_local_timeline,
-    get_posts_by_tag,
 };
 use super::types::TimelineQueryParams;
 

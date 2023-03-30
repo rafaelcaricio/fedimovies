@@ -12,6 +12,38 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
 use mitra_config::{Config, DefaultRole, RegistrationType};
+use mitra_models::{
+    database::{get_database_client, DatabaseError, DbPool},
+    posts::queries::get_posts_by_author,
+    profiles::helpers::find_aliases,
+    profiles::queries::{
+        get_profile_by_acct,
+        get_profile_by_id,
+        search_profiles_by_did,
+        update_profile,
+    },
+    profiles::types::{
+        IdentityProof,
+        IdentityProofType,
+        ProfileUpdateData,
+    },
+    relationships::queries::{
+        get_followers_paginated,
+        get_following_paginated,
+        hide_replies,
+        hide_reposts,
+        show_replies,
+        show_reposts,
+        unfollow,
+    },
+    subscriptions::queries::get_incoming_subscriptions,
+    users::queries::{
+        create_user,
+        get_user_by_did,
+        is_valid_invite_code,
+    },
+    users::types::{Role, UserCreateData},
+};
 use mitra_utils::{
     caip2::ChainId,
     canonicalization::canonicalize_object,
@@ -36,7 +68,6 @@ use crate::activitypub::{
     },
     identifiers::local_actor_id,
 };
-use crate::database::{get_database_client, DatabaseError, DbPool};
 use crate::errors::ValidationError;
 use crate::ethereum::{
     contracts::ContractSet,
@@ -67,37 +98,6 @@ use crate::mastodon_api::{
     search::helpers::search_profiles_only,
     statuses::helpers::build_status_list,
     statuses::types::Status,
-};
-use crate::models::{
-    posts::queries::get_posts_by_author,
-    profiles::helpers::find_aliases,
-    profiles::queries::{
-        get_profile_by_acct,
-        get_profile_by_id,
-        search_profiles_by_did,
-        update_profile,
-    },
-    profiles::types::{
-        IdentityProof,
-        IdentityProofType,
-        ProfileUpdateData,
-    },
-    relationships::queries::{
-        get_followers_paginated,
-        get_following_paginated,
-        hide_replies,
-        hide_reposts,
-        show_replies,
-        show_reposts,
-        unfollow,
-    },
-    subscriptions::queries::get_incoming_subscriptions,
-    users::queries::{
-        create_user,
-        get_user_by_did,
-        is_valid_invite_code,
-    },
-    users::types::{Role, UserCreateData},
 };
 use crate::validators::profiles::clean_profile_update_data;
 use super::helpers::{follow_or_create_request, get_relationship};

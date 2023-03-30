@@ -2,6 +2,12 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use mitra_models::{
+    emojis::types::DbEmoji,
+    posts::types::{Post, Visibility},
+    profiles::types::DbActorProfile,
+};
+
 use crate::activitypub::identifiers::{
     local_tag_collection,
     post_object_id,
@@ -11,11 +17,6 @@ use crate::mastodon_api::{
     accounts::types::Account,
     custom_emojis::types::CustomEmoji,
     media::types::Attachment,
-};
-use crate::models::{
-    emojis::types::DbEmoji,
-    posts::types::{Post, Visibility},
-    profiles::types::DbActorProfile,
 };
 
 /// https://docs.joinmastodon.org/entities/mention/

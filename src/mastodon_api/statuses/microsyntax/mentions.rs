@@ -2,12 +2,13 @@ use std::collections::HashMap;
 
 use regex::{Captures, Regex};
 
-use crate::activitypub::identifiers::profile_actor_url;
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     profiles::queries::get_profiles_by_accts,
     profiles::types::DbActorProfile,
 };
+
+use crate::activitypub::identifiers::profile_actor_url;
 use crate::webfinger::types::ActorAddress;
 use super::links::is_inside_code_block;
 
@@ -105,7 +106,7 @@ pub fn replace_mentions(
 
 #[cfg(test)]
 mod tests {
-    use crate::models::profiles::types::DbActor;
+    use mitra_models::profiles::types::DbActor;
     use super::*;
 
     const INSTANCE_HOSTNAME: &str = "server1.com";

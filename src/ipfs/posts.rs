@@ -55,7 +55,7 @@ impl PostMetadata {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::posts::types::Post;
+    use mitra_models::posts::types::Post;
     use super::*;
 
     #[test]

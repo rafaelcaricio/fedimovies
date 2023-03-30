@@ -2,6 +2,13 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 use mitra_config::Instance;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    posts::types::Post,
+    profiles::types::DbActor,
+    relationships::queries::get_followers,
+    users::types::User,
+};
 
 use crate::activitypub::{
     constants::AP_PUBLIC,
@@ -15,13 +22,6 @@ use crate::activitypub::{
     },
     types::{build_default_context, Context},
     vocabulary::ANNOUNCE,
-};
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::{
-    posts::types::Post,
-    profiles::types::DbActor,
-    relationships::queries::get_followers,
-    users::types::User,
 };
 
 #[derive(Serialize)]
@@ -113,7 +113,7 @@ pub async fn prepare_announce(
 
 #[cfg(test)]
 mod tests {
-    use crate::models::profiles::types::DbActorProfile;
+    use mitra_models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";

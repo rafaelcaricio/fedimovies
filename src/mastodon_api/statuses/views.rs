@@ -13,32 +13,8 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use mitra_config::Config;
-use mitra_utils::markdown::markdown_lite_to_html;
-
-use crate::activitypub::{
-    builders::{
-        announce::prepare_announce,
-        create_note::prepare_create_note,
-        delete_note::prepare_delete_note,
-        like::prepare_like,
-        undo_announce::prepare_undo_announce,
-        undo_like::prepare_undo_like,
-    },
-    identifiers::local_object_id,
-};
-use crate::database::{get_database_client, DatabaseError, DbPool};
-use crate::errors::ValidationError;
-use crate::http::{get_request_base_url, FormOrJson};
-use crate::ipfs::{
-    store as ipfs_store,
-    posts::PostMetadata,
-};
-use crate::mastodon_api::{
-    errors::MastodonError,
-    oauth::auth::get_current_user,
-};
-use crate::media::remove_media;
-use crate::models::{
+use mitra_models::{
+    database::{get_database_client, DatabaseError, DbPool},
     posts::helpers::{can_create_post, can_view_post},
     posts::queries::{
         create_post,
@@ -55,6 +31,30 @@ use crate::models::{
     },
     relationships::queries::get_subscribers,
 };
+use mitra_utils::markdown::markdown_lite_to_html;
+
+use crate::activitypub::{
+    builders::{
+        announce::prepare_announce,
+        create_note::prepare_create_note,
+        delete_note::prepare_delete_note,
+        like::prepare_like,
+        undo_announce::prepare_undo_announce,
+        undo_like::prepare_undo_like,
+    },
+    identifiers::local_object_id,
+};
+use crate::errors::ValidationError;
+use crate::http::{get_request_base_url, FormOrJson};
+use crate::ipfs::{
+    store as ipfs_store,
+    posts::PostMetadata,
+};
+use crate::mastodon_api::{
+    errors::MastodonError,
+    oauth::auth::get_current_user,
+};
+use crate::media::remove_media;
 use crate::validators::posts::{
     clean_content,
     ATTACHMENTS_MAX_NUM,

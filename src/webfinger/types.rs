@@ -8,8 +8,9 @@ use std::{
 use regex::Regex;
 use serde::{Serialize, Deserialize};
 
+use mitra_models::profiles::types::DbActorProfile;
+
 use crate::errors::ValidationError;
-use crate::models::profiles::types::DbActorProfile;
 
 // See also: USERNAME_RE in validators::profiles
 const ACTOR_ADDRESS_RE: &str = r"^(?P<username>[\w\.-]+)@(?P<hostname>[\w\.-]+)$";
@@ -104,7 +105,7 @@ pub struct JsonResourceDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::profiles::types::DbActor;
+    use mitra_models::profiles::types::DbActor;
     use super::*;
 
     #[test]

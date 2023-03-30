@@ -6,10 +6,13 @@ use actix_web::{
     Scope,
 };
 
-use crate::database::{get_database_client, DbPool};
+use mitra_models::{
+    database::{get_database_client, DbPool},
+    emojis::queries::get_local_emojis,
+};
+
 use crate::http::get_request_base_url;
 use crate::mastodon_api::errors::MastodonError;
-use crate::models::emojis::queries::get_local_emojis;
 use super::types::CustomEmoji;
 
 /// https://docs.joinmastodon.org/methods/custom_emojis/

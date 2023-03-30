@@ -14,8 +14,7 @@ use monero_rpc::monero::{
 };
 
 use mitra_config::MoneroConfig;
-
-use crate::database::DatabaseError;
+use mitra_models::database::DatabaseError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum MoneroError {

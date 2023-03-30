@@ -9,8 +9,8 @@ use web3::{
 };
 
 use mitra_config::EthereumConfig;
+use mitra_models::database::DatabaseClient;
 
-use crate::database::DatabaseClient;
 use super::api::connect;
 use super::errors::EthereumError;
 use super::sync::{

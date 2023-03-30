@@ -8,8 +8,8 @@ use serde::{
 use serde_json::Value;
 
 use mitra_config::Config;
+use mitra_models::database::{DatabaseClient, DatabaseError};
 
-use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::{
     ConversionError,
     HttpError,

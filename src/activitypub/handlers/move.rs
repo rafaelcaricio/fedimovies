@@ -2,6 +2,17 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    notifications::queries::create_move_notification,
+    profiles::helpers::find_aliases,
+    relationships::queries::{
+        create_follow_request,
+        get_followers,
+        unfollow,
+    },
+    users::queries::{get_user_by_id, get_user_by_name},
+};
 
 use crate::activitypub::{
     builders::{
@@ -12,19 +23,9 @@ use crate::activitypub::{
     identifiers::{parse_local_actor_id, profile_actor_id},
     vocabulary::PERSON,
 };
-use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
-use crate::models::{
-    notifications::queries::create_move_notification,
-    profiles::helpers::find_aliases,
-    relationships::queries::{
-        create_follow_request,
-        get_followers,
-        unfollow,
-    },
-    users::queries::{get_user_by_id, get_user_by_name},
-};
+
 use super::HandlerResult;
 
 #[derive(Deserialize)]

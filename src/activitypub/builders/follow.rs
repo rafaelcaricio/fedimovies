@@ -2,16 +2,16 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use mitra_config::Instance;
+use mitra_models::{
+    profiles::types::{DbActor, DbActorProfile},
+    users::types::User,
+};
 
 use crate::activitypub::{
     deliverer::OutgoingActivity,
     identifiers::{local_actor_id, local_object_id},
     types::{build_default_context, Context},
     vocabulary::FOLLOW,
-};
-use crate::models::{
-    profiles::types::{DbActor, DbActorProfile},
-    users::types::User,
 };
 
 #[derive(Serialize)]

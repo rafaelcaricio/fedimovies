@@ -4,25 +4,8 @@ use regex::Regex;
 use url::Url;
 
 use mitra_config::Config;
-use mitra_utils::{
-    currencies::Currency,
-    did::Did,
-};
-
-use crate::activitypub::{
-    fetcher::helpers::{
-        get_or_import_profile_by_actor_id,
-        import_post,
-        import_profile_by_actor_address,
-    },
-    identifiers::{parse_local_actor_id, parse_local_object_id},
-    HandlerError,
-};
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::errors::ValidationError;
-use crate::ethereum::utils::validate_ethereum_address;
-use crate::media::MediaStorage;
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     posts::{
         helpers::{can_view_post, get_local_post_by_id},
         types::Post,
@@ -39,6 +22,23 @@ use crate::models::{
         types::User,
     },
 };
+use mitra_utils::{
+    currencies::Currency,
+    did::Did,
+};
+
+use crate::activitypub::{
+    fetcher::helpers::{
+        get_or_import_profile_by_actor_id,
+        import_post,
+        import_profile_by_actor_address,
+    },
+    identifiers::{parse_local_actor_id, parse_local_object_id},
+    HandlerError,
+};
+use crate::errors::ValidationError;
+use crate::ethereum::utils::validate_ethereum_address;
+use crate::media::MediaStorage;
 use crate::webfinger::types::ActorAddress;
 
 const SEARCH_FETCHER_TIMEOUT: u64 = 5;

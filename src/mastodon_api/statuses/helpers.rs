@@ -1,9 +1,8 @@
 use uuid::Uuid;
 
 use mitra_config::Instance;
-
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     emojis::types::DbEmoji,
     posts::{
         helpers::{add_related_posts, add_user_actions},
@@ -11,6 +10,7 @@ use crate::models::{
     },
     users::types::User,
 };
+
 use super::microsyntax::{
     emojis::find_emojis,
     hashtags::{find_hashtags, replace_hashtags},

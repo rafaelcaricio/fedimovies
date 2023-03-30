@@ -1,13 +1,13 @@
 use regex::Regex;
 
-use mitra_utils::html::{clean_html, clean_html_strict};
-
-use crate::errors::ValidationError;
-use crate::models::profiles::types::{
+use mitra_models::profiles::types::{
     ExtraField,
     ProfileCreateData,
     ProfileUpdateData,
 };
+use mitra_utils::html::{clean_html, clean_html_strict};
+
+use crate::errors::ValidationError;
 
 const USERNAME_RE: &str = r"^[a-zA-Z0-9_\.-]+$";
 const DISPLAY_NAME_MAX_LENGTH: usize = 200;
@@ -129,7 +129,7 @@ pub fn clean_profile_update_data(
 
 #[cfg(test)]
 mod tests {
-    use crate::models::profiles::types::DbActor;
+    use mitra_models::profiles::types::DbActor;
     use super::*;
 
     #[test]

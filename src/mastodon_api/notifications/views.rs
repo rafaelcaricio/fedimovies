@@ -9,15 +9,17 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{get_database_client, DbPool},
+    notifications::queries::get_notifications,
+};
 
-use crate::database::{get_database_client, DbPool};
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     errors::MastodonError,
     oauth::auth::get_current_user,
     pagination::get_paginated_response,
 };
-use crate::models::notifications::queries::get_notifications;
 use super::types::{ApiNotification, NotificationQueryParams};
 
 #[get("")]

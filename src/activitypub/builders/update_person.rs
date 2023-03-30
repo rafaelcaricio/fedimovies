@@ -2,6 +2,12 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use mitra_config::Instance;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError, DatabaseTypeError},
+    profiles::types::DbActor,
+    relationships::queries::get_followers,
+    users::types::User,
+};
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
@@ -11,12 +17,6 @@ use crate::activitypub::{
     identifiers::{local_actor_followers, local_object_id},
     types::{build_default_context, Context},
     vocabulary::UPDATE,
-};
-use crate::database::{DatabaseClient, DatabaseError, DatabaseTypeError};
-use crate::models::{
-    profiles::types::DbActor,
-    relationships::queries::get_followers,
-    users::types::User,
 };
 
 #[derive(Serialize)]
@@ -94,11 +94,11 @@ pub async fn prepare_update_person(
 
 #[cfg(test)]
 mod tests {
+    use mitra_models::profiles::types::DbActorProfile;
     use mitra_utils::crypto_rsa::{
         generate_weak_rsa_key,
         serialize_private_key,
     };
-    use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";

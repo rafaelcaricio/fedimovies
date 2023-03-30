@@ -5,6 +5,15 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    posts::queries::{
+        get_post_by_remote_object_id,
+        update_post,
+    },
+    posts::types::PostUpdateData,
+    profiles::queries::get_profile_by_remote_actor_id,
+};
 
 use crate::activitypub::{
     actors::{
@@ -21,17 +30,9 @@ use crate::activitypub::{
     types::Object,
     vocabulary::{NOTE, PERSON},
 };
-use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
-use crate::models::{
-    posts::queries::{
-        get_post_by_remote_object_id,
-        update_post,
-    },
-    posts::types::PostUpdateData,
-    profiles::queries::get_profile_by_remote_actor_id,
-};
+
 use super::HandlerResult;
 
 async fn handle_update_note(

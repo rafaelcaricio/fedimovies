@@ -3,17 +3,8 @@ use std::path::Path;
 use uuid::Uuid;
 
 use mitra_config::Instance;
-
-use crate::activitypub::{
-    actors::types::Actor,
-    fetcher::fetchers::fetch_file,
-    handlers::create::handle_emoji,
-    receiver::{parse_array, HandlerError},
-    vocabulary::{EMOJI, HASHTAG},
-};
-use crate::database::DatabaseClient;
-use crate::media::MediaStorage;
-use crate::models::{
+use mitra_models::{
+    database::DatabaseClient,
     profiles::queries::{create_profile, update_profile},
     profiles::types::{
         DbActorProfile,
@@ -22,6 +13,15 @@ use crate::models::{
         ProfileUpdateData,
     },
 };
+
+use crate::activitypub::{
+    actors::types::Actor,
+    fetcher::fetchers::fetch_file,
+    handlers::create::handle_emoji,
+    receiver::{parse_array, HandlerError},
+    vocabulary::{EMOJI, HASHTAG},
+};
+use crate::media::MediaStorage;
 use crate::validators::{
     posts::EMOJIS_MAX_NUM,
     profiles::{clean_profile_create_data, clean_profile_update_data},

@@ -2,15 +2,8 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use mitra_config::Config;
-
-use crate::activitypub::{
-    identifiers::parse_local_actor_id,
-    receiver::{deserialize_into_object_id, find_object_id},
-    vocabulary::{ANNOUNCE, FOLLOW, LIKE},
-};
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::errors::ValidationError;
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     posts::queries::{
         delete_post,
         get_post_by_remote_object_id,
@@ -28,6 +21,14 @@ use crate::models::{
         unfollow,
     },
 };
+
+use crate::activitypub::{
+    identifiers::parse_local_actor_id,
+    receiver::{deserialize_into_object_id, find_object_id},
+    vocabulary::{ANNOUNCE, FOLLOW, LIKE},
+};
+use crate::errors::ValidationError;
+
 use super::HandlerResult;
 
 #[derive(Deserialize)]

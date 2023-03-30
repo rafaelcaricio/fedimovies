@@ -9,15 +9,17 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{get_database_client, DbPool},
+    profiles::queries::get_profiles,
+};
 
-use crate::database::{get_database_client, DbPool};
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     accounts::types::Account,
     errors::MastodonError,
     oauth::auth::get_current_user,
 };
-use crate::models::profiles::queries::get_profiles;
 use super::types::DirectoryQueryParams;
 
 #[get("")]

@@ -1,6 +1,12 @@
 use serde::Serialize;
 
 use mitra_config::Instance;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    posts::helpers::add_related_posts,
+    posts::types::Post,
+    users::types::User,
+};
 
 use crate::activitypub::{
     deliverer::OutgoingActivity,
@@ -8,12 +14,7 @@ use crate::activitypub::{
     types::{build_default_context, Context},
     vocabulary::{DELETE, NOTE, TOMBSTONE},
 };
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::{
-    posts::helpers::add_related_posts,
-    posts::types::Post,
-    users::types::User,
-};
+
 use super::create_note::{
     build_note,
     get_note_recipients,
@@ -101,11 +102,11 @@ pub async fn prepare_delete_note(
 
 #[cfg(test)]
 mod tests {
+    use mitra_models::profiles::types::DbActorProfile;
     use crate::activitypub::{
         constants::AP_PUBLIC,
         identifiers::local_actor_followers,
     };
-    use crate::models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_HOSTNAME: &str = "example.com";

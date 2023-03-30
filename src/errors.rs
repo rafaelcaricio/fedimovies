@@ -6,7 +6,7 @@ use actix_web::{
 };
 use serde::Serialize;
 
-use crate::database::DatabaseError;
+use mitra_models::database::DatabaseError;
 
 #[derive(thiserror::Error, Debug)]
 #[error("conversion error")]

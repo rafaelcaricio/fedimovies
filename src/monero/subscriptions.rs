@@ -5,10 +5,8 @@ use monero_rpc::TransferType;
 use monero_rpc::monero::{Address, Amount};
 
 use mitra_config::{Instance, MoneroConfig};
-
-use crate::database::{get_database_client, DatabaseError, DbPool};
-use crate::ethereum::subscriptions::send_subscription_notifications;
-use crate::models::{
+use mitra_models::{
+    database::{get_database_client, DatabaseError, DbPool},
     invoices::queries::{
         get_invoice_by_address,
         get_invoices_by_status,
@@ -24,6 +22,9 @@ use crate::models::{
     },
     users::queries::get_user_by_id,
 };
+
+use crate::ethereum::subscriptions::send_subscription_notifications;
+
 use super::wallet::{
     get_single_item,
     get_subaddress_balance,

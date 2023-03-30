@@ -8,7 +8,6 @@ use mitra::activitypub::{
     builders::delete_person::prepare_delete_person,
     fetcher::fetchers::fetch_actor,
 };
-use mitra::database::DatabaseClient;
 use mitra::ethereum::{
     signatures::generate_ecdsa_key,
     sync::save_current_block_number,
@@ -19,9 +18,16 @@ use mitra::media::{
     remove_media,
     MediaStorage,
 };
-use mitra::models::{
+use mitra::monero::{
+    helpers::check_expired_invoice,
+    wallet::create_monero_wallet,
+};
+use mitra::validators::emojis::EMOJI_LOCAL_MAX_SIZE;
+use mitra_config::Config;
+use mitra_models::{
     attachments::queries::delete_unused_attachments,
     cleanup::find_orphaned_files,
+    database::DatabaseClient,
     emojis::helpers::get_emoji_by_name,
     emojis::queries::{
         create_emoji,
@@ -48,12 +54,6 @@ use mitra::models::{
     },
     users::types::Role,
 };
-use mitra::monero::{
-    helpers::check_expired_invoice,
-    wallet::create_monero_wallet,
-};
-use mitra::validators::emojis::EMOJI_LOCAL_MAX_SIZE;
-use mitra_config::Config;
 use mitra_utils::{
     crypto_rsa::{
         generate_rsa_key,

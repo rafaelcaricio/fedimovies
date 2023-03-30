@@ -2,6 +2,14 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    relationships::queries::{
+        create_remote_follow_request_opt,
+        follow_request_accepted,
+    },
+    users::queries::get_user_by_name,
+};
 
 use crate::activitypub::{
     builders::accept_follow::prepare_accept_follow,
@@ -10,16 +18,8 @@ use crate::activitypub::{
     receiver::deserialize_into_object_id,
     vocabulary::PERSON,
 };
-use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
-use crate::models::{
-    relationships::queries::{
-        create_remote_follow_request_opt,
-        follow_request_accepted,
-    },
-    users::queries::get_user_by_name,
-};
 use super::{HandlerError, HandlerResult};
 
 #[derive(Deserialize)]

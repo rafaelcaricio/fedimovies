@@ -1,11 +1,12 @@
 use regex::Regex;
 use uuid::Uuid;
 
-use crate::errors::ValidationError;
-use crate::models::{
+use mitra_models::{
     posts::types::Post,
     profiles::types::DbActorProfile,
 };
+
+use crate::errors::ValidationError;
 
 const ACTOR_KEY_SUFFIX: &str = "#main-key";
 

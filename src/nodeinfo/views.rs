@@ -3,8 +3,8 @@
 use actix_web::{get, web, HttpResponse};
 
 use mitra_config::Config;
+use mitra_models::database::{get_database_client, DbPool};
 
-use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
 use crate::webfinger::types::{
     Link,

@@ -2,9 +2,12 @@ use std::collections::HashMap;
 
 use regex::{Captures, Match, Regex};
 
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    posts::types::{Post, Visibility},
+};
+
 use crate::activitypub::fetcher::helpers::get_post_by_object_id;
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::posts::types::{Post, Visibility};
 
 // MediaWiki-like syntax: [[url|text]]
 const OBJECT_LINK_SEARCH_RE: &str = r"(?m)\[\[(?P<url>[^\s\|]+)(\|(?P<text>.+?))?\]\]";

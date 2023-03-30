@@ -4,8 +4,8 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 
 use mitra_config::Config;
+use mitra_models::database::DbPool;
 
-use crate::database::DbPool;
 use crate::ethereum::contracts::Blockchain;
 use super::periodic_tasks::*;
 

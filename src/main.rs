@@ -12,8 +12,6 @@ use tokio::sync::Mutex;
 
 use mitra::activitypub::views as activitypub;
 use mitra::atom::views::atom_scope;
-use mitra::database::{get_database_client, create_pool};
-use mitra::database::migrate::apply_migrations;
 use mitra::ethereum::contracts::get_contracts;
 use mitra::http::{
     create_auth_error_handler,
@@ -40,6 +38,8 @@ use mitra::nodeinfo::views as nodeinfo;
 use mitra::webfinger::views as webfinger;
 use mitra::web_client::views as web_client;
 use mitra_config::{parse_config, Environment, MITRA_VERSION};
+use mitra_models::database::{get_database_client, create_pool};
+use mitra_models::database::migrate::apply_migrations;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

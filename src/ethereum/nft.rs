@@ -11,10 +11,8 @@ use web3::{
 };
 
 use mitra_config::EthereumConfig;
-
-use crate::database::{get_database_client, DatabaseError, DbPool};
-use crate::ipfs::utils::parse_ipfs_url;
-use crate::models::{
+use mitra_models::{
+    database::{get_database_client, DatabaseError, DbPool},
     posts::queries::{
         get_post_by_ipfs_cid,
         get_token_waitlist,
@@ -26,6 +24,9 @@ use crate::models::{
         set_internal_property,
     },
 };
+
+use crate::ipfs::utils::parse_ipfs_url;
+
 use super::errors::EthereumError;
 use super::signatures::{sign_contract_call, CallArgs, SignatureData};
 use super::sync::SyncState;

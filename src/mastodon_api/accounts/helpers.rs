@@ -1,10 +1,8 @@
 use uuid::Uuid;
 
 use mitra_config::Instance;
-
-use crate::activitypub::builders::follow::prepare_follow;
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     profiles::types::DbActorProfile,
     relationships::queries::{
         create_follow_request,
@@ -14,6 +12,9 @@ use crate::models::{
     relationships::types::RelationshipType,
     users::types::User,
 };
+
+use crate::activitypub::builders::follow::prepare_follow;
+
 use super::types::RelationshipMap;
 
 pub async fn follow_or_create_request(
@@ -97,19 +98,21 @@ pub async fn get_relationship(
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
-    use crate::database::test_utils::create_test_database;
-    use crate::models::relationships::queries::{
-        create_follow_request,
-        follow,
-        follow_request_accepted,
-        hide_reposts,
-        show_reposts,
-        subscribe,
-        unfollow,
-        unsubscribe,
+    use mitra_models::{
+        database::test_utils::create_test_database,
+        relationships::queries::{
+            create_follow_request,
+            follow,
+            follow_request_accepted,
+            hide_reposts,
+            show_reposts,
+            subscribe,
+            unfollow,
+            unsubscribe,
+        },
+        users::queries::create_user,
+        users::types::{User, UserCreateData},
     };
-    use crate::models::users::queries::create_user;
-    use crate::models::users::types::{User, UserCreateData};
     use super::*;
 
     async fn create_users(db_client: &mut impl DatabaseClient)

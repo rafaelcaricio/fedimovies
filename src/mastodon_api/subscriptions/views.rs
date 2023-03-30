@@ -10,25 +10,8 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
 use mitra_config::Config;
-use mitra_utils::currencies::Currency;
-
-use crate::activitypub::builders::update_person::prepare_update_person;
-use crate::database::{get_database_client, DbPool};
-use crate::errors::ValidationError;
-use crate::ethereum::{
-    contracts::ContractSet,
-    subscriptions::{
-        create_subscription_signature,
-        is_registered_recipient,
-    },
-};
-use crate::http::get_request_base_url;
-use crate::mastodon_api::{
-    accounts::types::Account,
-    errors::MastodonError,
-    oauth::auth::get_current_user,
-};
-use crate::models::{
+use mitra_models::{
+    database::{get_database_client, DbPool},
     invoices::queries::{create_invoice, get_invoice_by_id},
     profiles::queries::{
         get_profile_by_id,
@@ -43,6 +26,23 @@ use crate::models::{
     subscriptions::queries::get_subscription_by_participants,
     users::queries::get_user_by_id,
     users::types::Permission,
+};
+use mitra_utils::currencies::Currency;
+
+use crate::activitypub::builders::update_person::prepare_update_person;
+use crate::errors::ValidationError;
+use crate::ethereum::{
+    contracts::ContractSet,
+    subscriptions::{
+        create_subscription_signature,
+        is_registered_recipient,
+    },
+};
+use crate::http::get_request_base_url;
+use crate::mastodon_api::{
+    accounts::types::Account,
+    errors::MastodonError,
+    oauth::auth::get_current_user,
 };
 use crate::monero::{
     helpers::validate_monero_address,

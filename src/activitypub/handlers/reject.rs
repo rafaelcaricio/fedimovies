@@ -2,15 +2,8 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use mitra_config::Config;
-
-use crate::activitypub::{
-    identifiers::parse_local_object_id,
-    receiver::deserialize_into_object_id,
-    vocabulary::FOLLOW,
-};
-use crate::database::DatabaseClient;
-use crate::errors::ValidationError;
-use crate::models::{
+use mitra_models::{
+    database::DatabaseClient,
     profiles::queries::get_profile_by_remote_actor_id,
     relationships::queries::{
         follow_request_rejected,
@@ -18,6 +11,14 @@ use crate::models::{
     },
     relationships::types::FollowRequestStatus,
 };
+
+use crate::activitypub::{
+    identifiers::parse_local_object_id,
+    receiver::deserialize_into_object_id,
+    vocabulary::FOLLOW,
+};
+use crate::errors::ValidationError;
+
 use super::HandlerResult;
 
 #[derive(Deserialize)]

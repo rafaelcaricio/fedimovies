@@ -2,14 +2,8 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use mitra_config::Config;
-
-use crate::activitypub::{
-    identifiers::parse_local_actor_id,
-    vocabulary::PERSON,
-};
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::errors::ValidationError;
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     notifications::queries::{
         create_subscription_expiration_notification,
     },
@@ -17,6 +11,13 @@ use crate::models::{
     relationships::queries::unsubscribe,
     users::queries::get_user_by_name,
 };
+
+use crate::activitypub::{
+    identifiers::parse_local_actor_id,
+    vocabulary::PERSON,
+};
+use crate::errors::ValidationError;
+
 use super::{HandlerError, HandlerResult};
 
 #[derive(Deserialize)]

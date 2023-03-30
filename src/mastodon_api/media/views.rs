@@ -3,14 +3,16 @@ use actix_web::{post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
+use mitra_models::{
+    attachments::queries::create_attachment,
+    database::{get_database_client, DbPool},
+};
 
-use crate::database::{get_database_client, DbPool};
 use crate::mastodon_api::{
     errors::MastodonError,
     oauth::auth::get_current_user,
     uploads::save_b64_file,
 };
-use crate::models::attachments::queries::create_attachment;
 use super::types::{AttachmentCreateData, Attachment};
 
 #[post("")]

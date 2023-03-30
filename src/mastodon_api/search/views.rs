@@ -9,8 +9,8 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
+use mitra_models::database::{get_database_client, DbPool};
 
-use crate::database::{get_database_client, DbPool};
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     accounts::types::Account,

@@ -6,7 +6,8 @@ use actix_web::{
 };
 use serde::Serialize;
 
-use crate::database::DatabaseError;
+use mitra_models::database::DatabaseError;
+
 use crate::errors::ValidationError;
 
 #[derive(thiserror::Error, Debug)]

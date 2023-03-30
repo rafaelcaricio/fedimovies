@@ -2,6 +2,10 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    reactions::queries::create_reaction,
+};
 
 use crate::activitypub::{
     fetcher::helpers::{
@@ -11,12 +15,9 @@ use crate::activitypub::{
     receiver::deserialize_into_object_id,
     vocabulary::NOTE,
 };
-use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
-use crate::models::{
-    reactions::queries::create_reaction,
-};
+
 use super::HandlerResult;
 
 #[derive(Deserialize)]

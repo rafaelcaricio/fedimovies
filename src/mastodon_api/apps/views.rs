@@ -7,14 +7,15 @@ use actix_web::{
 };
 use uuid::Uuid;
 
-use crate::database::{get_database_client, DbPool};
+use mitra_models::{
+    database::{get_database_client, DbPool},
+    oauth::queries::create_oauth_app,
+    oauth::types::DbOauthAppData,
+};
+
 use crate::mastodon_api::{
     errors::MastodonError,
     oauth::utils::generate_access_token,
-};
-use crate::models::{
-    oauth::queries::create_oauth_app,
-    oauth::types::DbOauthAppData,
 };
 use super::types::{OauthApp, CreateAppRequest};
 

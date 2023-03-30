@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 mitra-config = { path = "../mitra-config" }
+mitra-models = { path = "../mitra-models" }
 mitra-utils = { path = "../mitra-utils" }
 mitra = { path = ".." }
 

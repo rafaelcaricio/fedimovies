@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::media::get_file_url;
-use crate::models::attachments::types::{
+use mitra_models::attachments::types::{
     AttachmentType,
     DbMediaAttachment,
 };
+
+use crate::media::get_file_url;
 
 #[derive(Deserialize)]
 pub struct AttachmentCreateData {

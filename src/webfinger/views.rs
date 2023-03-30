@@ -1,6 +1,10 @@
 use actix_web::{get, web, HttpResponse};
 
 use mitra_config::{Config, Instance};
+use mitra_models::{
+    database::{get_database_client, DatabaseClient, DbPool},
+    users::queries::is_registered_user,
+};
 
 use crate::activitypub::{
     constants::AP_MEDIA_TYPE,
@@ -10,9 +14,8 @@ use crate::activitypub::{
         parse_local_actor_id,
     },
 };
-use crate::database::{get_database_client, DatabaseClient, DbPool};
 use crate::errors::{HttpError, ValidationError};
-use crate::models::users::queries::is_registered_user;
+
 use super::types::{
     ActorAddress,
     Link,
@@ -98,10 +101,12 @@ pub async fn webfinger_view(
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
-    use crate::database::test_utils::create_test_database;
-    use crate::models::users::{
-        queries::create_user,
-        types::UserCreateData,
+    use mitra_models::{
+        database::test_utils::create_test_database,
+        users::{
+            queries::create_user,
+            types::UserCreateData,
+        },
     };
     use super::*;
 

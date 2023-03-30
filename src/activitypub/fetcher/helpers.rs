@@ -1,18 +1,8 @@
 use std::collections::HashMap;
 
 use mitra_config::Instance;
-
-use crate::activitypub::{
-    actors::helpers::{create_remote_profile, update_remote_profile},
-    handlers::create::{get_object_links, handle_note},
-    identifiers::parse_local_object_id,
-    receiver::HandlerError,
-    types::Object,
-};
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::errors::ValidationError;
-use crate::media::MediaStorage;
-use crate::models::{
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
     posts::helpers::get_local_post_by_id,
     posts::queries::get_post_by_remote_object_id,
     posts::types::Post,
@@ -22,6 +12,16 @@ use crate::models::{
     },
     profiles::types::DbActorProfile,
 };
+
+use crate::activitypub::{
+    actors::helpers::{create_remote_profile, update_remote_profile},
+    handlers::create::{get_object_links, handle_note},
+    identifiers::parse_local_object_id,
+    receiver::HandlerError,
+    types::Object,
+};
+use crate::errors::ValidationError;
+use crate::media::MediaStorage;
 use crate::webfinger::types::ActorAddress;
 use super::fetchers::{
     fetch_actor,

@@ -10,17 +10,8 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
 
 use mitra_config::Config;
-use mitra_utils::passwords::verify_password;
-
-use crate::database::{get_database_client, DatabaseError, DbPool};
-use crate::errors::ValidationError;
-use crate::ethereum::{
-    eip4361::verify_eip4361_signature,
-    utils::validate_ethereum_address,
-};
-use crate::http::FormOrJson;
-use crate::mastodon_api::errors::MastodonError;
-use crate::models::{
+use mitra_models::{
+    database::{get_database_client, DatabaseError, DbPool},
     oauth::queries::{
         create_oauth_authorization,
         delete_oauth_token,
@@ -33,6 +24,16 @@ use crate::models::{
         get_user_by_login_address,
     },
 };
+use mitra_utils::passwords::verify_password;
+
+use crate::errors::ValidationError;
+use crate::ethereum::{
+    eip4361::verify_eip4361_signature,
+    utils::validate_ethereum_address,
+};
+use crate::http::FormOrJson;
+use crate::mastodon_api::errors::MastodonError;
+
 use super::auth::get_current_user;
 use super::types::{
     AuthorizationRequest,

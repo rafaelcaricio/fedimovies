@@ -2,6 +2,12 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use mitra_config::Instance;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    posts::types::{Post, Visibility},
+    profiles::types::DbActorProfile,
+    users::types::User,
+};
 
 use crate::activitypub::{
     deliverer::OutgoingActivity,
@@ -9,12 +15,7 @@ use crate::activitypub::{
     types::{build_default_context, Context},
     vocabulary::UNDO,
 };
-use crate::database::{DatabaseClient, DatabaseError};
-use crate::models::{
-    posts::types::{Post, Visibility},
-    profiles::types::DbActorProfile,
-    users::types::User,
-};
+
 use super::like::{
     get_like_audience,
     get_like_recipients,

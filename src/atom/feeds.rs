@@ -1,14 +1,14 @@
 use mitra_config::Instance;
+use mitra_models::{
+    posts::types::Post,
+    profiles::types::DbActorProfile,
+};
 use mitra_utils::{
     datetime::get_min_datetime,
     html::{clean_html_all, escape_html},
 };
 
 use crate::activitypub::identifiers::{local_actor_id, local_object_id};
-use crate::models::{
-    posts::types::Post,
-    profiles::types::DbActorProfile,
-};
 use crate::webfinger::types::ActorAddress;
 
 const ENTRY_TITLE_MAX_LENGTH: usize = 75;

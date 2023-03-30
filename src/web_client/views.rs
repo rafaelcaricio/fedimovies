@@ -12,17 +12,17 @@ use actix_web::{
 use uuid::Uuid;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{get_database_client, DbPool},
+    posts::queries::get_post_by_id,
+    profiles::queries::{get_profile_by_acct, get_profile_by_id},
+};
 
 use crate::activitypub::{
     identifiers::{post_object_id, profile_actor_id},
     views::is_activitypub_request,
 };
-use crate::database::{get_database_client, DbPool};
 use crate::errors::HttpError;
-use crate::models::{
-    posts::queries::get_post_by_id,
-    profiles::queries::{get_profile_by_acct, get_profile_by_id},
-};
 
 pub fn static_service(web_client_dir: &Path) -> Files {
     Files::new("/", web_client_dir)

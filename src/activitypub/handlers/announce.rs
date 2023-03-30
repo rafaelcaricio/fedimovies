@@ -2,6 +2,14 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use mitra_config::Config;
+use mitra_models::{
+    database::{DatabaseClient, DatabaseError},
+    posts::queries::{
+        create_post,
+        get_post_by_remote_object_id,
+    },
+    posts::types::PostCreateData,
+};
 
 use crate::activitypub::{
     fetcher::helpers::{get_or_import_profile_by_actor_id, import_post},
@@ -9,16 +17,8 @@ use crate::activitypub::{
     receiver::deserialize_into_object_id,
     vocabulary::{CREATE, DELETE, DISLIKE, LIKE, NOTE, UNDO, UPDATE},
 };
-use crate::database::{DatabaseClient, DatabaseError};
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
-use crate::models::{
-    posts::queries::{
-        create_post,
-        get_post_by_remote_object_id,
-    },
-    posts::types::PostCreateData,
-};
 use super::HandlerResult;
 
 #[derive(Deserialize)]

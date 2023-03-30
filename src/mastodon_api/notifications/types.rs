@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use mitra_models::notifications::types::{EventType, Notification};
+
 use crate::mastodon_api::{
     accounts::types::Account,
     pagination::PageSize,
     statuses::types::Status,
 };
-use crate::models::notifications::types::{EventType, Notification};
 
 fn default_page_size() -> PageSize { PageSize::new(20) }
 

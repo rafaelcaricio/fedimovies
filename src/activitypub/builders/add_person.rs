@@ -1,6 +1,10 @@
 use serde::Serialize;
 
 use mitra_config::Instance;
+use mitra_models::{
+    profiles::types::DbActor,
+    users::types::User,
+};
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
@@ -8,10 +12,6 @@ use crate::activitypub::{
     identifiers::{local_actor_id, local_object_id, LocalActorCollection},
     types::{build_default_context, Context},
     vocabulary::{ADD, REMOVE},
-};
-use crate::models::{
-    profiles::types::DbActor,
-    users::types::User,
 };
 
 #[derive(Serialize)]

@@ -1,3 +1,10 @@
+use mitra_models::profiles::types::{
+    ExtraField,
+    IdentityProof,
+    IdentityProofType,
+    PaymentLink,
+    PaymentOption,
+};
 use mitra_utils::did::Did;
 
 use crate::activitypub::vocabulary::{
@@ -18,14 +25,8 @@ use crate::json_signatures::proofs::{
     PROOF_TYPE_ID_EIP191,
     PROOF_TYPE_ID_MINISIGN,
 };
-use crate::models::profiles::types::{
-    ExtraField,
-    IdentityProof,
-    IdentityProofType,
-    PaymentLink,
-    PaymentOption,
-};
 use crate::web_client::urls::get_subscription_page_url;
+
 use super::types::ActorAttachment;
 
 pub fn attach_identity_proof(

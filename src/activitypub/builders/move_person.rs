@@ -2,6 +2,10 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use mitra_config::Instance;
+use mitra_models::{
+    profiles::types::DbActor,
+    users::types::User,
+};
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
@@ -9,10 +13,6 @@ use crate::activitypub::{
     identifiers::{local_actor_id, local_object_id},
     types::{build_default_context, Context},
     vocabulary::MOVE,
-};
-use crate::models::{
-    profiles::types::DbActor,
-    users::types::User,
 };
 
 #[derive(Serialize)]
@@ -81,7 +81,7 @@ pub fn prepare_move_person(
 #[cfg(test)]
 mod tests {
     use mitra_utils::id::generate_ulid;
-    use crate::models::profiles::types::DbActorProfile;
+    use mitra_models::profiles::types::DbActorProfile;
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";

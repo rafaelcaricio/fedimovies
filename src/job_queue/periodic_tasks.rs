@@ -3,23 +3,8 @@ use std::time::Duration;
 use anyhow::Error;
 
 use mitra_config::Config;
-use mitra_utils::datetime::days_before_now;
-
-use crate::activitypub::queues::{
-    process_queued_incoming_activities,
-    process_queued_outgoing_activities,
-};
-use crate::database::{get_database_client, DbPool};
-use crate::ethereum::{
-    contracts::Blockchain,
-    subscriptions::{
-        check_ethereum_subscriptions,
-        update_expired_subscriptions,
-    },
-};
-use crate::media::remove_media;
-use crate::monero::subscriptions::check_monero_subscriptions;
-use crate::models::{
+use mitra_models::{
+    database::{get_database_client, DbPool},
     emojis::queries::{
         delete_emoji,
         find_unused_remote_emojis,
@@ -31,6 +16,21 @@ use crate::models::{
         get_profile_by_id,
     },
 };
+use mitra_utils::datetime::days_before_now;
+
+use crate::activitypub::queues::{
+    process_queued_incoming_activities,
+    process_queued_outgoing_activities,
+};
+use crate::ethereum::{
+    contracts::Blockchain,
+    subscriptions::{
+        check_ethereum_subscriptions,
+        update_expired_subscriptions,
+    },
+};
+use crate::media::remove_media;
+use crate::monero::subscriptions::check_monero_subscriptions;
 
 #[cfg(feature = "ethereum-extras")]
 use crate::ethereum::nft::process_nft_events;
