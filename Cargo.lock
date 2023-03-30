@@ -1822,7 +1822,7 @@ dependencies = [
 
 [[package]]
 name = "mitra"
-version = "1.18.0"
+version = "1.19.0"
 dependencies = [
  "actix-cors",
  "actix-files",
@@ -1867,7 +1867,7 @@ dependencies = [
 
 [[package]]
 name = "mitra-cli"
-version = "1.18.0"
+version = "1.19.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1881,7 +1881,7 @@ dependencies = [
 
 [[package]]
 name = "mitra-config"
-version = "1.18.0"
+version = "1.19.0"
 dependencies = [
  "dotenv",
  "log",
@@ -1896,7 +1896,7 @@ dependencies = [
 
 [[package]]
 name = "mitra-utils"
-version = "1.18.0"
+version = "1.19.0"
 dependencies = [
  "ammonia",
  "base64",
