@@ -1,4 +1,7 @@
+use std::cell::RefCell;
+
 use comrak::{
+    arena_tree::Node,
     format_commonmark,
     format_html,
     nodes::{Ast, AstNode, ListType, NodeValue},
@@ -59,6 +62,16 @@ fn node_to_markdown<'a>(
     Ok(markdown)
 }
 
+fn replace_node_value(node: &AstNode, value: NodeValue) -> () {
+    let mut borrowed_node = node.data.borrow_mut();
+    *borrowed_node = Ast::new(value, borrowed_node.sourcepos.start);
+}
+
+fn create_node<'a>(value: NodeValue) -> AstNode<'a> {
+    // Position doesn't matter
+    Node::new(RefCell::new(Ast::new(value, (0, 1).into())))
+}
+
 fn replace_with_markdown<'a>(
     node: &'a AstNode<'a>,
     options: &ComrakOptions,
@@ -69,8 +82,7 @@ fn replace_with_markdown<'a>(
         child.detach();
     };
     let text = NodeValue::Text(markdown);
-    let mut borrowed_node = node.data.borrow_mut();
-    *borrowed_node = Ast::new(text);
+    replace_node_value(node, text);
     Ok(())
 }
 
@@ -90,8 +102,7 @@ fn fix_microsyntaxes<'a>(
                     };
                 };
                 let text = NodeValue::Text(link_text);
-                let mut borrowed_node = node.data.borrow_mut();
-                *borrowed_node = Ast::new(text);
+                replace_node_value(node, text);
             };
         };
     };
@@ -151,10 +162,9 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                     child.detach();
                 };
                 let text = NodeValue::Text(markdown);
-                let text_node = arena.alloc(AstNode::from(text));
+                let text_node = arena.alloc(create_node(text));
                 node.append(text_node);
-                let mut borrowed_node = node.data.borrow_mut();
-                *borrowed_node = Ast::new(NodeValue::Paragraph);
+                replace_node_value(node, NodeValue::Paragraph);
             },
             NodeValue::Image(_) => replace_with_markdown(node, &options)?,
             NodeValue::List(_) => {
@@ -179,13 +189,15 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                                 list_prefix_markdown.replace('1', &item_index_str);
                         };
                     };
-                    let list_prefix = NodeValue::Text(list_prefix_markdown);
                     if !replacements.is_empty() {
                         // Insert line break before next list item
                         let linebreak = NodeValue::LineBreak;
-                        replacements.push(arena.alloc(AstNode::from(linebreak)));
+                        let linebreak_node = arena.alloc(create_node(linebreak));
+                        replacements.push(linebreak_node);
                     };
-                    replacements.push(arena.alloc(AstNode::from(list_prefix)));
+                    let list_prefix = NodeValue::Text(list_prefix_markdown);
+                    let list_prefix_node = arena.alloc(create_node(list_prefix));
+                    replacements.push(list_prefix_node);
                     for content_node in contents {
                         replacements.push(content_node);
                     };
@@ -194,8 +206,7 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                 for child_node in replacements {
                     node.append(child_node);
                 };
-                let mut borrowed_node = node.data.borrow_mut();
-                *borrowed_node = Ast::new(NodeValue::Paragraph);
+                replace_node_value(node, NodeValue::Paragraph);
             },
             NodeValue::Link(_) => fix_microsyntaxes(node)?,
             _ => (),
@@ -236,8 +247,10 @@ pub fn markdown_basic_to_html(text: &str) -> Result<String, MarkdownError> {
                     if let Some(last_child) = node.last_child() {
                         let last_child_value = &last_child.data.borrow().value;
                         if !matches!(last_child_value, NodeValue::LineBreak) {
-                            let line_break = AstNode::from(NodeValue::LineBreak);
-                            node.append(arena.alloc(line_break));
+                            let line_break = NodeValue::LineBreak;
+                            let line_break_node =
+                                arena.alloc(create_node(line_break));
+                            node.append(line_break_node);
                         };
                     };
                 };

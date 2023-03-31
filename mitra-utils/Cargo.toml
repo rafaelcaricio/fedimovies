@@ -15,7 +15,7 @@ bs58 = "0.4.0"
 # Used for working with dates
 chrono = { version = "0.4.23", default-features = false, features = ["std"] }
 # Used for parsing markdown
-comrak = { git = "https://github.com/kivikakk/comrak", rev = "93a94858168536704c5772d5573cdfce0e4e7ed4", default-features = false }
+comrak = { version = "0.18.0", default-features = false }
 # Used to guess media type of a file
 mime_guess = "2.0.3"
 mime-sniffer = "0.1.2"
