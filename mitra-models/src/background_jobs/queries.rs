@@ -48,11 +48,16 @@ pub async fn get_job_batch(
                 job_type = $2
                 AND scheduled_for < CURRENT_TIMESTAMP
                 AND (
-                    job_status = $3 --queued
-                    OR job_status = $1 --running
+                    -- queued
+                    job_status = $3
+                    -- running
+                    OR job_status = $1
                     AND updated_at < CURRENT_TIMESTAMP - $5::text::interval
                 )
-            ORDER BY scheduled_for ASC
+            ORDER BY
+                -- queued jobs first
+                job_status ASC,
+                scheduled_for ASC
             LIMIT $4
         )
         RETURNING background_job

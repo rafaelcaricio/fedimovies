@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Limit number of mentions and links in remote posts.
 
+### Fixed
+
+- Process queued background jobs before re-trying stalled.
+
 ## [1.19.0] - 2023-03-30
 
 ### Added
