@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Process queued background jobs before re-trying stalled.
 - Remove activity from queue if handler times out.
+- Order attachments by creation date when new post is created.
 
 ## [1.19.0] - 2023-03-30
 

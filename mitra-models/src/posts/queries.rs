@@ -57,9 +57,10 @@ async fn create_post_attachments(
         // Some attachments were not found
         return Err(DatabaseError::NotFound("attachment"));
     };
-    let attachments = attachments_rows.iter()
+    let mut attachments: Vec<DbMediaAttachment> = attachments_rows.iter()
         .map(|row| row.try_get("media_attachment"))
         .collect::<Result<_, _>>()?;
+    attachments.sort_by(|a, b| a.created_at.cmp(&b.created_at));
     Ok(attachments)
 }
 
