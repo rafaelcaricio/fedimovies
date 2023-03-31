@@ -8,6 +8,7 @@ use mitra_models::{
 };
 
 use crate::activitypub::fetcher::helpers::get_post_by_object_id;
+use crate::validators::posts::LINKS_MAX_NUM;
 
 // MediaWiki-like syntax: [[url|text]]
 const OBJECT_LINK_SEARCH_RE: &str = r"(?m)\[\[(?P<url>[^\s\|]+)(\|(?P<text>.+?))?\]\]";
@@ -48,7 +49,7 @@ pub async fn find_linked_posts(
     let mut link_map: HashMap<String, Post> = HashMap::new();
     let mut counter = 0;
     for url in links {
-        if counter > 10 {
+        if counter > LINKS_MAX_NUM {
             // Limit the number of queries
             break;
             // TODO: single database query

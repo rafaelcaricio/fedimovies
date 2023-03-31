@@ -52,6 +52,8 @@ use crate::validators::{
         ATTACHMENTS_MAX_NUM,
         CONTENT_MAX_SIZE,
         EMOJIS_MAX_NUM,
+        LINKS_MAX_NUM,
+        MENTIONS_MAX_NUM,
     },
     tags::validate_hashtag,
 };
@@ -359,6 +361,10 @@ pub async fn get_object_tags(
                 };
             };
         } else if tag_type == MENTION {
+            if mentions.len() >= MENTIONS_MAX_NUM {
+                log::warn!("too many mentions");
+                continue;
+            };
             let tag: Tag = match serde_json::from_value(tag_value) {
                 Ok(tag) => tag,
                 Err(_) => {
@@ -436,6 +442,10 @@ pub async fn get_object_tags(
                 log::warn!("failed to parse mention {}", tag_name);
             };
         } else if tag_type == LINK {
+            if links.len() >= LINKS_MAX_NUM {
+                log::warn!("too many links");
+                continue;
+            };
             let tag: LinkTag = match serde_json::from_value(tag_value) {
                 Ok(tag) => tag,
                 Err(_) => {
