@@ -83,12 +83,29 @@ pub async fn process_queued_incoming_activities(
         let mut job_data: IncomingActivityJobData =
             serde_json::from_value(job.job_data)
                 .map_err(|_| DatabaseTypeError)?;
-        if let Err(error) = handle_activity(
+        // See also: activitypub::queues::JOB_TIMEOUT
+        let duration_max = std::time::Duration::from_secs(600);
+        let handler_future = handle_activity(
             config,
             db_client,
             &job_data.activity,
             job_data.is_authenticated,
+        );
+        let handler_result = match tokio::time::timeout(
+            duration_max,
+            handler_future,
         ).await {
+            Ok(result) => result,
+            Err(_) => {
+                log::error!(
+                    "failed to process activity (timeout): {}",
+                    job_data.activity,
+                );
+                delete_job_from_queue(db_client, &job.id).await?;
+                continue;
+            },
+        };
+        if let Err(error) = handler_result {
             job_data.failure_count += 1;
             log::warn!(
                 "failed to process activity ({}) (attempt #{}): {}",

@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use anyhow::Error;
 
 use mitra_config::Config;
@@ -114,13 +112,7 @@ pub async fn incoming_activity_queue_executor(
     db_pool: &DbPool,
 ) -> Result<(), Error> {
     let db_client = &mut **get_database_client(db_pool).await?;
-    // See also: activitypub::queues::JOB_TIMEOUT
-    let duration_max = Duration::from_secs(600);
-    let completed = process_queued_incoming_activities(config, db_client);
-    match tokio::time::timeout(duration_max, completed).await {
-        Ok(result) => result?,
-        Err(_) => log::error!("incoming activity queue executor timeout"),
-    };
+    process_queued_incoming_activities(config, db_client).await?;
     Ok(())
 }
 

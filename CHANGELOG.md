@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Process queued background jobs before re-trying stalled.
+- Remove activity from queue if handler times out.
 
 ## [1.19.0] - 2023-03-30
 
