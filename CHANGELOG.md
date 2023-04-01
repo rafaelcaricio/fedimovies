@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-## [1.19.0] - 2023-03-31
+### Changed
+
+- Increase maximum number of custom emojis per post to 50.
+
+## [1.19.1] - 2023-03-31
 
 ### Changed
 
