@@ -12,7 +12,12 @@ use mitra_config::Config;
 use mitra_models::{
     database::{get_database_client, DatabaseError, DbPool},
     profiles::helpers::find_verified_aliases,
-    profiles::queries::get_profile_by_remote_actor_id,
+    profiles::queries::{
+        get_profile_by_acct,
+        get_profile_by_remote_actor_id,
+        update_profile,
+    },
+    profiles::types::ProfileUpdateData,
     users::queries::set_user_password,
 };
 use mitra_utils::passwords::hash_password;
@@ -21,6 +26,7 @@ use crate::activitypub::identifiers::profile_actor_id;
 use crate::errors::ValidationError;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
+    accounts::helpers::get_aliases,
     accounts::types::Account,
     errors::MastodonError,
     oauth::auth::get_current_user,
@@ -33,6 +39,7 @@ use super::helpers::{
     parse_address_list,
 };
 use super::types::{
+    AddAliasRequest,
     ImportFollowsRequest,
     MoveFollowersRequest,
     PasswordChangeRequest,
@@ -57,6 +64,37 @@ async fn change_password_view(
         current_user,
     );
     Ok(HttpResponse::Ok().json(account))
+}
+
+#[post("/aliases")]
+async fn add_alias_view(
+    auth: BearerAuth,
+    config: web::Data<Config>,
+    connection_info: ConnectionInfo,
+    db_pool: web::Data<DbPool>,
+    request_data: web::Json<AddAliasRequest>,
+) -> Result<HttpResponse, MastodonError> {
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let mut current_user = get_current_user(db_client, auth.token()).await?;
+    let alias = get_profile_by_acct(db_client, &request_data.acct).await?;
+    let instance = config.instance();
+    let alias_id = profile_actor_id(&instance.url(), &alias);
+    let mut profile_data = ProfileUpdateData::from(&current_user.profile);
+    if !profile_data.aliases.contains(&alias_id) {
+        profile_data.aliases.push(alias_id);
+    };
+    current_user.profile = update_profile(
+        db_client,
+        &current_user.id,
+        profile_data,
+    ).await?;
+    let aliases = get_aliases(
+        db_client,
+        &get_request_base_url(connection_info),
+        &instance.url(),
+        &current_user.profile,
+    ).await?;
+    Ok(HttpResponse::Ok().json(aliases))
 }
 
 #[get("/export_followers")]
@@ -185,6 +223,7 @@ async fn move_followers(
 pub fn settings_api_scope() -> Scope {
     web::scope("/api/v1/settings")
         .service(change_password_view)
+        .service(add_alias_view)
         .service(export_followers_view)
         .service(export_follows_view)
         .service(import_follows_view)

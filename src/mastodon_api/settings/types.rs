@@ -11,6 +11,11 @@ pub struct ImportFollowsRequest {
 }
 
 #[derive(Deserialize)]
+pub struct AddAliasRequest {
+    pub acct: String,
+}
+
+#[derive(Deserialize)]
 pub struct MoveFollowersRequest {
     pub from_actor_id: String,
     pub followers_csv: String,

@@ -803,6 +803,28 @@ paths:
                 $ref: '#/components/schemas/CredentialAccount'
         400:
           description: Invalid request data.
+  /api/v1/settings/aliases:
+    post:
+      summary: Add alias (not verified).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                acct:
+                  description: Actor address.
+                  type: string
+                  example: user@example.com
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Aliases'
+        404:
+          description: Profile not found.
   /api/v1/settings/export_followers:
     get:
       summary: Export followers to CSV file
