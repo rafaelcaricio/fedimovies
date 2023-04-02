@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Increase maximum number of custom emojis per post to 50.
+- Validate actor aliases before saving into database.
 
 ## [1.19.1] - 2023-03-31
 

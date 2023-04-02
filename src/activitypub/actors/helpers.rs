@@ -18,6 +18,7 @@ use crate::activitypub::{
     actors::types::Actor,
     fetcher::fetchers::fetch_file,
     handlers::create::handle_emoji,
+    identifiers::validate_object_id,
     receiver::{parse_array, HandlerError},
     vocabulary::{EMOJI, HASHTAG},
 };
@@ -92,7 +93,17 @@ fn parse_aliases(actor: &Actor) -> Vec<String> {
     actor.also_known_as.as_ref()
         .and_then(|value| {
             match parse_array(value) {
-                Ok(array) => Some(array),
+                Ok(array) => {
+                    let mut aliases = vec![];
+                    for actor_id in array {
+                        if validate_object_id(&actor_id).is_err() {
+                            log::warn!("invalid alias: {}", actor_id);
+                            continue;
+                        };
+                        aliases.push(actor_id);
+                    };
+                    Some(aliases)
+                },
                 Err(_) => {
                     log::warn!("invalid alias list: {}", value);
                     None
