@@ -352,6 +352,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: resolve
+          in: query
+          description: Attempt WebFinger lookup.
+          required: false
+          schema:
+            type: boolean
         - name: limit
           in: query
           description: Maximum number of results. Defaults to 40.

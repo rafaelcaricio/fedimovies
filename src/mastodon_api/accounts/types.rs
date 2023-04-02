@@ -470,6 +470,9 @@ fn default_search_page_size() -> PageSize { PageSize::new(40) }
 pub struct SearchAcctQueryParams {
     pub q: String,
 
+    #[serde(default)]
+    pub resolve: bool,
+
     #[serde(default = "default_search_page_size")]
     pub limit: PageSize,
 }

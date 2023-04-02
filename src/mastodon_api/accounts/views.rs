@@ -512,15 +512,29 @@ async fn lookup_acct(
 
 #[get("/search")]
 async fn search_by_acct(
+    auth: Option<BearerAuth>,
     connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     query_params: web::Query<SearchAcctQueryParams>,
 ) -> Result<HttpResponse, MastodonError> {
-    let db_client = &**get_database_client(&db_pool).await?;
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    match auth {
+        Some(auth) => {
+            get_current_user(db_client, auth.token()).await?;
+        },
+        None => {
+            // Only authorized users can make webfinger queries
+            if query_params.resolve {
+                return Err(MastodonError::PermissionError);
+            };
+        },
+    };
     let profiles = search_profiles_only(
+        &config,
         db_client,
         &query_params.q,
+        query_params.resolve,
         query_params.limit.inner(),
     ).await?;
     let base_url = get_request_base_url(connection_info);

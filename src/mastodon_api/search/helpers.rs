@@ -107,6 +107,7 @@ async fn search_profiles_or_import(
     db_client: &mut impl DatabaseClient,
     username: String,
     mut maybe_hostname: Option<String>,
+    resolve: bool,
     limit: u16,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let mut instance = config.instance();
@@ -122,7 +123,7 @@ async fn search_profiles_or_import(
         maybe_hostname.as_ref(),
         limit,
     ).await?;
-    if profiles.is_empty() {
+    if profiles.is_empty() && resolve {
         if let Some(hostname) = maybe_hostname {
             let actor_address = ActorAddress { username, hostname };
             instance.fetcher_timeout = SEARCH_FETCHER_TIMEOUT;
@@ -238,6 +239,7 @@ pub async fn search(
                 db_client,
                 username,
                 maybe_hostname,
+                true,
                 limit,
             ).await?;
         },
@@ -287,18 +289,22 @@ pub async fn search(
 }
 
 pub async fn search_profiles_only(
-    db_client: &impl DatabaseClient,
+    config: &Config,
+    db_client: &mut impl DatabaseClient,
     search_query: &str,
+    resolve: bool,
     limit: u16,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
     let (username, maybe_hostname) = match parse_profile_query(search_query) {
         Ok(result) => result,
         Err(_) => return Ok(vec![]),
     };
-    let profiles = search_profiles(
+    let profiles = search_profiles_or_import(
+        config,
         db_client,
-        &username,
-        maybe_hostname.as_ref(),
+        username,
+        maybe_hostname,
+        resolve,
         limit,
     ).await?;
     Ok(profiles)
