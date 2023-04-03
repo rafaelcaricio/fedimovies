@@ -3,6 +3,10 @@ use uuid::Uuid;
 use mitra_config::Instance;
 use mitra_models::{
     database::{DatabaseClient, DatabaseError},
+    profiles::helpers::{
+        find_declared_aliases,
+        find_verified_aliases,
+    },
     profiles::types::DbActorProfile,
     relationships::queries::{
         create_follow_request,
@@ -15,7 +19,7 @@ use mitra_models::{
 
 use crate::activitypub::builders::follow::prepare_follow;
 
-use super::types::RelationshipMap;
+use super::types::{Account, Aliases, RelationshipMap};
 
 pub async fn follow_or_create_request(
     db_client: &mut impl DatabaseClient,
@@ -93,6 +97,32 @@ pub async fn get_relationship(
         };
     };
     Ok(relationship_map)
+}
+
+pub async fn get_aliases(
+    db_client: &impl DatabaseClient,
+    base_url: &str,
+    instance_url: &str,
+    profile: &DbActorProfile,
+) -> Result<Aliases, DatabaseError> {
+    let declared = find_declared_aliases(db_client, profile).await?
+        .into_iter()
+        .map(|profile| Account::from_profile(
+            base_url,
+            instance_url,
+            profile,
+        ))
+        .collect();
+    let verified = find_verified_aliases(db_client, profile).await?
+        .into_iter()
+        .map(|profile| Account::from_profile(
+            base_url,
+            instance_url,
+            profile,
+        ))
+        .collect();
+    let aliases = Aliases { declared, verified };
+    Ok(aliases)
 }
 
 #[cfg(test)]

@@ -546,6 +546,12 @@ impl ApiSubscription {
     }
 }
 
+#[derive(Serialize)]
+pub struct Aliases {
+    pub declared: Vec<Account>,
+    pub verified: Vec<Account>,
+}
+
 #[cfg(test)]
 mod tests {
     use mitra_models::profiles::types::ProfileImage;

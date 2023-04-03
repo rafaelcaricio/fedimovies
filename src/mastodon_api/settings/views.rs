@@ -11,7 +11,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use mitra_config::Config;
 use mitra_models::{
     database::{get_database_client, DatabaseError, DbPool},
-    profiles::helpers::find_aliases,
+    profiles::helpers::find_verified_aliases,
     profiles::queries::get_profile_by_remote_actor_id,
     users::queries::set_user_password,
 };
@@ -149,7 +149,10 @@ async fn move_followers(
     };
     if maybe_from_profile.is_some() {
         // Find known aliases of the current user
-        let mut aliases = find_aliases(db_client, &current_user.profile).await?
+        let mut aliases = find_verified_aliases(
+            db_client,
+            &current_user.profile,
+        ).await?
             .into_iter()
             .map(|profile| profile_actor_id(&instance.url(), &profile));
         if !aliases.any(|actor_id| actor_id == request_data.from_actor_id) {

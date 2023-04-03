@@ -15,7 +15,7 @@ use mitra_config::{Config, DefaultRole, RegistrationType};
 use mitra_models::{
     database::{get_database_client, DatabaseError, DbPool},
     posts::queries::get_posts_by_author,
-    profiles::helpers::find_aliases,
+    profiles::helpers::find_verified_aliases,
     profiles::queries::{
         get_profile_by_acct,
         get_profile_by_id,
@@ -100,7 +100,11 @@ use crate::mastodon_api::{
     statuses::types::Status,
 };
 use crate::validators::profiles::clean_profile_update_data;
-use super::helpers::{follow_or_create_request, get_relationship};
+use super::helpers::{
+    follow_or_create_request,
+    get_aliases,
+    get_relationship,
+};
 use super::types::{
     Account,
     AccountCreateData,
@@ -832,7 +836,7 @@ async fn get_account_aliases(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let profile = get_profile_by_id(db_client, &account_id).await?;
-    let aliases = find_aliases(db_client, &profile).await?;
+    let aliases = find_verified_aliases(db_client, &profile).await?;
     let base_url = get_request_base_url(connection_info);
     let instance_url = config.instance_url();
     let accounts: Vec<Account> = aliases.into_iter()
@@ -843,6 +847,26 @@ async fn get_account_aliases(
         ))
         .collect();
     Ok(HttpResponse::Ok().json(accounts))
+}
+
+#[get("/{account_id}/aliases/all")]
+async fn get_all_account_aliases(
+    connection_info: ConnectionInfo,
+    config: web::Data<Config>,
+    db_pool: web::Data<DbPool>,
+    account_id: web::Path<Uuid>,
+) -> Result<HttpResponse, MastodonError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let profile = get_profile_by_id(db_client, &account_id).await?;
+    let base_url = get_request_base_url(connection_info);
+    let instance_url = config.instance_url();
+    let aliases = get_aliases(
+        db_client,
+        &base_url,
+        &instance_url,
+        &profile,
+    ).await?;
+    Ok(HttpResponse::Ok().json(aliases))
 }
 
 pub fn account_api_scope() -> Scope {
@@ -868,4 +892,5 @@ pub fn account_api_scope() -> Scope {
         .service(get_account_following)
         .service(get_account_subscribers)
         .service(get_account_aliases)
+        .service(get_all_account_aliases)
 }

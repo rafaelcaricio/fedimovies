@@ -5,7 +5,7 @@ use mitra_config::Config;
 use mitra_models::{
     database::{DatabaseClient, DatabaseError},
     notifications::queries::create_move_notification,
-    profiles::helpers::find_aliases,
+    profiles::helpers::find_verified_aliases,
     relationships::queries::{
         create_follow_request,
         get_followers,
@@ -75,8 +75,8 @@ pub async fn handle_move(
     let new_actor = new_profile.actor_json.as_ref()
         .expect("target should be a remote actor");
 
-    // Find aliases by DIDs (signed)
-    let mut aliases = find_aliases(db_client, &new_profile).await?
+    // Find aliases by DIDs (verified)
+    let mut aliases = find_verified_aliases(db_client, &new_profile).await?
         .into_iter()
         .map(|profile| profile_actor_id(&instance.url(), &profile))
         .collect::<Vec<_>>();
