@@ -7,6 +7,7 @@ pub const MENTIONS_MAX_NUM: usize = 50;
 pub const LINKS_MAX_NUM: usize = 10;
 pub const EMOJIS_MAX_NUM: usize = 50;
 
+pub const OBJECT_ID_SIZE_MAX: usize = 200;
 pub const CONTENT_MAX_SIZE: usize = 100000;
 const CONTENT_ALLOWED_TAGS: [&str; 8] = [
     "a",

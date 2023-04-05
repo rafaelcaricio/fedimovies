@@ -54,6 +54,7 @@ use crate::validators::{
         EMOJIS_MAX_NUM,
         LINKS_MAX_NUM,
         MENTIONS_MAX_NUM,
+        OBJECT_ID_SIZE_MAX,
     },
     tags::validate_hashtag,
 };
@@ -550,6 +551,9 @@ pub async fn handle_note(
             log::warn!("discarding object of type {}", other_type);
             return Err(ValidationError("unsupported object type").into());
         },
+    };
+    if object.id.len() > OBJECT_ID_SIZE_MAX {
+        return Err(ValidationError("object ID is too long").into());
     };
 
     let author_id = get_object_attributed_to(&object)?;
