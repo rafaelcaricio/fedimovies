@@ -14,8 +14,9 @@ use mitra_models::{
     },
     subscriptions::types::Subscription,
     users::types::{
-        Role,
+        ClientConfig,
         Permission,
+        Role,
         User,
     },
 };
@@ -126,6 +127,7 @@ pub struct Account {
     // CredentialAccount attributes
     pub source: Option<Source>,
     pub role: Option<ApiRole>,
+    pub client_config: Option<ClientConfig>,
 }
 
 impl Account {
@@ -220,6 +222,7 @@ impl Account {
             statuses_count: profile.post_count,
             source: None,
             role: None,
+            client_config: None,
         }
     }
 
@@ -248,6 +251,7 @@ impl Account {
         );
         account.source = Some(source);
         account.role = Some(role);
+        account.client_config = Some(user.client_config);
         account
     }
 }

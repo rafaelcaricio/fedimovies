@@ -1,5 +1,9 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use postgres_types::FromSql;
+use serde::Deserialize;
+use serde_json::{Value as JsonValue};
 use uuid::Uuid;
 
 use mitra_utils::{
@@ -9,6 +13,7 @@ use mitra_utils::{
 
 use crate::database::{
     int_enum::{int_enum_from_sql, int_enum_to_sql},
+    json_macro::json_from_sql,
     DatabaseTypeError,
 };
 use crate::profiles::types::DbActorProfile;
@@ -100,6 +105,20 @@ impl TryFrom<i16> for Role {
 int_enum_from_sql!(Role);
 int_enum_to_sql!(Role);
 
+pub type ClientConfig = HashMap<String, JsonValue>;
+
+#[derive(Deserialize)]
+pub struct DbClientConfig(ClientConfig);
+
+impl DbClientConfig {
+    pub fn into_inner(self) -> ClientConfig {
+        let Self(client_config) = self;
+        client_config
+    }
+}
+
+json_from_sql!(DbClientConfig);
+
 #[allow(dead_code)]
 #[derive(FromSql)]
 #[postgres(name = "user_account")]
@@ -110,6 +129,7 @@ pub struct DbUser {
     private_key: String,
     invite_code: Option<String>,
     user_role: Role,
+    client_config: DbClientConfig,
     created_at: DateTime<Utc>,
 }
 
@@ -122,6 +142,7 @@ pub struct User {
     pub password_hash: Option<String>,
     pub private_key: String,
     pub role: Role,
+    pub client_config: ClientConfig,
     pub profile: DbActorProfile,
 }
 
@@ -137,6 +158,7 @@ impl User {
             password_hash: db_user.password_hash,
             private_key: db_user.private_key,
             role: db_user.user_role,
+            client_config: db_user.client_config.into_inner(),
             profile: db_profile,
         }
     }

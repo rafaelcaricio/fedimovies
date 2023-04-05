@@ -780,6 +780,29 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Notification'
+  /api/v1/settings/client_config:
+    post:
+      summary: Update client configuration.
+      security:
+        - tokenAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: |
+                Client configuration.
+                Should contain a single key identifying type of client.
+              type: object
+              example: {"mitra-web":{"theme":"dark"}}
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialAccount'
+        400:
+          description: Invalid request data.
   /api/v1/settings/change_password:
     post:
       summary: Set or change user's password.
@@ -1504,6 +1527,10 @@ components:
             role:
               description: The role assigned to the currently authorized user.
               $ref: '#/components/schemas/Role'
+            client_config:
+              description: Client configurations.
+              type: object
+              example: {"mitra-web":{"theme":"dark"}}
     ActivityParameters:
       type: object
       properties:

@@ -58,6 +58,7 @@ CREATE TABLE user_account (
     private_key TEXT NOT NULL,
     invite_code VARCHAR(100) UNIQUE REFERENCES user_invite_code (code) ON DELETE SET NULL,
     user_role SMALLINT NOT NULL,
+    client_config JSONB NOT NULL DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 

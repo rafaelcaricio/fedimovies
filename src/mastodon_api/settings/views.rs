@@ -18,7 +18,11 @@ use mitra_models::{
         update_profile,
     },
     profiles::types::ProfileUpdateData,
-    users::queries::set_user_password,
+    users::queries::{
+        set_user_password,
+        update_client_config,
+    },
+    users::types::ClientConfig,
 };
 use mitra_utils::passwords::hash_password;
 
@@ -47,6 +51,37 @@ use super::types::{
     MoveFollowersRequest,
     PasswordChangeRequest,
 };
+
+// Similar to Pleroma settings store
+// https://docs-develop.pleroma.social/backend/development/API/differences_in_mastoapi_responses/#pleroma-settings-store
+#[post("/client_config")]
+async fn client_config_view(
+    auth: BearerAuth,
+    connection_info: ConnectionInfo,
+    config: web::Data<Config>,
+    db_pool: web::Data<DbPool>,
+    request_data: web::Json<ClientConfig>,
+) -> Result<HttpResponse, MastodonError> {
+    let db_client = &**get_database_client(&db_pool).await?;
+    let mut current_user = get_current_user(db_client, auth.token()).await?;
+    if request_data.len() != 1 {
+        return Err(ValidationError("can't update more than one config").into());
+    };
+    let (client_name, client_config_value) =
+        request_data.iter().next().expect("hashmap entry should exist");
+    current_user.client_config = update_client_config(
+        db_client,
+        &current_user.id,
+        client_name,
+        client_config_value,
+    ).await?;
+    let account = Account::from_user(
+        &get_request_base_url(connection_info),
+        &config.instance_url(),
+        current_user,
+    );
+    Ok(HttpResponse::Ok().json(account))
+}
 
 #[post("/change_password")]
 async fn change_password_view(
@@ -231,6 +266,7 @@ async fn move_followers(
 
 pub fn settings_api_scope() -> Scope {
     web::scope("/api/v1/settings")
+        .service(client_config_view)
         .service(change_password_view)
         .service(add_alias_view)
         .service(export_followers_view)

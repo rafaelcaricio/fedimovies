@@ -1,3 +1,4 @@
+use serde_json::{Value as JsonValue};
 use uuid::Uuid;
 
 use mitra_utils::{
@@ -17,6 +18,8 @@ use crate::profiles::{
 };
 
 use super::types::{
+    ClientConfig,
+    DbClientConfig,
     DbInviteCode,
     DbUser,
     Role,
@@ -189,6 +192,26 @@ pub async fn set_user_role(
     Ok(())
 }
 
+pub async fn update_client_config(
+    db_client: &impl DatabaseClient,
+    user_id: &Uuid,
+    client_name: &str,
+    client_config_value: &JsonValue,
+) -> Result<ClientConfig, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        UPDATE user_account
+        SET client_config = jsonb_set(client_config, ARRAY[$1], $2, true)
+        WHERE id = $3
+        RETURNING client_config
+        ",
+        &[&client_name, &client_config_value, &user_id],
+    ).await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
+    let client_config: DbClientConfig = row.try_get("client_config")?;
+    Ok(client_config.into_inner())
+}
+
 pub async fn get_user_by_id(
     db_client: &impl DatabaseClient,
     user_id: &Uuid,
@@ -308,6 +331,7 @@ pub async fn get_user_count(
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use serial_test::serial;
     use crate::database::test_utils::create_test_database;
     use crate::users::types::Role;
@@ -361,5 +385,26 @@ mod tests {
         set_user_role(db_client, &user.id, Role::ReadOnlyUser).await.unwrap();
         let user = get_user_by_id(db_client, &user.id).await.unwrap();
         assert_eq!(user.role, Role::ReadOnlyUser);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_update_client_config() {
+        let db_client = &mut create_test_database().await;
+        let user_data = UserCreateData::default();
+        let user = create_user(db_client, user_data).await.unwrap();
+        assert_eq!(user.client_config.is_empty(), true);
+        let client_name = "test";
+        let client_config_value = json!({"a": 1});
+        let client_config = update_client_config(
+            db_client,
+            &user.id,
+            client_name,
+            &client_config_value,
+        ).await.unwrap();
+        assert_eq!(
+            client_config.get(client_name).unwrap(),
+            &client_config_value,
+        );
     }
 }
