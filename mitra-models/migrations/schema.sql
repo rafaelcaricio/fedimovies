@@ -95,7 +95,8 @@ CREATE TABLE relationship (
     source_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     target_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     relationship_type SMALLINT NOT NULL,
-    UNIQUE (source_id, target_id, relationship_type)
+    UNIQUE (source_id, target_id, relationship_type),
+    CHECK (source_id != target_id)
 );
 
 CREATE TABLE follow_request (
@@ -104,7 +105,8 @@ CREATE TABLE follow_request (
     target_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     activity_id VARCHAR(250) UNIQUE,
     request_status SMALLINT NOT NULL,
-    UNIQUE (source_id, target_id)
+    UNIQUE (source_id, target_id),
+    CHECK (source_id != target_id)
 );
 
 CREATE TABLE post (
@@ -166,7 +168,8 @@ CREATE TABLE post_tag (
 CREATE TABLE post_link (
     source_id UUID NOT NULL REFERENCES post (id) ON DELETE CASCADE,
     target_id UUID NOT NULL REFERENCES post (id) ON DELETE CASCADE,
-    PRIMARY KEY (source_id, target_id)
+    PRIMARY KEY (source_id, target_id),
+    CHECK (source_id != target_id)
 );
 
 CREATE TABLE emoji (
@@ -219,7 +222,8 @@ CREATE TABLE invoice (
     amount BIGINT NOT NULL CHECK (amount >= 0),
     invoice_status SMALLINT NOT NULL DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (chain_id, payment_address)
+    UNIQUE (chain_id, payment_address),
+    CHECK (sender_id != recipient_id)
 );
 
 CREATE TABLE subscription (
@@ -230,5 +234,6 @@ CREATE TABLE subscription (
     chain_id VARCHAR(50) NOT NULL,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    UNIQUE (sender_id, recipient_id)
+    UNIQUE (sender_id, recipient_id),
+    CHECK (sender_id != recipient_id)
 );

@@ -21,6 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Process incoming `Move()` activities in background.
 - Allow custom emojis with `image/webp` media type.
 
+### Fixed
+
+- Added missing `CHECK` constraints to database tables.
+
 ## [1.19.1] - 2023-03-31
 
 ### Changed
