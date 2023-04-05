@@ -357,6 +357,7 @@ pub fn get_local_actor(
         let attachment = attach_extra_field(field);
         attachments.push(attachment);
     };
+    let aliases = user.profile.aliases.clone().into_actor_ids();
     let actor = Actor {
         context: Some(json!(build_actor_context())),
         id: actor_id.clone(),
@@ -372,7 +373,7 @@ pub fn get_local_actor(
         icon: avatar,
         image: banner,
         summary: user.profile.bio.clone(),
-        also_known_as: None,
+        also_known_as: Some(json!(aliases)),
         attachment: attachments,
         manually_approves_followers: false,
         tag: vec![],
