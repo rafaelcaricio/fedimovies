@@ -22,7 +22,10 @@ use mitra_models::{
 };
 use mitra_utils::passwords::hash_password;
 
-use crate::activitypub::identifiers::profile_actor_id;
+use crate::activitypub::{
+    builders::update_person::prepare_update_person,
+    identifiers::profile_actor_id,
+};
 use crate::errors::ValidationError;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
@@ -88,6 +91,12 @@ async fn add_alias_view(
         &current_user.id,
         profile_data,
     ).await?;
+    prepare_update_person(
+        db_client,
+        &instance,
+        &current_user,
+        None,
+    ).await?.enqueue(db_client).await?;
     let aliases = get_aliases(
         db_client,
         &get_request_base_url(connection_info),
