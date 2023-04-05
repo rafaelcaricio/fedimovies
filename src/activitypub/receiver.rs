@@ -320,7 +320,7 @@ pub async fn receive_activity(
         };
     };
 
-    if let ANNOUNCE | CREATE | DELETE | UNDO | UPDATE = activity_type {
+    if let ANNOUNCE | CREATE | DELETE | MOVE | UNDO | UPDATE = activity_type {
         // Add activity to job queue and release lock
         IncomingActivityJobData::new(activity, is_authenticated)
             .into_job(db_client, 0).await?;
