@@ -19,6 +19,7 @@ use mitra_models::{
         types::{Post, PostCreateData, Visibility},
     },
     profiles::types::DbActorProfile,
+    relationships::queries::has_local_followers,
     users::queries::get_user_by_name,
 };
 use mitra_utils::{
@@ -655,6 +656,26 @@ pub async fn handle_note(
     Ok(post)
 }
 
+async fn is_unsolicited_message(
+    db_client: &impl DatabaseClient,
+    instance_url: &str,
+    object: &Object,
+) -> Result<bool, HandlerError> {
+    let author_id = get_object_attributed_to(object)?;
+    let author_has_followers =
+        has_local_followers(db_client, &author_id).await?;
+    let audience = get_audience(object)?;
+    let has_local_recipients = audience.iter().any(|actor_id| {
+        parse_local_actor_id(instance_url, actor_id).is_ok()
+    });
+    let result =
+        object.in_reply_to.is_none() &&
+        is_public_object(&audience) &&
+        !has_local_recipients &&
+        !author_has_followers;
+    Ok(result)
+}
+
 pub async fn handle_create(
     config: &Config,
     db_client: &mut impl DatabaseClient,
@@ -663,6 +684,13 @@ pub async fn handle_create(
 ) -> HandlerResult {
     let object: Object = serde_json::from_value(activity["object"].to_owned())
         .map_err(|_| ValidationError("invalid object"))?;
+    let instance = config.instance();
+
+    if is_unsolicited_message(db_client, &instance.url(), &object).await? {
+        log::warn!("unsolicited message rejected: {}", object.id);
+        return Ok(None);
+    };
+
     let object_id = object.id.clone();
     let object_received = if is_authenticated {
         Some(object)
@@ -673,7 +701,7 @@ pub async fn handle_create(
     };
     import_post(
         db_client,
-        &config.instance(),
+        &instance,
         &MediaStorage::from(config),
         object_id,
         object_received,

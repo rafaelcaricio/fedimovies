@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Populate `alsoKnownAs` property on actor object with declared aliases.
 - Support account migration from Mastodon.
 - Created API endpoint for managing client configurations.
+- Reject unsolicited public posts.
 
 ### Changed
 

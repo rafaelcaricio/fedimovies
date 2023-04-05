@@ -348,6 +348,24 @@ pub async fn get_followers_paginated(
     Ok(related_profiles)
 }
 
+pub async fn has_local_followers(
+    db_client: &impl DatabaseClient,
+    actor_id: &str,
+) -> Result<bool, DatabaseError> {
+    let maybe_row = db_client.query_opt(
+        "
+        SELECT 1
+        FROM relationship
+        JOIN actor_profile ON (relationship.target_id = actor_profile.id)
+        WHERE
+            actor_profile.actor_id = $1
+            AND relationship_type = $2
+        ",
+        &[&actor_id, &RelationshipType::Follow]
+    ).await?;
+    Ok(maybe_row.is_some())
+}
+
 pub async fn get_following(
     db_client: &impl DatabaseClient,
     profile_id: &Uuid,
@@ -581,10 +599,14 @@ mod tests {
             ..Default::default()
         };
         let source = create_user(db_client, source_data).await.unwrap();
+        let target_actor_id = "https://example.org/users/1";
         let target_data = ProfileCreateData {
             username: "followed".to_string(),
             hostname: Some("example.org".to_string()),
-            actor_json: Some(DbActor::default()),
+            actor_json: Some(DbActor {
+                id: target_actor_id.to_string(),
+                ..Default::default()
+            }),
             ..Default::default()
         };
         let target = create_profile(db_client, target_data).await.unwrap();
@@ -604,6 +626,10 @@ mod tests {
         assert_eq!(follow_request.request_status, FollowRequestStatus::Accepted);
         let following = get_following(db_client, &source.id).await.unwrap();
         assert_eq!(following[0].id, target.id);
+        let target_has_followers =
+            has_local_followers(db_client, target_actor_id).await.unwrap();
+        assert_eq!(target_has_followers, true);
+
         // Unfollow
         let follow_request_id = unfollow(db_client, &source.id, &target.id)
             .await.unwrap().unwrap();
