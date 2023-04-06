@@ -505,19 +505,40 @@ pub async fn get_object_tags(
     Ok((mentions, hashtags, links, emojis))
 }
 
-fn get_object_visibility(
-    author: &DbActorProfile,
-    primary_audience: Vec<String>,
-    secondary_audience: Vec<String>,
-) -> Visibility {
+fn get_audience(object: &Object) -> Result<Vec<String>, ValidationError> {
+    let primary_audience = match object.to {
+        Some(ref value) => {
+            parse_array(value)
+                .map_err(|_| ValidationError("invalid 'to' property value"))?
+        },
+        None => vec![],
+    };
+    let secondary_audience = match object.cc {
+        Some(ref value) => {
+            parse_array(value)
+                .map_err(|_| ValidationError("invalid 'cc' property value"))?
+        },
+        None => vec![],
+    };
     let audience = [primary_audience, secondary_audience].concat();
+    Ok(audience)
+}
+
+fn is_public_object(audience: &[String]) -> bool {
     // Some servers (e.g. Takahe) use "as" namespace
     const PUBLIC_VARIANTS: [&str; 3] = [
         AP_PUBLIC,
         "as:Public",
         "Public",
     ];
-    if audience.iter().any(|item| PUBLIC_VARIANTS.contains(&item.as_str())) {
+    audience.iter().any(|item| PUBLIC_VARIANTS.contains(&item.as_str()))
+}
+
+fn get_object_visibility(
+    author: &DbActorProfile,
+    audience: &[String],
+) -> Visibility {
+    if is_public_object(audience) {
        return Visibility::Public;
     };
     let actor = author.actor_json.as_ref()
@@ -607,25 +628,8 @@ pub async fn handle_note(
         },
         None => None,
     };
-    let primary_audience = match object.to {
-        Some(value) => {
-            parse_array(&value)
-                .map_err(|_| ValidationError("invalid 'to' property value"))?
-        },
-        None => vec![],
-    };
-    let secondary_audience = match object.cc {
-        Some(value) => {
-            parse_array(&value)
-                .map_err(|_| ValidationError("invalid 'cc' property value"))?
-        },
-        None => vec![],
-    };
-    let visibility = get_object_visibility(
-        &author,
-        primary_audience,
-        secondary_audience,
-    );
+    let audience = get_audience(&object)?;
+    let visibility = get_object_visibility(&author, &audience);
     if visibility != Visibility::Public {
         log::warn!(
             "processing note with visibility {:?} attributed to {}",
@@ -742,13 +746,8 @@ mod tests {
     #[test]
     fn test_get_object_visibility_public() {
         let author = DbActorProfile::default();
-        let primary_audience = vec![AP_PUBLIC.to_string()];
-        let secondary_audience = vec![];
-        let visibility = get_object_visibility(
-            &author,
-            primary_audience,
-            secondary_audience,
-        );
+        let audience = vec![AP_PUBLIC.to_string()];
+        let visibility = get_object_visibility(&author, &audience);
         assert_eq!(visibility, Visibility::Public);
     }
 
@@ -762,13 +761,8 @@ mod tests {
             }),
             ..Default::default()
         };
-        let primary_audience = vec![author_followers.to_string()];
-        let secondary_audience = vec![];
-        let visibility = get_object_visibility(
-            &author,
-            primary_audience,
-            secondary_audience,
-        );
+        let audience = vec![author_followers.to_string()];
+        let visibility = get_object_visibility(&author, &audience);
         assert_eq!(visibility, Visibility::Followers);
     }
 
@@ -784,13 +778,8 @@ mod tests {
             }),
             ..Default::default()
         };
-        let primary_audience = vec![author_subscribers.to_string()];
-        let secondary_audience = vec![];
-        let visibility = get_object_visibility(
-            &author,
-            primary_audience,
-            secondary_audience,
-        );
+        let audience = vec![author_subscribers.to_string()];
+        let visibility = get_object_visibility(&author, &audience);
         assert_eq!(visibility, Visibility::Subscribers);
     }
 
@@ -800,13 +789,8 @@ mod tests {
             actor_json: Some(DbActor::default()),
             ..Default::default()
         };
-        let primary_audience = vec!["https://example.com/users/1".to_string()];
-        let secondary_audience = vec![];
-        let visibility = get_object_visibility(
-            &author,
-            primary_audience,
-            secondary_audience,
-        );
+        let audience = vec!["https://example.com/users/1".to_string()];
+        let visibility = get_object_visibility(&author, &audience);
         assert_eq!(visibility, Visibility::Direct);
     }
 }
