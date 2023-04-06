@@ -3,6 +3,7 @@ use regex::Regex;
 use crate::errors::ValidationError;
 
 const EMOJI_NAME_RE: &str = r"^[a-zA-Z0-9._-]+$";
+const EMOJI_NAME_SIZE_MAX: usize = 100; // database column limit
 pub const EMOJI_MAX_SIZE: usize = 500 * 1000; // 500 kB
 pub const EMOJI_LOCAL_MAX_SIZE: usize = 50 * 1000; // 50 kB
 pub const EMOJI_MEDIA_TYPES: [&str; 4] = [
@@ -16,6 +17,9 @@ pub fn validate_emoji_name(emoji_name: &str) -> Result<(), ValidationError> {
     let name_re = Regex::new(EMOJI_NAME_RE).unwrap();
     if !name_re.is_match(emoji_name) {
         return Err(ValidationError("invalid emoji name"));
+    };
+    if emoji_name.len() > EMOJI_NAME_SIZE_MAX {
+        return Err(ValidationError("emoji name is too long"));
     };
     Ok(())
 }

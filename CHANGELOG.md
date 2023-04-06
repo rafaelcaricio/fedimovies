@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Added missing `CHECK` constraints to database tables.
 - Validate object ID length before saving post to database.
+- Validate emoji name length before saving to database.
 
 ## [1.19.1] - 2023-03-31
 
