@@ -37,7 +37,7 @@ CREATE TABLE actor_profile (
     post_count INTEGER NOT NULL CHECK (post_count >= 0) DEFAULT 0,
     emojis JSONB NOT NULL DEFAULT '[]',
     actor_json JSONB,
-    actor_id VARCHAR(200) UNIQUE GENERATED ALWAYS AS (actor_json ->> 'id') STORED,
+    actor_id VARCHAR(2000) UNIQUE GENERATED ALWAYS AS (actor_json ->> 'id') STORED,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     unreachable_since TIMESTAMP WITH TIME ZONE,
@@ -66,7 +66,7 @@ CREATE TABLE oauth_application (
     app_name VARCHAR(100) NOT NULL,
     website VARCHAR(100),
     scopes VARCHAR(200) NOT NULL,
-    redirect_uri VARCHAR(200) NOT NULL,
+    redirect_uri VARCHAR(2000) NOT NULL,
     client_id UUID UNIQUE NOT NULL,
     client_secret VARCHAR(100) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -103,7 +103,7 @@ CREATE TABLE follow_request (
     id UUID PRIMARY KEY,
     source_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     target_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
-    activity_id VARCHAR(250) UNIQUE,
+    activity_id VARCHAR(2000) UNIQUE,
     request_status SMALLINT NOT NULL,
     UNIQUE (source_id, target_id),
     CHECK (source_id != target_id)
@@ -119,7 +119,7 @@ CREATE TABLE post (
     reply_count INTEGER NOT NULL CHECK (reply_count >= 0) DEFAULT 0,
     reaction_count INTEGER NOT NULL CHECK (reaction_count >= 0) DEFAULT 0,
     repost_count INTEGER NOT NULL CHECK (repost_count >= 0) DEFAULT 0,
-    object_id VARCHAR(200) UNIQUE,
+    object_id VARCHAR(2000) UNIQUE,
     ipfs_cid VARCHAR(200),
     token_id INTEGER,
     token_tx_id VARCHAR(200),
@@ -132,7 +132,7 @@ CREATE TABLE post_reaction (
     id UUID PRIMARY KEY,
     author_id UUID NOT NULL REFERENCES actor_profile (id) ON DELETE CASCADE,
     post_id UUID NOT NULL REFERENCES post (id) ON DELETE CASCADE,
-    activity_id VARCHAR(250) UNIQUE,
+    activity_id VARCHAR(2000) UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     UNIQUE (author_id, post_id)
 );
@@ -177,7 +177,7 @@ CREATE TABLE emoji (
     emoji_name VARCHAR(100) NOT NULL,
     hostname VARCHAR(100) REFERENCES instance (hostname) ON DELETE RESTRICT,
     image JSONB NOT NULL,
-    object_id VARCHAR(250) UNIQUE,
+    object_id VARCHAR(2000) UNIQUE,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     UNIQUE (emoji_name, hostname),
     CHECK ((hostname IS NULL) = (object_id IS NULL))
