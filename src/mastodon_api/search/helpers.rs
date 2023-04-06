@@ -41,7 +41,7 @@ use crate::ethereum::utils::validate_ethereum_address;
 use crate::media::MediaStorage;
 use crate::webfinger::types::ActorAddress;
 
-const SEARCH_FETCHER_TIMEOUT: u64 = 5;
+const SEARCH_FETCHER_TIMEOUT: u64 = 15;
 
 enum SearchQuery {
     ProfileQuery(String, Option<String>),

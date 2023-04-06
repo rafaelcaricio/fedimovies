@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Process incoming `Move()` activities in background.
 - Allow custom emojis with `image/webp` media type.
 - Increase object ID size limit to 2000 chars.
+- Increase fetcher timeout to 15 seconds when processing search queries.
 
 ### Fixed
 
