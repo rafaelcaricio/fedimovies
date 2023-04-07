@@ -50,11 +50,11 @@ use crate::validators::{
     },
     posts::{
         content_allowed_classes,
-        ATTACHMENTS_MAX_NUM,
+        ATTACHMENT_LIMIT,
         CONTENT_MAX_SIZE,
-        EMOJIS_MAX_NUM,
-        LINKS_MAX_NUM,
-        MENTIONS_MAX_NUM,
+        EMOJI_LIMIT,
+        LINK_LIMIT,
+        MENTION_LIMIT,
         OBJECT_ID_SIZE_MAX,
     },
     tags::validate_hashtag,
@@ -183,7 +183,7 @@ pub async fn get_object_attachments(
             log::info!("downloaded attachment {}", attachment_url);
             downloaded.push((file_name, file_size, maybe_media_type));
             // Stop downloading if limit is reached
-            if downloaded.len() >= ATTACHMENTS_MAX_NUM {
+            if downloaded.len() >= ATTACHMENT_LIMIT {
                 log::warn!("too many attachments");
                 break;
             };
@@ -363,7 +363,7 @@ pub async fn get_object_tags(
                 };
             };
         } else if tag_type == MENTION {
-            if mentions.len() >= MENTIONS_MAX_NUM {
+            if mentions.len() >= MENTION_LIMIT {
                 log::warn!("too many mentions");
                 continue;
             };
@@ -444,7 +444,7 @@ pub async fn get_object_tags(
                 log::warn!("failed to parse mention {}", tag_name);
             };
         } else if tag_type == LINK {
-            if links.len() >= LINKS_MAX_NUM {
+            if links.len() >= LINK_LIMIT {
                 log::warn!("too many links");
                 continue;
             };
@@ -471,7 +471,7 @@ pub async fn get_object_tags(
                 links.push(linked.id);
             };
         } else if tag_type == EMOJI {
-            if emojis.len() >= EMOJIS_MAX_NUM {
+            if emojis.len() >= EMOJI_LIMIT {
                 log::warn!("too many emojis");
                 continue;
             };

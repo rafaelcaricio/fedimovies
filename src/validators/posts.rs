@@ -2,10 +2,10 @@ use mitra_utils::html::clean_html_strict;
 
 use crate::errors::ValidationError;
 
-pub const ATTACHMENTS_MAX_NUM: usize = 15;
-pub const MENTIONS_MAX_NUM: usize = 50;
-pub const LINKS_MAX_NUM: usize = 10;
-pub const EMOJIS_MAX_NUM: usize = 50;
+pub const ATTACHMENT_LIMIT: usize = 15;
+pub const MENTION_LIMIT: usize = 50;
+pub const LINK_LIMIT: usize = 10;
+pub const EMOJI_LIMIT: usize = 50;
 
 pub const OBJECT_ID_SIZE_MAX: usize = 2000;
 pub const CONTENT_MAX_SIZE: usize = 100000;
