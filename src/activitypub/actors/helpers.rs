@@ -24,7 +24,7 @@ use crate::activitypub::{
 };
 use crate::media::MediaStorage;
 use crate::validators::{
-    posts::EMOJIS_MAX_NUM,
+    posts::EMOJI_LIMIT,
     profiles::{clean_profile_create_data, clean_profile_update_data},
 };
 
@@ -123,7 +123,7 @@ async fn parse_tags(
     for tag_value in actor.tag.clone() {
         let tag_type = tag_value["type"].as_str().unwrap_or(HASHTAG);
         if tag_type == EMOJI {
-            if emojis.len() >= EMOJIS_MAX_NUM {
+            if emojis.len() >= EMOJI_LIMIT {
                 log::warn!("too many emojis");
                 continue;
             };

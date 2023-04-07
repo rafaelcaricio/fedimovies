@@ -9,7 +9,7 @@ use mitra_utils::markdown::markdown_to_html;
 
 use crate::mastodon_api::MASTODON_API_VERSION;
 use crate::media::SUPPORTED_MEDIA_TYPES;
-use crate::validators::posts::ATTACHMENTS_MAX_NUM;
+use crate::validators::posts::ATTACHMENT_LIMIT;
 
 #[derive(Serialize)]
 struct InstanceStats {
@@ -93,7 +93,7 @@ impl InstanceInfo {
             configuration: InstanceConfiguration {
                 statuses: InstanceStatusLimits {
                     max_characters: config.limits.posts.character_limit,
-                    max_media_attachments: ATTACHMENTS_MAX_NUM,
+                    max_media_attachments: ATTACHMENT_LIMIT,
                 },
                 media_attachments: InstanceMediaLimits {
                     supported_mime_types: SUPPORTED_MEDIA_TYPES.iter()

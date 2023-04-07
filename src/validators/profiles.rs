@@ -9,6 +9,8 @@ use mitra_utils::html::{clean_html, clean_html_strict};
 
 use crate::errors::ValidationError;
 
+use super::posts::EMOJI_LIMIT;
+
 const USERNAME_RE: &str = r"^[a-zA-Z0-9_\.-]+$";
 const DISPLAY_NAME_MAX_LENGTH: usize = 200;
 const BIO_MAX_LENGTH: usize = 10000;
@@ -106,6 +108,9 @@ pub fn clean_profile_create_data(
         &profile_data.extra_fields,
         is_remote,
     )?;
+    if profile_data.emojis.len() > EMOJI_LIMIT {
+        return Err(ValidationError("too many emojis"));
+    };
     Ok(())
 }
 
@@ -124,6 +129,9 @@ pub fn clean_profile_update_data(
         &profile_data.extra_fields,
         is_remote,
     )?;
+    if profile_data.emojis.len() > EMOJI_LIMIT {
+        return Err(ValidationError("too many emojis"));
+    };
     Ok(())
 }
 

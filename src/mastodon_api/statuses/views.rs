@@ -57,8 +57,8 @@ use crate::mastodon_api::{
 use crate::media::remove_media;
 use crate::validators::posts::{
     clean_content,
-    ATTACHMENTS_MAX_NUM,
-    EMOJIS_MAX_NUM,
+    ATTACHMENT_LIMIT,
+    EMOJI_LIMIT,
 };
 use super::helpers::{
     build_status,
@@ -137,7 +137,7 @@ async fn create_status(
 
     // Emoji validation
     let emojis: Vec<_> = emojis.iter().map(|emoji| emoji.id).collect();
-    if emojis.len() > EMOJIS_MAX_NUM {
+    if emojis.len() > EMOJI_LIMIT {
         return Err(ValidationError("too many emojis").into());
     };
 
@@ -171,7 +171,7 @@ async fn create_status(
     };
     // Validate attachments
     let attachments = status_data.media_ids.unwrap_or(vec![]);
-    if attachments.len() > ATTACHMENTS_MAX_NUM {
+    if attachments.len() > ATTACHMENT_LIMIT {
         return Err(ValidationError("too many attachments").into());
     };
 
