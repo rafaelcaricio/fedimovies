@@ -93,9 +93,7 @@ pub async fn monero_payment_monitor(
     config: &Config,
     db_pool: &DbPool,
 ) -> Result<(), Error> {
-    let maybe_monero_config = config.blockchain()
-        .and_then(|conf| conf.monero_config());
-    let monero_config = match maybe_monero_config {
+    let monero_config = match config.monero_config() {
         Some(monero_config) => monero_config,
         None => return Ok(()), // not configured
     };

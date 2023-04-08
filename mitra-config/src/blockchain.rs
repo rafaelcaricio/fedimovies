@@ -71,21 +71,3 @@ pub enum BlockchainConfig {
     Ethereum(EthereumConfig),
     Monero(MoneroConfig),
 }
-
-impl BlockchainConfig {
-    pub fn ethereum_config(&self) -> Option<&EthereumConfig> {
-        if let Self::Ethereum(ethereum_config) = self {
-            Some(ethereum_config)
-        } else {
-            None
-        }
-    }
-
-    pub fn monero_config(&self) -> Option<&MoneroConfig> {
-        if let Self::Monero(monero_config) = self {
-            Some(monero_config)
-        } else {
-            None
-        }
-    }
-}

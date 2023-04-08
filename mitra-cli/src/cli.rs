@@ -567,8 +567,7 @@ impl CreateMoneroWallet {
         &self,
         config: &Config,
     ) -> Result<(), Error> {
-        let monero_config = config.blockchain()
-            .and_then(|conf| conf.monero_config())
+        let monero_config = config.monero_config()
             .ok_or(anyhow!("monero configuration not found"))?;
         create_monero_wallet(
             monero_config,
@@ -592,8 +591,7 @@ impl CheckExpiredInvoice {
         config: &Config,
         db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        let monero_config = config.blockchain()
-            .and_then(|conf| conf.monero_config())
+        let monero_config = config.monero_config()
             .ok_or(anyhow!("monero configuration not found"))?;
         check_expired_invoice(
             monero_config,

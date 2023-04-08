@@ -7,7 +7,11 @@ use url::Url;
 
 use mitra_utils::urls::normalize_url;
 
-use super::blockchain::BlockchainConfig;
+use super::blockchain::{
+    BlockchainConfig,
+    EthereumConfig,
+    MoneroConfig,
+};
 use super::environment::Environment;
 use super::federation::FederationConfig;
 use super::limits::Limits;
@@ -117,16 +121,31 @@ impl Config {
         self.storage_dir.join("media")
     }
 
-    pub fn blockchain(&self) -> Option<&BlockchainConfig> {
+    pub fn blockchains(&self) -> &[BlockchainConfig] {
         if let Some(ref _blockchain_config) = self._blockchain {
             panic!("'blockchain' setting is not supported anymore, use 'blockchains' instead");
         } else {
-            match &self.blockchains[..] {
-                [blockchain_config] => Some(blockchain_config),
-                [] => None,
-                _ => panic!("multichain deployments are not supported"),
-            }
+            if self.blockchains.len() > 1 {
+                panic!("multichain deployments are not supported");
+            };
+            &self.blockchains
         }
+    }
+
+    pub fn ethereum_config(&self) -> Option<&EthereumConfig> {
+        self.blockchains().iter()
+            .find_map(|item| match item {
+                BlockchainConfig::Ethereum(config) => Some(config),
+                _ => None,
+            })
+    }
+
+    pub fn monero_config(&self) -> Option<&MoneroConfig> {
+        self.blockchains().iter()
+            .find_map(|item| match item {
+                BlockchainConfig::Monero(config) => Some(config),
+                _ => None,
+            })
     }
 }
 

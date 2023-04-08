@@ -91,9 +91,8 @@ impl InstanceInfo {
         post_count: i64,
         peer_count: i64,
     ) -> Self {
-        let mut blockchains = vec![];
-        match config.blockchain() {
-            Some(BlockchainConfig::Ethereum(ethereum_config)) => {
+        let blockchains = config.blockchains().iter().map(|item| match item {
+            BlockchainConfig::Ethereum(ethereum_config) => {
                 let features = if let Some(contract_set) = maybe_ethereum_contracts {
                     BlockchainFeatures {
                         gate: contract_set.gate.is_some(),
@@ -110,29 +109,28 @@ impl InstanceInfo {
                 let maybe_chain_metadata = ethereum_config
                     .chain_metadata.as_ref()
                     .and_then(|metadata| to_value(metadata).ok());
-                blockchains.push(BlockchainInfo {
+                BlockchainInfo {
                     chain_id: ethereum_config.chain_id.to_string(),
                     chain_metadata: maybe_chain_metadata,
                     contract_address:
                         Some(ethereum_config.contract_address.clone()),
                     features: features,
-                });
+                }
             },
-            Some(BlockchainConfig::Monero(monero_config)) => {
+            BlockchainConfig::Monero(monero_config) => {
                 let features = BlockchainFeatures {
                     gate: false,
                     minter: false,
                     subscriptions: true,
                 };
-                blockchains.push(BlockchainInfo {
+                BlockchainInfo {
                     chain_id: monero_config.chain_id.to_string(),
                     chain_metadata: None,
                     contract_address: None,
                     features: features,
-                })
+                }
             },
-            None => (),
-        };
+        }).collect();
         Self {
             uri: config.instance().hostname(),
             title: config.instance_title.clone(),

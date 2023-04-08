@@ -66,9 +66,7 @@ pub async fn authorize_subscription(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let ethereum_config = config.blockchain()
-        .ok_or(MastodonError::NotSupported)?
-        .ethereum_config()
+    let ethereum_config = config.ethereum_config()
         .ok_or(MastodonError::NotSupported)?;
     // The user must have a public ethereum address,
     // because subscribers should be able
@@ -115,8 +113,7 @@ pub async fn register_subscription_option(
 
     let maybe_payment_option = match subscription_option.into_inner() {
         SubscriptionOption::Ethereum => {
-            let ethereum_config = config.blockchain()
-                .and_then(|conf| conf.ethereum_config())
+            let ethereum_config = config.ethereum_config()
                 .ok_or(MastodonError::NotSupported)?;
             let contract_set = maybe_ethereum_contracts.as_ref().as_ref()
                 .ok_or(MastodonError::NotSupported)?;
@@ -142,8 +139,7 @@ pub async fn register_subscription_option(
             }
         },
         SubscriptionOption::Monero { price, payout_address } => {
-            let monero_config = config.blockchain()
-                .and_then(|conf| conf.monero_config())
+            let monero_config = config.monero_config()
                 .ok_or(MastodonError::NotSupported)?;
             if price == 0 {
                 return Err(ValidationError("price must be greater than 0").into());
@@ -207,9 +203,7 @@ async fn create_invoice_view(
     db_pool: web::Data<DbPool>,
     invoice_data: web::Json<InvoiceData>,
 ) -> Result<HttpResponse, MastodonError> {
-    let monero_config = config.blockchain()
-        .ok_or(MastodonError::NotSupported)?
-        .monero_config()
+    let monero_config = config.monero_config()
         .ok_or(MastodonError::NotSupported)?;
     if invoice_data.sender_id == invoice_data.recipient_id {
         return Err(ValidationError("sender must be different from recipient").into());

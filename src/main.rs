@@ -61,14 +61,10 @@ async fn main() -> std::io::Result<()> {
             .expect("failed to create media directory");
     };
 
-    let maybe_ethereum_blockchain = if let Some(blockchain_config) = config.blockchain() {
-        if let Some(ethereum_config) = blockchain_config.ethereum_config() {
-            // Create blockchain interface
-            get_contracts(&**db_client, ethereum_config, &config.storage_dir).await
-                .map(Some).unwrap()
-        } else {
-            None
-        }
+    let maybe_ethereum_blockchain = if let Some(ethereum_config) = config.ethereum_config() {
+        // Create blockchain interface
+        get_contracts(&**db_client, ethereum_config, &config.storage_dir).await
+            .map(Some).unwrap()
     } else {
         None
     };
@@ -188,14 +184,12 @@ async fn main() -> std::io::Result<()> {
                 web::resource("/.well-known/{path}")
                     .to(HttpResponse::NotFound)
             );
-        if let Some(blockchain_config) = config.blockchain() {
-            if let Some(ethereum_config) = blockchain_config.ethereum_config() {
-                // Serve artifacts if available
-                app = app.service(actix_files::Files::new(
-                    "/contracts",
-                    &ethereum_config.contract_dir,
-                ));
-            };
+        if let Some(ethereum_config) = config.ethereum_config() {
+            // Serve artifacts if available
+            app = app.service(actix_files::Files::new(
+                "/contracts",
+                &ethereum_config.contract_dir,
+            ));
         };
         if let Some(ref web_client_dir) = config.web_client_dir {
             app = app.service(web_client::static_service(web_client_dir));

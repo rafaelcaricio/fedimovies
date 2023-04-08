@@ -625,9 +625,7 @@ async fn get_signature(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let ethereum_config = config.blockchain()
-        .ok_or(MastodonError::NotSupported)?
-        .ethereum_config()
+    let ethereum_config = config.ethereum_config()
         .ok_or(MastodonError::NotSupported)?;
     // User must have a public ethereum address
     let wallet_address = current_user
