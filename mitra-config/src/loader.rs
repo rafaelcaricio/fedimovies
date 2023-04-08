@@ -102,14 +102,6 @@ pub fn parse_config() -> (Config, Vec<&'static str>) {
     };
     check_directory_owner(&config.storage_dir);
     config.try_instance_url().expect("invalid instance URI");
-    if let Some(blockchain_config) = config.blockchain() {
-        if let Some(ethereum_config) = blockchain_config.ethereum_config() {
-            ethereum_config.try_ethereum_chain_id().unwrap();
-            if !ethereum_config.contract_dir.exists() {
-                panic!("contract directory does not exist");
-            };
-        };
-    };
     if config.ipfs_api_url.is_some() != config.ipfs_gateway_url.is_some() {
         panic!("both ipfs_api_url and ipfs_gateway_url must be set");
     };

@@ -112,14 +112,6 @@ Test connection:
 psql -h localhost -p 55432 -U mitra mitra
 ```
 
-### Start Monero node and wallet server
-
-(this step is optional)
-
-```shell
-docker-compose --profile monero up -d
-```
-
 ### Run web service
 
 Create config file, adjust settings if needed:

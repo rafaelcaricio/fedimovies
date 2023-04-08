@@ -1,4 +1,3 @@
-mod blockchain;
 mod config;
 mod environment;
 mod federation;
@@ -7,17 +6,12 @@ mod loader;
 mod registration;
 mod retention;
 
-pub use blockchain::{
-    BlockchainConfig,
-    EthereumConfig,
-    MoneroConfig,
-};
 pub use config::{Config, Instance};
 pub use environment::Environment;
 pub use loader::parse_config;
 pub use registration::{DefaultRole, RegistrationType};
 
-pub const MITRA_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const REEF_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(thiserror::Error, Debug)]
 #[error("{0}")]

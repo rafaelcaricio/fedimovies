@@ -36,7 +36,7 @@ use mitra::mastodon_api::timelines::views::timeline_api_scope;
 use mitra::nodeinfo::views as nodeinfo;
 use mitra::webfinger::views as webfinger;
 use mitra::web_client::views as web_client;
-use mitra_config::{parse_config, Environment, MITRA_VERSION};
+use mitra_config::{parse_config, Environment, REEF_VERSION};
 use mitra_models::database::{get_database_client, create_pool};
 use mitra_models::database::migrate::apply_migrations;
 
@@ -62,7 +62,7 @@ async fn main() -> std::io::Result<()> {
     std::mem::drop(db_client);
     log::info!(
         "app initialized; version {}, environment = '{:?}'",
-        MITRA_VERSION,
+        REEF_VERSION,
         config.environment,
     );
 

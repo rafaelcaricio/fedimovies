@@ -3,7 +3,7 @@ use serde::Serialize;
 use mitra_config::{
     Config,
     RegistrationType,
-    MITRA_VERSION,
+    REEF_VERSION,
 };
 use mitra_utils::markdown::markdown_to_html;
 
@@ -58,7 +58,7 @@ pub struct InstanceInfo {
 
 fn get_full_api_version(version: &str) -> String {
     format!(
-        "{0} (compatible; Mitra {1})",
+        "{0} (compatible; Reef {1})",
         MASTODON_API_VERSION,
         version,
     )
@@ -77,7 +77,7 @@ impl InstanceInfo {
             short_description: config.instance_short_description.clone(),
             description: markdown_to_html(&config.instance_description),
             description_source: config.instance_description.clone(),
-            version: get_full_api_version(MITRA_VERSION),
+            version: get_full_api_version(REEF_VERSION),
             registrations:
                 config.registration.registration_type !=
                 RegistrationType::Invite,

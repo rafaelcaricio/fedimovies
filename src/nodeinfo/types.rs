@@ -2,7 +2,7 @@
 
 use serde::Serialize;
 
-use mitra_config::{Config, RegistrationType, MITRA_VERSION};
+use mitra_config::{Config, RegistrationType, REEF_VERSION};
 
 const MITRA_NAME: &str = "reef";
 const MITRA_REPOSITORY: &str = "https://code.caric.io/reef/reef";
@@ -19,7 +19,7 @@ impl Default for Software20 {
     fn default() -> Self {
         Self {
             name: MITRA_NAME.to_string(),
-            version: MITRA_VERSION.to_string(),
+            version: REEF_VERSION.to_string(),
         }
     }
 }
@@ -35,7 +35,7 @@ impl Default for Software21 {
     fn default() -> Self {
         Self {
             name: MITRA_NAME.to_string(),
-            version: MITRA_VERSION.to_string(),
+            version: REEF_VERSION.to_string(),
             repository: MITRA_REPOSITORY.to_string(),
         }
     }

@@ -7,17 +7,16 @@ use url::Url;
 
 use mitra_utils::urls::normalize_url;
 
-use super::blockchain::BlockchainConfig;
 use super::environment::Environment;
 use super::federation::FederationConfig;
 use super::limits::Limits;
 use super::registration::RegistrationConfig;
 use super::retention::RetentionConfig;
-use super::MITRA_VERSION;
+use super::REEF_VERSION;
 
 fn default_log_level() -> LogLevel { LogLevel::Info }
 
-fn default_login_message() -> String { "Do not sign this message on other sites!".to_string() }
+fn default_login_message() -> String { "What?!".to_string() }
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
@@ -78,12 +77,6 @@ pub struct Config {
     #[serde(default)]
     pub blocked_instances: Vec<String>,
 
-    // Blockchain integrations
-    #[serde(rename = "blockchain")]
-    _blockchain: Option<BlockchainConfig>, // deprecated
-    #[serde(default)]
-    blockchains: Vec<BlockchainConfig>,
-
     // IPFS
     pub ipfs_api_url: Option<String>,
     pub ipfs_gateway_url: Option<String>,
@@ -116,18 +109,6 @@ impl Config {
     pub fn media_dir(&self) -> PathBuf {
         self.storage_dir.join("media")
     }
-
-    pub fn blockchain(&self) -> Option<&BlockchainConfig> {
-        if let Some(ref _blockchain_config) = self._blockchain {
-            panic!("'blockchain' setting is not supported anymore, use 'blockchains' instead");
-        } else {
-            match &self.blockchains[..] {
-                [blockchain_config] => Some(blockchain_config),
-                [] => None,
-                _ => panic!("multichain deployments are not supported"),
-            }
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -155,8 +136,8 @@ impl Instance {
 
     pub fn agent(&self) -> String {
         format!(
-            "Mitra {version}; {instance_url}",
-            version=MITRA_VERSION,
+            "Reef {version}; {instance_url}",
+            version= REEF_VERSION,
             instance_url=self.url(),
         )
     }
@@ -201,7 +182,7 @@ mod tests {
         assert_eq!(instance.hostname(), "example.com");
         assert_eq!(
             instance.agent(),
-            format!("Mitra {}; https://example.com", MITRA_VERSION),
+            format!("Mitra {}; https://example.com", REEF_VERSION),
         );
     }
 
