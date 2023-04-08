@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Added emoji count check to profile data validator.
+- Check mention and link counts when creating post.
 
 ## [1.20.0] - 2023-03-07
 

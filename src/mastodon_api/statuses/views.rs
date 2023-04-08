@@ -59,6 +59,8 @@ use crate::validators::posts::{
     clean_content,
     ATTACHMENT_LIMIT,
     EMOJI_LIMIT,
+    MENTION_LIMIT,
+    LINK_LIMIT,
 };
 use super::helpers::{
     build_status,
@@ -129,10 +131,16 @@ async fn create_status(
     // Remove duplicate mentions
     mentions.sort();
     mentions.dedup();
+    if mentions.len() > MENTION_LIMIT {
+        return Err(ValidationError("too many mentions").into());
+    };
 
     // Links validation
     if links.len() > 0 && visibility != Visibility::Public {
         return Err(ValidationError("can't add links to non-public posts").into());
+    };
+    if links.len() > LINK_LIMIT {
+        return Err(ValidationError("too many links").into());
     };
 
     // Emoji validation
