@@ -96,11 +96,6 @@ An HTTP server will be needed to handle HTTPS requests. See the example of [ngin
 
 See [guide](./docs/onion.md).
 
-### Blockchain integrations
-
-- [Monero](./docs/monero.md)
-- [Ethereum](./docs/ethereum.md)
-
 ## Development
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md)
@@ -176,7 +171,3 @@ Most methods are similar to Mastodon API, but Mitra is not fully compatible.
 ## License
 
 [AGPL-3.0](./LICENSE)
-
-## Support
-
-Monero: 8Ahza5RM4JQgtdqvpcF1U628NN5Q87eryXQad3Fy581YWTZU8o3EMbtScuioQZSkyNNEEE1Lkj2cSbG4VnVYCW5L1N4os5p
