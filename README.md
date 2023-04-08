@@ -1,6 +1,6 @@
-# Mitra
+# Reef
 
-Federated micro-blogging platform.
+Lively federated micro-blogging platform.
 
 Built on [ActivityPub](https://www.w3.org/TR/activitypub/) protocol, self-hosted, lightweight. Part of the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -20,11 +20,10 @@ Demo instance: https://nullpointer.social/ ([invite-only](https://nullpointer.so
 
 ## Code
 
-Server:  (this repo)
+Server: https://code.caric.io/reef/reef (this repo)
 
-Web client: https://codeberg.org/silverpill/mitra-web
+Web client: 
 
-Ethereum contracts: https://codeberg.org/silverpill/mitra-contracts
 
 ## Requirements
 
@@ -33,8 +32,6 @@ Ethereum contracts: https://codeberg.org/silverpill/mitra-contracts
 
 Optional:
 
-- Monero node and Monero wallet service
-- Ethereum node
 - IPFS node (see [guide](./docs/ipfs.md))
 
 ## Installation
