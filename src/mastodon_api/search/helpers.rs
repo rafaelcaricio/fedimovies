@@ -13,7 +13,6 @@ use mitra_models::{
     profiles::queries::{
         search_profiles,
         search_profiles_by_did_only,
-        search_profiles_by_wallet_address,
     },
     profiles::types::DbActorProfile,
     tags::queries::search_tags,
@@ -23,7 +22,6 @@ use mitra_models::{
     },
 };
 use mitra_utils::{
-    currencies::Currency,
     did::Did,
 };
 
@@ -37,7 +35,6 @@ use crate::activitypub::{
     HandlerError,
 };
 use crate::errors::ValidationError;
-use crate::ethereum::utils::validate_ethereum_address;
 use crate::media::MediaStorage;
 use crate::webfinger::types::ActorAddress;
 
@@ -47,7 +44,6 @@ enum SearchQuery {
     ProfileQuery(String, Option<String>),
     TagQuery(String),
     Url(String),
-    WalletAddress(String),
     Did(Did),
     Unknown,
 }
@@ -86,12 +82,6 @@ fn parse_search_query(search_query: &str) -> SearchQuery {
     };
     if Url::parse(search_query).is_ok() {
         return SearchQuery::Url(search_query.to_string());
-    };
-    // TODO: support other currencies
-    if validate_ethereum_address(
-        &search_query.to_lowercase(),
-    ).is_ok() {
-        return SearchQuery::WalletAddress(search_query.to_string());
     };
     if let Ok(tag) = parse_tag_query(search_query) {
         return SearchQuery::TagQuery(tag);
@@ -266,16 +256,6 @@ pub async fn search(
                     profiles = vec![profile];
                 };
             };
-        },
-        SearchQuery::WalletAddress(address) => {
-            // Search by wallet address, assuming it's ethereum address
-            // TODO: support other currencies
-            profiles = search_profiles_by_wallet_address(
-                db_client,
-                &Currency::Ethereum,
-                &address,
-                false,
-            ).await?;
         },
         SearchQuery::Did(did) => {
             profiles = search_profiles_by_did_only(

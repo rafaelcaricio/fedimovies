@@ -13,7 +13,6 @@ use crate::activitypub::vocabulary::{
     PROPERTY_VALUE,
 };
 use crate::errors::ValidationError;
-use crate::ethereum::identity::verify_eip191_signature;
 use crate::identity::{
     claims::create_identity_claim,
     minisign::{
@@ -79,15 +78,8 @@ pub fn parse_identity_proof(
                 &signature_bin,
             ).map_err(|_| ValidationError("invalid identity proof"))?;
         },
-        Did::Pkh(ref did_pkh) => {
-            if !matches!(proof_type, IdentityProofType::LegacyEip191IdentityProof) {
-                return Err(ValidationError("incorrect proof type"));
-            };
-            verify_eip191_signature(
-                did_pkh,
-                &message,
-                signature,
-            ).map_err(|_| ValidationError("invalid identity proof"))?;
+        Did::Pkh(ref _did_pkh) => {
+            return Err(ValidationError("incorrect proof type"));
         },
     };
     let proof = IdentityProof {

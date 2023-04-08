@@ -21,16 +21,11 @@ use mitra_models::{
     },
     users::queries::{
         get_user_by_name,
-        get_user_by_login_address,
     },
 };
 use mitra_utils::passwords::verify_password;
 
 use crate::errors::ValidationError;
-use crate::ethereum::{
-    eip4361::verify_eip4361_signature,
-    utils::validate_ethereum_address,
-};
 use crate::http::FormOrJson;
 use crate::mastodon_api::errors::MastodonError;
 
@@ -115,7 +110,7 @@ const ACCESS_TOKEN_EXPIRES_IN: i64 = 86400 * 7;
 /// https://oauth.net/2/grant-types/password/
 #[post("/token")]
 async fn token_view(
-    config: web::Data<Config>,
+    _config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     request_data: FormOrJson<TokenRequest>,
 ) -> Result<HttpResponse, MastodonError> {
@@ -134,26 +129,6 @@ async fn token_view(
             let username = request_data.username.as_ref()
                 .ok_or(ValidationError("username is required"))?;
             get_user_by_name(db_client, username).await?
-        },
-        "ethereum" => {
-            // DEPRECATED
-            let wallet_address = request_data.wallet_address.as_ref()
-                .ok_or(ValidationError("wallet address is required"))?;
-            validate_ethereum_address(wallet_address)?;
-            get_user_by_login_address(db_client, wallet_address).await?
-        },
-        "eip4361" => {
-            let message = request_data.message.as_ref()
-                .ok_or(ValidationError("message is required"))?;
-            let signature = request_data.signature.as_ref()
-                .ok_or(ValidationError("signature is required"))?;
-            let wallet_address = verify_eip4361_signature(
-                message,
-                signature,
-                &config.instance().hostname(),
-                &config.login_message,
-            )?;
-            get_user_by_login_address(db_client, &wallet_address).await?
         },
         _ => {
             return Err(ValidationError("unsupported grant type").into());

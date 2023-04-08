@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -7,7 +7,6 @@ use mitra_models::{
     profiles::types::PaymentOption,
 };
 
-use crate::monero::subscriptions::MONERO_INVOICE_TIMEOUT;
 
 #[derive(Deserialize)]
 pub struct InvoiceData {
@@ -35,12 +34,7 @@ impl From<DbInvoice> for Invoice {
             InvoiceStatus::Forwarded => "forwarded",
             InvoiceStatus::Timeout => "timeout",
         };
-        let expires_at = if value.chain_id.inner().is_monero() {
-            value.created_at + Duration::seconds(MONERO_INVOICE_TIMEOUT)
-        } else {
-            // Epoch 0
-            Default::default()
-        };
+        let expires_at = Default::default();
         Self {
             id: value.id,
             sender_id: value.sender_id,

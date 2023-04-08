@@ -12,7 +12,6 @@ use tokio::sync::Mutex;
 
 use mitra::activitypub::views as activitypub;
 use mitra::atom::views::atom_scope;
-use mitra::ethereum::contracts::get_contracts;
 use mitra::http::{
     create_auth_error_handler,
     create_default_headers_middleware,
@@ -60,21 +59,6 @@ async fn main() -> std::io::Result<()> {
         std::fs::create_dir(config.media_dir())
             .expect("failed to create media directory");
     };
-
-    let maybe_blockchain = if let Some(blockchain_config) = config.blockchain() {
-        if let Some(ethereum_config) = blockchain_config.ethereum_config() {
-            // Create blockchain interface
-            get_contracts(&**db_client, ethereum_config, &config.storage_dir).await
-                .map(Some).unwrap()
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-    let maybe_contract_set = maybe_blockchain.clone()
-        .map(|blockchain| blockchain.contract_set);
-
     std::mem::drop(db_client);
     log::info!(
         "app initialized; version {}, environment = '{:?}'",
@@ -82,7 +66,7 @@ async fn main() -> std::io::Result<()> {
         config.environment,
     );
 
-    scheduler::run(config.clone(), maybe_blockchain, db_pool.clone());
+    scheduler::run(config.clone(), db_pool.clone());
     log::info!("scheduler started");
 
     let num_workers = std::cmp::max(num_cpus::get(), 4);
@@ -146,7 +130,6 @@ async fn main() -> std::io::Result<()> {
             )
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(db_pool.clone()))
-            .app_data(web::Data::new(maybe_contract_set.clone()))
             .app_data(web::Data::clone(&inbox_mutex))
             .service(actix_files::Files::new(
                 "/media",
@@ -184,15 +167,6 @@ async fn main() -> std::io::Result<()> {
                 web::resource("/.well-known/{path}")
                     .to(HttpResponse::NotFound)
             );
-        if let Some(blockchain_config) = config.blockchain() {
-            if let Some(ethereum_config) = blockchain_config.ethereum_config() {
-                // Serve artifacts if available
-                app = app.service(actix_files::Files::new(
-                    "/contracts",
-                    &ethereum_config.contract_dir,
-                ));
-            };
-        };
         if let Some(ref web_client_dir) = config.web_client_dir {
             app = app.service(web_client::static_service(web_client_dir));
         };

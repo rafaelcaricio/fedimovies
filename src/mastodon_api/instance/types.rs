@@ -1,15 +1,12 @@
 use serde::Serialize;
-use serde_json::{to_value, Value};
 
 use mitra_config::{
-    BlockchainConfig,
     Config,
     RegistrationType,
     MITRA_VERSION,
 };
 use mitra_utils::markdown::markdown_to_html;
 
-use crate::ethereum::contracts::ContractSet;
 use crate::mastodon_api::MASTODON_API_VERSION;
 use crate::media::SUPPORTED_MEDIA_TYPES;
 use crate::validators::posts::ATTACHMENTS_MAX_NUM;
@@ -39,21 +36,6 @@ struct InstanceConfiguration {
     media_attachments: InstanceMediaLimits,
 }
 
-#[derive(Serialize)]
-struct BlockchainFeatures {
-    gate: bool,
-    minter: bool,
-    subscriptions: bool,
-}
-
-#[derive(Serialize)]
-struct BlockchainInfo {
-    chain_id: String,
-    chain_metadata: Option<Value>,
-    contract_address: Option<String>,
-    features: BlockchainFeatures,
-}
-
 /// https://docs.joinmastodon.org/entities/V1_Instance/
 #[derive(Serialize)]
 pub struct InstanceInfo {
@@ -71,7 +53,6 @@ pub struct InstanceInfo {
 
     login_message: String,
     post_character_limit: usize, // deprecated
-    blockchains: Vec<BlockchainInfo>,
     ipfs_gateway_url: Option<String>,
 }
 
@@ -86,53 +67,10 @@ fn get_full_api_version(version: &str) -> String {
 impl InstanceInfo {
     pub fn create(
         config: &Config,
-        maybe_blockchain: Option<&ContractSet>,
         user_count: i64,
         post_count: i64,
         peer_count: i64,
     ) -> Self {
-        let mut blockchains = vec![];
-        match config.blockchain() {
-            Some(BlockchainConfig::Ethereum(ethereum_config)) => {
-                let features = if let Some(contract_set) = maybe_blockchain {
-                    BlockchainFeatures {
-                        gate: contract_set.gate.is_some(),
-                        minter: contract_set.collectible.is_some(),
-                        subscriptions: contract_set.subscription.is_some(),
-                    }
-                } else {
-                    BlockchainFeatures {
-                        gate: false,
-                        minter: false,
-                        subscriptions: false,
-                    }
-                };
-                let maybe_chain_metadata = ethereum_config
-                    .chain_metadata.as_ref()
-                    .and_then(|metadata| to_value(metadata).ok());
-                blockchains.push(BlockchainInfo {
-                    chain_id: ethereum_config.chain_id.to_string(),
-                    chain_metadata: maybe_chain_metadata,
-                    contract_address:
-                        Some(ethereum_config.contract_address.clone()),
-                    features: features,
-                });
-            },
-            Some(BlockchainConfig::Monero(monero_config)) => {
-                let features = BlockchainFeatures {
-                    gate: false,
-                    minter: false,
-                    subscriptions: true,
-                };
-                blockchains.push(BlockchainInfo {
-                    chain_id: monero_config.chain_id.to_string(),
-                    chain_metadata: None,
-                    contract_address: None,
-                    features: features,
-                })
-            },
-            None => (),
-        };
         Self {
             uri: config.instance().hostname(),
             title: config.instance_title.clone(),
@@ -165,7 +103,6 @@ impl InstanceInfo {
             },
             login_message: config.login_message.clone(),
             post_character_limit: config.limits.posts.character_limit,
-            blockchains: blockchains,
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),
         }
     }

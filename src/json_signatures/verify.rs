@@ -16,7 +16,6 @@ use mitra_utils::{
     multibase::{decode_multibase_base58btc, MultibaseError},
 };
 
-use crate::ethereum::identity::verify_eip191_signature;
 use crate::identity::{
     minisign::verify_minisign_signature,
 };
@@ -112,13 +111,11 @@ pub fn verify_rsa_json_signature(
 }
 
 pub fn verify_eip191_json_signature(
-    signer: &DidPkh,
-    message: &str,
-    signature: &[u8],
+    _signer: &DidPkh,
+    _message: &str,
+    _signature: &[u8],
 ) -> Result<(), VerificationError> {
-    let signature_hex = hex::encode(signature);
-    verify_eip191_signature(signer, message, &signature_hex)
-        .map_err(|_| VerificationError::InvalidSignature)
+    Err(VerificationError::InvalidSignature)
 }
 
 pub fn verify_ed25519_json_signature(

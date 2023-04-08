@@ -12,31 +12,9 @@ use uuid::Uuid;
 use mitra_config::Config;
 use mitra_models::{
     database::{get_database_client, DbPool},
-    invoices::queries::{create_invoice, get_invoice_by_id},
-    profiles::queries::{
-        get_profile_by_id,
-        update_profile,
-    },
-    profiles::types::{
-        MoneroSubscription,
-        PaymentOption,
-        PaymentType,
-        ProfileUpdateData,
-    },
+    invoices::queries::{get_invoice_by_id},
     subscriptions::queries::get_subscription_by_participants,
-    users::queries::get_user_by_id,
     users::types::Permission,
-};
-use mitra_utils::currencies::Currency;
-
-use crate::activitypub::builders::update_person::prepare_update_person;
-use crate::errors::ValidationError;
-use crate::ethereum::{
-    contracts::ContractSet,
-    subscriptions::{
-        create_subscription_signature,
-        is_registered_recipient,
-    },
 };
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
@@ -44,13 +22,9 @@ use crate::mastodon_api::{
     errors::MastodonError,
     oauth::auth::get_current_user,
 };
-use crate::monero::{
-    helpers::validate_monero_address,
-    wallet::create_monero_address,
-};
+
 use super::types::{
     Invoice,
-    InvoiceData,
     SubscriptionAuthorizationQueryParams,
     SubscriptionDetails,
     SubscriptionOption,
@@ -60,28 +34,17 @@ use super::types::{
 #[get("/authorize")]
 pub async fn authorize_subscription(
     auth: BearerAuth,
-    config: web::Data<Config>,
+    _config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-    query_params: web::Query<SubscriptionAuthorizationQueryParams>,
+    _query_params: web::Query<SubscriptionAuthorizationQueryParams>,
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, auth.token()).await?;
-    let ethereum_config = config.blockchain()
-        .ok_or(MastodonError::NotSupported)?
-        .ethereum_config()
-        .ok_or(MastodonError::NotSupported)?;
+    let _current_user = get_current_user(db_client, auth.token()).await?;
+
     // The user must have a public ethereum address,
     // because subscribers should be able
     // to verify that payments are actually sent to the recipient.
-    let wallet_address = current_user
-        .public_wallet_address(&Currency::Ethereum)
-        .ok_or(MastodonError::PermissionError)?;
-    let signature = create_subscription_signature(
-        ethereum_config,
-        &wallet_address,
-        query_params.price,
-    ).map_err(|_| MastodonError::InternalError)?;
-    Ok(HttpResponse::Ok().json(signature))
+    return Err(MastodonError::PermissionError);
 }
 
 #[get("/options")]
@@ -104,75 +67,12 @@ pub async fn register_subscription_option(
     connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-    maybe_blockchain: web::Data<Option<ContractSet>>,
-    subscription_option: web::Json<SubscriptionOption>,
+    _subscription_option: web::Json<SubscriptionOption>,
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
-    let mut current_user = get_current_user(db_client, auth.token()).await?;
+    let current_user = get_current_user(db_client, auth.token()).await?;
     if !current_user.role.has_permission(Permission::ManageSubscriptionOptions) {
         return Err(MastodonError::PermissionError);
-    };
-
-    let maybe_payment_option = match subscription_option.into_inner() {
-        SubscriptionOption::Ethereum => {
-            let ethereum_config = config.blockchain()
-                .and_then(|conf| conf.ethereum_config())
-                .ok_or(MastodonError::NotSupported)?;
-            let contract_set = maybe_blockchain.as_ref().as_ref()
-                .ok_or(MastodonError::NotSupported)?;
-            let wallet_address = current_user
-                .public_wallet_address(&Currency::Ethereum)
-                .ok_or(MastodonError::PermissionError)?;
-            if current_user.profile.payment_options
-                .any(PaymentType::EthereumSubscription)
-            {
-                // Ignore attempts to update payment option
-                None
-            } else {
-                let is_registered = is_registered_recipient(
-                    contract_set,
-                    &wallet_address,
-                ).await.map_err(|_| MastodonError::InternalError)?;
-                if !is_registered {
-                    return Err(ValidationError("recipient is not registered").into());
-                };
-                Some(PaymentOption::ethereum_subscription(
-                    ethereum_config.chain_id.clone(),
-                ))
-            }
-        },
-        SubscriptionOption::Monero { price, payout_address } => {
-            let monero_config = config.blockchain()
-                .and_then(|conf| conf.monero_config())
-                .ok_or(MastodonError::NotSupported)?;
-            if price == 0 {
-                return Err(ValidationError("price must be greater than 0").into());
-            };
-            validate_monero_address(&payout_address)?;
-            let payment_info = MoneroSubscription {
-                chain_id: monero_config.chain_id.clone(),
-                price,
-                payout_address,
-            };
-            Some(PaymentOption::MoneroSubscription(payment_info))
-        },
-    };
-    if let Some(payment_option) = maybe_payment_option {
-        let mut profile_data = ProfileUpdateData::from(&current_user.profile);
-        profile_data.add_payment_option(payment_option);
-        current_user.profile = update_profile(
-            db_client,
-            &current_user.id,
-            profile_data,
-        ).await?;
-
-        // Federate
-        prepare_update_person(
-            db_client,
-            &config.instance(),
-            &current_user,
-            None,
-        ).await?.enqueue(db_client).await?;
     };
 
     let account = Account::from_user(
@@ -201,44 +101,6 @@ async fn find_subscription(
     Ok(HttpResponse::Ok().json(details))
 }
 
-#[post("/invoices")]
-async fn create_invoice_view(
-    config: web::Data<Config>,
-    db_pool: web::Data<DbPool>,
-    invoice_data: web::Json<InvoiceData>,
-) -> Result<HttpResponse, MastodonError> {
-    let monero_config = config.blockchain()
-        .ok_or(MastodonError::NotSupported)?
-        .monero_config()
-        .ok_or(MastodonError::NotSupported)?;
-    if invoice_data.sender_id == invoice_data.recipient_id {
-        return Err(ValidationError("sender must be different from recipient").into());
-    };
-    if invoice_data.amount <= 0 {
-        return Err(ValidationError("amount must be positive").into());
-    };
-    let db_client = &**get_database_client(&db_pool).await?;
-    let sender = get_profile_by_id(db_client, &invoice_data.sender_id).await?;
-    let recipient = get_user_by_id(db_client, &invoice_data.recipient_id).await?;
-    if !recipient.profile.payment_options.any(PaymentType::MoneroSubscription) {
-        let error_message = "recipient can't accept subscription payments";
-        return Err(ValidationError(error_message).into());
-    };
-
-    let payment_address = create_monero_address(monero_config).await
-        .map_err(|_| MastodonError::InternalError)?
-        .to_string();
-    let db_invoice = create_invoice(
-        db_client,
-        &sender.id,
-        &recipient.id,
-        &monero_config.chain_id,
-        &payment_address,
-        invoice_data.amount,
-    ).await?;
-    let invoice = Invoice::from(db_invoice);
-    Ok(HttpResponse::Ok().json(invoice))
-}
 
 #[get("/invoices/{invoice_id}")]
 async fn get_invoice(
@@ -257,6 +119,5 @@ pub fn subscription_api_scope() -> Scope {
         .service(get_subscription_options)
         .service(register_subscription_option)
         .service(find_subscription)
-        .service(create_invoice_view)
         .service(get_invoice)
 }

@@ -70,12 +70,6 @@ use crate::activitypub::{
     identifiers::local_actor_id,
 };
 use crate::errors::ValidationError;
-use crate::ethereum::{
-    contracts::ContractSet,
-    eip4361::verify_eip4361_signature,
-    gate::is_allowed_user,
-    identity::verify_eip191_signature,
-};
 use crate::http::get_request_base_url;
 use crate::identity::{
     claims::create_identity_claim,
@@ -130,7 +124,6 @@ pub async fn create_account(
     connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-    maybe_blockchain: web::Data<Option<ContractSet>>,
     account_data: web::Json<AccountCreateData>,
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -151,36 +144,6 @@ pub async fn create_account(
     } else {
         None
     };
-    let maybe_wallet_address = if let Some(message) = account_data.message.as_ref() {
-        let signature = account_data.signature.as_ref()
-            .ok_or(ValidationError("signature is required"))?;
-        let wallet_address = verify_eip4361_signature(
-            message,
-            signature,
-            &config.instance().hostname(),
-            &config.login_message,
-        )?;
-        Some(wallet_address)
-    } else {
-        None
-    };
-    if maybe_wallet_address.is_some() == maybe_password_hash.is_some() {
-        // Either password or EIP-4361 auth must be used (but not both)
-        return Err(ValidationError("invalid login data").into());
-    };
-
-    if let Some(contract_set) = maybe_blockchain.as_ref() {
-        if let Some(ref gate) = contract_set.gate {
-            // Wallet address is required if token gate is present
-            let wallet_address = maybe_wallet_address.as_ref()
-                .ok_or(ValidationError("wallet address is required"))?;
-            let is_allowed = is_allowed_user(gate, wallet_address).await
-                .map_err(|_| MastodonError::InternalError)?;
-            if !is_allowed {
-                return Err(ValidationError("not allowed to sign up").into());
-            };
-        };
-    };
 
     // Generate RSA private key for actor
     let private_key = match web::block(generate_rsa_key).await {
@@ -200,7 +163,7 @@ pub async fn create_account(
         username,
         password_hash: maybe_password_hash,
         private_key_pem,
-        wallet_address: maybe_wallet_address,
+        wallet_address: None,
         invite_code,
         role,
     };
@@ -443,12 +406,7 @@ async fn create_identity_proof(
                     return Err(ValidationError("DID doesn't match current identity").into());
                 };
             };
-            verify_eip191_signature(
-                did_pkh,
-                &message,
-                &proof_data.signature,
-            ).map_err(|_| ValidationError("invalid signature"))?;
-            IdentityProofType::LegacyEip191IdentityProof
+            return Err(ValidationError("invalid signature").into());
         },
     };
 

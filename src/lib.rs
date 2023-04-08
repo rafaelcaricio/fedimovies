@@ -1,7 +1,6 @@
 pub mod activitypub;
 pub mod atom;
 mod errors;
-pub mod ethereum;
 pub mod http;
 mod http_signatures;
 mod identity;
@@ -11,7 +10,6 @@ mod json_signatures;
 pub mod logger;
 pub mod mastodon_api;
 pub mod media;
-pub mod monero;
 pub mod nodeinfo;
 pub mod validators;
 pub mod webfinger;

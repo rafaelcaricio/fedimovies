@@ -8,27 +8,19 @@ Features:
 
 - Micro-blogging service (includes support for quote posts, custom emojis and more).
 - Mastodon API.
-- Content subscription service. Subscriptions provide a way to receive monthly payments from subscribers and to publish private content made exclusively for them.
-  - Supported payment methods: [Monero](https://www.getmonero.org/get-started/what-is-monero/) and [ERC-20](https://ethereum.org/en/developers/docs/standards/tokens/erc-20/) tokens (on Ethereum and other EVM-compatible blockchains).
-- [Sign-in with a wallet](https://eips.ethereum.org/EIPS/eip-4361).
-- Donation buttons.
 - Account migrations (from one server to another). Identity can be detached from the server.
 - Federation over Tor.
 
-Follow: [@mitra@mitra.social](https://mitra.social/@mitra)
-
-Matrix chat: [#mitra:halogen.city](https://matrix.to/#/#mitra:halogen.city)
-
 ## Instances
 
-- [FediList](http://demo.fedilist.com/instance?software=mitra)
-- [Fediverse Observer](https://mitra.fediverse.observer/list)
+- [FediList](http://demo.fedilist.com/instance?software=reef)
+- [Fediverse Observer](https://reef.fediverse.observer/list)
 
-Demo instance: https://public.mitra.social/ ([invite-only](https://public.mitra.social/about))
+Demo instance: https://nullpointer.social/ ([invite-only](https://nullpointer.social/about))
 
 ## Code
 
-Server: https://codeberg.org/silverpill/mitra (this repo)
+Server:  (this repo)
 
 Web client: https://codeberg.org/silverpill/mitra-web
 

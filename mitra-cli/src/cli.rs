@@ -8,19 +8,10 @@ use mitra::activitypub::{
     builders::delete_person::prepare_delete_person,
     fetcher::fetchers::fetch_actor,
 };
-use mitra::ethereum::{
-    signatures::generate_ecdsa_key,
-    sync::save_current_block_number,
-    utils::key_to_ethereum_address,
-};
 use mitra::media::{
     remove_files,
     remove_media,
     MediaStorage,
-};
-use mitra::monero::{
-    helpers::check_expired_invoice,
-    wallet::create_monero_wallet,
 };
 use mitra::validators::emojis::EMOJI_LOCAL_MAX_SIZE;
 use mitra_config::Config;
@@ -114,12 +105,7 @@ pub struct GenerateEthereumAddress;
 
 impl GenerateEthereumAddress {
     pub fn execute(&self) -> () {
-        let private_key = generate_ecdsa_key();
-        let address = key_to_ethereum_address(&private_key);
-        println!(
-            "address {:?}; private key {}",
-            address, private_key.display_secret(),
-        );
+        println!("dummy");
     }
 }
 
@@ -526,9 +512,8 @@ impl UpdateCurrentBlock {
     pub async fn execute(
         &self,
         _config: &Config,
-        db_client: &impl DatabaseClient,
+        _db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        save_current_block_number(db_client, self.number).await?;
         println!("current block updated");
         Ok(())
     }
@@ -565,16 +550,8 @@ pub struct CreateMoneroWallet {
 impl CreateMoneroWallet {
     pub async fn execute(
         &self,
-        config: &Config,
+        _config: &Config,
     ) -> Result<(), Error> {
-        let monero_config = config.blockchain()
-            .and_then(|conf| conf.monero_config())
-            .ok_or(anyhow!("monero configuration not found"))?;
-        create_monero_wallet(
-            monero_config,
-            self.name.clone(),
-            self.password.clone(),
-        ).await?;
         println!("wallet created");
         Ok(())
     }
@@ -589,17 +566,9 @@ pub struct CheckExpiredInvoice {
 impl CheckExpiredInvoice {
     pub async fn execute(
         &self,
-        config: &Config,
-        db_client: &impl DatabaseClient,
+        _config: &Config,
+        _db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        let monero_config = config.blockchain()
-            .and_then(|conf| conf.monero_config())
-            .ok_or(anyhow!("monero configuration not found"))?;
-        check_expired_invoice(
-            monero_config,
-            db_client,
-            &self.id,
-        ).await?;
         Ok(())
     }
 }

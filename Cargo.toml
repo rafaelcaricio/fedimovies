@@ -50,8 +50,6 @@ env_logger = { version = "0.9.0", default-features = false }
 ed25519-dalek = "1.0.1"
 ed25519 = "1.5.3"
 blake2 = "0.10.5"
-# Used to query Monero node
-monero-rpc = "0.3.2"
 # Used to determine the number of CPUs on the system
 num_cpus = "1.13.0"
 # Used for working with regular expressions
@@ -60,8 +58,6 @@ regex = "1.6.0"
 reqwest = { version = "0.11.13", features = ["json", "multipart", "socks"] }
 # Used for working with RSA keys
 rsa = "0.5.0"
-# Used for working with ethereum keys
-secp256k1 = { version = "0.21.3", features = ["rand", "rand-std"] }
 # Used for serialization/deserialization
 serde = { version = "1.0.136", features = ["derive"] }
 serde_json = "1.0.89"
@@ -77,8 +73,6 @@ tokio = { version = "1.20.4", features = ["macros"] }
 url = "2.2.2"
 # Used to work with UUIDs
 uuid = { version = "1.1.2", features = ["serde", "v4"] }
-# Used to query ethereum node
-web3 = { version = "0.18.0", default-features = false, features = ["http", "http-tls", "signing"] }
 
 [dev-dependencies]
 mitra-config = { path = "mitra-config", features = ["test-utils"] }
@@ -88,7 +82,4 @@ mitra-utils = { path = "mitra-utils", features = ["test-utils"] }
 serial_test = "0.7.0"
 
 [features]
-ethereum-extras = []
-fep-e232 = []
-
 production = ["mitra-config/production"]

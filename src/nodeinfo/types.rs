@@ -4,8 +4,8 @@ use serde::Serialize;
 
 use mitra_config::{Config, RegistrationType, MITRA_VERSION};
 
-const MITRA_NAME: &str = "mitra";
-const MITRA_REPOSITORY: &str = "https://codeberg.org/silverpill/mitra";
+const MITRA_NAME: &str = "reef";
+const MITRA_REPOSITORY: &str = "https://code.caric.io/reef/reef";
 const ATOM_SERVICE: &str = "atom1.0";
 const ACTIVITYPUB_PROTOCOL: &str = "activitypub";
 
