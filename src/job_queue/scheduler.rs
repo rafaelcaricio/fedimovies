@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use mitra_config::Config;
 use mitra_models::database::DbPool;
 
-use crate::ethereum::contracts::Blockchain;
+use crate::ethereum::contracts::EthereumBlockchain;
 use super::periodic_tasks::*;
 
 #[derive(Debug, Eq, Hash, PartialEq)]
@@ -55,7 +55,7 @@ impl PeriodicTask {
 
 pub fn run(
     config: Config,
-    mut maybe_blockchain: Option<Blockchain>,
+    mut maybe_ethereum_blockchain: Option<EthereumBlockchain>,
     db_pool: DbPool,
 ) -> () {
     tokio::spawn(async move {
@@ -89,7 +89,7 @@ pub fn run(
                     PeriodicTask::EthereumSubscriptionMonitor => {
                         ethereum_subscription_monitor(
                             &config,
-                            maybe_blockchain.as_mut(),
+                            maybe_ethereum_blockchain.as_mut(),
                             &db_pool,
                         ).await
                     },
@@ -117,7 +117,7 @@ pub fn run(
                     #[cfg(feature = "ethereum-extras")]
                     PeriodicTask::NftMonitor => {
                         nft_monitor(
-                            maybe_blockchain.as_mut(),
+                            maybe_ethereum_blockchain.as_mut(),
                             &db_pool,
                         ).await
                     },

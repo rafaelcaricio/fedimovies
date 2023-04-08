@@ -86,7 +86,7 @@ fn get_full_api_version(version: &str) -> String {
 impl InstanceInfo {
     pub fn create(
         config: &Config,
-        maybe_blockchain: Option<&ContractSet>,
+        maybe_ethereum_contracts: Option<&ContractSet>,
         user_count: i64,
         post_count: i64,
         peer_count: i64,
@@ -94,7 +94,7 @@ impl InstanceInfo {
         let mut blockchains = vec![];
         match config.blockchain() {
             Some(BlockchainConfig::Ethereum(ethereum_config)) => {
-                let features = if let Some(contract_set) = maybe_blockchain {
+                let features = if let Some(contract_set) = maybe_ethereum_contracts {
                     BlockchainFeatures {
                         gate: contract_set.gate.is_some(),
                         minter: contract_set.collectible.is_some(),

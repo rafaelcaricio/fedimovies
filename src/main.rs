@@ -61,7 +61,7 @@ async fn main() -> std::io::Result<()> {
             .expect("failed to create media directory");
     };
 
-    let maybe_blockchain = if let Some(blockchain_config) = config.blockchain() {
+    let maybe_ethereum_blockchain = if let Some(blockchain_config) = config.blockchain() {
         if let Some(ethereum_config) = blockchain_config.ethereum_config() {
             // Create blockchain interface
             get_contracts(&**db_client, ethereum_config, &config.storage_dir).await
@@ -72,7 +72,7 @@ async fn main() -> std::io::Result<()> {
     } else {
         None
     };
-    let maybe_contract_set = maybe_blockchain.clone()
+    let maybe_ethereum_contracts = maybe_ethereum_blockchain.clone()
         .map(|blockchain| blockchain.contract_set);
 
     std::mem::drop(db_client);
@@ -82,7 +82,11 @@ async fn main() -> std::io::Result<()> {
         config.environment,
     );
 
-    scheduler::run(config.clone(), maybe_blockchain, db_pool.clone());
+    scheduler::run(
+        config.clone(),
+        maybe_ethereum_blockchain,
+        db_pool.clone(),
+    );
     log::info!("scheduler started");
 
     let num_workers = std::cmp::max(num_cpus::get(), 4);
@@ -146,7 +150,7 @@ async fn main() -> std::io::Result<()> {
             )
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(db_pool.clone()))
-            .app_data(web::Data::new(maybe_contract_set.clone()))
+            .app_data(web::Data::new(maybe_ethereum_contracts.clone()))
             .app_data(web::Data::clone(&inbox_mutex))
             .service(actix_files::Files::new(
                 "/media",

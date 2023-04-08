@@ -18,7 +18,7 @@ use super::types::InstanceInfo;
 async fn instance_view(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-    maybe_blockchain: web::Data<Option<ContractSet>>,
+    maybe_ethereum_contracts: web::Data<Option<ContractSet>>,
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let user_count = get_user_count(db_client).await?;
@@ -26,7 +26,7 @@ async fn instance_view(
     let peer_count = get_peer_count(db_client).await?;
     let instance = InstanceInfo::create(
         config.as_ref(),
-        maybe_blockchain.as_ref().as_ref(),
+        maybe_ethereum_contracts.as_ref().as_ref(),
         user_count,
         post_count,
         peer_count,

@@ -92,7 +92,7 @@ pub struct ContractSet {
 }
 
 #[derive(Clone)]
-pub struct Blockchain {
+pub struct EthereumBlockchain {
     pub config: EthereumConfig,
     pub contract_set: ContractSet,
     pub sync_state: SyncState,
@@ -102,7 +102,7 @@ pub async fn get_contracts(
     db_client: &impl DatabaseClient,
     config: &EthereumConfig,
     storage_dir: &Path,
-) -> Result<Blockchain, EthereumError> {
+) -> Result<EthereumBlockchain, EthereumError> {
     let web3 = connect(&config.api_url)?;
     let chain_id = web3.eth().chain_id().await?;
     if chain_id != config.ethereum_chain_id().into() {
@@ -198,7 +198,7 @@ pub async fn get_contracts(
         subscription: maybe_subscription,
         subscription_adapter: maybe_subscription_adapter,
     };
-    Ok(Blockchain {
+    Ok(EthereumBlockchain {
         config: config.clone(),
         contract_set,
         sync_state,

@@ -130,7 +130,7 @@ pub async fn create_account(
     connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-    maybe_blockchain: web::Data<Option<ContractSet>>,
+    maybe_ethereum_contracts: web::Data<Option<ContractSet>>,
     account_data: web::Json<AccountCreateData>,
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -169,7 +169,7 @@ pub async fn create_account(
         return Err(ValidationError("invalid login data").into());
     };
 
-    if let Some(contract_set) = maybe_blockchain.as_ref() {
+    if let Some(contract_set) = maybe_ethereum_contracts.as_ref() {
         if let Some(ref gate) = contract_set.gate {
             // Wallet address is required if token gate is present
             let wallet_address = maybe_wallet_address.as_ref()

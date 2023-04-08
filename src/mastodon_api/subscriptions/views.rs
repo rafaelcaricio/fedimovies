@@ -104,7 +104,7 @@ pub async fn register_subscription_option(
     connection_info: ConnectionInfo,
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
-    maybe_blockchain: web::Data<Option<ContractSet>>,
+    maybe_ethereum_contracts: web::Data<Option<ContractSet>>,
     subscription_option: web::Json<SubscriptionOption>,
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
@@ -118,7 +118,7 @@ pub async fn register_subscription_option(
             let ethereum_config = config.blockchain()
                 .and_then(|conf| conf.ethereum_config())
                 .ok_or(MastodonError::NotSupported)?;
-            let contract_set = maybe_blockchain.as_ref().as_ref()
+            let contract_set = maybe_ethereum_contracts.as_ref().as_ref()
                 .ok_or(MastodonError::NotSupported)?;
             let wallet_address = current_user
                 .public_wallet_address(&Currency::Ethereum)

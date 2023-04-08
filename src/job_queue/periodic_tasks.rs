@@ -21,7 +21,7 @@ use crate::activitypub::queues::{
     process_queued_outgoing_activities,
 };
 use crate::ethereum::{
-    contracts::Blockchain,
+    contracts::EthereumBlockchain,
     subscriptions::{
         check_ethereum_subscriptions,
         update_expired_subscriptions,
@@ -35,7 +35,7 @@ use crate::ethereum::nft::process_nft_events;
 
 #[cfg(feature = "ethereum-extras")]
 pub async fn nft_monitor(
-    maybe_blockchain: Option<&mut Blockchain>,
+    maybe_blockchain: Option<&mut EthereumBlockchain>,
     db_pool: &DbPool,
 ) -> Result<(), Error> {
     let blockchain = match maybe_blockchain {
@@ -57,7 +57,7 @@ pub async fn nft_monitor(
 
 pub async fn ethereum_subscription_monitor(
     config: &Config,
-    maybe_blockchain: Option<&mut Blockchain>,
+    maybe_blockchain: Option<&mut EthereumBlockchain>,
     db_pool: &DbPool,
 ) -> Result<(), Error> {
     let blockchain = match maybe_blockchain {
