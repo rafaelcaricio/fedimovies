@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use log::{Level as LogLevel};
@@ -125,8 +126,21 @@ impl Config {
         if let Some(ref _blockchain_config) = self._blockchain {
             panic!("'blockchain' setting is not supported anymore, use 'blockchains' instead");
         } else {
-            if self.blockchains.len() > 1 {
-                panic!("multichain deployments are not supported");
+            let is_error = self.blockchains.iter()
+                .fold(HashMap::new(), |mut map, blockchain_config| {
+                    let key = match blockchain_config {
+                        BlockchainConfig::Ethereum(_) => 1,
+                        BlockchainConfig::Monero(_) => 2,
+                    };
+                    map.entry(key)
+                        .and_modify(|count| *count += 1)
+                        .or_insert(1);
+                    map
+                })
+                .into_values()
+                .any(|count| count > 1);
+            if is_error {
+                panic!("'blockchains' array contains more than one chain of the same kind");
             };
             &self.blockchains
         }

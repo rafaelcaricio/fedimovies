@@ -102,6 +102,9 @@ pub fn parse_config() -> (Config, Vec<&'static str>) {
     };
     check_directory_owner(&config.storage_dir);
     config.try_instance_url().expect("invalid instance URI");
+    if config.blockchains().len() > 1 {
+        warnings.push("multichain deployments are not recommended");
+    };
     if let Some(ethereum_config) = config.ethereum_config() {
         ethereum_config.try_ethereum_chain_id().unwrap();
         if !ethereum_config.contract_dir.exists() {

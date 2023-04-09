@@ -57,7 +57,7 @@ retention:
 #blocked_instances: []
 
 # Blockchain integrations
-# Multiple configuration are currently not allowed.
+# Multi-chain setups are currently not supported.
 # Chain metadata for EVM chains can be found at https://github.com/ethereum-lists/chains
 # Signing key for ethereum integration can be generated with `mitractl generate-ethereum-address`
 #blockchains:
