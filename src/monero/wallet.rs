@@ -1,5 +1,6 @@
 use monero_rpc::{
     HashString,
+    RpcAuthentication,
     RpcClientBuilder,
     SubaddressBalanceData,
     SweepAllArgs,
@@ -34,15 +35,33 @@ pub enum MoneroError {
     OtherError(&'static str),
 }
 
+fn build_wallet_client(config: &MoneroConfig)
+    -> Result<WalletClient, MoneroError>
+{
+    let rpc_authentication = match config.wallet_rpc_username {
+        Some(ref username) => {
+            RpcAuthentication::Credentials {
+                username: username.clone(),
+                password: config.wallet_rpc_password.as_deref()
+                    .unwrap_or("").to_string(),
+            }
+        },
+        None => RpcAuthentication::None,
+    };
+    let wallet_client = RpcClientBuilder::new()
+        .rpc_authentication(rpc_authentication)
+        .build(config.wallet_rpc_url.clone())?
+        .wallet();
+    Ok(wallet_client)
+}
+
 /// https://monerodocs.org/interacting/monero-wallet-rpc-reference/#create_wallet
 pub async fn create_monero_wallet(
     config: &MoneroConfig,
     name: String,
     password: Option<String>,
 ) -> Result<(), MoneroError> {
-    let wallet_client = RpcClientBuilder::new()
-        .build(config.wallet_url.clone())?
-        .wallet();
+    let wallet_client = build_wallet_client(config)?;
     let language = "English".to_string();
     wallet_client.create_wallet(name, password, language).await?;
     Ok(())
@@ -52,9 +71,7 @@ pub async fn create_monero_wallet(
 pub async fn open_monero_wallet(
     config: &MoneroConfig,
 ) -> Result<WalletClient, MoneroError> {
-    let wallet_client = RpcClientBuilder::new()
-        .build(config.wallet_url.clone())?
-        .wallet();
+    let wallet_client = build_wallet_client(config)?;
     if let Err(error) = wallet_client.refresh(None).await {
         if error.to_string() == "Server error: No wallet file" {
             // Try to open wallet

@@ -56,7 +56,10 @@ pub struct MoneroConfig {
     pub chain_id: ChainId,
     #[serde(alias = "daemon_url")]
     pub node_url: String,
-    pub wallet_url: String,
+    #[serde(alias = "wallet_url")]
+    pub wallet_rpc_url: String,
+    pub wallet_rpc_username: Option<String>,
+    pub wallet_rpc_password: Option<String>,
     // Wallet name and password are required when
     // monero-wallet-rpc is running with --wallet-dir option
     pub wallet_name: Option<String>,

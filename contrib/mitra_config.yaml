@@ -63,7 +63,9 @@ retention:
 #blockchains:
 #  - chain_id: monero:mainnet
 #    node_url: 'http://opennode.xmr-tw.org:18089'
-#    wallet_url: 'http://127.0.0.1:18083'
+#    wallet_rpc_url: 'http://127.0.0.1:18083'
+#    wallet_rpc_username: null
+#    wallet_rpc_password: null
 #    wallet_name: null
 #    wallet_password: null
 #    account_index: 0

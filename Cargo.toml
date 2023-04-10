@@ -51,7 +51,7 @@ ed25519-dalek = "1.0.1"
 ed25519 = "1.5.3"
 blake2 = "0.10.5"
 # Used to query Monero node
-monero-rpc = "0.3.2"
+monero-rpc = { version = "0.3.2", features = ["rpc_authentication"] }
 # Used to determine the number of CPUs on the system
 num_cpus = "1.13.0"
 # Used for working with regular expressions
