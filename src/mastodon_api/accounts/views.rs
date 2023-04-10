@@ -100,7 +100,10 @@ use crate::mastodon_api::{
     statuses::helpers::build_status_list,
     statuses::types::Status,
 };
-use crate::validators::profiles::clean_profile_update_data;
+use crate::validators::{
+    profiles::clean_profile_update_data,
+    users::validate_local_username,
+};
 use super::helpers::{
     get_aliases,
     get_relationship,
@@ -135,7 +138,6 @@ pub async fn create_account(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     // Validate
-    account_data.clean()?;
     if config.registration.registration_type == RegistrationType::Invite {
         let invite_code = account_data.invite_code.as_ref()
             .ok_or(ValidationError("invite code is required"))?;
@@ -144,6 +146,10 @@ pub async fn create_account(
         };
     };
 
+    validate_local_username(&account_data.username)?;
+    if account_data.password.is_none() && account_data.message.is_none() {
+        return Err(ValidationError("password or EIP-4361 message is required").into());
+    };
     let maybe_password_hash = if let Some(password) = account_data.password.as_ref() {
         let password_hash = hash_password(password)
             .map_err(|_| MastodonError::InternalError)?;

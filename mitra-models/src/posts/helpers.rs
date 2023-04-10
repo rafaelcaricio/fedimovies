@@ -157,15 +157,20 @@ mod tests {
     };
     use super::*;
 
+    async fn create_test_user(db_client: &mut Client, username: &str) -> User {
+        let user_data = UserCreateData {
+            username: username.to_string(),
+            password_hash: Some("test".to_string()),
+            ..Default::default()
+        };
+        create_user(db_client, user_data).await.unwrap()
+    }
+
     #[tokio::test]
     #[serial]
     async fn test_add_related_posts() {
         let db_client = &mut create_test_database().await;
-        let author_data = UserCreateData {
-            username: "test".to_string(),
-            ..Default::default()
-        };
-        let author = create_user(db_client, author_data).await.unwrap();
+        let author = create_test_user(db_client, "test").await;
         let post_data = PostCreateData {
             content: "post".to_string(),
             ..Default::default()
@@ -220,14 +225,6 @@ mod tests {
         let db_client = &create_test_database().await;
         let result = can_view_post(db_client, Some(&user), &post).await.unwrap();
         assert_eq!(result, true);
-    }
-
-    async fn create_test_user(db_client: &mut Client, username: &str) -> User {
-        let user_data = UserCreateData {
-            username: username.to_string(),
-            ..Default::default()
-        };
-        create_user(db_client, user_data).await.unwrap()
     }
 
     #[tokio::test]

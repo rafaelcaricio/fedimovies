@@ -1,4 +1,5 @@
 pub mod activitypub;
+pub mod admin;
 pub mod atom;
 mod errors;
 pub mod ethereum;

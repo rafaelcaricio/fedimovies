@@ -8,6 +8,7 @@ use mitra::activitypub::{
     builders::delete_person::prepare_delete_person,
     fetcher::fetchers::fetch_actor,
 };
+use mitra::admin::roles::{role_from_str, ALLOWED_ROLES};
 use mitra::ethereum::{
     signatures::generate_ecdsa_key,
     sync::save_current_block_number,
@@ -22,7 +23,10 @@ use mitra::monero::{
     helpers::check_expired_invoice,
     wallet::create_monero_wallet,
 };
-use mitra::validators::emojis::EMOJI_LOCAL_MAX_SIZE;
+use mitra::validators::{
+    emojis::EMOJI_LOCAL_MAX_SIZE,
+    users::validate_local_username,
+};
 use mitra_config::Config;
 use mitra_models::{
     attachments::queries::delete_unused_attachments,
@@ -47,12 +51,13 @@ use mitra_models::{
     subscriptions::queries::reset_subscriptions,
     users::queries::{
         create_invite_code,
+        create_user,
         get_invite_codes,
         get_user_by_id,
         set_user_password,
         set_user_role,
     },
-    users::types::Role,
+    users::types::UserCreateData,
 };
 use mitra_utils::{
     crypto_rsa::{
@@ -77,6 +82,7 @@ pub enum SubCommand {
 
     GenerateInviteCode(GenerateInviteCode),
     ListInviteCodes(ListInviteCodes),
+    CreateUser(CreateUser),
     SetPassword(SetPassword),
     SetRole(SetRole),
     RefetchActor(RefetchActor),
@@ -168,6 +174,39 @@ impl ListInviteCodes {
     }
 }
 
+/// Create new user
+#[derive(Parser)]
+pub struct CreateUser {
+    username: String,
+    password: String,
+    #[clap(value_parser = ALLOWED_ROLES)]
+    role: String,
+}
+
+impl CreateUser {
+    pub async fn execute(
+        &self,
+        db_client: &mut impl DatabaseClient,
+    ) -> Result<(), Error> {
+        validate_local_username(&self.username)?;
+        let password_hash = hash_password(&self.password)?;
+        let private_key = generate_rsa_key()?;
+        let private_key_pem = serialize_private_key(&private_key)?;
+        let role = role_from_str(&self.role)?;
+        let user_data = UserCreateData {
+            username: self.username.clone(),
+            password_hash: Some(password_hash),
+            private_key_pem,
+            wallet_address: None,
+            invite_code: None,
+            role,
+        };
+        create_user(db_client, user_data).await?;
+        println!("user created");
+        Ok(())
+    }
+}
+
 /// Set password
 #[derive(Parser)]
 pub struct SetPassword {
@@ -193,7 +232,7 @@ impl SetPassword {
 #[derive(Parser)]
 pub struct SetRole {
     id: Uuid,
-    #[clap(value_parser = ["admin", "user", "read_only_user"])]
+    #[clap(value_parser = ALLOWED_ROLES)]
     role: String,
 }
 
@@ -202,12 +241,7 @@ impl SetRole {
         &self,
         db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        let role = match self.role.as_str() {
-            "user" => Role::NormalUser,
-            "admin" => Role::Admin,
-            "read_only_user" => Role::ReadOnlyUser,
-            _ => return Err(anyhow!("unknown role")),
-        };
+        let role = role_from_str(&self.role)?;
         set_user_role(db_client, &self.id, role).await?;
         println!("role changed");
         Ok(())

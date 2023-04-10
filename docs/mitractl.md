@@ -32,6 +32,12 @@ List generated invites:
 mitractl list-invite-codes
 ```
 
+Create user:
+
+```shell
+mitractl create-user <username> <password> <role-name>
+```
+
 Set or change password:
 
 ```shell

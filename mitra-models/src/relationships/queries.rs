@@ -596,6 +596,7 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let source_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let source = create_user(db_client, source_data).await.unwrap();
@@ -657,6 +658,7 @@ mod tests {
         let source = create_profile(db_client, source_data).await.unwrap();
         let target_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let target = create_user(db_client, target_data).await.unwrap();

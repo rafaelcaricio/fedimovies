@@ -125,6 +125,7 @@ mod tests {
         let instance = Instance::for_test("https://example.com");
         let user_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         create_user(db_client, user_data).await.unwrap();
