@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use mitra_config::Instance;
+use mitra_config::{Config, Instance};
 use mitra_models::{
     database::{DatabaseClient, DatabaseError},
     posts::helpers::get_local_post_by_id,
@@ -17,7 +17,7 @@ use crate::activitypub::{
     actors::helpers::{create_remote_profile, update_remote_profile},
     handlers::create::{get_object_links, handle_note},
     identifiers::parse_local_object_id,
-    receiver::HandlerError,
+    receiver::{handle_activity, HandlerError},
     types::Object,
 };
 use crate::errors::ValidationError;
@@ -26,6 +26,7 @@ use crate::webfinger::types::ActorAddress;
 use super::fetchers::{
     fetch_actor,
     fetch_object,
+    fetch_outbox,
     perform_webfinger_query,
     FetchError,
 };
@@ -300,4 +301,30 @@ pub async fn import_post(
         .find(|post| post.object_id.as_ref() == Some(&initial_object_id))
         .unwrap();
     Ok(initial_post)
+}
+
+pub async fn import_from_outbox(
+    config: &Config,
+    db_client: &mut impl DatabaseClient,
+    actor_id: &str,
+) -> Result<(), HandlerError> {
+    let instance = config.instance();
+    let actor = fetch_actor(&instance, actor_id).await?;
+    let activities = fetch_outbox(&instance, &actor.outbox).await?;
+    log::info!("fetched {} activities", activities.len());
+    for activity in activities {
+        let activity_actor = activity["actor"].as_str()
+            .ok_or(ValidationError("actor property is missing"))?;
+        if activity_actor != actor.id {
+            log::warn!("activity doesn't belong to outbox owner");
+            continue;
+        };
+        handle_activity(
+            config,
+            db_client,
+            &activity,
+            true, // is authenticated
+        ).await?;
+    };
+    Ok(())
 }

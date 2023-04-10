@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Support Monero Wallet RPC authentication.
 - Added `create-user` command.
+- Added `read-outbox` command.
 
 ### Changed
 

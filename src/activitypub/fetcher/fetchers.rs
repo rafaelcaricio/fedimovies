@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use reqwest::{Client, Method, RequestBuilder};
-use serde_json::Value;
+use serde::Deserialize;
+use serde_json::{Value as JsonValue};
 
 use mitra_config::Instance;
 use mitra_utils::{
@@ -222,7 +223,31 @@ pub async fn fetch_object(
     object_url: &str,
 ) -> Result<Object, FetchError> {
     let object_json = send_request(instance, object_url).await?;
-    let object_value: Value = serde_json::from_str(&object_json)?;
+    let object_value: JsonValue = serde_json::from_str(&object_json)?;
     let object: Object = serde_json::from_value(object_value)?;
     Ok(object)
+}
+
+const OUTBOX_PAGE_SIZE_LIMIT: usize = 5;
+
+pub async fn fetch_outbox(
+    instance: &Instance,
+    outbox_url: &str,
+) -> Result<Vec<JsonValue>, FetchError> {
+    #[derive(Deserialize)]
+    struct Collection {
+        first: String,
+    }
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct CollectionPage {
+        ordered_items: Vec<JsonValue>,
+    }
+    let collection_json = send_request(instance, outbox_url).await?;
+    let collection: Collection = serde_json::from_str(&collection_json)?;
+    let page_json = send_request(instance, &collection.first).await?;
+    let page: CollectionPage = serde_json::from_str(&page_json)?;
+    let activities = page.ordered_items.into_iter()
+        .take(OUTBOX_PAGE_SIZE_LIMIT).collect();
+    Ok(activities)
 }
