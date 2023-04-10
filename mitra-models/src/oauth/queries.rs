@@ -223,6 +223,7 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let user_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user = create_user(db_client, user_data).await.unwrap();
@@ -248,6 +249,7 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let user_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user = create_user(db_client, user_data).await.unwrap();

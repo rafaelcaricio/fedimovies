@@ -1375,6 +1375,7 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let user_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user = create_user(db_client, user_data).await.unwrap();
@@ -1400,6 +1401,7 @@ mod tests {
          let db_client = &mut create_test_database().await;
         let user_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user = create_user(db_client, user_data).await.unwrap();
@@ -1419,6 +1421,7 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let current_user_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let current_user = create_user(db_client, current_user_data).await.unwrap();
@@ -1438,6 +1441,7 @@ mod tests {
         // Another user's public post
         let user_data_1 = UserCreateData {
             username: "another-user".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user_1 = create_user(db_client, user_data_1).await.unwrap();
@@ -1464,6 +1468,7 @@ mod tests {
         // Followed user's public post
         let user_data_2 = UserCreateData {
             username: "followed".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user_2 = create_user(db_client, user_data_2).await.unwrap();
@@ -1504,6 +1509,7 @@ mod tests {
         // Subscribers-only post by subscription (without mention)
         let user_data_3 = UserCreateData {
             username: "subscription".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user_3 = create_user(db_client, user_data_3).await.unwrap();
@@ -1525,6 +1531,7 @@ mod tests {
         // Repost from followed user if hiding reposts
         let user_data_4 = UserCreateData {
             username: "hide reposts".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user_4 = create_user(db_client, user_data_4).await.unwrap();
@@ -1559,6 +1566,7 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let user_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user = create_user(db_client, user_data).await.unwrap();
@@ -1622,6 +1630,7 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let user_data = UserCreateData {
             username: "test".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user = create_user(db_client, user_data).await.unwrap();

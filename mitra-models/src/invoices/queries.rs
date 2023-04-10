@@ -142,6 +142,7 @@ mod tests {
         let sender = create_profile(db_client, sender_data).await.unwrap();
         let recipient_data = UserCreateData {
             username: "recipient".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let recipient = create_user(db_client, recipient_data).await.unwrap();

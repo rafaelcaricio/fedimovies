@@ -110,11 +110,13 @@ mod tests {
     {
         let user_data_1 = UserCreateData {
             username: "user".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user_1 = create_user(db_client, user_data_1).await.unwrap();
         let user_data_2 = UserCreateData {
             username: "another-user".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user_2 = create_user(db_client, user_data_2).await.unwrap();

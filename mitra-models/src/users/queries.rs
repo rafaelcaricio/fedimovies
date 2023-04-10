@@ -78,6 +78,8 @@ pub async fn create_user(
     db_client: &mut impl DatabaseClient,
     user_data: UserCreateData,
 ) -> Result<User, DatabaseError> {
+    assert!(user_data.password_hash.is_some() ||
+            user_data.wallet_address.is_some());
     let mut transaction = db_client.transaction().await?;
     // Prevent changes to actor_profile table
     transaction.execute(
@@ -351,6 +353,7 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let user_data = UserCreateData {
             username: "myname".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let user = create_user(db_client, user_data).await.unwrap();
@@ -364,11 +367,13 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let user_data = UserCreateData {
             username: "myname".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         create_user(db_client, user_data).await.unwrap();
         let another_user_data = UserCreateData {
             username: "myName".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let result = create_user(db_client, another_user_data).await;
@@ -379,7 +384,11 @@ mod tests {
     #[serial]
     async fn test_set_user_role() {
         let db_client = &mut create_test_database().await;
-        let user_data = UserCreateData::default();
+        let user_data = UserCreateData {
+            username: "test".to_string(),
+            password_hash: Some("test".to_string()),
+            ..Default::default()
+        };
         let user = create_user(db_client, user_data).await.unwrap();
         assert_eq!(user.role, Role::NormalUser);
         set_user_role(db_client, &user.id, Role::ReadOnlyUser).await.unwrap();
@@ -391,7 +400,11 @@ mod tests {
     #[serial]
     async fn test_update_client_config() {
         let db_client = &mut create_test_database().await;
-        let user_data = UserCreateData::default();
+        let user_data = UserCreateData {
+            username: "test".to_string(),
+            password_hash: Some("test".to_string()),
+            ..Default::default()
+        };
         let user = create_user(db_client, user_data).await.unwrap();
         assert_eq!(user.client_config.is_empty(), true);
         let client_name = "test";

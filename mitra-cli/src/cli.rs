@@ -1,19 +1,14 @@
-use anyhow::{anyhow, Error};
+use anyhow::Error;
 use clap::Parser;
 use uuid::Uuid;
 
 use mitra::activitypub::{
-    actors::helpers::update_remote_profile,
-    builders::delete_note::prepare_delete_note,
-    builders::delete_person::prepare_delete_person,
-    fetcher::fetchers::fetch_actor,
+    actors::helpers::update_remote_profile, builders::delete_note::prepare_delete_note,
+    builders::delete_person::prepare_delete_person, fetcher::fetchers::fetch_actor,
 };
-use mitra::media::{
-    remove_files,
-    remove_media,
-    MediaStorage,
-};
-use mitra::validators::emojis::EMOJI_LOCAL_MAX_SIZE;
+use mitra::admin::roles::{role_from_str, ALLOWED_ROLES};
+use mitra::media::{remove_files, remove_media, MediaStorage};
+use mitra::validators::{emojis::EMOJI_LOCAL_MAX_SIZE, users::validate_local_username};
 use mitra_config::Config;
 use mitra_models::{
     attachments::queries::delete_unused_attachments,
@@ -21,35 +16,23 @@ use mitra_models::{
     database::DatabaseClient,
     emojis::helpers::get_emoji_by_name,
     emojis::queries::{
-        create_emoji,
-        delete_emoji,
-        find_unused_remote_emojis,
-        get_emoji_by_name_and_hostname,
+        create_emoji, delete_emoji, find_unused_remote_emojis, get_emoji_by_name_and_hostname,
     },
     oauth::queries::delete_oauth_tokens,
     posts::queries::{delete_post, find_extraneous_posts, get_post_by_id},
     profiles::queries::{
-        delete_profile,
-        find_empty_profiles,
-        find_unreachable,
-        get_profile_by_id,
+        delete_profile, find_empty_profiles, find_unreachable, get_profile_by_id,
         get_profile_by_remote_actor_id,
     },
     subscriptions::queries::reset_subscriptions,
     users::queries::{
-        create_invite_code,
-        get_invite_codes,
-        get_user_by_id,
-        set_user_password,
+        create_invite_code, create_user, get_invite_codes, get_user_by_id, set_user_password,
         set_user_role,
     },
-    users::types::Role,
+    users::types::UserCreateData,
 };
 use mitra_utils::{
-    crypto_rsa::{
-        generate_rsa_key,
-        serialize_private_key,
-    },
+    crypto_rsa::{generate_rsa_key, serialize_private_key},
     datetime::{days_before_now, get_min_datetime},
     passwords::hash_password,
 };
@@ -68,6 +51,7 @@ pub enum SubCommand {
 
     GenerateInviteCode(GenerateInviteCode),
     ListInviteCodes(ListInviteCodes),
+    CreateUser(CreateUser),
     SetPassword(SetPassword),
     SetRole(SetRole),
     RefetchActor(RefetchActor),
@@ -116,14 +100,8 @@ pub struct GenerateInviteCode {
 }
 
 impl GenerateInviteCode {
-    pub async fn execute(
-        &self,
-        db_client: &impl DatabaseClient,
-    ) -> Result<(), Error> {
-        let invite_code = create_invite_code(
-            db_client,
-            self.note.as_deref(),
-        ).await?;
+    pub async fn execute(&self, db_client: &impl DatabaseClient) -> Result<(), Error> {
+        let invite_code = create_invite_code(db_client, self.note.as_deref()).await?;
         println!("generated invite code: {}", invite_code);
         Ok(())
     }
@@ -134,10 +112,7 @@ impl GenerateInviteCode {
 pub struct ListInviteCodes;
 
 impl ListInviteCodes {
-    pub async fn execute(
-        &self,
-        db_client: &impl DatabaseClient,
-    ) -> Result<(), Error> {
+    pub async fn execute(&self, db_client: &impl DatabaseClient) -> Result<(), Error> {
         let invite_codes = get_invite_codes(db_client).await?;
         if invite_codes.is_empty() {
             println!("no invite codes found");
@@ -149,7 +124,37 @@ impl ListInviteCodes {
             } else {
                 println!("{}", invite_code.code);
             };
+        }
+        Ok(())
+    }
+}
+
+/// Create new user
+#[derive(Parser)]
+pub struct CreateUser {
+    username: String,
+    password: String,
+    #[clap(value_parser = ALLOWED_ROLES)]
+    role: String,
+}
+
+impl CreateUser {
+    pub async fn execute(&self, db_client: &mut impl DatabaseClient) -> Result<(), Error> {
+        validate_local_username(&self.username)?;
+        let password_hash = hash_password(&self.password)?;
+        let private_key = generate_rsa_key()?;
+        let private_key_pem = serialize_private_key(&private_key)?;
+        let role = role_from_str(&self.role)?;
+        let user_data = UserCreateData {
+            username: self.username.clone(),
+            password_hash: Some(password_hash),
+            private_key_pem,
+            wallet_address: None,
+            invite_code: None,
+            role,
         };
+        create_user(db_client, user_data).await?;
+        println!("user created");
         Ok(())
     }
 }
@@ -162,10 +167,7 @@ pub struct SetPassword {
 }
 
 impl SetPassword {
-    pub async fn execute(
-        &self,
-        db_client: &impl DatabaseClient,
-    ) -> Result<(), Error> {
+    pub async fn execute(&self, db_client: &impl DatabaseClient) -> Result<(), Error> {
         let password_hash = hash_password(&self.password)?;
         set_user_password(db_client, &self.id, password_hash).await?;
         // Revoke all sessions
@@ -179,21 +181,13 @@ impl SetPassword {
 #[derive(Parser)]
 pub struct SetRole {
     id: Uuid,
-    #[clap(value_parser = ["admin", "user", "read_only_user"])]
+    #[clap(value_parser = ALLOWED_ROLES)]
     role: String,
 }
 
 impl SetRole {
-    pub async fn execute(
-        &self,
-        db_client: &impl DatabaseClient,
-    ) -> Result<(), Error> {
-        let role = match self.role.as_str() {
-            "user" => Role::NormalUser,
-            "admin" => Role::Admin,
-            "read_only_user" => Role::ReadOnlyUser,
-            _ => return Err(anyhow!("unknown role")),
-        };
+    pub async fn execute(&self, db_client: &impl DatabaseClient) -> Result<(), Error> {
+        let role = role_from_str(&self.role)?;
         set_user_role(db_client, &self.id, role).await?;
         println!("role changed");
         Ok(())
@@ -212,10 +206,7 @@ impl RefetchActor {
         config: &Config,
         db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
-        let profile = get_profile_by_remote_actor_id(
-            db_client,
-            &self.id,
-        ).await?;
+        let profile = get_profile_by_remote_actor_id(db_client, &self.id).await?;
         let actor = fetch_actor(&config.instance(), &self.id).await?;
         update_remote_profile(
             db_client,
@@ -223,7 +214,8 @@ impl RefetchActor {
             &MediaStorage::from(config),
             profile,
             actor,
-        ).await?;
+        )
+        .await?;
         println!("profile updated");
         Ok(())
     }
@@ -245,8 +237,7 @@ impl DeleteProfile {
         let mut maybe_delete_person = None;
         if profile.is_local() {
             let user = get_user_by_id(db_client, &profile.id).await?;
-            let activity =
-                prepare_delete_person(db_client, &config.instance(), &user).await?;
+            let activity = prepare_delete_person(db_client, &config.instance(), &user).await?;
             maybe_delete_person = Some(activity);
         };
         let deletion_queue = delete_profile(db_client, &profile.id).await?;
@@ -276,12 +267,8 @@ impl DeletePost {
         let mut maybe_delete_note = None;
         if post.author.is_local() {
             let author = get_user_by_id(db_client, &post.author.id).await?;
-            let activity = prepare_delete_note(
-                db_client,
-                &config.instance(),
-                &author,
-                &post,
-            ).await?;
+            let activity =
+                prepare_delete_note(db_client, &config.instance(), &author, &post).await?;
             maybe_delete_note = Some(activity);
         };
         let deletion_queue = delete_post(db_client, &post.id).await?;
@@ -308,11 +295,8 @@ impl DeleteEmoji {
         config: &Config,
         db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        let emoji = get_emoji_by_name(
-            db_client,
-            &self.emoji_name,
-            self.hostname.as_deref(),
-        ).await?;
+        let emoji =
+            get_emoji_by_name(db_client, &self.emoji_name, self.hostname.as_deref()).await?;
         let deletion_queue = delete_emoji(db_client, &emoji.id).await?;
         remove_media(config, deletion_queue).await;
         println!("emoji deleted");
@@ -338,7 +322,7 @@ impl DeleteExtraneousPosts {
             let deletion_queue = delete_post(db_client, &post_id).await?;
             remove_media(config, deletion_queue).await;
             println!("post {} deleted", post_id);
-        };
+        }
         Ok(())
     }
 }
@@ -356,10 +340,7 @@ impl DeleteUnusedAttachments {
         db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
         let created_before = days_before_now(self.days);
-        let deletion_queue = delete_unused_attachments(
-            db_client,
-            &created_before,
-        ).await?;
+        let deletion_queue = delete_unused_attachments(db_client, &created_before).await?;
         remove_media(config, deletion_queue).await;
         println!("unused attachments deleted");
         Ok(())
@@ -379,10 +360,9 @@ impl DeleteOrphanedFiles {
         let media_dir = config.media_dir();
         let mut files = vec![];
         for maybe_path in std::fs::read_dir(&media_dir)? {
-            let file_name = maybe_path?.file_name()
-                .to_string_lossy().to_string();
+            let file_name = maybe_path?.file_name().to_string_lossy().to_string();
             files.push(file_name);
-        };
+        }
         println!("found {} files", files.len());
         let orphaned = find_orphaned_files(db_client, files).await?;
         if !orphaned.is_empty() {
@@ -412,7 +392,7 @@ impl DeleteEmptyProfiles {
             let deletion_queue = delete_profile(db_client, &profile.id).await?;
             remove_media(config, deletion_queue).await;
             println!("profile {} deleted", profile.acct);
-        };
+        }
         Ok(())
     }
 }
@@ -432,7 +412,7 @@ impl PruneRemoteEmojis {
             let deletion_queue = delete_emoji(db_client, &emoji_id).await?;
             remove_media(config, deletion_queue).await;
             println!("emoji {} deleted", emoji_id);
-        };
+        }
         Ok(())
     }
 }
@@ -462,7 +442,7 @@ impl ListUnreachableActors {
                 profile.unreachable_since.unwrap().to_string(),
                 profile.updated_at.to_string(),
             );
-        };
+        }
         Ok(())
     }
 }
@@ -480,11 +460,8 @@ impl ImportEmoji {
         _config: &Config,
         db_client: &impl DatabaseClient,
     ) -> Result<(), Error> {
-        let emoji = get_emoji_by_name_and_hostname(
-            db_client,
-            &self.emoji_name,
-            &self.hostname,
-        ).await?;
+        let emoji =
+            get_emoji_by_name_and_hostname(db_client, &self.emoji_name, &self.hostname).await?;
         if emoji.image.file_size > EMOJI_LOCAL_MAX_SIZE {
             println!("emoji is too big");
             return Ok(());
@@ -496,7 +473,8 @@ impl ImportEmoji {
             emoji.image,
             None,
             &get_min_datetime(),
-        ).await?;
+        )
+        .await?;
         println!("added emoji to local collection");
         Ok(())
     }
@@ -548,10 +526,7 @@ pub struct CreateMoneroWallet {
 }
 
 impl CreateMoneroWallet {
-    pub async fn execute(
-        &self,
-        _config: &Config,
-    ) -> Result<(), Error> {
+    pub async fn execute(&self, _config: &Config) -> Result<(), Error> {
         println!("wallet created");
         Ok(())
     }

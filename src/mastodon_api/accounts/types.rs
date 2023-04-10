@@ -37,10 +37,6 @@ use crate::mastodon_api::{
     uploads::{save_b64_file, UploadError},
 };
 use crate::media::get_file_url;
-use crate::validators::{
-    profiles::validate_username,
-    users::validate_local_username,
-};
 
 /// https://docs.joinmastodon.org/entities/field/
 #[derive(Serialize)]
@@ -266,18 +262,6 @@ pub struct AccountCreateData {
     pub signature: Option<String>,
 
     pub invite_code: Option<String>,
-}
-
-impl AccountCreateData {
-
-    pub fn clean(&self) -> Result<(), ValidationError> {
-        validate_username(&self.username)?;
-        validate_local_username(&self.username)?;
-        if self.password.is_none() && self.message.is_none() {
-            return Err(ValidationError("password or EIP-4361 message is required"));
-        };
-        Ok(())
-    }
 }
 
 #[derive(Deserialize)]
@@ -562,19 +546,6 @@ mod tests {
     use super::*;
 
     const INSTANCE_URL: &str = "https://example.com";
-
-    #[test]
-    fn test_validate_account_create_data() {
-        let account_data = AccountCreateData {
-            username: "test".to_string(),
-            password: None,
-            message: None,
-            signature: Some("test".to_string()),
-            invite_code: None,
-        };
-        let error = account_data.clean().unwrap_err();
-        assert_eq!(error.to_string(), "password or EIP-4361 message is required");
-    }
 
     #[test]
     fn test_create_account_from_profile() {

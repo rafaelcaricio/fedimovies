@@ -222,6 +222,7 @@ mod tests {
         let sender_address = "0xb9c5714089478a327f09197987f16f9e5d936e8a";
         let recipient_data = UserCreateData {
             username: "recipient".to_string(),
+            password_hash: Some("test".to_string()),
             ..Default::default()
         };
         let recipient = create_user(db_client, recipient_data).await.unwrap();

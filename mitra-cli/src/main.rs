@@ -31,6 +31,7 @@ async fn main() {
             match subcmd {
                 SubCommand::GenerateInviteCode(cmd) => cmd.execute(db_client).await.unwrap(),
                 SubCommand::ListInviteCodes(cmd) => cmd.execute(db_client).await.unwrap(),
+                SubCommand::CreateUser(cmd) => cmd.execute(db_client).await.unwrap(),
                 SubCommand::SetPassword(cmd) => cmd.execute(db_client).await.unwrap(),
                 SubCommand::SetRole(cmd) => cmd.execute(db_client).await.unwrap(),
                 SubCommand::RefetchActor(cmd) => cmd.execute(&config, db_client).await.unwrap(),
@@ -48,7 +49,7 @@ async fn main() {
                 SubCommand::ResetSubscriptions(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::CreateMoneroWallet(cmd) => cmd.execute(&config).await.unwrap(),
                 SubCommand::CheckExpiredInvoice(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                _ => panic!(),
+                _ => unreachable!(),
             };
         },
     };
