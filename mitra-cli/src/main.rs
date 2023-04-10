@@ -35,6 +35,7 @@ async fn main() {
                 SubCommand::SetPassword(cmd) => cmd.execute(db_client).await.unwrap(),
                 SubCommand::SetRole(cmd) => cmd.execute(db_client).await.unwrap(),
                 SubCommand::RefetchActor(cmd) => cmd.execute(&config, db_client).await.unwrap(),
+                SubCommand::ReadOutbox(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteProfile(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeletePost(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteEmoji(cmd) => cmd.execute(&config, db_client).await.unwrap(),

@@ -5,6 +5,7 @@ use uuid::Uuid;
 use mitra::activitypub::{
     actors::helpers::update_remote_profile, builders::delete_note::prepare_delete_note,
     builders::delete_person::prepare_delete_person, fetcher::fetchers::fetch_actor,
+    fetcher::helpers::import_from_outbox,
 };
 use mitra::admin::roles::{role_from_str, ALLOWED_ROLES};
 use mitra::media::{remove_files, remove_media, MediaStorage};
@@ -55,6 +56,7 @@ pub enum SubCommand {
     SetPassword(SetPassword),
     SetRole(SetRole),
     RefetchActor(RefetchActor),
+    ReadOutbox(ReadOutbox),
     DeleteProfile(DeleteProfile),
     DeletePost(DeletePost),
     DeleteEmoji(DeleteEmoji),
@@ -217,6 +219,23 @@ impl RefetchActor {
         )
         .await?;
         println!("profile updated");
+        Ok(())
+    }
+}
+
+/// Pull activities from actor's outbox
+#[derive(Parser)]
+pub struct ReadOutbox {
+    actor_id: String,
+}
+
+impl ReadOutbox {
+    pub async fn execute(
+        &self,
+        config: &Config,
+        db_client: &mut impl DatabaseClient,
+    ) -> Result<(), Error> {
+        import_from_outbox(config, db_client, &self.actor_id).await?;
         Ok(())
     }
 }
