@@ -53,9 +53,9 @@ pub enum FetchError {
 
 fn build_client(
     instance: &Instance,
-    request_uri: &str,
+    request_url: &str,
 ) -> Result<Client, FetchError> {
-    let hostname = get_hostname(request_uri)?;
+    let hostname = get_hostname(request_url)?;
     let is_onion = hostname.ends_with(".onion");
     let client = build_federation_client(
         instance,
@@ -84,15 +84,11 @@ fn build_request(
 async fn send_request(
     instance: &Instance,
     url: &str,
-    query_params: &[(&str, &str)],
 ) -> Result<String, FetchError> {
     let client = build_client(instance, url)?;
     let mut request_builder = build_request(instance, client, Method::GET, url)
         .header(reqwest::header::ACCEPT, AP_MEDIA_TYPE);
 
-    if !query_params.is_empty() {
-        request_builder = request_builder.query(query_params);
-    };
     if !instance.is_private {
         // Only public instances can send signed requests
         let instance_actor_id = local_instance_actor_id(&instance.url());
@@ -213,7 +209,7 @@ pub async fn fetch_actor(
     instance: &Instance,
     actor_url: &str,
 ) -> Result<Actor, FetchError> {
-    let actor_json = send_request(instance, actor_url, &[]).await?;
+    let actor_json = send_request(instance, actor_url).await?;
     let actor: Actor = serde_json::from_str(&actor_json)?;
     if actor.id != actor_url {
         log::warn!("redirected from {} to {}", actor_url, actor.id);
@@ -225,7 +221,7 @@ pub async fn fetch_object(
     instance: &Instance,
     object_url: &str,
 ) -> Result<Object, FetchError> {
-    let object_json = send_request(instance, object_url, &[]).await?;
+    let object_json = send_request(instance, object_url).await?;
     let object_value: Value = serde_json::from_str(&object_json)?;
     let object: Object = serde_json::from_value(object_value)?;
     Ok(object)
