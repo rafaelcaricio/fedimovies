@@ -8,13 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Support Monero Wallet RPC authentication.
 - Added `create-user` command.
 
 ### Changed
 
 - Added emoji count check to profile data validator.
 - Check mention and link counts when creating post.
+- Re-fetch object if `attributedTo` value doesn't match `actor` of `Create` activity.
 
 ## [1.20.0] - 2023-03-07
 

@@ -680,7 +680,7 @@ pub async fn handle_create(
     config: &Config,
     db_client: &mut impl DatabaseClient,
     activity: JsonValue,
-    is_authenticated: bool,
+    mut is_authenticated: bool,
 ) -> HandlerResult {
     let object: Object = serde_json::from_value(activity["object"].to_owned())
         .map_err(|_| ValidationError("invalid object"))?;
@@ -689,6 +689,15 @@ pub async fn handle_create(
     if is_unsolicited_message(db_client, &instance.url(), &object).await? {
         log::warn!("unsolicited message rejected: {}", object.id);
         return Ok(None);
+    };
+
+    // Verify attribution
+    let actor_id = activity["actor"].as_str()
+        .ok_or(ValidationError("actor property is missing"))?;
+    let author_id = get_object_attributed_to(&object)?;
+    if actor_id != author_id {
+        log::warn!("attributedTo value doesn't match actor");
+        is_authenticated = false; // Object will be fetched
     };
 
     let object_id = object.id.clone();
