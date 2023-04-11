@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
+use serde::Deserialize;
 use serde_json::{Value as JsonValue};
 use uuid::Uuid;
 
@@ -676,14 +677,21 @@ async fn is_unsolicited_message(
     Ok(result)
 }
 
+#[derive(Deserialize)]
+struct CreateNote {
+    actor: String,
+    object: Object,
+}
+
 pub async fn handle_create(
     config: &Config,
     db_client: &mut impl DatabaseClient,
     activity: JsonValue,
     mut is_authenticated: bool,
 ) -> HandlerResult {
-    let object: Object = serde_json::from_value(activity["object"].to_owned())
+    let activity: CreateNote = serde_json::from_value(activity)
         .map_err(|_| ValidationError("invalid object"))?;
+    let object = activity.object;
     let instance = config.instance();
 
     if is_unsolicited_message(db_client, &instance.url(), &object).await? {
@@ -692,10 +700,8 @@ pub async fn handle_create(
     };
 
     // Verify attribution
-    let actor_id = activity["actor"].as_str()
-        .ok_or(ValidationError("actor property is missing"))?;
     let author_id = get_object_attributed_to(&object)?;
-    if actor_id != author_id {
+    if author_id != activity.actor {
         log::warn!("attributedTo value doesn't match actor");
         is_authenticated = false; // Object will be fetched
     };

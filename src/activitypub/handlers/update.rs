@@ -27,6 +27,7 @@ use crate::activitypub::{
         get_object_tags,
         get_object_url,
     },
+    identifiers::profile_actor_id,
     types::Object,
     vocabulary::{NOTE, PERSON},
 };
@@ -35,13 +36,20 @@ use crate::media::MediaStorage;
 
 use super::HandlerResult;
 
+#[derive(Deserialize)]
+struct UpdateNote {
+    actor: String,
+    object: Object,
+}
+
 async fn handle_update_note(
     config: &Config,
     db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
-    let object: Object = serde_json::from_value(activity["object"].to_owned())
+    let activity: UpdateNote = serde_json::from_value(activity)
         .map_err(|_| ValidationError("invalid object"))?;
+    let object = activity.object;
     let post = match get_post_by_remote_object_id(
         db_client,
         &object.id,
@@ -51,13 +59,16 @@ async fn handle_update_note(
         Err(DatabaseError::NotFound(_)) => return Ok(None),
         Err(other_error) => return Err(other_error.into()),
     };
+    let instance = config.instance();
+    if profile_actor_id(&instance.url(), &post.author) != activity.actor {
+        return Err(ValidationError("actor is not an author").into());
+    };
     let mut content = get_object_content(&object)?;
     if object.object_type != NOTE {
         // Append link to object
         let object_url = get_object_url(&object)?;
         content += &create_content_link(object_url);
     };
-    let instance = config.instance();
     let storage = MediaStorage::from(config);
     let (attachments, unprocessed) = get_object_attachments(
         db_client,

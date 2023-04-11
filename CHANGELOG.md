@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added emoji count check to profile data validator.
 - Check mention and link counts when creating post.
 - Re-fetch object if `attributedTo` value doesn't match `actor` of `Create` activity.
+- Added actor validation to `Update(Note)` and `Undo(Follow)` handlers.
 
 ## [1.20.0] - 2023-03-07
 
