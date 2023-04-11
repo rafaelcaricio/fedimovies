@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Disable transaction monitor tasks if blockchain integration is disabled.
 - Allow multiple configurations in `blockchains` array.
 - Re-fetch object if `attributedTo` value doesn't match `actor` of `Create` activity.
+- Added actor validation to `Update(Note)` and `Undo(Follow)` handlers.
 
 ## [1.20.0] - 2023-03-07
 

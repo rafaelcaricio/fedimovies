@@ -91,6 +91,9 @@ pub async fn handle_undo(
     match get_follow_request_by_activity_id(db_client, &activity.object).await {
         Ok(follow_request) => {
             // Undo(Follow)
+            if follow_request.source_id != actor_profile.id {
+                return Err(ValidationError("actor is not a follower").into());
+            };
             unfollow(
                 db_client,
                 &follow_request.source_id,
