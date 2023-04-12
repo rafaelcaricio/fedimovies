@@ -25,7 +25,11 @@ use super::handlers::{
     accept::handle_accept,
     add::handle_add,
     announce::handle_announce,
-    create::handle_create,
+    create::{
+        handle_create,
+        is_unsolicited_message,
+        CreateNote,
+    },
     delete::handle_delete,
     follow::handle_follow,
     like::handle_like,
@@ -317,6 +321,15 @@ pub async fn receive_activity(
                 );
                 return Err(AuthenticationError::UnexpectedSigner.into());
             },
+        };
+    };
+
+    if activity_type == CREATE {
+        let CreateNote { object, .. } = serde_json::from_value(activity.clone())
+            .map_err(|_| ValidationError("invalid object"))?;
+        if is_unsolicited_message(db_client, &config.instance_url(), &object).await? {
+            log::warn!("unsolicited message rejected: {}", object.id);
+            return Ok(());
         };
     };
 
