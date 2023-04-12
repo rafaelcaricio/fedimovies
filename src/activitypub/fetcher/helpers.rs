@@ -324,7 +324,13 @@ pub async fn import_from_outbox(
             db_client,
             &activity,
             true, // is authenticated
-        ).await?;
+        ).await.unwrap_or_else(|error| {
+            log::warn!(
+                "failed to process activity ({}): {}",
+                error,
+                activity,
+            );
+        });
     };
     Ok(())
 }
