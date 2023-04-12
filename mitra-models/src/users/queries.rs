@@ -92,6 +92,7 @@ pub async fn create_user(
         SELECT 1
         FROM user_account JOIN actor_profile USING (id)
         WHERE actor_profile.username ILIKE $1
+        LIMIT 1
         ",
         &[&user_data.username],
     ).await?;
