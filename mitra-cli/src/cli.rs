@@ -283,6 +283,8 @@ impl RefetchActor {
 #[derive(Parser)]
 pub struct ReadOutbox {
     actor_id: String,
+    #[clap(long, default_value_t = 5)]
+    limit: usize,
 }
 
 impl ReadOutbox {
@@ -295,6 +297,7 @@ impl ReadOutbox {
             config,
             db_client,
             &self.actor_id,
+            self.limit,
         ).await?;
         Ok(())
     }

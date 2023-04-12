@@ -307,10 +307,11 @@ pub async fn import_from_outbox(
     config: &Config,
     db_client: &mut impl DatabaseClient,
     actor_id: &str,
+    limit: usize,
 ) -> Result<(), HandlerError> {
     let instance = config.instance();
     let actor = fetch_actor(&instance, actor_id).await?;
-    let activities = fetch_outbox(&instance, &actor.outbox).await?;
+    let activities = fetch_outbox(&instance, &actor.outbox, limit).await?;
     log::info!("fetched {} activities", activities.len());
     for activity in activities {
         let activity_actor = activity["actor"].as_str()

@@ -228,11 +228,10 @@ pub async fn fetch_object(
     Ok(object)
 }
 
-const OUTBOX_PAGE_SIZE_LIMIT: usize = 5;
-
 pub async fn fetch_outbox(
     instance: &Instance,
     outbox_url: &str,
+    limit: usize,
 ) -> Result<Vec<JsonValue>, FetchError> {
     #[derive(Deserialize)]
     struct Collection {
@@ -248,6 +247,6 @@ pub async fn fetch_outbox(
     let page_json = send_request(instance, &collection.first).await?;
     let page: CollectionPage = serde_json::from_str(&page_json)?;
     let activities = page.ordered_items.into_iter()
-        .take(OUTBOX_PAGE_SIZE_LIMIT).collect();
+        .take(limit).collect();
     Ok(activities)
 }
