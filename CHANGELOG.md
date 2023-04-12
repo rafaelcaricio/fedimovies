@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.21.0] - 2023-04-12
+
 ### Added
 
 - Support Monero Wallet RPC authentication.
@@ -25,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fixed database query error in `Create` activity handler.
 
-## [1.20.0] - 2023-03-07
+## [1.20.0] - 2023-04-07
 
 ### Added
 

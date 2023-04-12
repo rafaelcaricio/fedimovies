@@ -1,6 +1,6 @@
 [package]
 name = "mitra"
-version = "1.20.0"
+version = "1.21.0"
 description = "Federated micro-blogging platform and content subscription service"
 license = "AGPL-3.0"
 
