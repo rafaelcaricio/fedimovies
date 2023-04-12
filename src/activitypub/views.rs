@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use mitra_config::Config;
 use mitra_models::{
-    database::{get_database_client, DbPool},
+    database::{get_database_client, DatabaseError, DbPool},
     emojis::queries::get_local_emoji_by_name,
     posts::helpers::{add_related_posts, can_view_post},
     posts::queries::{get_post_by_id, get_posts_by_author},
@@ -47,7 +47,7 @@ use super::identifiers::{
     local_actor_subscribers,
     local_actor_outbox,
 };
-use super::receiver::receive_activity;
+use super::receiver::{receive_activity, HandlerError};
 
 pub fn is_activitypub_request(headers: &HeaderMap) -> bool {
     let maybe_user_agent = headers.get(http_header::USER_AGENT)
@@ -126,6 +126,12 @@ async fn inbox(
     let db_client = &mut **get_database_client(&db_pool).await?;
     receive_activity(&config, db_client, &request, &activity).await
         .map_err(|error| {
+            // TODO: preserve original error text in DatabaseError
+            if let HandlerError::DatabaseError(
+                DatabaseError::DatabaseClientError(ref pg_error)) = error
+            {
+                log::error!("database client error: {}", pg_error);
+            };
             log::warn!(
                 "failed to process activity ({}): {}",
                 error,
