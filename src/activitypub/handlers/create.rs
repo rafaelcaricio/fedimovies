@@ -657,7 +657,7 @@ pub async fn handle_note(
     Ok(post)
 }
 
-async fn is_unsolicited_message(
+pub async fn is_unsolicited_message(
     db_client: &impl DatabaseClient,
     instance_url: &str,
     object: &Object,
@@ -678,9 +678,9 @@ async fn is_unsolicited_message(
 }
 
 #[derive(Deserialize)]
-struct CreateNote {
-    actor: String,
-    object: Object,
+pub struct CreateNote {
+    pub actor: String,
+    pub object: Object,
 }
 
 pub async fn handle_create(
@@ -692,12 +692,6 @@ pub async fn handle_create(
     let activity: CreateNote = serde_json::from_value(activity)
         .map_err(|_| ValidationError("invalid object"))?;
     let object = activity.object;
-    let instance = config.instance();
-
-    if is_unsolicited_message(db_client, &instance.url(), &object).await? {
-        log::warn!("unsolicited message rejected: {}", object.id);
-        return Ok(None);
-    };
 
     // Verify attribution
     let author_id = get_object_attributed_to(&object)?;
@@ -716,7 +710,7 @@ pub async fn handle_create(
     };
     import_post(
         db_client,
-        &instance,
+        &config.instance(),
         &MediaStorage::from(config),
         object_id,
         object_received,
