@@ -360,6 +360,7 @@ pub async fn has_local_followers(
         WHERE
             actor_profile.actor_id = $1
             AND relationship_type = $2
+        LIMIT 1
         ",
         &[&actor_id, &RelationshipType::Follow]
     ).await?;
