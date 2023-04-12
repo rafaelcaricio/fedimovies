@@ -107,6 +107,11 @@ pub async fn process_queued_incoming_activities(
         };
         if let Err(error) = handler_result {
             job_data.failure_count += 1;
+            if let HandlerError::DatabaseError(
+                DatabaseError::DatabaseClientError(ref pg_error)) = error
+            {
+                log::error!("database client error: {}", pg_error);
+            };
             log::warn!(
                 "failed to process activity ({}) (attempt #{}): {}",
                 error,
