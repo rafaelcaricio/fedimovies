@@ -227,6 +227,8 @@ impl RefetchActor {
 #[derive(Parser)]
 pub struct ReadOutbox {
     actor_id: String,
+    #[clap(long, default_value_t = 5)]
+    limit: usize,
 }
 
 impl ReadOutbox {
@@ -235,7 +237,7 @@ impl ReadOutbox {
         config: &Config,
         db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
-        import_from_outbox(config, db_client, &self.actor_id).await?;
+        import_from_outbox(config, db_client, &self.actor_id, self.limit).await?;
         Ok(())
     }
 }
