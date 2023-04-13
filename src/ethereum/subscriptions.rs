@@ -179,6 +179,12 @@ pub async fn check_ethereum_subscriptions(
         ).await {
             Ok(subscription) => {
                 if subscription.chain_id != config.chain_id {
+                    // Reset is required (mitractl reset-subscriptions).
+                    // Without this precaution, sender_address can be
+                    // lost during the switch, leading to a loss
+                    // of the ability to call withdrawReceived()
+                    // from a client.
+                    // See also: ApiSubscription type.
                     log::error!("can't switch to another chain");
                     continue;
                 };

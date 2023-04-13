@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Ignore errors when importing activities from outbox.
 - Make activity limit in outbox fetcher adjustable.
+- Changed `reset-subscriptions` command arguments (removes subscription options by default).
 
 ## [1.21.0] - 2023-04-12
 

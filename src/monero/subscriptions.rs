@@ -165,6 +165,7 @@ pub async fn check_monero_subscriptions(
         ).await {
             Ok(subscription) => {
                 if subscription.chain_id != config.chain_id {
+                    // Reset is required (mitractl reset-subscriptions)
                     log::error!("can't switch to another chain");
                     continue;
                 };

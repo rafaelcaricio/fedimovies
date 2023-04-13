@@ -598,8 +598,9 @@ impl UpdateCurrentBlock {
 /// (can be used during development or when switching between chains)
 #[derive(Parser)]
 pub struct ResetSubscriptions {
+    // Subscription options are removed by default
     #[clap(long)]
-    ethereum_contract_replaced: bool,
+    keep_subscription_options: bool,
 }
 
 impl ResetSubscriptions {
@@ -608,7 +609,7 @@ impl ResetSubscriptions {
         _config: &Config,
         db_client: &mut impl DatabaseClient,
     ) -> Result<(), Error> {
-        reset_subscriptions(db_client, self.ethereum_contract_replaced).await?;
+        reset_subscriptions(db_client, self.keep_subscription_options).await?;
         println!("subscriptions deleted");
         Ok(())
     }

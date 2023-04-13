@@ -155,12 +155,14 @@ pub async fn get_incoming_subscriptions(
 
 pub async fn reset_subscriptions(
     db_client: &mut impl DatabaseClient,
-    ethereum_contract_replaced: bool,
+    keep_subscription_options: bool,
 ) -> Result<(), DatabaseError> {
     let transaction = db_client.transaction().await?;
-    if ethereum_contract_replaced {
-        // Ethereum subscription configuration is stored in contract.
-        // If contract is replaced, payment option needs to be deleted.
+    if !keep_subscription_options {
+        let payment_types = vec![
+            i16::from(&PaymentType::EthereumSubscription),
+            i16::from(&PaymentType::MoneroSubscription),
+        ];
         transaction.execute(
             "
             UPDATE actor_profile
@@ -171,10 +173,10 @@ pub async fn reset_subscriptions(
                 EXISTS (
                     SELECT 1
                     FROM jsonb_array_elements(payment_options) AS option
-                    WHERE CAST(option ->> 'payment_type' AS SMALLINT) = $1
+                    WHERE CAST(option ->> 'payment_type' AS SMALLINT) = ANY($1)
                 )
             ",
-            &[&i16::from(&PaymentType::EthereumSubscription)],
+            &[&payment_types],
         ).await?;
     };
     transaction.execute(
