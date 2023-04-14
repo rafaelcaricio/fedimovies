@@ -87,6 +87,13 @@ pub async fn open_monero_wallet(
             return Err(error.into());
         };
     };
+    // Verify account exists
+    let account_exists = wallet_client.get_accounts(None).await?
+        .subaddress_accounts.into_iter()
+        .any(|account| account.account_index == config.account_index);
+    if !account_exists {
+        return Err(MoneroError::WalletRpcError("account doesn't exist"));
+    };
     Ok(wallet_client)
 }
 
