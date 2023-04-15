@@ -5,7 +5,7 @@ description = "Federated micro-blogging platform and content subscription servic
 license = "AGPL-3.0"
 
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.57"
 publish = false
 default-run = "mitra"
 
@@ -31,9 +31,9 @@ mitra-models = { path = "mitra-models" }
 mitra-utils = { path = "mitra-utils" }
 
 # Used to handle incoming HTTP requests
-actix-cors = "0.6.2"
+actix-cors = "0.6.4"
 actix-files = "0.6.2"
-actix-web = "4.1.0"
+actix-web = "4.3.1"
 actix-web-httpauth = "0.8.0"
 # Used for catching errors
 anyhow = "1.0.58"
@@ -72,7 +72,7 @@ siwe = "0.4.0"
 # Used for creating error types
 thiserror = "1.0.37"
 # Async runtime
-tokio = { version = "1.20.4", features = ["macros"] }
+tokio = { version = "=1.20.4", features = ["macros"] }
 # Used to work with URLs
 url = "2.2.2"
 # Used to work with UUIDs

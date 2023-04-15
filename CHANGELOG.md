@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Make activity limit in outbox fetcher adjustable.
 - Changed `reset-subscriptions` command arguments (removes subscription options by default).
 - Return error if specified Monero account doesn't exist.
+- Updated actix to latest version. MSRV changed to 1.57.
 
 ### Fixed
 
