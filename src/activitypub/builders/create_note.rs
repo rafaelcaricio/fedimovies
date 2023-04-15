@@ -70,6 +70,7 @@ pub struct Note {
     in_reply_to: Option<String>,
 
     published: DateTime<Utc>,
+    sensitive: bool,
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
     tag: Vec<Tag>,
@@ -205,10 +206,11 @@ pub fn build_note(
         id: object_id,
         object_type: NOTE.to_string(),
         attachment: attachments,
-        published: post.created_at,
         attributed_to: actor_id,
         in_reply_to: in_reply_to_object_id,
         content: post.content.clone(),
+        published: post.created_at,
+        sensitive: post.is_sensitive,
         tag: tags,
         to: primary_audience,
         cc: secondary_audience,

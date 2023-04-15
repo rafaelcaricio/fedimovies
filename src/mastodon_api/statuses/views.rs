@@ -189,6 +189,7 @@ async fn create_status(
         in_reply_to_id: status_data.in_reply_to_id,
         repost_of_id: None,
         visibility: visibility,
+        is_sensitive: status_data.sensitive,
         attachments: attachments,
         mentions: mentions,
         tags: hashtags,
