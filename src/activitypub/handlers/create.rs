@@ -639,12 +639,14 @@ pub async fn handle_note(
             author.username,
         );
     };
+    let is_sensitive = object.sensitive.unwrap_or(false);
     let created_at = object.published.unwrap_or(Utc::now());
     let post_data = PostCreateData {
         content: content,
         in_reply_to_id,
         repost_of_id: None,
         visibility,
+        is_sensitive,
         attachments: attachments,
         mentions: mentions,
         tags: hashtags,

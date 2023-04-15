@@ -62,6 +62,7 @@ pub struct DbPost {
     pub in_reply_to_id: Option<Uuid>,
     pub repost_of_id: Option<Uuid>,
     pub visibility: Visibility,
+    pub is_sensitive: bool,
     pub reply_count: i32,
     pub reaction_count: i32,
     pub repost_count: i32,
@@ -88,6 +89,7 @@ pub struct Post {
     pub in_reply_to_id: Option<Uuid>,
     pub repost_of_id: Option<Uuid>,
     pub visibility: Visibility,
+    pub is_sensitive: bool,
     pub reply_count: i32,
     pub reaction_count: i32,
     pub repost_count: i32,
@@ -130,6 +132,7 @@ impl Post {
         };
         if db_post.repost_of_id.is_some() && (
             db_post.content.len() != 0 ||
+            db_post.is_sensitive ||
             db_post.in_reply_to_id.is_some() ||
             db_post.ipfs_cid.is_some() ||
             db_post.token_id.is_some() ||
@@ -149,6 +152,7 @@ impl Post {
             in_reply_to_id: db_post.in_reply_to_id,
             repost_of_id: db_post.repost_of_id,
             visibility: db_post.visibility,
+            is_sensitive: db_post.is_sensitive,
             reply_count: db_post.reply_count,
             reaction_count: db_post.reaction_count,
             repost_count: db_post.repost_count,
@@ -190,6 +194,7 @@ impl Default for Post {
             in_reply_to_id: None,
             repost_of_id: None,
             visibility: Visibility::Public,
+            is_sensitive: false,
             reply_count: 0,
             reaction_count: 0,
             repost_count: 0,
@@ -243,6 +248,7 @@ pub struct PostCreateData {
     pub in_reply_to_id: Option<Uuid>,
     pub repost_of_id: Option<Uuid>,
     pub visibility: Visibility,
+    pub is_sensitive: bool,
     pub attachments: Vec<Uuid>,
     pub mentions: Vec<Uuid>,
     pub tags: Vec<String>,
@@ -269,6 +275,7 @@ impl PostCreateData {
 #[cfg_attr(test, derive(Default))]
 pub struct PostUpdateData {
     pub content: String,
+    pub is_sensitive: bool,
     pub attachments: Vec<Uuid>,
     pub mentions: Vec<Uuid>,
     pub tags: Vec<String>,

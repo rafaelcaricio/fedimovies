@@ -183,10 +183,11 @@ pub async fn create_post(
             in_reply_to_id,
             repost_of_id,
             visibility,
+            is_sensitive,
             object_id,
             created_at
         )
-        SELECT $1, $2, $3, $4, $5, $6, $7, $8
+        SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9
         WHERE
         NOT EXISTS (
             SELECT 1 FROM post
@@ -212,6 +213,7 @@ pub async fn create_post(
             &post_data.in_reply_to_id,
             &post_data.repost_of_id,
             &post_data.visibility,
+            &post_data.is_sensitive,
             &post_data.object_id,
             &post_data.created_at,
         ],
@@ -324,14 +326,16 @@ pub async fn update_post(
         UPDATE post
         SET
             content = $1,
-            updated_at = $2
-        WHERE id = $3
+            is_sensitive = $2,
+            updated_at = $3
+        WHERE id = $4
             AND repost_of_id IS NULL
             AND ipfs_cid IS NULL
         RETURNING post
         ",
         &[
             &post_data.content,
+            &post_data.is_sensitive,
             &post_data.updated_at,
             &post_id,
         ],

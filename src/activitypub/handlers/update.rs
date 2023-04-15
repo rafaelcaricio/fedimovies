@@ -69,6 +69,7 @@ async fn handle_update_note(
         let object_url = get_object_url(&object)?;
         content += &create_content_link(object_url);
     };
+    let is_sensitive = object.sensitive.unwrap_or(false);
     let storage = MediaStorage::from(config);
     let (attachments, unprocessed) = get_object_attachments(
         db_client,
@@ -93,6 +94,7 @@ async fn handle_update_note(
     let updated_at = object.updated.unwrap_or(Utc::now());
     let post_data = PostUpdateData {
         content,
+        is_sensitive,
         attachments,
         mentions,
         tags: hashtags,

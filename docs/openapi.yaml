@@ -959,6 +959,10 @@ paths:
                 visibility:
                   description: Visibility of the post.
                   $ref: '#/components/schemas/Visibility'
+                sensitiive:
+                  description: Mark post and attached media as sensitive?
+                  type: boolean
+                  default: false
                 mentions:
                   description: Array of profile IDs to be mentioned
                   type: array
@@ -1907,6 +1911,10 @@ components:
         visibility:
           description: Visibility of this post.
           $ref: '#/components/schemas/Visibility'
+        sensitiive:
+          description: Is this post marked as sensitive content?
+          type: boolean
+          example: false
         spoiler_text:
           description: Subject or summary line, below which post content is collapsed until expanded.
           type: string

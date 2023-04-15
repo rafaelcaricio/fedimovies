@@ -69,6 +69,7 @@ pub struct Status {
     pub in_reply_to_id: Option<Uuid>,
     pub reblog: Option<Box<Status>>,
     pub visibility: String,
+    pub sensitive: bool,
     pub spoiler_text: Option<String>,
     pub replies_count: i32,
     pub favourites_count: i32,
@@ -138,6 +139,7 @@ impl Status {
             in_reply_to_id: post.in_reply_to_id,
             reblog: reblog,
             visibility: visibility.to_string(),
+            sensitive: post.is_sensitive,
             spoiler_text: None,
             replies_count: post.reply_count,
             favourites_count: post.reaction_count,
@@ -168,6 +170,9 @@ pub struct StatusData {
 
     pub in_reply_to_id: Option<Uuid>,
     pub visibility: Option<String>,
+
+    #[serde(default)]
+    pub sensitive: bool,
 
     // Not supported by Mastodon
     pub mentions: Option<Vec<Uuid>>,
