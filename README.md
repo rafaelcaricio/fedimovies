@@ -103,6 +103,14 @@ systemctl start mitra
 
 An HTTP server will be needed to handle HTTPS requests. See the example of [nginx configuration file](./contrib/mitra.nginx).
 
+### Docker image
+
+This image is maintained by the community and has not been verified:
+
+https://hub.docker.com/r/bleakfuture0/mitra
+
+## Configuration
+
 ### Tor federation
 
 See [guide](./docs/onion.md).
