@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Changed `reset-subscriptions` command arguments (removes subscription options by default).
 - Return error if specified Monero account doesn't exist.
 
+### Fixed
+
+- Make `/api/v1/accounts/{account_id}/follow` work with form-data.
+
 ## [1.21.0] - 2023-04-12
 
 ### Added

@@ -76,7 +76,7 @@ use crate::ethereum::{
     gate::is_allowed_user,
     identity::verify_eip191_signature,
 };
-use crate::http::get_request_base_url;
+use crate::http::{get_request_base_url, FormOrJson};
 use crate::identity::{
     claims::create_identity_claim,
     minisign::{
@@ -605,8 +605,9 @@ async fn follow_account(
     config: web::Data<Config>,
     db_pool: web::Data<DbPool>,
     account_id: web::Path<Uuid>,
-    follow_data: web::Json<FollowData>,
+    follow_data: FormOrJson<FollowData>,
 ) -> Result<HttpResponse, MastodonError> {
+    let follow_data = follow_data.into_inner();
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     let target = get_profile_by_id(db_client, &account_id).await?;
