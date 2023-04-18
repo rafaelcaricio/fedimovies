@@ -38,6 +38,9 @@ use crate::mastodon_api::{
 };
 use crate::media::get_file_url;
 
+const AUTHENTICATION_METHOD_PASSWORD: &str = "password";
+const AUTHENTICATION_METHOD_EIP4361: &str = "eip4361";
+
 /// https://docs.joinmastodon.org/entities/field/
 #[derive(Serialize)]
 pub struct AccountField {
@@ -123,6 +126,7 @@ pub struct Account {
     // CredentialAccount attributes
     pub source: Option<Source>,
     pub role: Option<ApiRole>,
+    pub authentication_methods: Option<Vec<String>>,
     pub client_config: Option<ClientConfig>,
 }
 
@@ -218,6 +222,7 @@ impl Account {
             statuses_count: profile.post_count,
             source: None,
             role: None,
+            authentication_methods: None,
             client_config: None,
         }
     }
@@ -240,6 +245,13 @@ impl Account {
             fields: fields_sources,
         };
         let role = ApiRole::from_db(user.role);
+        let mut authentication_methods = vec![];
+        if user.password_hash.is_some() {
+            authentication_methods.push(AUTHENTICATION_METHOD_PASSWORD.to_string());
+        };
+        if user.wallet_address.is_some() {
+            authentication_methods.push(AUTHENTICATION_METHOD_EIP4361.to_string());
+        };
         let mut account = Self::from_profile(
             base_url,
             instance_url,
@@ -247,6 +259,7 @@ impl Account {
         );
         account.source = Some(source);
         account.role = Some(role);
+        account.authentication_methods = Some(authentication_methods);
         account.client_config = Some(user.client_config);
         account
     }

@@ -1531,6 +1531,14 @@ components:
             role:
               description: The role assigned to the currently authorized user.
               $ref: '#/components/schemas/Role'
+            authentication_methods:
+              description: The list of authentication methods.
+              type: array
+              items:
+                type: string
+                enum:
+                  - password
+                  - eip4361
             client_config:
               description: Client configurations.
               type: object
