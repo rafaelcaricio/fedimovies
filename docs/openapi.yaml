@@ -93,6 +93,10 @@ paths:
             schema:
               type: object
               properties:
+                authentication_method:
+                  allOf:
+                    - $ref: '#/components/schemas/AuthenticationMethod'
+                    - nullable: true
                 username:
                   description: The desired username for the account.
                   type: string
@@ -1535,10 +1539,7 @@ components:
               description: The list of authentication methods.
               type: array
               items:
-                type: string
-                enum:
-                  - password
-                  - eip4361
+                $ref: '#/components/schemas/AuthenticationMethod'
             client_config:
               description: Client configurations.
               type: object
@@ -1595,6 +1596,11 @@ components:
         url:
           description: The location of the original full-size attachment.
           type: string
+    AuthenticationMethod:
+      type: string
+      enum:
+        - password
+        - eip4361
     CustomEmoji:
       type: object
       properties:

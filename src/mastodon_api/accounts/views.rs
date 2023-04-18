@@ -114,6 +114,8 @@ use super::types::{
     AccountUpdateData,
     ActivityParams,
     ApiSubscription,
+    AUTHENTICATION_METHOD_EIP4361,
+    AUTHENTICATION_METHOD_PASSWORD,
     FollowData,
     FollowListQueryParams,
     IdentityClaim,
@@ -147,6 +149,14 @@ pub async fn create_account(
     };
 
     validate_local_username(&account_data.username)?;
+
+    if let Some(ref authentication_method) = account_data.authentication_method {
+        if authentication_method != AUTHENTICATION_METHOD_PASSWORD &&
+            authentication_method != AUTHENTICATION_METHOD_EIP4361
+        {
+            return Err(ValidationError("unsupported authentication method").into());
+        };
+    };
     if account_data.password.is_none() && account_data.message.is_none() {
         return Err(ValidationError("password or EIP-4361 message is required").into());
     };

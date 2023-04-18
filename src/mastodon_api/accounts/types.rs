@@ -38,8 +38,8 @@ use crate::mastodon_api::{
 };
 use crate::media::get_file_url;
 
-const AUTHENTICATION_METHOD_PASSWORD: &str = "password";
-const AUTHENTICATION_METHOD_EIP4361: &str = "eip4361";
+pub const AUTHENTICATION_METHOD_PASSWORD: &str = "password";
+pub const AUTHENTICATION_METHOD_EIP4361: &str = "eip4361";
 
 /// https://docs.joinmastodon.org/entities/field/
 #[derive(Serialize)]
@@ -268,6 +268,8 @@ impl Account {
 /// https://docs.joinmastodon.org/methods/accounts/
 #[derive(Deserialize)]
 pub struct AccountCreateData {
+    pub authentication_method: Option<String>,
+
     pub username: String,
     pub password: Option<String>,
 
