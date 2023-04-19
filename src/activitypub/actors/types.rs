@@ -38,7 +38,6 @@ use crate::activitypub::{
         local_instance_actor_id,
         LocalActorCollection,
     },
-    receiver::parse_property_value,
     types::deserialize_value_array,
     vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
 };
@@ -118,21 +117,6 @@ fn deserialize_image_opt<'de, D>(
     Ok(maybe_image)
 }
 
-// Some implementations use single object instead of array
-fn deserialize_attachments<'de, D>(
-    deserializer: D,
-) -> Result<Vec<ActorAttachment>, D::Error>
-    where D: Deserializer<'de>
-{
-    let maybe_value: Option<Value> = Option::deserialize(deserializer)?;
-    let attachments = if let Some(value) = maybe_value {
-        parse_property_value(&value).map_err(DeserializerError::custom)?
-    } else {
-        vec![]
-    };
-    Ok(attachments)
-}
-
 #[derive(Deserialize, Serialize)]
 #[cfg_attr(test, derive(Default))]
 #[serde(rename_all = "camelCase")]
@@ -180,10 +164,10 @@ pub struct Actor {
 
     #[serde(
         default,
-        deserialize_with = "deserialize_attachments",
+        deserialize_with = "deserialize_value_array",
         skip_serializing_if = "Vec::is_empty",
     )]
-    pub attachment: Vec<ActorAttachment>,
+    pub attachment: Vec<Value>,
 
     #[serde(default)]
     pub manually_approves_followers: bool,
@@ -237,36 +221,48 @@ impl Actor {
         let mut identity_proofs = vec![];
         let mut payment_options = vec![];
         let mut extra_fields = vec![];
-        let log_error = |attachment: &ActorAttachment, error| {
+        let log_error = |attachment_type: &str, error| {
             log::warn!(
                 "ignoring actor attachment of type {}: {}",
-                attachment.object_type,
+                attachment_type,
                 error,
             );
         };
-        for attachment in self.attachment.iter() {
-            match attachment.object_type.as_str() {
+        for attachment_value in self.attachment.iter() {
+            let attachment_type =
+                attachment_value["type"].as_str().unwrap_or("Unknown");
+            let attachment = match serde_json::from_value(attachment_value.clone()) {
+                Ok(attachment) => attachment,
+                Err(_) => {
+                    log_error(
+                        attachment_type,
+                        ValidationError("invalid attachment"),
+                    );
+                    continue;
+                },
+            };
+            match attachment_type {
                 IDENTITY_PROOF => {
-                    match parse_identity_proof(&self.id, attachment) {
+                    match parse_identity_proof(&self.id, &attachment) {
                         Ok(proof) => identity_proofs.push(proof),
-                        Err(error) => log_error(attachment, error),
+                        Err(error) => log_error(attachment_type, error),
                     };
                 },
                 LINK => {
-                    match parse_payment_option(attachment) {
+                    match parse_payment_option(&attachment) {
                         Ok(option) => payment_options.push(option),
-                        Err(error) => log_error(attachment, error),
+                        Err(error) => log_error(attachment_type, error),
                     };
                 },
                 PROPERTY_VALUE => {
-                    match parse_extra_field(attachment) {
+                    match parse_extra_field(&attachment) {
                         Ok(field) => extra_fields.push(field),
-                        Err(error) => log_error(attachment, error),
+                        Err(error) => log_error(attachment_type, error),
                     };
                 },
                 _ => {
                     log_error(
-                        attachment,
+                        attachment_type,
                         ValidationError("unsupported attachment type"),
                     );
                 },
@@ -343,7 +339,9 @@ pub fn get_local_actor(
     let mut attachments = vec![];
     for proof in user.profile.identity_proofs.clone().into_inner() {
         let attachment = attach_identity_proof(proof);
-        attachments.push(attachment);
+        let attachment_value = serde_json::to_value(attachment)
+            .expect("attachment should be serializable");
+        attachments.push(attachment_value);
     };
     for payment_option in user.profile.payment_options.clone().into_inner() {
         let attachment = attach_payment_option(
@@ -351,11 +349,15 @@ pub fn get_local_actor(
             &user.profile.username,
             payment_option,
         );
-        attachments.push(attachment);
+        let attachment_value = serde_json::to_value(attachment)
+            .expect("attachment should be serializable");
+        attachments.push(attachment_value);
     };
     for field in user.profile.extra_fields.clone().into_inner() {
         let attachment = attach_extra_field(field);
-        attachments.push(attachment);
+        let attachment_value = serde_json::to_value(attachment)
+            .expect("attachment should be serializable");
+        attachments.push(attachment_value);
     };
     let aliases = user.profile.aliases.clone().into_actor_ids();
     let actor = Actor {
