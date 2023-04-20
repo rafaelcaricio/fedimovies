@@ -1,8 +1,10 @@
+use serde::Serialize;
+
 use mitra_models::profiles::types::{
     ExtraField,
     IdentityProof,
     IdentityProofType,
-    PaymentLink,
+    PaymentLink as DbPaymentLink,
     PaymentOption,
 };
 use mitra_utils::did::Did;
@@ -98,11 +100,23 @@ pub fn parse_identity_proof(
     Ok(proof)
 }
 
+/// https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-0ea0.md
+#[derive(Serialize)]
+pub struct PaymentLink {
+    #[serde(rename = "type")]
+    object_type: String,
+
+    pub name: String,
+    pub href: String,
+    pub rel: Vec<String>,
+}
+
 pub fn attach_payment_option(
     instance_url: &str,
     username: &str,
     payment_option: PaymentOption,
-) -> ActorAttachment {
+) -> PaymentLink {
+    const RELATION_TYPE: &str = "payment";
     let (name, href) = match payment_option {
         // Local actors can't have payment links
         PaymentOption::Link(_) => unimplemented!(),
@@ -117,13 +131,11 @@ pub fn attach_payment_option(
             (name, href)
         },
     };
-    ActorAttachment {
+    PaymentLink {
         object_type: LINK.to_string(),
         name: name,
-        value: None,
-        href: Some(href),
-        signature_algorithm: None,
-        signature_value: None,
+        href: href,
+        rel: vec![RELATION_TYPE.to_string()],
     }
 }
 
@@ -136,7 +148,7 @@ pub fn parse_payment_option(
     let href = attachment.href.as_ref()
         .ok_or(ValidationError("href attribute is required"))?
         .to_string();
-    let payment_option = PaymentOption::Link(PaymentLink {
+    let payment_option = PaymentOption::Link(DbPaymentLink {
         name: attachment.name.clone(),
         href: href,
     });
@@ -210,8 +222,12 @@ mod tests {
         );
         assert_eq!(attachment.object_type, LINK);
         assert_eq!(attachment.name, "EthereumSubscription");
-        assert_eq!(attachment.href.as_deref().unwrap(), subscription_page_url);
+        assert_eq!(attachment.href, subscription_page_url);
+        assert_eq!(attachment.rel[0], "payment");
 
+        let attachment_value = serde_json::to_value(attachment).unwrap();
+        let attachment: ActorAttachment =
+            serde_json::from_value(attachment_value).unwrap();
         let parsed_option = parse_payment_option(&attachment).unwrap();
         let link = match parsed_option {
             PaymentOption::Link(link) => link,
