@@ -47,7 +47,7 @@ pub fn deserialize_public_key(
 }
 
 /// RSASSA-PKCS1-v1_5 signature
-pub fn create_rsa_signature(
+pub fn create_rsa_sha256_signature(
     private_key: &RsaPrivateKey,
     message: &str,
 ) -> Result<Vec<u8>, rsa::errors::Error> {
@@ -63,7 +63,7 @@ pub fn get_message_digest(message: &str) -> String {
     digest_b64
 }
 
-pub fn verify_rsa_signature(
+pub fn verify_rsa_sha256_signature(
     public_key: &RsaPublicKey,
     message: &str,
     signature: &[u8],
@@ -102,13 +102,13 @@ YsFtrgWDQ/s8k86sNBU+Ce2GOL7seh46kyAWgJeohh4Rcrr23rftHbvxOcRM8VzYuCeb1DgVhPGtA0xU
     fn test_verify_rsa_signature() {
         let private_key = generate_weak_rsa_key().unwrap();
         let message = "test".to_string();
-        let signature = create_rsa_signature(
+        let signature = create_rsa_sha256_signature(
             &private_key,
             &message,
         ).unwrap();
         let public_key = RsaPublicKey::from(&private_key);
 
-        let is_valid = verify_rsa_signature(
+        let is_valid = verify_rsa_sha256_signature(
             &public_key,
             &message,
             &signature,

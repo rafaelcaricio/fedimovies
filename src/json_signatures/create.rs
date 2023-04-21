@@ -8,7 +8,7 @@ use mitra_utils::{
         canonicalize_object,
         CanonicalizationError,
     },
-    crypto_rsa::create_rsa_signature,
+    crypto_rsa::create_rsa_sha256_signature,
     did_key::DidKey,
     did_pkh::DidPkh,
     multibase::encode_multibase_base58btc,
@@ -30,6 +30,8 @@ pub(super) const PROOF_PURPOSE: &str = "assertionMethod";
 pub struct IntegrityProof {
     #[serde(rename = "type")]
     pub proof_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cryptosuite: Option<String>,
     pub proof_purpose: String,
     pub verification_method: String,
     pub created: DateTime<Utc>,
@@ -43,6 +45,7 @@ impl IntegrityProof {
     ) -> Self {
         Self {
             proof_type: PROOF_TYPE_JCS_RSA.to_string(),
+            cryptosuite: None,
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer_key_id.to_string(),
             created: Utc::now(),
@@ -56,6 +59,7 @@ impl IntegrityProof {
     ) -> Self {
         Self {
             proof_type: PROOF_TYPE_JCS_EIP191.to_string(),
+            cryptosuite: None,
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer.to_string(),
             created: Utc::now(),
@@ -69,6 +73,7 @@ impl IntegrityProof {
     ) -> Self {
         Self {
             proof_type: PROOF_TYPE_JCS_ED25519.to_string(),
+            cryptosuite: None,
             proof_purpose: PROOF_PURPOSE.to_string(),
             verification_method: signer.to_string(),
             created: Utc::now(),
@@ -115,14 +120,17 @@ pub fn sign_object(
     signer_key_id: &str,
 ) -> Result<Value, JsonSignatureError> {
     // Canonicalize
-    let message = canonicalize_object(object)?;
+    let transformed_object = canonicalize_object(object)?;
     // Sign
-    let signature = create_rsa_signature(signer_key, &message)?;
+    let signature = create_rsa_sha256_signature(
+        signer_key,
+        &transformed_object,
+    )?;
     // Insert proof
     let proof = IntegrityProof::jcs_rsa(signer_key_id, &signature);
-    let mut object_value = serde_json::to_value(object)?;
-    add_integrity_proof(&mut object_value, proof)?;
-    Ok(object_value)
+    let mut signed_object = object.clone();
+    add_integrity_proof(&mut signed_object, proof)?;
+    Ok(signed_object)
 }
 
 pub fn is_object_signed(object: &Value) -> bool {

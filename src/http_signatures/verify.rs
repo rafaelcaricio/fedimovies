@@ -5,7 +5,7 @@ use chrono::{DateTime, Duration, TimeZone, Utc};
 use regex::Regex;
 use rsa::RsaPublicKey;
 
-use mitra_utils::crypto_rsa::verify_rsa_signature;
+use mitra_utils::crypto_rsa::verify_rsa_sha256_signature;
 
 const SIGNATURE_PARAMETER_RE: &str = r#"^(?P<key>[a-zA-Z]+)="(?P<value>.+)"$"#;
 
@@ -134,7 +134,7 @@ pub fn verify_http_signature(
         log::warn!("signature has expired");
     };
     let signature = base64::decode(&signature_data.signature)?;
-    let is_valid_signature = verify_rsa_signature(
+    let is_valid_signature = verify_rsa_sha256_signature(
         signer_key,
         &signature_data.message,
         &signature,

@@ -3,7 +3,7 @@ use chrono::Utc;
 use rsa::RsaPrivateKey;
 
 use mitra_utils::crypto_rsa::{
-    create_rsa_signature,
+    create_rsa_sha256_signature,
     get_message_digest,
 };
 
@@ -72,7 +72,7 @@ pub fn create_http_signature(
         .map(|(name, _)| name.to_string())
         .collect::<Vec<String>>()
         .join(" ");
-    let signature = create_rsa_signature(signer_key, &message)?;
+    let signature = create_rsa_sha256_signature(signer_key, &message)?;
     let signature_parameter = base64::encode(signature);
     let signature_header = format!(
         r#"keyId="{}",algorithm="{}",headers="{}",signature="{}""#,
