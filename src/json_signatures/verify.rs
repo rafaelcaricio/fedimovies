@@ -9,7 +9,7 @@ use mitra_utils::{
         canonicalize_object,
         CanonicalizationError,
     },
-    crypto_rsa::verify_rsa_signature,
+    crypto_rsa::verify_rsa_sha256_signature,
     did::Did,
     did_key::DidKey,
     did_pkh::DidPkh,
@@ -25,7 +25,7 @@ use super::create::{
     PROOF_KEY,
     PROOF_PURPOSE,
 };
-use super::proofs::ProofType;
+use super::proofs::{ProofType, DATA_INTEGRITY_PROOF};
 
 #[derive(Debug, PartialEq)]
 pub enum JsonSigner {
@@ -76,8 +76,15 @@ pub fn get_json_signature(
     if proof.proof_purpose != PROOF_PURPOSE {
         return Err(VerificationError::InvalidProof("invalid proof purpose"));
     };
-    let signature_type = proof.proof_type.parse()
-        .map_err(|_| VerificationError::InvalidProof("unsupported proof type"))?;
+    let proof_type = if proof.proof_type == DATA_INTEGRITY_PROOF {
+        let cryptosuite = proof.cryptosuite.as_ref()
+            .ok_or(VerificationError::InvalidProof("cryptosuite is not specified"))?;
+        ProofType::from_cryptosuite(cryptosuite)
+            .map_err(|_| VerificationError::InvalidProof("unsupported proof type"))?
+    } else {
+        proof.proof_type.parse()
+            .map_err(|_| VerificationError::InvalidProof("unsupported proof type"))?
+    };
     let signer = if let Ok(did) = Did::from_str(&proof.verification_method) {
         JsonSigner::Did(did)
     } else if Url::parse(&proof.verification_method).is_ok() {
@@ -85,12 +92,12 @@ pub fn get_json_signature(
     } else {
         return Err(VerificationError::InvalidProof("unsupported verification method"));
     };
-    let message = canonicalize_object(&object)?;
+    let transformed_object = canonicalize_object(&object)?;
     let signature = decode_multibase_base58btc(&proof.proof_value)?;
     let signature_data = SignatureData {
-        signature_type,
+        signature_type: proof_type,
         signer,
-        message,
+        message: transformed_object,
         signature,
     };
     Ok(signature_data)
@@ -100,7 +107,7 @@ pub fn verify_rsa_json_signature(
     signature_data: &SignatureData,
     signer_key: &RsaPublicKey,
 ) -> Result<(), VerificationError> {
-    let is_valid_signature = verify_rsa_signature(
+    let is_valid_signature = verify_rsa_sha256_signature(
         signer_key,
         &signature_data.message,
         &signature_data.signature,

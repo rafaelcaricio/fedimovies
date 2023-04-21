@@ -9,12 +9,16 @@ pub const PROOF_TYPE_ID_EIP191: &str = "ethereum-eip191-00";
 // Identity proof, version 2022A
 pub const PROOF_TYPE_ID_MINISIGN: &str = "MitraMinisignSignature2022A";
 
+// https://w3c.github.io/vc-data-integrity/#dataintegrityproof
+pub const DATA_INTEGRITY_PROOF: &str = "DataIntegrityProof";
+
 // Similar to https://identity.foundation/JcsEd25519Signature2020/
 // - Canonicalization algorithm: JCS
 // - Digest algorithm: SHA-256
 // - Signature algorithm: RSASSA-PKCS1-v1_5
 pub const PROOF_TYPE_JCS_RSA: &str = "MitraJcsRsaSignature2022";
 pub const PROOF_TYPE_JCS_RSA_LEGACY: &str = "JcsRsaSignature2022";
+pub const CRYPTOSUITE_JCS_RSA: &str = "mitra-jcs-rsa-2022";
 
 // Similar to EthereumPersonalSignature2021 but with JCS
 pub const PROOF_TYPE_JCS_EIP191: &str = "MitraJcsEip191Signature2022";
@@ -44,6 +48,16 @@ impl FromStr for ProofType {
             PROOF_TYPE_JCS_ED25519 => Self::JcsEd25519Signature,
             PROOF_TYPE_JCS_RSA => Self::JcsRsaSignature,
             PROOF_TYPE_JCS_RSA_LEGACY => Self::JcsRsaSignature,
+            _ => return Err(ConversionError),
+        };
+        Ok(proof_type)
+    }
+}
+
+impl ProofType {
+    pub fn from_cryptosuite(value: &str) -> Result<Self, ConversionError> {
+        let proof_type = match value {
+            CRYPTOSUITE_JCS_RSA => Self::JcsRsaSignature,
             _ => return Err(ConversionError),
         };
         Ok(proof_type)
