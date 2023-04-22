@@ -25,7 +25,7 @@ use crate::activitypub::{
 };
 
 #[derive(Serialize)]
-struct Announce {
+pub struct Announce {
     #[serde(rename = "@context")]
     context: Context,
 
@@ -41,18 +41,17 @@ struct Announce {
     cc: Vec<String>,
 }
 
-fn build_announce(
+pub fn build_announce(
     instance_url: &str,
-    sender_username: &str,
     repost: &Post,
 ) -> Announce {
-    let actor_id = local_actor_id(instance_url, sender_username);
+    let actor_id = local_actor_id(instance_url, &repost.author.username);
     let post = repost.repost_of.as_ref()
         .expect("repost_of field should be populated");
     let object_id = post_object_id(instance_url, post);
     let activity_id = local_object_id(instance_url, &repost.id);
     let recipient_id = profile_actor_id(instance_url, &post.author);
-    let followers = local_actor_followers(instance_url, sender_username);
+    let followers = local_actor_followers(instance_url, &repost.author.username);
     Announce {
         context: build_default_context(),
         activity_type: ANNOUNCE.to_string(),
@@ -91,7 +90,9 @@ pub async fn prepare_announce(
     sender: &User,
     repost: &Post,
 ) -> Result<OutgoingActivity, DatabaseError> {
-    let post = repost.repost_of.as_ref().unwrap();
+    assert_eq!(sender.id, repost.author.id);
+    let post = repost.repost_of.as_ref()
+        .expect("repost_of field should be populated");
     let (recipients, _) = get_announce_recipients(
         db_client,
         &instance.url(),
@@ -100,7 +101,6 @@ pub async fn prepare_announce(
     ).await?;
     let activity = build_announce(
         &instance.url(),
-        &sender.profile.username,
         repost,
     );
     Ok(OutgoingActivity::new(
@@ -140,14 +140,13 @@ mod tests {
             ..Default::default()
         };
         let repost = Post {
-            author: repost_author.clone(),
+            author: repost_author,
             repost_of_id: Some(post.id),
             repost_of: Some(Box::new(post)),
             ..Default::default()
         };
         let activity = build_announce(
             INSTANCE_URL,
-            &repost_author.username,
             &repost,
         );
         assert_eq!(

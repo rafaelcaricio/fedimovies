@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Updated actix to latest version. MSRV changed to 1.57.
 - Make `/api/v1/accounts` endpoint accept optional `authentication_method` parameter.
 - Make attached subscription links compatible with FEP-0ea0.
+- Add replies and reposts to outbox collection.
 
 ### Deprecated
 
