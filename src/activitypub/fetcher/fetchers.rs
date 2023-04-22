@@ -7,13 +7,13 @@ use serde_json::{Value as JsonValue};
 use mitra_config::Instance;
 use mitra_utils::{
     files::sniff_media_type,
-    urls::{get_hostname, guess_protocol},
+    urls::guess_protocol,
 };
 
 use crate::activitypub::{
     actors::types::Actor,
     constants::{AP_CONTEXT, AP_MEDIA_TYPE},
-    http_client::build_federation_client,
+    http_client::{build_federation_client, get_network_type},
     identifiers::{local_actor_key_id, local_instance_actor_id},
     types::Object,
     vocabulary::GROUP,
@@ -56,11 +56,10 @@ fn build_client(
     instance: &Instance,
     request_url: &str,
 ) -> Result<Client, FetchError> {
-    let hostname = get_hostname(request_url)?;
-    let is_onion = hostname.ends_with(".onion");
+    let network = get_network_type(request_url)?;
     let client = build_federation_client(
         instance,
-        is_onion,
+        network,
         instance.fetcher_timeout,
     )?;
     Ok(client)
