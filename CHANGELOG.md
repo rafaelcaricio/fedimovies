@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Ignore errors when importing activities from outbox.
 - Make activity limit in outbox fetcher adjustable.
 - Updated actix to latest version. MSRV changed to 1.57.
+- Add replies and reposts to outbox collection.
 
 ### Fixed
 

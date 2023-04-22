@@ -1,5 +1,5 @@
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{Value as JsonValue};
 
 use super::types::{build_default_context, Context};
 use super::vocabulary::{ORDERED_COLLECTION, ORDERED_COLLECTION_PAGE};
@@ -38,8 +38,6 @@ impl OrderedCollection {
     }
 }
 
-pub const COLLECTION_PAGE_SIZE: u16 = 10;
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderedCollectionPage {
@@ -51,21 +49,19 @@ pub struct OrderedCollectionPage {
     #[serde(rename = "type")]
     pub object_type: String,
 
-    ordered_items: Vec<Value>,
+    ordered_items: Vec<JsonValue>,
 }
 
 impl OrderedCollectionPage {
     pub fn new(
         collection_page_id: String,
-        items: Vec<impl Serialize>,
+        items: Vec<JsonValue>,
     ) -> Self {
-        let ordered_items = items.into_iter()
-            .map(|item| json!(item)).collect();
         Self {
             context: build_default_context(),
             id: collection_page_id,
             object_type: ORDERED_COLLECTION_PAGE.to_string(),
-            ordered_items,
+            ordered_items: items,
         }
     }
 }

@@ -30,13 +30,15 @@ use crate::web_client::urls::{
     get_tag_page_url,
 };
 use super::actors::types::{get_local_actor, get_instance_actor};
-use super::builders::create_note::{
-    build_emoji_tag,
-    build_note,
-    build_create_note,
+use super::builders::{
+    announce::build_announce,
+    create_note::{
+        build_emoji_tag,
+        build_note,
+        build_create_note,
+    },
 };
 use super::collections::{
-    COLLECTION_PAGE_SIZE,
     OrderedCollection,
     OrderedCollectionPage,
 };
@@ -171,26 +173,31 @@ async fn outbox(
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
     // Posts are ordered by creation date
+    const COLLECTION_PAGE_SIZE: u16 = 20;
     let mut posts = get_posts_by_author(
         db_client,
         &user.id,
         None, // include only public posts
-        false, // exclude replies
-        false, // exclude reposts
+        true, // include replies
+        true, // include reposts
         None,
         COLLECTION_PAGE_SIZE,
     ).await?;
     add_related_posts(db_client, posts.iter_mut().collect()).await?;
-    let activities: Vec<_> = posts.iter().filter_map(|post| {
-        if post.in_reply_to_id.is_some() || post.repost_of_id.is_some() {
-            return None;
-        };
-        let activity = build_create_note(
-            &instance.hostname(),
-            &instance.url(),
-            post,
-        );
-        Some(activity)
+    let activities = posts.iter().map(|post| {
+        if post.repost_of_id.is_some() {
+            let activity = build_announce(&instance.url(), post);
+            serde_json::to_value(activity)
+                .expect("activity should be serializable")
+        } else {
+            let activity = build_create_note(
+                &instance.hostname(),
+                &instance.url(),
+                post,
+            );
+            serde_json::to_value(activity)
+                .expect("activity should be serializable")
+        }
     }).collect();
     let collection_page = OrderedCollectionPage::new(
         first_page_id,
