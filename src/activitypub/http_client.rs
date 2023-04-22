@@ -15,8 +15,8 @@ pub fn build_federation_client(
     let mut client_builder = Client::builder();
     let mut maybe_proxy_url = instance.proxy_url.as_ref();
     if is_onion {
-        maybe_proxy_url = maybe_proxy_url
-            .or(instance.onion_proxy_url.as_ref());
+        maybe_proxy_url = instance.onion_proxy_url.as_ref()
+            .or(maybe_proxy_url);
     };
     if let Some(proxy_url) = maybe_proxy_url {
         let proxy = Proxy::all(proxy_url)?;

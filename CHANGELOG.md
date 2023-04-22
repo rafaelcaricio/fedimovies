@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Make `/api/v1/accounts/{account_id}/follow` work with form-data.
+- Make `onion_proxy_url` override `proxy_url` setting if request target is onion.
 
 ## [1.21.0] - 2023-04-12
 
