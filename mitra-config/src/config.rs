@@ -93,6 +93,7 @@ impl Config {
             actor_key: self.instance_rsa_key.clone().unwrap(),
             proxy_url: self.federation.proxy_url.clone(),
             onion_proxy_url: self.federation.onion_proxy_url.clone(),
+            i2p_proxy_url: self.federation.i2p_proxy_url.clone(),
             // Private instance doesn't send activities and sign requests
             is_private:
                 !self.federation.enabled ||
@@ -119,6 +120,7 @@ pub struct Instance {
     // Proxy for outgoing requests
     pub proxy_url: Option<String>,
     pub onion_proxy_url: Option<String>,
+    pub i2p_proxy_url: Option<String>,
     // Private instance won't send signed HTTP requests
     pub is_private: bool,
     pub fetcher_timeout: u64,
@@ -152,6 +154,7 @@ impl Instance {
             actor_key: generate_weak_rsa_key().unwrap(),
             proxy_url: None,
             onion_proxy_url: None,
+            i2p_proxy_url: None,
             is_private: true,
             fetcher_timeout: 0,
             deliverer_timeout: 0,
@@ -173,6 +176,7 @@ mod tests {
             actor_key: instance_rsa_key,
             proxy_url: None,
             onion_proxy_url: None,
+            i2p_proxy_url: None,
             is_private: true,
             fetcher_timeout: 0,
             deliverer_timeout: 0,
@@ -195,6 +199,7 @@ mod tests {
             actor_key: instance_rsa_key,
             proxy_url: None,
             onion_proxy_url: None,
+            i2p_proxy_url: None,
             is_private: true,
             fetcher_timeout: 0,
             deliverer_timeout: 0,

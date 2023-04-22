@@ -15,10 +15,7 @@ use mitra_models::{
     profiles::types::DbActor,
     users::types::User,
 };
-use mitra_utils::{
-    crypto_rsa::deserialize_private_key,
-    urls::get_hostname,
-};
+use mitra_utils::crypto_rsa::deserialize_private_key;
 
 use crate::http_signatures::create::{
     create_http_signature,
@@ -32,7 +29,7 @@ use crate::json_signatures::create::{
 
 use super::{
     constants::AP_MEDIA_TYPE,
-    http_client::build_federation_client,
+    http_client::{build_federation_client, get_network_type},
     identifiers::{local_actor_id, local_actor_key_id},
     queues::OutgoingActivityJobData,
 };
@@ -63,13 +60,12 @@ pub enum DelivererError {
 
 fn build_client(
     instance: &Instance,
-    request_uri: &str,
+    request_url: &str,
 ) -> Result<Client, DelivererError> {
-    let hostname = get_hostname(request_uri)?;
-    let is_onion = hostname.ends_with(".onion");
+    let network = get_network_type(request_url)?;
     let client = build_federation_client(
         instance,
-        is_onion,
+        network,
         instance.deliverer_timeout,
     )?;
     Ok(client)

@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Added support for content warnings.
 - Support integrity proofs with `DataIntegrityProof` type.
+- Add `federation.i2p_proxy_url` configuration parameter.
 
 ### Changed
 

@@ -15,6 +15,7 @@ pub struct FederationConfig {
     pub(super) deliverer_timeout: u64,
     pub(super) proxy_url: Option<String>,
     pub(super) onion_proxy_url: Option<String>,
+    pub(super) i2p_proxy_url: Option<String>,
 }
 
 impl Default for FederationConfig {
@@ -25,6 +26,7 @@ impl Default for FederationConfig {
             deliverer_timeout: default_deliverer_timeout(),
             proxy_url: None,
             onion_proxy_url: None,
+            i2p_proxy_url: None,
         }
     }
 }
