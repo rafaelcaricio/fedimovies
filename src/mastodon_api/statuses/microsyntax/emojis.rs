@@ -15,8 +15,7 @@ const SHORTCODE_SEARCH_RE: &str = r"(?m):(?P<name>[\w.]+):";
 
 /// Finds emoji shortcodes in text
 fn find_shortcodes(text: &str) -> Vec<String> {
-    let shortcode_re = Regex::new(SHORTCODE_SEARCH_RE)
-        .expect("regex should be valid");
+    let shortcode_re = Regex::new(SHORTCODE_SEARCH_RE).expect("regex should be valid");
     let mut emoji_names = vec![];
     for caps in shortcode_re.captures_iter(text) {
         let name_match = caps.name("name").expect("should have name group");
@@ -28,7 +27,7 @@ fn find_shortcodes(text: &str) -> Vec<String> {
         if !emoji_names.contains(&name) {
             emoji_names.push(name);
         };
-    };
+    }
     emoji_names
 }
 
@@ -42,7 +41,7 @@ pub async fn find_emojis(
     let mut emoji_map: HashMap<String, DbEmoji> = HashMap::new();
     for emoji in emojis {
         emoji_map.insert(emoji.emoji_name.clone(), emoji);
-    };
+    }
     Ok(emoji_map)
 }
 
@@ -56,9 +55,6 @@ mod tests {
     fn test_find_shortcodes() {
         let emoji_names = find_shortcodes(TEXT_WITH_EMOJIS);
 
-        assert_eq!(emoji_names, vec![
-            "emoji_name",
-            "abc",
-        ]);
+        assert_eq!(emoji_names, vec!["emoji_name", "abc",]);
     }
 }

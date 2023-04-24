@@ -2,16 +2,9 @@ use uuid::Uuid;
 
 use mitra_utils::id::generate_ulid;
 
-use crate::database::{
-    catch_unique_violation,
-    DatabaseClient,
-    DatabaseError,
-};
+use crate::database::{catch_unique_violation, DatabaseClient, DatabaseError};
 use crate::notifications::queries::create_reaction_notification;
-use crate::posts::queries::{
-    update_reaction_count,
-    get_post_author,
-};
+use crate::posts::queries::{get_post_author, update_reaction_count};
 
 use super::types::DbReaction;
 
@@ -24,8 +17,9 @@ pub async fn create_reaction(
     let transaction = db_client.transaction().await?;
     let reaction_id = generate_ulid();
     // Reactions to reposts are not allowed
-    let maybe_row = transaction.query_opt(
-        "
+    let maybe_row = transaction
+        .query_opt(
+            "
         INSERT INTO post_reaction (id, author_id, post_id, activity_id)
         SELECT $1, $2, $3, $4
         WHERE NOT EXISTS (
@@ -34,19 +28,16 @@ pub async fn create_reaction(
         )
         RETURNING post_reaction
         ",
-        &[&reaction_id, &author_id, &post_id, &activity_id],
-    ).await.map_err(catch_unique_violation("reaction"))?;
+            &[&reaction_id, &author_id, &post_id, &activity_id],
+        )
+        .await
+        .map_err(catch_unique_violation("reaction"))?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
     let reaction: DbReaction = row.try_get("post_reaction")?;
     update_reaction_count(&transaction, post_id, 1).await?;
     let post_author = get_post_author(&transaction, post_id).await?;
     if post_author.is_local() && post_author.id != *author_id {
-        create_reaction_notification(
-            &transaction,
-            author_id,
-            &post_author.id,
-            post_id,
-        ).await?;
+        create_reaction_notification(&transaction, author_id, &post_author.id, post_id).await?;
     };
     transaction.commit().await?;
     Ok(reaction)
@@ -56,14 +47,16 @@ pub async fn get_reaction_by_remote_activity_id(
     db_client: &impl DatabaseClient,
     activity_id: &str,
 ) -> Result<DbReaction, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT post_reaction
         FROM post_reaction
         WHERE activity_id = $1
         ",
-        &[&activity_id],
-    ).await?;
+            &[&activity_id],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("reaction"))?;
     let reaction = row.try_get("post_reaction")?;
     Ok(reaction)
@@ -75,14 +68,16 @@ pub async fn delete_reaction(
     post_id: &Uuid,
 ) -> Result<Uuid, DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let maybe_row = transaction.query_opt(
-        "
+    let maybe_row = transaction
+        .query_opt(
+            "
         DELETE FROM post_reaction
         WHERE author_id = $1 AND post_id = $2
         RETURNING post_reaction.id
         ",
-        &[&author_id, &post_id],
-    ).await?;
+            &[&author_id, &post_id],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("reaction"))?;
     let reaction_id = row.try_get("id")?;
     update_reaction_count(&transaction, post_id, -1).await?;
@@ -96,15 +91,18 @@ pub async fn find_favourited_by_user(
     user_id: &Uuid,
     posts_ids: &[Uuid],
 ) -> Result<Vec<Uuid>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         SELECT post_id
         FROM post_reaction
         WHERE author_id = $1 AND post_id = ANY($2)
         ",
-        &[&user_id, &posts_ids],
-    ).await?;
-    let favourites: Vec<Uuid> = rows.iter()
+            &[&user_id, &posts_ids],
+        )
+        .await?;
+    let favourites: Vec<Uuid> = rows
+        .iter()
         .map(|row| row.try_get("post_id"))
         .collect::<Result<_, _>>()?;
     Ok(favourites)

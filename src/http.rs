@@ -3,14 +3,9 @@ use actix_web::{
     dev::{ConnectionInfo, ServiceResponse},
     error::{Error, JsonPayloadError},
     http::StatusCode,
-    middleware::{
-        DefaultHeaders,
-        ErrorHandlerResponse,
-        ErrorHandlers,
-    },
+    middleware::{DefaultHeaders, ErrorHandlerResponse, ErrorHandlers},
     web::{Form, Json},
-    Either,
-    HttpRequest,
+    Either, HttpRequest,
 };
 use serde_json::json;
 
@@ -23,21 +18,22 @@ pub type FormOrJson<T> = Either<Form<T>, Json<T>>;
 /// Error handler for 401 Unauthorized
 pub fn create_auth_error_handler<B: MessageBody + 'static>() -> ErrorHandlers<B> {
     // Creates and returns actix middleware
-    ErrorHandlers::new()
-        .handler(StatusCode::UNAUTHORIZED, |response: ServiceResponse<B>| {
-            let response_new = response.map_body(|_, body| {
-                if let BodySize::None | BodySize::Sized(0) = body.size() {
-                    // Insert error description if response body is empty
-                    // https://github.com/actix/actix-extras/issues/156
-                    let error_data = json!({
-                        "message": "auth header is not present",
-                    });
-                    return BoxBody::new(error_data.to_string());
-                };
-                body.boxed()
-            });
-            Ok(ErrorHandlerResponse::Response(response_new.map_into_right_body()))
-        })
+    ErrorHandlers::new().handler(StatusCode::UNAUTHORIZED, |response: ServiceResponse<B>| {
+        let response_new = response.map_body(|_, body| {
+            if let BodySize::None | BodySize::Sized(0) = body.size() {
+                // Insert error description if response body is empty
+                // https://github.com/actix/actix-extras/issues/156
+                let error_data = json!({
+                    "message": "auth header is not present",
+                });
+                return BoxBody::new(error_data.to_string());
+            };
+            body.boxed()
+        });
+        Ok(ErrorHandlerResponse::Response(
+            response_new.map_into_right_body(),
+        ))
+    })
 }
 
 pub fn create_default_headers_middleware() -> DefaultHeaders {
@@ -60,14 +56,11 @@ pub fn create_default_headers_middleware() -> DefaultHeaders {
 }
 
 /// Convert JSON payload deserialization errors into validation errors
-pub fn json_error_handler(
-    error: JsonPayloadError,
-    _: &HttpRequest,
-) -> Error {
+pub fn json_error_handler(error: JsonPayloadError, _: &HttpRequest) -> Error {
     match error {
         JsonPayloadError::Deserialize(de_error) => {
             HttpError::ValidationError(de_error.to_string()).into()
-        },
+        }
         other_error => other_error.into(),
     }
 }

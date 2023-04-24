@@ -61,12 +61,7 @@ pub fn prepare_accept_follow(
         follow_activity_id,
     );
     let recipients = vec![source_actor.clone()];
-    OutgoingActivity::new(
-        instance,
-        sender,
-        activity,
-        recipients,
-    )
+    OutgoingActivity::new(instance, sender, activity, recipients)
 }
 
 #[cfg(test)]
@@ -83,12 +78,7 @@ mod tests {
         };
         let follow_activity_id = "https://test.remote/objects/999";
         let follower_id = "https://test.remote/users/123";
-        let activity = build_accept_follow(
-            INSTANCE_URL,
-            &target,
-            follower_id,
-            follow_activity_id,
-        );
+        let activity = build_accept_follow(INSTANCE_URL, &target, follower_id, follow_activity_id);
 
         assert_eq!(activity.id.starts_with(INSTANCE_URL), true);
         assert_eq!(activity.activity_type, "Accept");

@@ -22,7 +22,7 @@ pub const CRYPTOSUITE_JCS_RSA: &str = "mitra-jcs-rsa-2022";
 
 // Similar to EthereumPersonalSignature2021 but with JCS
 pub const PROOF_TYPE_JCS_EIP191: &str = "MitraJcsEip191Signature2022";
-pub const PROOF_TYPE_JCS_EIP191_LEGACY: &str ="JcsEip191Signature2022";
+pub const PROOF_TYPE_JCS_EIP191_LEGACY: &str = "JcsEip191Signature2022";
 
 // Similar to Ed25519Signature2020
 // https://w3c-ccg.github.io/di-eddsa-2020/#ed25519signature2020

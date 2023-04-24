@@ -8,12 +8,10 @@ use mitra_models::{
     database::{get_database_client, DbPool},
 };
 
+use super::types::{Attachment, AttachmentCreateData};
 use crate::mastodon_api::{
-    errors::MastodonError,
-    oauth::auth::get_current_user,
-    uploads::save_b64_file,
+    errors::MastodonError, oauth::auth::get_current_user, uploads::save_b64_file,
 };
-use super::types::{AttachmentCreateData, Attachment};
 
 #[post("")]
 async fn create_attachment_view(
@@ -37,15 +35,12 @@ async fn create_attachment_view(
         file_name,
         file_size,
         Some(media_type),
-    ).await?;
-    let attachment = Attachment::from_db(
-        &config.instance_url(),
-        db_attachment,
-    );
+    )
+    .await?;
+    let attachment = Attachment::from_db(&config.instance_url(), db_attachment);
     Ok(HttpResponse::Ok().json(attachment))
 }
 
 pub fn media_api_scope() -> Scope {
-    web::scope("/api/v1/media")
-        .service(create_attachment_view)
+    web::scope("/api/v1/media").service(create_attachment_view)
 }

@@ -62,12 +62,7 @@ pub fn prepare_follow(
         follow_request_id,
     );
     let recipients = vec![target_actor.clone()];
-    OutgoingActivity::new(
-        instance,
-        sender,
-        activity,
-        recipients,
-    )
+    OutgoingActivity::new(instance, sender, activity, recipients)
 }
 
 pub async fn follow_or_create_request(
@@ -78,19 +73,12 @@ pub async fn follow_or_create_request(
 ) -> Result<(), DatabaseError> {
     if let Some(ref remote_actor) = target_profile.actor_json {
         // Create follow request if target is remote
-        match create_follow_request(
-            db_client,
-            &current_user.id,
-            &target_profile.id,
-        ).await {
+        match create_follow_request(db_client, &current_user.id, &target_profile.id).await {
             Ok(follow_request) => {
-                prepare_follow(
-                    instance,
-                    current_user,
-                    remote_actor,
-                    &follow_request.id,
-                ).enqueue(db_client).await?;
-            },
+                prepare_follow(instance, current_user, remote_actor, &follow_request.id)
+                    .enqueue(db_client)
+                    .await?;
+            }
             Err(DatabaseError::AlreadyExists(_)) => (), // already following
             Err(other_error) => return Err(other_error),
         };
@@ -106,8 +94,8 @@ pub async fn follow_or_create_request(
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::id::generate_ulid;
     use super::*;
+    use mitra_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 
@@ -119,12 +107,7 @@ mod tests {
         };
         let follow_request_id = generate_ulid();
         let target_actor_id = "https://test.remote/actor/test";
-        let activity = build_follow(
-            INSTANCE_URL,
-            &follower,
-            target_actor_id,
-            &follow_request_id,
-        );
+        let activity = build_follow(INSTANCE_URL, &follower, target_actor_id, &follow_request_id);
 
         assert_eq!(
             activity.id,

@@ -4,23 +4,18 @@ use serde_json::Value;
 use mitra_config::Config;
 use mitra_models::{
     database::{DatabaseClient, DatabaseError},
-    relationships::queries::{
-        create_remote_follow_request_opt,
-        follow_request_accepted,
-    },
+    relationships::queries::{create_remote_follow_request_opt, follow_request_accepted},
     users::queries::get_user_by_name,
 };
 
+use super::{HandlerError, HandlerResult};
 use crate::activitypub::{
     builders::accept_follow::prepare_accept_follow,
-    fetcher::helpers::get_or_import_profile_by_actor_id,
-    identifiers::parse_local_actor_id,
-    receiver::deserialize_into_object_id,
-    vocabulary::PERSON,
+    fetcher::helpers::get_or_import_profile_by_actor_id, identifiers::parse_local_actor_id,
+    receiver::deserialize_into_object_id, vocabulary::PERSON,
 };
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
-use super::{HandlerError, HandlerResult};
 
 #[derive(Deserialize)]
 struct Follow {
@@ -43,20 +38,18 @@ pub async fn handle_follow(
         &config.instance(),
         &MediaStorage::from(config),
         &activity.actor,
-    ).await?;
-    let source_actor = source_profile.actor_json
-        .ok_or(HandlerError::LocalObject)?;
-    let target_username = parse_local_actor_id(
-        &config.instance_url(),
-        &activity.object,
-    )?;
+    )
+    .await?;
+    let source_actor = source_profile.actor_json.ok_or(HandlerError::LocalObject)?;
+    let target_username = parse_local_actor_id(&config.instance_url(), &activity.object)?;
     let target_user = get_user_by_name(db_client, &target_username).await?;
     let follow_request = create_remote_follow_request_opt(
         db_client,
         &source_profile.id,
         &target_user.id,
         &activity.id,
-    ).await?;
+    )
+    .await?;
     match follow_request_accepted(db_client, &follow_request.id).await {
         Ok(_) => (),
         // Proceed even if relationship already exists
@@ -70,7 +63,9 @@ pub async fn handle_follow(
         &target_user,
         &source_actor,
         &activity.id,
-    ).enqueue(db_client).await?;
+    )
+    .enqueue(db_client)
+    .await?;
 
     Ok(Some(PERSON))
 }

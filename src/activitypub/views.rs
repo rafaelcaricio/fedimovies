@@ -1,14 +1,8 @@
 use std::time::Instant;
 
 use actix_web::{
-    get,
-    post,
-    web,
-    http::header as http_header,
-    http::header::HeaderMap,
-    HttpRequest,
-    HttpResponse,
-    Scope,
+    get, http::header as http_header, http::header::HeaderMap, post, web, HttpRequest,
+    HttpResponse, Scope,
 };
 use serde::Deserialize;
 use tokio::sync::Mutex;
@@ -23,36 +17,23 @@ use mitra_models::{
     users::queries::get_user_by_name,
 };
 
-use crate::errors::HttpError;
-use crate::web_client::urls::{
-    get_post_page_url,
-    get_profile_page_url,
-    get_tag_page_url,
-};
-use super::actors::types::{get_local_actor, get_instance_actor};
+use super::actors::types::{get_instance_actor, get_local_actor};
 use super::builders::{
     announce::build_announce,
-    create_note::{
-        build_emoji_tag,
-        build_note,
-        build_create_note,
-    },
+    create_note::{build_create_note, build_emoji_tag, build_note},
 };
-use super::collections::{
-    OrderedCollection,
-    OrderedCollectionPage,
-};
+use super::collections::{OrderedCollection, OrderedCollectionPage};
 use super::constants::{AP_MEDIA_TYPE, AS_MEDIA_TYPE};
 use super::identifiers::{
-    local_actor_followers,
-    local_actor_following,
-    local_actor_subscribers,
-    local_actor_outbox,
+    local_actor_followers, local_actor_following, local_actor_outbox, local_actor_subscribers,
 };
 use super::receiver::{receive_activity, HandlerError};
+use crate::errors::HttpError;
+use crate::web_client::urls::{get_post_page_url, get_profile_page_url, get_tag_page_url};
 
 pub fn is_activitypub_request(headers: &HeaderMap) -> bool {
-    let maybe_user_agent = headers.get(http_header::USER_AGENT)
+    let maybe_user_agent = headers
+        .get(http_header::USER_AGENT)
         .and_then(|value| value.to_str().ok());
     if let Some(user_agent) = maybe_user_agent {
         if user_agent.contains("THIS. IS. GNU social!!!!") {
@@ -67,7 +48,9 @@ pub fn is_activitypub_request(headers: &HeaderMap) -> bool {
         "application/json",
     ];
     if let Some(content_type) = headers.get(http_header::ACCEPT) {
-        let content_type_str = content_type.to_str().ok()
+        let content_type_str = content_type
+            .to_str()
+            .ok()
             // Take first content type if there are many
             .and_then(|value| value.split(',').next())
             .unwrap_or("");
@@ -86,20 +69,15 @@ async fn actor_view(
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
     if !is_activitypub_request(request.headers()) {
-        let page_url = get_profile_page_url(
-            &config.instance_url(),
-            &user.profile.username,
-        );
+        let page_url = get_profile_page_url(&config.instance_url(), &user.profile.username);
         let response = HttpResponse::Found()
             .append_header((http_header::LOCATION, page_url))
             .finish();
         return Ok(response);
     };
-    let actor = get_local_actor(&user, &config.instance_url())
-        .map_err(|_| HttpError::InternalError)?;
-    let response = HttpResponse::Ok()
-        .content_type(AP_MEDIA_TYPE)
-        .json(actor);
+    let actor =
+        get_local_actor(&user, &config.instance_url()).map_err(|_| HttpError::InternalError)?;
+    let response = HttpResponse::Ok().content_type(AP_MEDIA_TYPE).json(actor);
     Ok(response)
 }
 
@@ -126,19 +104,16 @@ async fn inbox(
         activity["id"].as_str().unwrap_or_default(),
     );
     let db_client = &mut **get_database_client(&db_pool).await?;
-    receive_activity(&config, db_client, &request, &activity).await
+    receive_activity(&config, db_client, &request, &activity)
+        .await
         .map_err(|error| {
             // TODO: preserve original error text in DatabaseError
-            if let HandlerError::DatabaseError(
-                DatabaseError::DatabaseClientError(ref pg_error)) = error
+            if let HandlerError::DatabaseError(DatabaseError::DatabaseClientError(ref pg_error)) =
+                error
             {
                 log::error!("database client error: {}", pg_error);
             };
-            log::warn!(
-                "failed to process activity ({}): {}",
-                error,
-                activity,
-            );
+            log::warn!("failed to process activity ({}): {}", error, activity,);
             error
         })?;
     Ok(HttpResponse::Accepted().finish())
@@ -160,11 +135,7 @@ async fn outbox(
     let collection_id = local_actor_outbox(&instance.url(), &username);
     let first_page_id = format!("{}?page=true", collection_id);
     if query_params.page.is_none() {
-        let collection = OrderedCollection::new(
-            collection_id,
-            Some(first_page_id),
-            None,
-        );
+        let collection = OrderedCollection::new(collection_id, Some(first_page_id), None);
         let response = HttpResponse::Ok()
             .content_type(AP_MEDIA_TYPE)
             .json(collection);
@@ -182,27 +153,22 @@ async fn outbox(
         true, // include reposts
         None,
         COLLECTION_PAGE_SIZE,
-    ).await?;
+    )
+    .await?;
     add_related_posts(db_client, posts.iter_mut().collect()).await?;
-    let activities = posts.iter().map(|post| {
-        if post.repost_of_id.is_some() {
-            let activity = build_announce(&instance.url(), post);
-            serde_json::to_value(activity)
-                .expect("activity should be serializable")
-        } else {
-            let activity = build_create_note(
-                &instance.hostname(),
-                &instance.url(),
-                post,
-            );
-            serde_json::to_value(activity)
-                .expect("activity should be serializable")
-        }
-    }).collect();
-    let collection_page = OrderedCollectionPage::new(
-        first_page_id,
-        activities,
-    );
+    let activities = posts
+        .iter()
+        .map(|post| {
+            if post.repost_of_id.is_some() {
+                let activity = build_announce(&instance.url(), post);
+                serde_json::to_value(activity).expect("activity should be serializable")
+            } else {
+                let activity = build_create_note(&instance.hostname(), &instance.url(), post);
+                serde_json::to_value(activity).expect("activity should be serializable")
+            }
+        })
+        .collect();
+    let collection_page = OrderedCollectionPage::new(first_page_id, activities);
     let response = HttpResponse::Ok()
         .content_type(AP_MEDIA_TYPE)
         .json(collection_page);
@@ -227,15 +193,8 @@ async fn followers_collection(
     };
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
-    let collection_id = local_actor_followers(
-        &config.instance_url(),
-        &username,
-    );
-    let collection = OrderedCollection::new(
-        collection_id,
-        None,
-        Some(user.profile.follower_count),
-    );
+    let collection_id = local_actor_followers(&config.instance_url(), &username);
+    let collection = OrderedCollection::new(collection_id, None, Some(user.profile.follower_count));
     let response = HttpResponse::Ok()
         .content_type(AP_MEDIA_TYPE)
         .json(collection);
@@ -255,15 +214,9 @@ async fn following_collection(
     };
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
-    let collection_id = local_actor_following(
-        &config.instance_url(),
-        &username,
-    );
-    let collection = OrderedCollection::new(
-        collection_id,
-        None,
-        Some(user.profile.following_count),
-    );
+    let collection_id = local_actor_following(&config.instance_url(), &username);
+    let collection =
+        OrderedCollection::new(collection_id, None, Some(user.profile.following_count));
     let response = HttpResponse::Ok()
         .content_type(AP_MEDIA_TYPE)
         .json(collection);
@@ -283,15 +236,9 @@ async fn subscribers_collection(
     };
     let db_client = &**get_database_client(&db_pool).await?;
     let user = get_user_by_name(db_client, &username).await?;
-    let collection_id = local_actor_subscribers(
-        &config.instance_url(),
-        &username,
-    );
-    let collection = OrderedCollection::new(
-        collection_id,
-        None,
-        Some(user.profile.subscriber_count),
-    );
+    let collection_id = local_actor_subscribers(&config.instance_url(), &username);
+    let collection =
+        OrderedCollection::new(collection_id, None, Some(user.profile.subscriber_count));
     let response = HttpResponse::Ok()
         .content_type(AP_MEDIA_TYPE)
         .json(collection);
@@ -310,14 +257,9 @@ pub fn actor_scope() -> Scope {
 }
 
 #[get("")]
-async fn instance_actor_view(
-    config: web::Data<Config>,
-) -> Result<HttpResponse, HttpError> {
-    let actor = get_instance_actor(&config.instance())
-        .map_err(|_| HttpError::InternalError)?;
-    let response = HttpResponse::Ok()
-        .content_type(AP_MEDIA_TYPE)
-        .json(actor);
+async fn instance_actor_view(config: web::Data<Config>) -> Result<HttpResponse, HttpError> {
+    let actor = get_instance_actor(&config.instance()).map_err(|_| HttpError::InternalError)?;
+    let response = HttpResponse::Ok().content_type(AP_MEDIA_TYPE).json(actor);
     Ok(response)
 }
 
@@ -370,9 +312,7 @@ pub async fn object_view(
         &config.instance().url(),
         &post,
     );
-    let response = HttpResponse::Ok()
-        .content_type(AP_MEDIA_TYPE)
-        .json(object);
+    let response = HttpResponse::Ok().content_type(AP_MEDIA_TYPE).json(object);
     Ok(response)
 }
 
@@ -383,17 +323,9 @@ pub async fn emoji_view(
     emoji_name: web::Path<String>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let emoji = get_local_emoji_by_name(
-        db_client,
-        &emoji_name,
-    ).await?;
-    let object = build_emoji_tag(
-        &config.instance().url(),
-        &emoji,
-    );
-    let response = HttpResponse::Ok()
-        .content_type(AP_MEDIA_TYPE)
-        .json(object);
+    let emoji = get_local_emoji_by_name(db_client, &emoji_name).await?;
+    let object = build_emoji_tag(&config.instance().url(), &emoji);
+    let response = HttpResponse::Ok().content_type(AP_MEDIA_TYPE).json(object);
     Ok(response)
 }
 
@@ -411,11 +343,11 @@ pub async fn tag_view(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use actix_web::http::{
         header,
         header::{HeaderMap, HeaderValue},
     };
-    use super::*;
 
     #[test]
     fn test_is_activitypub_request_mastodon() {
@@ -442,10 +374,7 @@ mod tests {
     #[test]
     fn test_is_activitypub_request_browser() {
         let mut request_headers = HeaderMap::new();
-        request_headers.insert(
-            header::ACCEPT,
-            HeaderValue::from_static("text/html"),
-        );
+        request_headers.insert(header::ACCEPT, HeaderValue::from_static("text/html"));
         let result = is_activitypub_request(&request_headers);
         assert_eq!(result, false);
     }

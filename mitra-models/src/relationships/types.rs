@@ -5,8 +5,7 @@ use uuid::Uuid;
 use crate::{
     database::{
         int_enum::{int_enum_from_sql, int_enum_to_sql},
-        DatabaseError,
-        DatabaseTypeError,
+        DatabaseError, DatabaseTypeError,
     },
     profiles::types::DbActorProfile,
 };
@@ -58,11 +57,7 @@ pub struct DbRelationship {
 }
 
 impl DbRelationship {
-    pub fn is_direct(
-        &self,
-        source_id: &Uuid,
-        target_id: &Uuid,
-    ) -> Result<bool, DatabaseTypeError> {
+    pub fn is_direct(&self, source_id: &Uuid, target_id: &Uuid) -> Result<bool, DatabaseTypeError> {
         if &self.source_id == source_id && &self.target_id == target_id {
             Ok(true)
         } else if &self.source_id == target_id && &self.target_id == source_id {
@@ -74,7 +69,6 @@ impl DbRelationship {
 }
 
 impl TryFrom<&Row> for DbRelationship {
-
     type Error = tokio_postgres::Error;
 
     fn try_from(row: &Row) -> Result<Self, Self::Error> {
@@ -97,7 +91,7 @@ pub enum FollowRequestStatus {
 impl From<&FollowRequestStatus> for i16 {
     fn from(value: &FollowRequestStatus) -> i16 {
         match value {
-            FollowRequestStatus::Pending  => 1,
+            FollowRequestStatus::Pending => 1,
             FollowRequestStatus::Accepted => 2,
             FollowRequestStatus::Rejected => 3,
         }
@@ -137,12 +131,14 @@ pub struct RelatedActorProfile {
 }
 
 impl TryFrom<&Row> for RelatedActorProfile {
-
     type Error = DatabaseError;
 
     fn try_from(row: &Row) -> Result<Self, Self::Error> {
         let relationship_id = row.try_get("id")?;
         let profile = row.try_get("actor_profile")?;
-        Ok(Self { relationship_id, profile })
+        Ok(Self {
+            relationship_id,
+            profile,
+        })
     }
 }

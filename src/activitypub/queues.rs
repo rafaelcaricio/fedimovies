@@ -5,19 +5,9 @@ use uuid::Uuid;
 
 use mitra_config::Config;
 use mitra_models::{
-    background_jobs::queries::{
-        enqueue_job,
-        get_job_batch,
-        delete_job_from_queue,
-    },
+    background_jobs::queries::{delete_job_from_queue, enqueue_job, get_job_batch},
     background_jobs::types::JobType,
-    database::{
-        get_database_client,
-        DatabaseClient,
-        DatabaseError,
-        DatabaseTypeError,
-        DbPool,
-    },
+    database::{get_database_client, DatabaseClient, DatabaseError, DatabaseTypeError, DbPool},
     profiles::queries::set_reachability_status,
     users::queries::get_user_by_id,
 };
@@ -49,15 +39,15 @@ impl IncomingActivityJobData {
         db_client: &impl DatabaseClient,
         delay: u32,
     ) -> Result<(), DatabaseError> {
-        let job_data = serde_json::to_value(self)
-            .expect("activity should be serializable");
+        let job_data = serde_json::to_value(self).expect("activity should be serializable");
         let scheduled_for = Utc::now() + Duration::seconds(delay.into());
         enqueue_job(
             db_client,
             &JobType::IncomingActivity,
             &job_data,
             &scheduled_for,
-        ).await
+        )
+        .await
     }
 }
 
@@ -78,11 +68,11 @@ pub async fn process_queued_incoming_activities(
         &JobType::IncomingActivity,
         INCOMING_QUEUE_BATCH_SIZE,
         JOB_TIMEOUT,
-    ).await?;
+    )
+    .await?;
     for job in batch {
         let mut job_data: IncomingActivityJobData =
-            serde_json::from_value(job.job_data)
-                .map_err(|_| DatabaseTypeError)?;
+            serde_json::from_value(job.job_data).map_err(|_| DatabaseTypeError)?;
         // See also: activitypub::queues::JOB_TIMEOUT
         let duration_max = std::time::Duration::from_secs(600);
         let handler_future = handle_activity(
@@ -91,10 +81,7 @@ pub async fn process_queued_incoming_activities(
             &job_data.activity,
             job_data.is_authenticated,
         );
-        let handler_result = match tokio::time::timeout(
-            duration_max,
-            handler_future,
-        ).await {
+        let handler_result = match tokio::time::timeout(duration_max, handler_future).await {
             Ok(result) => result,
             Err(_) => {
                 log::error!(
@@ -103,12 +90,12 @@ pub async fn process_queued_incoming_activities(
                 );
                 delete_job_from_queue(db_client, &job.id).await?;
                 continue;
-            },
+            }
         };
         if let Err(error) = handler_result {
             job_data.failure_count += 1;
-            if let HandlerError::DatabaseError(
-                DatabaseError::DatabaseClientError(ref pg_error)) = error
+            if let HandlerError::DatabaseError(DatabaseError::DatabaseClientError(ref pg_error)) =
+                error
             {
                 log::error!("database client error: {}", pg_error);
             };
@@ -129,7 +116,7 @@ pub async fn process_queued_incoming_activities(
             };
         };
         delete_job_from_queue(db_client, &job.id).await?;
-    };
+    }
     Ok(())
 }
 
@@ -147,15 +134,15 @@ impl OutgoingActivityJobData {
         db_client: &impl DatabaseClient,
         delay: u32,
     ) -> Result<(), DatabaseError> {
-        let job_data = serde_json::to_value(self)
-            .expect("activity should be serializable");
+        let job_data = serde_json::to_value(self).expect("activity should be serializable");
         let scheduled_for = Utc::now() + Duration::seconds(delay.into());
         enqueue_job(
             db_client,
             &JobType::OutgoingActivity,
             &job_data,
             &scheduled_for,
-        ).await
+        )
+        .await
     }
 }
 
@@ -178,11 +165,11 @@ pub async fn process_queued_outgoing_activities(
         &JobType::OutgoingActivity,
         OUTGOING_QUEUE_BATCH_SIZE,
         JOB_TIMEOUT,
-    ).await?;
+    )
+    .await?;
     for job in batch {
         let mut job_data: OutgoingActivityJobData =
-            serde_json::from_value(job.job_data)
-                .map_err(|_| DatabaseTypeError)?;
+            serde_json::from_value(job.job_data).map_err(|_| DatabaseTypeError)?;
         let sender = get_user_by_id(db_client, &job_data.sender_id).await?;
         let outgoing_activity = OutgoingActivity {
             instance: config.instance(),
@@ -198,7 +185,7 @@ pub async fn process_queued_outgoing_activities(
                 log::error!("{}", error);
                 delete_job_from_queue(db_client, &job.id).await?;
                 return Ok(());
-            },
+            }
         };
         log::info!(
             "delivery job: {} delivered, {} errors (attempt #{})",
@@ -206,8 +193,8 @@ pub async fn process_queued_outgoing_activities(
             recipients.iter().filter(|item| !item.is_delivered).count(),
             job_data.failure_count + 1,
         );
-        if recipients.iter().any(|recipient| !recipient.is_delivered) &&
-            job_data.failure_count < OUTGOING_QUEUE_RETRIES_MAX
+        if recipients.iter().any(|recipient| !recipient.is_delivered)
+            && job_data.failure_count < OUTGOING_QUEUE_RETRIES_MAX
         {
             job_data.failure_count += 1;
             // Re-queue if some deliveries are not successful
@@ -219,15 +206,11 @@ pub async fn process_queued_outgoing_activities(
             // Update inbox status if all deliveries are successful
             // or if retry limit is reached
             for recipient in recipients {
-                set_reachability_status(
-                    db_client,
-                    &recipient.id,
-                    recipient.is_delivered,
-                ).await?;
-            };
+                set_reachability_status(db_client, &recipient.id, recipient.is_delivered).await?;
+            }
         };
         delete_job_from_queue(db_client, &job.id).await?;
-    };
+    }
     Ok(())
 }
 

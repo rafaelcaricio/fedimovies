@@ -6,9 +6,7 @@ use mitra_models::{
 
 use super::types::{Usage, Users};
 
-pub async fn get_usage(db_client: &impl DatabaseClient)
-    -> Result<Usage, DatabaseError>
-{
+pub async fn get_usage(db_client: &impl DatabaseClient) -> Result<Usage, DatabaseError> {
     let user_count = get_user_count(db_client).await?;
     let post_count = get_local_post_count(db_client).await?;
     let usage = Usage {

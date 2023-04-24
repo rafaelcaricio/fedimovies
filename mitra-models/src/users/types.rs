@@ -3,13 +3,10 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use postgres_types::FromSql;
 use serde::Deserialize;
-use serde_json::{Value as JsonValue};
+use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
-use mitra_utils::{
-    currencies::Currency,
-    did::Did,
-};
+use mitra_utils::{currencies::Currency, did::Did};
 
 use crate::database::{
     int_enum::{int_enum_from_sql, int_enum_to_sql},
@@ -46,7 +43,9 @@ pub enum Role {
 }
 
 impl Default for Role {
-    fn default() -> Self { Self::NormalUser }
+    fn default() -> Self {
+        Self::NormalUser
+    }
 }
 
 impl Role {
@@ -65,9 +64,7 @@ impl Role {
                 Permission::DeleteAnyProfile,
                 Permission::ManageSubscriptionOptions,
             ],
-            Self::ReadOnlyUser => vec![
-                Permission::CreateFollowRequest,
-            ],
+            Self::ReadOnlyUser => vec![Permission::CreateFollowRequest],
         }
     }
 
@@ -147,10 +144,7 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(
-        db_user: DbUser,
-        db_profile: DbActorProfile,
-    ) -> Self {
+    pub fn new(db_user: DbUser, db_profile: DbActorProfile) -> Self {
         assert_eq!(db_user.id, db_profile.id);
         Self {
             id: db_user.id,
@@ -177,7 +171,7 @@ impl User {
                     return Some(did_pkh.address);
                 };
             };
-        };
+        }
         None
     }
 }

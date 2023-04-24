@@ -1,5 +1,5 @@
 use serde::Serialize;
-use serde_json::{Value as JsonValue};
+use serde_json::Value as JsonValue;
 
 use super::types::{build_default_context, Context};
 use super::vocabulary::{ORDERED_COLLECTION, ORDERED_COLLECTION_PAGE};
@@ -53,10 +53,7 @@ pub struct OrderedCollectionPage {
 }
 
 impl OrderedCollectionPage {
-    pub fn new(
-        collection_page_id: String,
-        items: Vec<JsonValue>,
-    ) -> Self {
+    pub fn new(collection_page_id: String, items: Vec<JsonValue>) -> Self {
         Self {
             context: build_default_context(),
             id: collection_page_id,

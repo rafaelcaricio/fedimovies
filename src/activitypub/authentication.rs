@@ -7,24 +7,17 @@ use mitra_models::{
     profiles::queries::get_profile_by_remote_actor_id,
     profiles::types::DbActorProfile,
 };
-use mitra_utils::{
-    crypto_rsa::deserialize_public_key,
-    did::Did,
-};
+use mitra_utils::{crypto_rsa::deserialize_public_key, did::Did};
 
 use crate::http_signatures::verify::{
-    parse_http_signature,
-    verify_http_signature,
+    parse_http_signature, verify_http_signature,
     HttpSignatureVerificationError as HttpSignatureError,
 };
 use crate::json_signatures::{
     proofs::ProofType,
     verify::{
-        get_json_signature,
-        verify_ed25519_json_signature,
-        verify_eip191_json_signature,
-        verify_rsa_json_signature,
-        JsonSignatureVerificationError as JsonSignatureError,
+        get_json_signature, verify_ed25519_json_signature, verify_eip191_json_signature,
+        verify_rsa_json_signature, JsonSignatureVerificationError as JsonSignatureError,
         JsonSigner,
     },
 };
@@ -93,12 +86,14 @@ async fn get_signer(
             &config.instance(),
             &MediaStorage::from(config),
             signer_id,
-        ).await {
+        )
+        .await
+        {
             Ok(profile) => profile,
             Err(HandlerError::DatabaseError(error)) => return Err(error.into()),
             Err(other_error) => {
                 return Err(AuthenticationError::ImportError(other_error.to_string()));
-            },
+            }
         }
     };
     Ok(signer)
@@ -111,24 +106,22 @@ pub async fn verify_signed_request(
     request: &HttpRequest,
     no_fetch: bool,
 ) -> Result<DbActorProfile, AuthenticationError> {
-    let signature_data = match parse_http_signature(
-        request.method(),
-        request.uri(),
-        request.headers(),
-    ) {
-        Ok(signature_data) => signature_data,
-        Err(HttpSignatureError::NoSignature) => {
-            return Err(AuthenticationError::NoHttpSignature);
-        },
-        Err(other_error) => return Err(other_error.into()),
-    };
+    let signature_data =
+        match parse_http_signature(request.method(), request.uri(), request.headers()) {
+            Ok(signature_data) => signature_data,
+            Err(HttpSignatureError::NoSignature) => {
+                return Err(AuthenticationError::NoHttpSignature);
+            }
+            Err(other_error) => return Err(other_error.into()),
+        };
 
     let signer_id = key_id_to_actor_id(&signature_data.key_id)?;
     let signer = get_signer(config, db_client, &signer_id, no_fetch).await?;
-    let signer_actor = signer.actor_json.as_ref()
+    let signer_actor = signer
+        .actor_json
+        .as_ref()
         .expect("request should be signed by remote actor");
-    let signer_key =
-        deserialize_public_key(&signer_actor.public_key.public_key_pem)?;
+    let signer_key = deserialize_public_key(&signer_actor.public_key.public_key_pem)?;
 
     verify_http_signature(&signature_data, &signer_key)?;
 
@@ -146,13 +139,14 @@ pub async fn verify_signed_activity(
         Ok(signature_data) => signature_data,
         Err(JsonSignatureError::NoProof) => {
             return Err(AuthenticationError::NoJsonSignature);
-        },
+        }
         Err(other_error) => return Err(other_error.into()),
     };
     // Signed activities must have `actor` property, to avoid situations
     // where signer is identified by DID but there is no matching
     // identity proof in the local database.
-    let actor_id = activity["actor"].as_str()
+    let actor_id = activity["actor"]
+        .as_str()
         .ok_or(AuthenticationError::ActorError("unknown actor"))?;
     let actor_profile = get_signer(config, db_client, actor_id, no_fetch).await?;
 
@@ -165,12 +159,13 @@ pub async fn verify_signed_activity(
             if signer_id != actor_id {
                 return Err(AuthenticationError::UnexpectedSigner);
             };
-            let signer_actor = actor_profile.actor_json.as_ref()
+            let signer_actor = actor_profile
+                .actor_json
+                .as_ref()
                 .expect("activity should be signed by remote actor");
-            let signer_key =
-                deserialize_public_key(&signer_actor.public_key.public_key_pem)?;
+            let signer_key = deserialize_public_key(&signer_actor.public_key.public_key_pem)?;
             verify_rsa_json_signature(&signature_data, &signer_key)?;
-        },
+        }
         JsonSigner::Did(did) => {
             if !actor_profile.identity_proofs.any(&did) {
                 return Err(AuthenticationError::UnexpectedSigner);
@@ -186,7 +181,7 @@ pub async fn verify_signed_activity(
                         &signature_data.message,
                         &signature_data.signature,
                     )?;
-                },
+                }
                 ProofType::JcsEip191Signature => {
                     let did_pkh = match did {
                         Did::Pkh(did_pkh) => did_pkh,
@@ -197,10 +192,10 @@ pub async fn verify_signed_activity(
                         &signature_data.message,
                         &signature_data.signature,
                     )?;
-                },
+                }
                 _ => return Err(AuthenticationError::InvalidJsonSignatureType),
             };
-        },
+        }
     };
     // Signer is actor
     Ok(actor_profile)

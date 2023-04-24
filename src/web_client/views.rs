@@ -2,12 +2,10 @@ use std::path::Path;
 
 use actix_files::{Files, NamedFile};
 use actix_web::{
-    guard,
-    web,
-    HttpResponse,
-    Resource,
     dev::{fn_service, ServiceRequest, ServiceResponse},
+    guard, web,
     web::Data,
+    HttpResponse, Resource,
 };
 use uuid::Uuid;
 
@@ -32,9 +30,11 @@ pub fn static_service(web_client_dir: &Path) -> Files {
         .default_handler(fn_service(|service_request: ServiceRequest| {
             // Workaround for https://github.com/actix/actix-web/issues/2617
             let (request, _) = service_request.into_parts();
-            let index_path = request.app_data::<Data<Config>>()
+            let index_path = request
+                .app_data::<Data<Config>>()
                 .expect("app data should contain config")
-                .web_client_dir.as_ref()
+                .web_client_dir
+                .as_ref()
                 .expect("web_client_dir should be present in config")
                 .join("index.html");
             async {

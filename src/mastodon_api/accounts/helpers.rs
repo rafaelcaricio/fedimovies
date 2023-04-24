@@ -2,14 +2,9 @@ use uuid::Uuid;
 
 use mitra_models::{
     database::{DatabaseClient, DatabaseError},
-    profiles::helpers::{
-        find_declared_aliases,
-        find_verified_aliases,
-    },
+    profiles::helpers::{find_declared_aliases, find_verified_aliases},
     profiles::types::DbActorProfile,
-    relationships::queries::{
-        get_relationships,
-    },
+    relationships::queries::get_relationships,
     relationships::types::RelationshipType,
 };
 
@@ -22,7 +17,10 @@ pub async fn get_relationship(
 ) -> Result<RelationshipMap, DatabaseError> {
     // NOTE: this method returns relationship map even if target does not exist
     let relationships = get_relationships(db_client, source_id, target_id).await?;
-    let mut relationship_map = RelationshipMap { id: *target_id, ..Default::default() };
+    let mut relationship_map = RelationshipMap {
+        id: *target_id,
+        ..Default::default()
+    };
     for relationship in relationships {
         match relationship.relationship_type {
             RelationshipType::Follow => {
@@ -31,31 +29,31 @@ pub async fn get_relationship(
                 } else {
                     relationship_map.followed_by = true;
                 };
-            },
+            }
             RelationshipType::FollowRequest => {
                 if relationship.is_direct(source_id, target_id)? {
                     relationship_map.requested = true;
                 };
-            },
+            }
             RelationshipType::Subscription => {
                 if relationship.is_direct(source_id, target_id)? {
                     relationship_map.subscription_to = true;
                 } else {
                     relationship_map.subscription_from = true;
                 };
-            },
+            }
             RelationshipType::HideReposts => {
                 if relationship.is_direct(source_id, target_id)? {
                     relationship_map.showing_reblogs = false;
                 };
-            },
+            }
             RelationshipType::HideReplies => {
                 if relationship.is_direct(source_id, target_id)? {
                     relationship_map.showing_replies = false;
                 };
-            },
+            }
         };
-    };
+    }
     Ok(relationship_map)
 }
 
@@ -65,21 +63,15 @@ pub async fn get_aliases(
     instance_url: &str,
     profile: &DbActorProfile,
 ) -> Result<Aliases, DatabaseError> {
-    let declared = find_declared_aliases(db_client, profile).await?
+    let declared = find_declared_aliases(db_client, profile)
+        .await?
         .into_iter()
-        .map(|profile| Account::from_profile(
-            base_url,
-            instance_url,
-            profile,
-        ))
+        .map(|profile| Account::from_profile(base_url, instance_url, profile))
         .collect();
-    let verified = find_verified_aliases(db_client, profile).await?
+    let verified = find_verified_aliases(db_client, profile)
+        .await?
         .into_iter()
-        .map(|profile| Account::from_profile(
-            base_url,
-            instance_url,
-            profile,
-        ))
+        .map(|profile| Account::from_profile(base_url, instance_url, profile))
         .collect();
     let aliases = Aliases { declared, verified };
     Ok(aliases)
@@ -87,27 +79,21 @@ pub async fn get_aliases(
 
 #[cfg(test)]
 mod tests {
-    use serial_test::serial;
+    use super::*;
     use mitra_models::{
         database::test_utils::create_test_database,
         relationships::queries::{
-            create_follow_request,
-            follow,
-            follow_request_accepted,
-            hide_reposts,
-            show_reposts,
-            subscribe,
-            unfollow,
-            unsubscribe,
+            create_follow_request, follow, follow_request_accepted, hide_reposts, show_reposts,
+            subscribe, unfollow, unsubscribe,
         },
         users::queries::create_user,
         users::types::{User, UserCreateData},
     };
-    use super::*;
+    use serial_test::serial;
 
-    async fn create_users(db_client: &mut impl DatabaseClient)
-        -> Result<(User, User), DatabaseError>
-    {
+    async fn create_users(
+        db_client: &mut impl DatabaseClient,
+    ) -> Result<(User, User), DatabaseError> {
         let user_data_1 = UserCreateData {
             username: "user".to_string(),
             password_hash: Some("test".to_string()),
@@ -129,7 +115,9 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let (user_1, user_2) = create_users(db_client).await.unwrap();
         // Initial state
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
         assert_eq!(relationship.id, user_2.id);
         assert_eq!(relationship.following, false);
         assert_eq!(relationship.followed_by, false);
@@ -139,21 +127,31 @@ mod tests {
         assert_eq!(relationship.showing_reblogs, true);
         assert_eq!(relationship.showing_replies, true);
         // Follow request
-        let follow_request = create_follow_request(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        let follow_request = create_follow_request(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
         assert_eq!(relationship.following, false);
         assert_eq!(relationship.followed_by, false);
         assert_eq!(relationship.requested, true);
         // Mutual follow
-        follow_request_accepted(db_client, &follow_request.id).await.unwrap();
+        follow_request_accepted(db_client, &follow_request.id)
+            .await
+            .unwrap();
         follow(db_client, &user_2.id, &user_1.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
         assert_eq!(relationship.following, true);
         assert_eq!(relationship.followed_by, true);
         assert_eq!(relationship.requested, false);
         // Unfollow
         unfollow(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
         assert_eq!(relationship.following, false);
         assert_eq!(relationship.followed_by, true);
         assert_eq!(relationship.requested, false);
@@ -166,12 +164,18 @@ mod tests {
         let (user_1, user_2) = create_users(db_client).await.unwrap();
 
         subscribe(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
         assert_eq!(relationship.subscription_to, true);
         assert_eq!(relationship.subscription_from, false);
 
-        unsubscribe(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        unsubscribe(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
         assert_eq!(relationship.subscription_to, false);
         assert_eq!(relationship.subscription_from, false);
     }
@@ -182,17 +186,27 @@ mod tests {
         let db_client = &mut create_test_database().await;
         let (user_1, user_2) = create_users(db_client).await.unwrap();
         follow(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
         assert_eq!(relationship.following, true);
         assert_eq!(relationship.showing_reblogs, true);
 
-        hide_reposts(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        hide_reposts(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
         assert_eq!(relationship.following, true);
         assert_eq!(relationship.showing_reblogs, false);
 
-        show_reposts(db_client, &user_1.id, &user_2.id).await.unwrap();
-        let relationship = get_relationship(db_client, &user_1.id, &user_2.id).await.unwrap();
+        show_reposts(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
+        let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
+            .await
+            .unwrap();
         assert_eq!(relationship.following, true);
         assert_eq!(relationship.showing_reblogs, true);
     }

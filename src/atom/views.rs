@@ -7,8 +7,8 @@ use mitra_models::{
     users::queries::get_user_by_name,
 };
 
-use crate::errors::HttpError;
 use super::feeds::make_feed;
+use crate::errors::HttpError;
 
 const FEED_SIZE: u16 = 10;
 
@@ -21,25 +21,18 @@ async fn get_atom_feed(
     let user = get_user_by_name(db_client, &username).await?;
     // Posts are ordered by creation date
     let posts = get_posts_by_author(
-        db_client,
-        &user.id,
-        None, // include only public posts
+        db_client, &user.id, None,  // include only public posts
         false, // exclude replies
         false, // exclude reposts
-        None,
-        FEED_SIZE,
-    ).await?;
-    let feed = make_feed(
-        &config.instance(),
-        &user.profile,
-        posts,
-    );
+        None, FEED_SIZE,
+    )
+    .await?;
+    let feed = make_feed(&config.instance(), &user.profile, posts);
     let response = HttpResponse::Ok()
         .content_type("application/atom+xml")
         .body(feed);
     Ok(response)
 }
-
 
 pub fn atom_scope() -> Scope {
     web::scope("/feeds")

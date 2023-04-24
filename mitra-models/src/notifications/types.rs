@@ -6,8 +6,7 @@ use uuid::Uuid;
 use crate::attachments::types::DbMediaAttachment;
 use crate::database::{
     int_enum::{int_enum_from_sql, int_enum_to_sql},
-    DatabaseError,
-    DatabaseTypeError,
+    DatabaseError, DatabaseTypeError,
 };
 use crate::emojis::types::DbEmoji;
 use crate::posts::types::{DbPost, Post};
@@ -89,7 +88,6 @@ pub struct Notification {
 }
 
 impl TryFrom<&Row> for Notification {
-
     type Error = DatabaseError;
 
     fn try_from(row: &Row) -> Result<Self, Self::Error> {
@@ -114,7 +112,7 @@ impl TryFrom<&Row> for Notification {
                     db_emojis,
                 )?;
                 Some(post)
-            },
+            }
             None => None,
         };
         let notification = Self {

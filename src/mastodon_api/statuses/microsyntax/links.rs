@@ -36,7 +36,7 @@ fn find_object_links(text: &str) -> Vec<String> {
         if !links.contains(&url) {
             links.push(url);
         };
-    };
+    }
     links
 }
 
@@ -54,11 +54,7 @@ pub async fn find_linked_posts(
             break;
             // TODO: single database query
         };
-        match get_post_by_object_id(
-            db_client,
-            instance_url,
-            &url,
-        ).await {
+        match get_post_by_object_id(db_client, instance_url, &url).await {
             Ok(post) => {
                 if post.repost_of_id.is_some() {
                     // Can't reference reposts
@@ -69,20 +65,17 @@ pub async fn find_linked_posts(
                     continue;
                 };
                 link_map.insert(url, post);
-            },
+            }
             // If post doesn't exist in database, link is ignored
             Err(DatabaseError::NotFound(_)) => continue,
             Err(other_error) => return Err(other_error),
         };
         counter += 1;
-    };
+    }
     Ok(link_map)
 }
 
-pub fn replace_object_links(
-    link_map: &HashMap<String, Post>,
-    text: &str,
-) -> String {
+pub fn replace_object_links(link_map: &HashMap<String, Post>, text: &str) -> String {
     let mention_re = Regex::new(OBJECT_LINK_SEARCH_RE).unwrap();
     let result = mention_re.replace_all(text, |caps: &Captures| {
         let url_match = caps.name("url").expect("should have url group");
@@ -91,7 +84,8 @@ pub fn replace_object_links(
             return caps[0].to_string();
         };
         let url = caps["url"].to_string();
-        let link_text = caps.name("text")
+        let link_text = caps
+            .name("text")
             .map(|match_| match_.as_str())
             .unwrap_or(&url)
             .to_string();
@@ -127,10 +121,10 @@ mod tests {
     #[test]
     fn test_find_object_links() {
         let results = find_object_links(TEXT_WITH_OBJECT_LINKS);
-        assert_eq!(results, vec![
-            "https://example.org/1",
-            "https://example.org/2",
-        ]);
+        assert_eq!(
+            results,
+            vec!["https://example.org/1", "https://example.org/2",]
+        );
     }
 
     #[test]

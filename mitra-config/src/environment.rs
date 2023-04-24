@@ -10,9 +10,13 @@ pub enum Environment {
 
 impl Default for Environment {
     #[cfg(feature = "production")]
-    fn default() -> Self { Self::Production }
+    fn default() -> Self {
+        Self::Production
+    }
     #[cfg(not(feature = "production"))]
-    fn default() -> Self { Self::Development }
+    fn default() -> Self {
+        Self::Development
+    }
 }
 
 impl FromStr for Environment {

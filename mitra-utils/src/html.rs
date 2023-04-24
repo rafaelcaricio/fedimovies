@@ -3,7 +3,7 @@ use std::iter::FromIterator;
 
 use ammonia::Builder;
 
-pub use ammonia::{clean_text as escape_html};
+pub use ammonia::clean_text as escape_html;
 
 pub fn clean_html(
     unsafe_html: &str,
@@ -12,7 +12,7 @@ pub fn clean_html(
     let mut builder = Builder::default();
     for (tag, classes) in allowed_classes.iter() {
         builder.add_allowed_classes(tag, classes);
-    };
+    }
     let safe_html = builder
         // Remove src from external images to prevent tracking
         .set_tag_attribute_value("img", "src", "")
@@ -28,15 +28,11 @@ pub fn clean_html_strict(
     allowed_tags: &[&str],
     allowed_classes: Vec<(&'static str, Vec<&'static str>)>,
 ) -> String {
-    let allowed_tags =
-        HashSet::from_iter(allowed_tags.iter().copied());
+    let allowed_tags = HashSet::from_iter(allowed_tags.iter().copied());
     let mut allowed_classes_map = HashMap::new();
     for (tag, classes) in allowed_classes {
-        allowed_classes_map.insert(
-            tag,
-            HashSet::from_iter(classes.into_iter()),
-        );
-    };
+        allowed_classes_map.insert(tag, HashSet::from_iter(classes.into_iter()));
+    }
     let safe_html = Builder::default()
         .tags(allowed_tags)
         .allowed_classes(allowed_classes_map)
@@ -47,9 +43,7 @@ pub fn clean_html_strict(
 }
 
 pub fn clean_html_all(html: &str) -> String {
-    let text = Builder::empty()
-        .clean(html)
-        .to_string();
+    let text = Builder::empty().clean(html).to_string();
     text
 }
 
@@ -69,10 +63,7 @@ mod tests {
         );
         let safe_html = clean_html(
             unsafe_html,
-            vec![
-                ("a", vec!["mention", "u-url"]),
-                ("span", vec!["h-card"]),
-            ],
+            vec![("a", vec!["mention", "u-url"]), ("span", vec!["h-card"])],
         );
         assert_eq!(safe_html, expected_safe_html);
     }
@@ -83,12 +74,12 @@ mod tests {
         let safe_html = clean_html_strict(
             unsafe_html,
             &["a", "br", "code", "p", "span"],
-            vec![
-                ("a", vec!["mention", "u-url"]),
-                ("span", vec!["h-card"]),
-            ],
+            vec![("a", vec!["mention", "u-url"]), ("span", vec!["h-card"])],
         );
-        assert_eq!(safe_html, r#"<p><span class="h-card"><a href="https://example.com/user" class="u-url mention" rel="noopener">@<span>user</span></a></span> test bold with <a href="https://example.com" rel="noopener">link</a> and <code>code</code></p>"#);
+        assert_eq!(
+            safe_html,
+            r#"<p><span class="h-card"><a href="https://example.com/user" class="u-url mention" rel="noopener">@<span>user</span></a></span> test bold with <a href="https://example.com" rel="noopener">link</a> and <code>code</code></p>"#
+        );
     }
 
     #[test]

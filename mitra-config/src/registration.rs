@@ -1,8 +1,4 @@
-use serde::{
-    Deserialize,
-    Deserializer,
-    de::Error as DeserializerError,
-};
+use serde::{de::Error as DeserializerError, Deserialize, Deserializer};
 
 #[derive(Clone, PartialEq)]
 pub enum RegistrationType {
@@ -11,12 +7,15 @@ pub enum RegistrationType {
 }
 
 impl Default for RegistrationType {
-    fn default() -> Self { Self::Invite }
+    fn default() -> Self {
+        Self::Invite
+    }
 }
 
 impl<'de> Deserialize<'de> for RegistrationType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         let registration_type_str = String::deserialize(deserializer)?;
         let registration_type = match registration_type_str.as_str() {
@@ -35,12 +34,15 @@ pub enum DefaultRole {
 }
 
 impl Default for DefaultRole {
-    fn default() -> Self { Self::NormalUser }
+    fn default() -> Self {
+        Self::NormalUser
+    }
 }
 
 impl<'de> Deserialize<'de> for DefaultRole {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         let role_str = String::deserialize(deserializer)?;
         let role = match role_str.as_str() {

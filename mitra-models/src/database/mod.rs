@@ -1,4 +1,4 @@
-use tokio_postgres::config::{Config as DatabaseConfig};
+use tokio_postgres::config::Config as DatabaseConfig;
 use tokio_postgres::error::{Error as PgError, SqlState};
 
 pub mod int_enum;
@@ -10,7 +10,7 @@ pub mod query_macro;
 pub mod test_utils;
 
 pub type DbPool = deadpool_postgres::Pool;
-pub use tokio_postgres::{GenericClient as DatabaseClient};
+pub use tokio_postgres::GenericClient as DatabaseClient;
 
 #[derive(thiserror::Error, Debug)]
 #[error("database type error")]
@@ -37,11 +37,8 @@ pub enum DatabaseError {
     AlreadyExists(&'static str), // object type
 }
 
-pub async fn create_database_client(db_config: &DatabaseConfig)
-    -> tokio_postgres::Client
-{
-    let (client, connection) = db_config.connect(tokio_postgres::NoTls)
-        .await.unwrap();
+pub async fn create_database_client(db_config: &DatabaseConfig) -> tokio_postgres::Client {
+    let (client, connection) = db_config.connect(tokio_postgres::NoTls).await.unwrap();
     tokio::spawn(async move {
         if let Err(err) = connection.await {
             log::error!("connection error: {}", err);
@@ -55,21 +52,22 @@ pub fn create_pool(database_url: &str, pool_size: usize) -> DbPool {
         database_url.parse().expect("invalid database URL"),
         tokio_postgres::NoTls,
     );
-    DbPool::builder(manager).max_size(pool_size).build().unwrap()
+    DbPool::builder(manager)
+        .max_size(pool_size)
+        .build()
+        .unwrap()
 }
 
-pub async fn get_database_client(db_pool: &DbPool)
-    -> Result<deadpool_postgres::Client, DatabaseError>
-{
+pub async fn get_database_client(
+    db_pool: &DbPool,
+) -> Result<deadpool_postgres::Client, DatabaseError> {
     // Returns wrapped client
     // https://github.com/bikeshedder/deadpool/issues/56
     let client = db_pool.get().await?;
     Ok(client)
 }
 
-pub fn catch_unique_violation(
-    object_type: &'static str,
-) -> impl Fn(PgError) -> DatabaseError {
+pub fn catch_unique_violation(object_type: &'static str) -> impl Fn(PgError) -> DatabaseError {
     move |err| {
         if let Some(code) = err.code() {
             if code == &SqlState::UNIQUE_VIOLATION {

@@ -27,7 +27,6 @@ pub struct Subscription {
 }
 
 impl TryFrom<&Row> for Subscription {
-
     type Error = DatabaseError;
 
     fn try_from(row: &Row) -> Result<Self, Self::Error> {

@@ -16,23 +16,11 @@ use crate::activitypub::{
     constants::{AP_MEDIA_TYPE, AP_PUBLIC},
     deliverer::OutgoingActivity,
     identifiers::{
-        local_actor_id,
-        local_actor_followers,
-        local_actor_subscribers,
-        local_emoji_id,
-        local_object_id,
-        local_tag_collection,
-        post_object_id,
-        profile_actor_id,
+        local_actor_followers, local_actor_id, local_actor_subscribers, local_emoji_id,
+        local_object_id, local_tag_collection, post_object_id, profile_actor_id,
     },
     types::{
-        build_default_context,
-        Attachment,
-        Context,
-        EmojiTag,
-        EmojiTagImage,
-        LinkTag,
-        SimpleTag,
+        build_default_context, Attachment, Context, EmojiTag, EmojiTagImage, LinkTag, SimpleTag,
     },
     vocabulary::*,
 };
@@ -96,50 +84,45 @@ pub fn build_emoji_tag(instance_url: &str, emoji: &DbEmoji) -> EmojiTag {
     }
 }
 
-pub fn build_note(
-    instance_hostname: &str,
-    instance_url: &str,
-    post: &Post,
-) -> Note {
+pub fn build_note(instance_hostname: &str, instance_url: &str, post: &Post) -> Note {
     let object_id = local_object_id(instance_url, &post.id);
     let actor_id = local_actor_id(instance_url, &post.author.username);
-    let attachments: Vec<Attachment> = post.attachments.iter().map(|db_item| {
-        let url = get_file_url(instance_url, &db_item.file_name);
-        let media_type = db_item.media_type.clone();
-        Attachment {
-            name: None,
-            attachment_type: DOCUMENT.to_string(),
-            media_type,
-            url: Some(url),
-        }
-    }).collect();
+    let attachments: Vec<Attachment> = post
+        .attachments
+        .iter()
+        .map(|db_item| {
+            let url = get_file_url(instance_url, &db_item.file_name);
+            let media_type = db_item.media_type.clone();
+            Attachment {
+                name: None,
+                attachment_type: DOCUMENT.to_string(),
+                media_type,
+                url: Some(url),
+            }
+        })
+        .collect();
 
     let mut primary_audience = vec![];
     let mut secondary_audience = vec![];
-    let followers_collection_id =
-        local_actor_followers(instance_url, &post.author.username);
-    let subscribers_collection_id =
-        local_actor_subscribers(instance_url, &post.author.username);
+    let followers_collection_id = local_actor_followers(instance_url, &post.author.username);
+    let subscribers_collection_id = local_actor_subscribers(instance_url, &post.author.username);
     match post.visibility {
         Visibility::Public => {
             primary_audience.push(AP_PUBLIC.to_string());
             secondary_audience.push(followers_collection_id);
-        },
+        }
         Visibility::Followers => {
             primary_audience.push(followers_collection_id);
-        },
+        }
         Visibility::Subscribers => {
             primary_audience.push(subscribers_collection_id);
-        },
+        }
         Visibility::Direct => (),
     };
 
     let mut tags = vec![];
     for profile in &post.mentions {
-        let actor_address = ActorAddress::from_profile(
-            instance_hostname,
-            profile,
-        );
+        let actor_address = ActorAddress::from_profile(instance_hostname, profile);
         let tag_name = format!("@{}", actor_address);
         let actor_id = profile_actor_id(instance_url, profile);
         if !primary_audience.contains(&actor_id) {
@@ -151,7 +134,7 @@ pub fn build_note(
             href: actor_id,
         };
         tags.push(Tag::SimpleTag(tag));
-    };
+    }
     for tag_name in &post.tags {
         let tag_href = local_tag_collection(instance_url, tag_name);
         let tag = SimpleTag {
@@ -160,7 +143,7 @@ pub fn build_note(
             href: tag_href,
         };
         tags.push(Tag::SimpleTag(tag));
-    };
+    }
 
     assert_eq!(post.links.len(), post.linked.len());
     for linked in &post.linked {
@@ -168,7 +151,7 @@ pub fn build_note(
         // https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-e232.md
         let link_href = post_object_id(instance_url, linked);
         let tag = LinkTag {
-            name: None,  // no microsyntax
+            name: None, // no microsyntax
             tag_type: LINK.to_string(),
             href: link_href,
             media_type: AP_MEDIA_TYPE.to_string(),
@@ -176,29 +159,30 @@ pub fn build_note(
         if cfg!(feature = "fep-e232") {
             tags.push(Tag::LinkTag(tag));
         };
-    };
-    let maybe_quote_url = post.linked.get(0)
+    }
+    let maybe_quote_url = post
+        .linked
+        .get(0)
         .map(|linked| post_object_id(instance_url, linked));
 
     for emoji in &post.emojis {
         let tag = build_emoji_tag(instance_url, emoji);
         tags.push(Tag::EmojiTag(tag));
-    };
+    }
 
     let in_reply_to_object_id = match post.in_reply_to_id {
         Some(in_reply_to_id) => {
-            let in_reply_to = post.in_reply_to.as_ref()
+            let in_reply_to = post
+                .in_reply_to
+                .as_ref()
                 .expect("in_reply_to should be populated");
             assert_eq!(in_reply_to.id, in_reply_to_id);
-            let in_reply_to_actor_id = profile_actor_id(
-                instance_url,
-                &in_reply_to.author,
-            );
+            let in_reply_to_actor_id = profile_actor_id(instance_url, &in_reply_to.author);
             if !primary_audience.contains(&in_reply_to_actor_id) {
                 primary_audience.push(in_reply_to_actor_id);
             };
             Some(post_object_id(instance_url, in_reply_to))
-        },
+        }
         None => None,
     };
     Note {
@@ -234,11 +218,7 @@ pub struct CreateNote {
     cc: Vec<String>,
 }
 
-pub fn build_create_note(
-    instance_hostname: &str,
-    instance_url: &str,
-    post: &Post,
-) -> CreateNote {
+pub fn build_create_note(instance_hostname: &str, instance_url: &str, post: &Post) -> CreateNote {
     let object = build_note(instance_hostname, instance_url, post);
     let primary_audience = object.to.clone();
     let secondary_audience = object.cc.clone();
@@ -264,11 +244,11 @@ pub async fn get_note_recipients(
         Visibility::Public | Visibility::Followers => {
             let followers = get_followers(db_client, &current_user.id).await?;
             audience.extend(followers);
-        },
+        }
         Visibility::Subscribers => {
             let subscribers = get_subscribers(db_client, &current_user.id).await?;
             audience.extend(subscribers);
-        },
+        }
         Visibility::Direct => (),
     };
     if let Some(in_reply_to_id) = post.in_reply_to_id {
@@ -283,7 +263,7 @@ pub async fn get_note_recipients(
         if let Some(remote_actor) = profile.actor_json {
             recipients.push(remote_actor);
         };
-    };
+    }
     Ok(recipients)
 }
 
@@ -294,25 +274,18 @@ pub async fn prepare_create_note(
     post: &Post,
 ) -> Result<OutgoingActivity, DatabaseError> {
     assert_eq!(author.id, post.author.id);
-    let activity = build_create_note(
-        &instance.hostname(),
-        &instance.url(),
-        post,
-    );
+    let activity = build_create_note(&instance.hostname(), &instance.url(), post);
     let recipients = get_note_recipients(db_client, author, post).await?;
     Ok(OutgoingActivity::new(
-        instance,
-        author,
-        activity,
-        recipients,
+        instance, author, activity, recipients,
     ))
 }
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-    use mitra_models::profiles::types::DbActorProfile;
     use super::*;
+    use mitra_models::profiles::types::DbActorProfile;
+    use serde_json::json;
 
     const INSTANCE_HOSTNAME: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";
@@ -326,11 +299,14 @@ mod tests {
         };
         let tag = Tag::SimpleTag(simple_tag);
         let value = serde_json::to_value(tag).unwrap();
-        assert_eq!(value, json!({
-            "type": "Hashtag",
-            "href": "https://example.org/tags/test",
-            "name": "#test",
-        }));
+        assert_eq!(
+            value,
+            json!({
+                "type": "Hashtag",
+                "href": "https://example.org/tags/test",
+                "name": "#test",
+            })
+        );
     }
 
     #[test]
@@ -357,10 +333,7 @@ mod tests {
         };
         let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
-        assert_eq!(
-            note.id,
-            format!("{}/objects/{}", INSTANCE_URL, post.id),
-        );
+        assert_eq!(note.id, format!("{}/objects/{}", INSTANCE_URL, post.id),);
         assert_eq!(note.attachment.len(), 0);
         assert_eq!(
             note.attributed_to,
@@ -369,9 +342,10 @@ mod tests {
         assert_eq!(note.in_reply_to.is_none(), true);
         assert_eq!(note.content, post.content);
         assert_eq!(note.to, vec![AP_PUBLIC]);
-        assert_eq!(note.cc, vec![
-            local_actor_followers(INSTANCE_URL, "author"),
-        ]);
+        assert_eq!(
+            note.cc,
+            vec![local_actor_followers(INSTANCE_URL, "author"),]
+        );
         assert_eq!(note.tag.len(), 1);
         let tag = match note.tag[0] {
             Tag::SimpleTag(ref tag) => tag,
@@ -389,9 +363,10 @@ mod tests {
         };
         let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
-        assert_eq!(note.to, vec![
-            local_actor_followers(INSTANCE_URL, &post.author.username),
-        ]);
+        assert_eq!(
+            note.to,
+            vec![local_actor_followers(INSTANCE_URL, &post.author.username),]
+        );
         assert_eq!(note.cc.is_empty(), true);
     }
 
@@ -415,10 +390,13 @@ mod tests {
         };
         let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
-        assert_eq!(note.to, vec![
-            local_actor_subscribers(INSTANCE_URL, &post.author.username),
-            subscriber_id.to_string(),
-        ]);
+        assert_eq!(
+            note.to,
+            vec![
+                local_actor_subscribers(INSTANCE_URL, &post.author.username),
+                subscriber_id.to_string(),
+            ]
+        );
         assert_eq!(note.cc.is_empty(), true);
     }
 
@@ -460,10 +438,13 @@ mod tests {
             note.in_reply_to.unwrap(),
             format!("{}/objects/{}", INSTANCE_URL, parent.id),
         );
-        assert_eq!(note.to, vec![
-            AP_PUBLIC.to_string(),
-            local_actor_id(INSTANCE_URL, &parent.author.username),
-        ]);
+        assert_eq!(
+            note.to,
+            vec![
+                AP_PUBLIC.to_string(),
+                local_actor_id(INSTANCE_URL, &parent.author.username),
+            ]
+        );
     }
 
     #[test]
@@ -496,10 +477,7 @@ mod tests {
         };
         let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
-        assert_eq!(
-            note.in_reply_to.unwrap(),
-            parent.object_id.unwrap(),
-        );
+        assert_eq!(note.in_reply_to.unwrap(), parent.object_id.unwrap(),);
         let tags = note.tag;
         assert_eq!(tags.len(), 1);
         let tag = match tags[0] {
@@ -518,12 +496,11 @@ mod tests {
             username: author_username.to_string(),
             ..Default::default()
         };
-        let post = Post { author, ..Default::default() };
-        let activity = build_create_note(
-            INSTANCE_HOSTNAME,
-            INSTANCE_URL,
-            &post,
-        );
+        let post = Post {
+            author,
+            ..Default::default()
+        };
+        let activity = build_create_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(
             activity.id,

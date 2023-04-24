@@ -12,7 +12,7 @@ macro_rules! int_enum_from_sql {
 
             postgres_types::accepts!(INT2);
         }
-    }
+    };
 }
 
 macro_rules! int_enum_to_sql {
@@ -31,7 +31,7 @@ macro_rules! int_enum_to_sql {
             postgres_types::accepts!(INT2);
             postgres_types::to_sql_checked!();
         }
-    }
+    };
 }
 
 pub(crate) use {int_enum_from_sql, int_enum_to_sql};

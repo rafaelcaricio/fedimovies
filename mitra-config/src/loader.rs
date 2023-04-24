@@ -5,11 +5,7 @@ use std::str::FromStr;
 use rsa::RsaPrivateKey;
 
 use mitra_utils::{
-    crypto_rsa::{
-        deserialize_private_key,
-        generate_rsa_key,
-        serialize_private_key,
-    },
+    crypto_rsa::{deserialize_private_key, generate_rsa_key, serialize_private_key},
     files::{set_file_permissions, write_file},
 };
 
@@ -30,9 +26,9 @@ const DEFAULT_CONFIG_PATH: &str = "config.yaml";
 fn parse_env() -> EnvConfig {
     dotenv::from_filename(".env.local").ok();
     dotenv::dotenv().ok();
-    let config_path = std::env::var("CONFIG_PATH")
-        .unwrap_or(DEFAULT_CONFIG_PATH.to_string());
-    let environment = std::env::var("ENVIRONMENT").ok()
+    let config_path = std::env::var("CONFIG_PATH").unwrap_or(DEFAULT_CONFIG_PATH.to_string());
+    let environment = std::env::var("ENVIRONMENT")
+        .ok()
         .map(|val| Environment::from_str(&val).expect("invalid environment type"));
     EnvConfig {
         config_path,
@@ -45,8 +41,7 @@ extern "C" {
 }
 
 fn check_directory_owner(path: &Path) -> () {
-    let metadata = std::fs::metadata(path)
-        .expect("can't read file metadata");
+    let metadata = std::fs::metadata(path).expect("can't read file metadata");
     let owner_uid = metadata.uid();
     let current_uid = unsafe { geteuid() };
     if owner_uid != current_uid {
@@ -63,16 +58,15 @@ fn check_directory_owner(path: &Path) -> () {
 fn read_instance_rsa_key(storage_dir: &Path) -> RsaPrivateKey {
     let private_key_path = storage_dir.join("instance_rsa_key");
     if private_key_path.exists() {
-        let private_key_str = std::fs::read_to_string(&private_key_path)
-            .expect("failed to read instance RSA key");
-        let private_key = deserialize_private_key(&private_key_str)
-            .expect("failed to read instance RSA key");
+        let private_key_str =
+            std::fs::read_to_string(&private_key_path).expect("failed to read instance RSA key");
+        let private_key =
+            deserialize_private_key(&private_key_str).expect("failed to read instance RSA key");
         private_key
     } else {
-        let private_key = generate_rsa_key()
-            .expect("failed to generate RSA key");
-        let private_key_str = serialize_private_key(&private_key)
-            .expect("failed to serialize RSA key");
+        let private_key = generate_rsa_key().expect("failed to generate RSA key");
+        let private_key_str =
+            serialize_private_key(&private_key).expect("failed to serialize RSA key");
         write_file(private_key_str.as_bytes(), &private_key_path)
             .expect("failed to write instance RSA key");
         set_file_permissions(&private_key_path, 0o600)
@@ -83,10 +77,9 @@ fn read_instance_rsa_key(storage_dir: &Path) -> RsaPrivateKey {
 
 pub fn parse_config() -> (Config, Vec<&'static str>) {
     let env = parse_env();
-    let config_yaml = std::fs::read_to_string(&env.config_path)
-        .expect("failed to load config file");
-    let mut config = serde_yaml::from_str::<Config>(&config_yaml)
-        .expect("invalid yaml data");
+    let config_yaml =
+        std::fs::read_to_string(&env.config_path).expect("failed to load config file");
+    let mut config = serde_yaml::from_str::<Config>(&config_yaml).expect("invalid yaml data");
     let mut warnings = vec![];
 
     // Set parameters from environment
@@ -109,7 +102,8 @@ pub fn parse_config() -> (Config, Vec<&'static str>) {
     // Migrations
     if let Some(registrations_open) = config.registrations_open {
         // Change type if 'registrations_open' parameter is used
-        warnings.push("'registrations_open' setting is deprecated, use 'registration.type' instead");
+        warnings
+            .push("'registrations_open' setting is deprecated, use 'registration.type' instead");
         if registrations_open {
             config.registration.registration_type = RegistrationType::Open;
         } else {

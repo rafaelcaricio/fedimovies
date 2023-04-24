@@ -3,13 +3,7 @@ use uuid::Uuid;
 use crate::database::{DatabaseClient, DatabaseError};
 use crate::posts::{
     helpers::{add_related_posts, add_user_actions},
-    queries::{
-        RELATED_ATTACHMENTS,
-        RELATED_EMOJIS,
-        RELATED_LINKS,
-        RELATED_MENTIONS,
-        RELATED_TAGS,
-    },
+    queries::{RELATED_ATTACHMENTS, RELATED_EMOJIS, RELATED_LINKS, RELATED_MENTIONS, RELATED_TAGS},
 };
 
 use super::types::{EventType, Notification};
@@ -21,8 +15,9 @@ async fn create_notification(
     post_id: Option<&Uuid>,
     event_type: EventType,
 ) -> Result<(), DatabaseError> {
-    db_client.execute(
-        "
+    db_client
+        .execute(
+            "
         INSERT INTO notification (
             sender_id,
             recipient_id,
@@ -31,8 +26,9 @@ async fn create_notification(
         )
         VALUES ($1, $2, $3, $4)
         ",
-        &[&sender_id, &recipient_id, &post_id, &event_type],
-    ).await?;
+            &[&sender_id, &recipient_id, &post_id, &event_type],
+        )
+        .await?;
     Ok(())
 }
 
@@ -41,10 +37,7 @@ pub async fn create_follow_notification(
     sender_id: &Uuid,
     recipient_id: &Uuid,
 ) -> Result<(), DatabaseError> {
-    create_notification(
-        db_client, sender_id, recipient_id, None,
-        EventType::Follow,
-    ).await
+    create_notification(db_client, sender_id, recipient_id, None, EventType::Follow).await
 }
 
 pub async fn create_reply_notification(
@@ -54,9 +47,13 @@ pub async fn create_reply_notification(
     post_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     create_notification(
-        db_client, sender_id, recipient_id, Some(post_id),
+        db_client,
+        sender_id,
+        recipient_id,
+        Some(post_id),
         EventType::Reply,
-    ).await
+    )
+    .await
 }
 
 pub async fn create_reaction_notification(
@@ -66,9 +63,13 @@ pub async fn create_reaction_notification(
     post_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     create_notification(
-        db_client, sender_id, recipient_id, Some(post_id),
+        db_client,
+        sender_id,
+        recipient_id,
+        Some(post_id),
         EventType::Reaction,
-    ).await
+    )
+    .await
 }
 
 pub async fn create_mention_notification(
@@ -78,9 +79,13 @@ pub async fn create_mention_notification(
     post_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     create_notification(
-        db_client, sender_id, recipient_id, Some(post_id),
+        db_client,
+        sender_id,
+        recipient_id,
+        Some(post_id),
         EventType::Mention,
-    ).await
+    )
+    .await
 }
 
 pub async fn create_repost_notification(
@@ -90,9 +95,13 @@ pub async fn create_repost_notification(
     post_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     create_notification(
-        db_client, sender_id, recipient_id, Some(post_id),
+        db_client,
+        sender_id,
+        recipient_id,
+        Some(post_id),
         EventType::Repost,
-    ).await
+    )
+    .await
 }
 
 pub async fn create_subscription_notification(
@@ -101,9 +110,13 @@ pub async fn create_subscription_notification(
     recipient_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     create_notification(
-        db_client, sender_id, recipient_id, None,
+        db_client,
+        sender_id,
+        recipient_id,
+        None,
         EventType::Subscription,
-    ).await
+    )
+    .await
 }
 
 pub async fn create_subscription_expiration_notification(
@@ -112,9 +125,13 @@ pub async fn create_subscription_expiration_notification(
     recipient_id: &Uuid,
 ) -> Result<(), DatabaseError> {
     create_notification(
-        db_client, sender_id, recipient_id, None,
+        db_client,
+        sender_id,
+        recipient_id,
+        None,
         EventType::SubscriptionExpiration,
-    ).await
+    )
+    .await
 }
 
 pub async fn create_move_notification(
@@ -122,10 +139,7 @@ pub async fn create_move_notification(
     sender_id: &Uuid,
     recipient_id: &Uuid,
 ) -> Result<(), DatabaseError> {
-    create_notification(
-        db_client, sender_id, recipient_id, None,
-        EventType::Move,
-    ).await
+    create_notification(db_client, sender_id, recipient_id, None, EventType::Move).await
 }
 
 pub async fn get_notifications(
@@ -156,31 +170,35 @@ pub async fn get_notifications(
         ORDER BY notification.id DESC
         LIMIT $3
         ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-        related_emojis=RELATED_EMOJIS,
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
     );
-    let rows = db_client.query(
-        &statement,
-        &[&recipient_id, &max_id, &i64::from(limit)],
-    ).await?;
-    let mut notifications: Vec<Notification> = rows.iter()
+    let rows = db_client
+        .query(&statement, &[&recipient_id, &max_id, &i64::from(limit)])
+        .await?;
+    let mut notifications: Vec<Notification> = rows
+        .iter()
         .map(Notification::try_from)
         .collect::<Result<_, _>>()?;
     add_related_posts(
         db_client,
-        notifications.iter_mut()
+        notifications
+            .iter_mut()
             .filter_map(|item| item.post.as_mut())
             .collect(),
-    ).await?;
+    )
+    .await?;
     add_user_actions(
         db_client,
         recipient_id,
-        notifications.iter_mut()
+        notifications
+            .iter_mut()
             .filter_map(|item| item.post.as_mut())
             .collect(),
-    ).await?;
+    )
+    .await?;
     Ok(notifications)
 }

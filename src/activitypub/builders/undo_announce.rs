@@ -9,14 +9,14 @@ use mitra_models::{
     users::types::User,
 };
 
+use super::announce::get_announce_recipients;
 use crate::activitypub::{
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
-    identifiers::{local_actor_id, local_actor_followers, local_object_id},
+    identifiers::{local_actor_followers, local_actor_id, local_object_id},
     types::{build_default_context, Context},
     vocabulary::UNDO,
 };
-use super::announce::get_announce_recipients;
 
 #[derive(Serialize)]
 struct UndoAnnounce {
@@ -43,13 +43,8 @@ fn build_undo_announce(
     let object_id = local_object_id(instance_url, repost_id);
     let activity_id = format!("{}/undo", object_id);
     let actor_id = local_actor_id(instance_url, &actor_profile.username);
-    let primary_audience = vec![
-        AP_PUBLIC.to_string(),
-        recipient_id.to_string(),
-    ];
-    let secondary_audience = vec![
-        local_actor_followers(instance_url, &actor_profile.username),
-    ];
+    let primary_audience = vec![AP_PUBLIC.to_string(), recipient_id.to_string()];
+    let secondary_audience = vec![local_actor_followers(instance_url, &actor_profile.username)];
     UndoAnnounce {
         context: build_default_context(),
         activity_type: UNDO.to_string(),
@@ -69,12 +64,8 @@ pub async fn prepare_undo_announce(
     repost_id: &Uuid,
 ) -> Result<OutgoingActivity, DatabaseError> {
     assert_ne!(&post.id, repost_id);
-    let (recipients, primary_recipient) = get_announce_recipients(
-        db_client,
-        &instance.url(),
-        sender,
-        post,
-    ).await?;
+    let (recipients, primary_recipient) =
+        get_announce_recipients(db_client, &instance.url(), sender, post).await?;
     let activity = build_undo_announce(
         &instance.url(),
         &sender.profile,
@@ -82,17 +73,14 @@ pub async fn prepare_undo_announce(
         &primary_recipient,
     );
     Ok(OutgoingActivity::new(
-        instance,
-        sender,
-        activity,
-        recipients,
+        instance, sender, activity, recipients,
     ))
 }
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::id::generate_ulid;
     use super::*;
+    use mitra_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 
@@ -101,12 +89,7 @@ mod tests {
         let announcer = DbActorProfile::default();
         let post_author_id = "https://example.com/users/test";
         let repost_id = generate_ulid();
-        let activity = build_undo_announce(
-            INSTANCE_URL,
-            &announcer,
-            &repost_id,
-            post_author_id,
-        );
+        let activity = build_undo_announce(INSTANCE_URL, &announcer, &repost_id, post_author_id);
         assert_eq!(
             activity.id,
             format!("{}/objects/{}/undo", INSTANCE_URL, repost_id),

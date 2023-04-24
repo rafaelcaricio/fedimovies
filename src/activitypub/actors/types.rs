@@ -1,22 +1,11 @@
 use std::collections::HashMap;
 
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    de::{Error as DeserializerError},
-};
+use serde::{de::Error as DeserializerError, Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 
 use mitra_config::Instance;
 use mitra_models::{
-    profiles::types::{
-        DbActor,
-        DbActorPublicKey,
-        ExtraField,
-        IdentityProof,
-        PaymentOption,
-    },
+    profiles::types::{DbActor, DbActorPublicKey, ExtraField, IdentityProof, PaymentOption},
     users::types::User,
 };
 use mitra_utils::{
@@ -26,17 +15,10 @@ use mitra_utils::{
 
 use crate::activitypub::{
     constants::{
-        AP_CONTEXT,
-        MASTODON_CONTEXT,
-        MITRA_CONTEXT,
-        SCHEMA_ORG_CONTEXT,
-        W3ID_SECURITY_CONTEXT,
+        AP_CONTEXT, MASTODON_CONTEXT, MITRA_CONTEXT, SCHEMA_ORG_CONTEXT, W3ID_SECURITY_CONTEXT,
     },
     identifiers::{
-        local_actor_id,
-        local_actor_key_id,
-        local_instance_actor_id,
-        LocalActorCollection,
+        local_actor_id, local_actor_key_id, local_instance_actor_id, LocalActorCollection,
     },
     types::deserialize_value_array,
     vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
@@ -46,12 +28,8 @@ use crate::media::get_file_url;
 use crate::webfinger::types::ActorAddress;
 
 use super::attachments::{
-    attach_extra_field,
-    attach_identity_proof,
-    attach_payment_option,
-    parse_extra_field,
-    parse_identity_proof,
-    parse_payment_option,
+    attach_extra_field, attach_identity_proof, attach_payment_option, parse_extra_field,
+    parse_identity_proof, parse_payment_option,
 };
 
 #[derive(Deserialize, Serialize)]
@@ -94,21 +72,17 @@ pub struct ActorAttachment {
 }
 
 // Some implementations use empty object instead of null
-fn deserialize_image_opt<'de, D>(
-    deserializer: D,
-) -> Result<Option<ActorImage>, D::Error>
-    where D: Deserializer<'de>
+fn deserialize_image_opt<'de, D>(deserializer: D) -> Result<Option<ActorImage>, D::Error>
+where
+    D: Deserializer<'de>,
 {
     let maybe_value: Option<Value> = Option::deserialize(deserializer)?;
     let maybe_image = if let Some(value) = maybe_value {
-        let is_empty_object = value.as_object()
-            .map(|map| map.is_empty())
-            .unwrap_or(false);
+        let is_empty_object = value.as_object().map(|map| map.is_empty()).unwrap_or(false);
         if is_empty_object {
             None
         } else {
-            let image = ActorImage::deserialize(value)
-                .map_err(DeserializerError::custom)?;
+            let image = ActorImage::deserialize(value).map_err(DeserializerError::custom)?;
             Some(image)
         }
     } else {
@@ -149,7 +123,7 @@ pub struct Actor {
     #[serde(
         default,
         deserialize_with = "deserialize_image_opt",
-        skip_serializing_if = "Option::is_none",
+        skip_serializing_if = "Option::is_none"
     )]
     pub icon: Option<ActorImage>,
 
@@ -165,7 +139,7 @@ pub struct Actor {
     #[serde(
         default,
         deserialize_with = "deserialize_value_array",
-        skip_serializing_if = "Vec::is_empty",
+        skip_serializing_if = "Vec::is_empty"
     )]
     pub attachment: Vec<Value>,
 
@@ -175,7 +149,7 @@ pub struct Actor {
     #[serde(
         default,
         deserialize_with = "deserialize_value_array",
-        skip_serializing_if = "Vec::is_empty",
+        skip_serializing_if = "Vec::is_empty"
     )]
     pub tag: Vec<Value>,
 
@@ -184,11 +158,8 @@ pub struct Actor {
 }
 
 impl Actor {
-    pub fn address(
-        &self,
-    ) -> Result<ActorAddress, ValidationError> {
-        let hostname = get_hostname(&self.id)
-            .map_err(|_| ValidationError("invalid actor ID"))?;
+    pub fn address(&self) -> Result<ActorAddress, ValidationError> {
+        let hostname = get_hostname(&self.id).map_err(|_| ValidationError("invalid actor ID"))?;
         let actor_address = ActorAddress {
             username: self.preferred_username.clone(),
             hostname: hostname,
@@ -213,11 +184,7 @@ impl Actor {
         }
     }
 
-    pub fn parse_attachments(&self) -> (
-        Vec<IdentityProof>,
-        Vec<PaymentOption>,
-        Vec<ExtraField>,
-    ) {
+    pub fn parse_attachments(&self) -> (Vec<IdentityProof>, Vec<PaymentOption>, Vec<ExtraField>) {
         let mut identity_proofs = vec![];
         let mut payment_options = vec![];
         let mut extra_fields = vec![];
@@ -229,17 +196,13 @@ impl Actor {
             );
         };
         for attachment_value in self.attachment.iter() {
-            let attachment_type =
-                attachment_value["type"].as_str().unwrap_or("Unknown");
+            let attachment_type = attachment_value["type"].as_str().unwrap_or("Unknown");
             let attachment = match serde_json::from_value(attachment_value.clone()) {
                 Ok(attachment) => attachment,
                 Err(_) => {
-                    log_error(
-                        attachment_type,
-                        ValidationError("invalid attachment"),
-                    );
+                    log_error(attachment_type, ValidationError("invalid attachment"));
                     continue;
-                },
+                }
             };
             match attachment_type {
                 IDENTITY_PROOF => {
@@ -247,27 +210,27 @@ impl Actor {
                         Ok(proof) => identity_proofs.push(proof),
                         Err(error) => log_error(attachment_type, error),
                     };
-                },
+                }
                 LINK => {
                     match parse_payment_option(&attachment) {
                         Ok(option) => payment_options.push(option),
                         Err(error) => log_error(attachment_type, error),
                     };
-                },
+                }
                 PROPERTY_VALUE => {
                     match parse_extra_field(&attachment) {
                         Ok(field) => extra_fields.push(field),
                         Err(error) => log_error(attachment_type, error),
                     };
-                },
+                }
                 _ => {
                     log_error(
                         attachment_type,
                         ValidationError("unsupported attachment type"),
                     );
-                },
+                }
             };
-        };
+        }
         (identity_proofs, payment_options, extra_fields)
     }
 }
@@ -295,10 +258,7 @@ fn build_actor_context() -> (
     )
 }
 
-pub fn get_local_actor(
-    user: &User,
-    instance_url: &str,
-) -> Result<Actor, ActorKeyError> {
+pub fn get_local_actor(user: &User, instance_url: &str) -> Result<Actor, ActorKeyError> {
     let username = &user.profile.username;
     let actor_id = local_actor_id(instance_url, username);
     let inbox = LocalActorCollection::Inbox.of(&actor_id);
@@ -322,7 +282,7 @@ pub fn get_local_actor(
                 media_type: image.media_type.clone(),
             };
             Some(actor_image)
-        },
+        }
         None => None,
     };
     let banner = match &user.profile.banner {
@@ -333,32 +293,29 @@ pub fn get_local_actor(
                 media_type: image.media_type.clone(),
             };
             Some(actor_image)
-        },
+        }
         None => None,
     };
     let mut attachments = vec![];
     for proof in user.profile.identity_proofs.clone().into_inner() {
         let attachment = attach_identity_proof(proof);
-        let attachment_value = serde_json::to_value(attachment)
-            .expect("attachment should be serializable");
+        let attachment_value =
+            serde_json::to_value(attachment).expect("attachment should be serializable");
         attachments.push(attachment_value);
-    };
+    }
     for payment_option in user.profile.payment_options.clone().into_inner() {
-        let attachment = attach_payment_option(
-            instance_url,
-            &user.profile.username,
-            payment_option,
-        );
-        let attachment_value = serde_json::to_value(attachment)
-            .expect("attachment should be serializable");
+        let attachment =
+            attach_payment_option(instance_url, &user.profile.username, payment_option);
+        let attachment_value =
+            serde_json::to_value(attachment).expect("attachment should be serializable");
         attachments.push(attachment_value);
-    };
+    }
     for field in user.profile.extra_fields.clone().into_inner() {
         let attachment = attach_extra_field(field);
-        let attachment_value = serde_json::to_value(attachment)
-            .expect("attachment should be serializable");
+        let attachment_value =
+            serde_json::to_value(attachment).expect("attachment should be serializable");
         attachments.push(attachment_value);
-    };
+    }
     let aliases = user.profile.aliases.clone().into_actor_ids();
     let actor = Actor {
         context: Some(json!(build_actor_context())),
@@ -384,9 +341,7 @@ pub fn get_local_actor(
     Ok(actor)
 }
 
-pub fn get_instance_actor(
-    instance: &Instance,
-) -> Result<Actor, ActorKeyError> {
+pub fn get_instance_actor(instance: &Instance) -> Result<Actor, ActorKeyError> {
     let actor_id = local_instance_actor_id(&instance.url());
     let actor_inbox = LocalActorCollection::Inbox.of(&actor_id);
     let actor_outbox = LocalActorCollection::Outbox.of(&actor_id);
@@ -422,12 +377,9 @@ pub fn get_instance_actor(
 
 #[cfg(test)]
 mod tests {
-    use mitra_models::profiles::types::DbActorProfile;
-    use mitra_utils::crypto_rsa::{
-        generate_weak_rsa_key,
-        serialize_private_key,
-    };
     use super::*;
+    use mitra_models::profiles::types::DbActorProfile;
+    use mitra_utils::crypto_rsa::{generate_weak_rsa_key, serialize_private_key};
 
     const INSTANCE_HOSTNAME: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";

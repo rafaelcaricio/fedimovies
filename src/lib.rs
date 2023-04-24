@@ -13,5 +13,5 @@ pub mod mastodon_api;
 pub mod media;
 pub mod nodeinfo;
 pub mod validators;
-pub mod webfinger;
 pub mod web_client;
+pub mod webfinger;

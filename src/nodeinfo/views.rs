@@ -1,22 +1,16 @@
 /// http://nodeinfo.diaspora.software/protocol.html
-
 use actix_web::{get, web, HttpResponse};
 
 use mitra_config::Config;
 use mitra_models::database::{get_database_client, DbPool};
 
-use crate::errors::HttpError;
-use crate::webfinger::types::{
-    Link,
-    JsonResourceDescriptor,
-};
 use super::helpers::get_usage;
 use super::types::{NodeInfo20, NodeInfo21};
+use crate::errors::HttpError;
+use crate::webfinger::types::{JsonResourceDescriptor, Link};
 
 #[get("/.well-known/nodeinfo")]
-pub async fn get_nodeinfo_jrd(
-    config: web::Data<Config>,
-) -> Result<HttpResponse, HttpError> {
+pub async fn get_nodeinfo_jrd(config: web::Data<Config>) -> Result<HttpResponse, HttpError> {
     let nodeinfo_2_0_url = format!("{}/nodeinfo/2.0", config.instance_url());
     let nodeinfo_2_0_link = Link {
         rel: "http://nodeinfo.diaspora.software/ns/schema/2.0".to_string(),

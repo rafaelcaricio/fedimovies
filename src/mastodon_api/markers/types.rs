@@ -43,7 +43,6 @@ pub struct Markers {
 }
 
 impl From<DbTimelineMarker> for Marker {
-
     fn from(value: DbTimelineMarker) -> Self {
         Self {
             last_read_id: value.last_read_id,

@@ -32,10 +32,7 @@ struct DeletePerson {
     to: Vec<String>,
 }
 
-fn build_delete_person(
-    instance_url: &str,
-    user: &User,
-) -> DeletePerson {
+fn build_delete_person(instance_url: &str, user: &User) -> DeletePerson {
     let actor_id = local_actor_id(instance_url, &user.profile.username);
     let activity_id = format!("{}/delete", actor_id);
     DeletePerson {
@@ -59,7 +56,7 @@ async fn get_delete_person_recipients(
         if let Some(remote_actor) = profile.actor_json {
             recipients.push(remote_actor);
         };
-    };
+    }
     Ok(recipients)
 }
 
@@ -70,18 +67,13 @@ pub async fn prepare_delete_person(
 ) -> Result<OutgoingActivity, DatabaseError> {
     let activity = build_delete_person(&instance.url(), user);
     let recipients = get_delete_person_recipients(db_client, &user.id).await?;
-    Ok(OutgoingActivity::new(
-        instance,
-        user,
-        activity,
-        recipients,
-    ))
+    Ok(OutgoingActivity::new(instance, user, activity, recipients))
 }
 
 #[cfg(test)]
 mod tests {
-    use mitra_models::profiles::types::DbActorProfile;
     use super::*;
+    use mitra_models::profiles::types::DbActorProfile;
 
     const INSTANCE_URL: &str = "https://example.com";
 
@@ -100,10 +92,7 @@ mod tests {
             format!("{}/users/testuser/delete", INSTANCE_URL),
         );
         assert_eq!(activity.actor, activity.object);
-        assert_eq!(
-            activity.object,
-            format!("{}/users/testuser", INSTANCE_URL),
-        );
+        assert_eq!(activity.object, format!("{}/users/testuser", INSTANCE_URL),);
         assert_eq!(activity.to, vec![AP_PUBLIC]);
     }
 }

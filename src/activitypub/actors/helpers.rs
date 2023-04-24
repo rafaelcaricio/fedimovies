@@ -6,12 +6,7 @@ use mitra_config::Instance;
 use mitra_models::{
     database::DatabaseClient,
     profiles::queries::{create_profile, update_profile},
-    profiles::types::{
-        DbActorProfile,
-        ProfileImage,
-        ProfileCreateData,
-        ProfileUpdateData,
-    },
+    profiles::types::{DbActorProfile, ProfileCreateData, ProfileImage, ProfileUpdateData},
 };
 
 use crate::activitypub::{
@@ -44,19 +39,17 @@ async fn fetch_actor_images(
             icon.media_type.as_deref(),
             ACTOR_IMAGE_MAX_SIZE,
             media_dir,
-        ).await {
+        )
+        .await
+        {
             Ok((file_name, file_size, maybe_media_type)) => {
-                let image = ProfileImage::new(
-                    file_name,
-                    file_size,
-                    maybe_media_type,
-                );
+                let image = ProfileImage::new(file_name, file_size, maybe_media_type);
                 Some(image)
-            },
+            }
             Err(error) => {
                 log::warn!("failed to fetch avatar ({})", error);
                 default_avatar
-            },
+            }
         }
     } else {
         None
@@ -68,19 +61,17 @@ async fn fetch_actor_images(
             image.media_type.as_deref(),
             ACTOR_IMAGE_MAX_SIZE,
             media_dir,
-        ).await {
+        )
+        .await
+        {
             Ok((file_name, file_size, maybe_media_type)) => {
-                let image = ProfileImage::new(
-                    file_name,
-                    file_size,
-                    maybe_media_type,
-                );
+                let image = ProfileImage::new(file_name, file_size, maybe_media_type);
                 Some(image)
-            },
+            }
             Err(error) => {
                 log::warn!("failed to fetch banner ({})", error);
                 default_banner
-            },
+            }
         }
     } else {
         None
@@ -90,24 +81,24 @@ async fn fetch_actor_images(
 
 fn parse_aliases(actor: &Actor) -> Vec<String> {
     // Aliases reported by server (not signed)
-    actor.also_known_as.as_ref()
-        .and_then(|value| {
-            match parse_array(value) {
-                Ok(array) => {
-                    let mut aliases = vec![];
-                    for actor_id in array {
-                        if validate_object_id(&actor_id).is_err() {
-                            log::warn!("invalid alias: {}", actor_id);
-                            continue;
-                        };
-                        aliases.push(actor_id);
+    actor
+        .also_known_as
+        .as_ref()
+        .and_then(|value| match parse_array(value) {
+            Ok(array) => {
+                let mut aliases = vec![];
+                for actor_id in array {
+                    if validate_object_id(&actor_id).is_err() {
+                        log::warn!("invalid alias: {}", actor_id);
+                        continue;
                     };
-                    Some(aliases)
-                },
-                Err(_) => {
-                    log::warn!("invalid alias list: {}", value);
-                    None
-                },
+                    aliases.push(actor_id);
+                }
+                Some(aliases)
+            }
+            Err(_) => {
+                log::warn!("invalid alias list: {}", value);
+                None
             }
         })
         .unwrap_or_default()
@@ -127,23 +118,18 @@ async fn parse_tags(
                 log::warn!("too many emojis");
                 continue;
             };
-            match handle_emoji(
-                db_client,
-                instance,
-                storage,
-                tag_value,
-            ).await? {
+            match handle_emoji(db_client, instance, storage, tag_value).await? {
                 Some(emoji) => {
                     if !emojis.contains(&emoji.id) {
                         emojis.push(emoji.id);
                     };
-                },
+                }
                 None => continue,
             };
         } else {
             log::warn!("skipping actor tag of type {}", tag_type);
         };
-    };
+    }
     Ok(emojis)
 }
 
@@ -157,22 +143,11 @@ pub async fn create_remote_profile(
     if actor_address.hostname == instance.hostname() {
         return Err(HandlerError::LocalObject);
     };
-    let (maybe_avatar, maybe_banner) = fetch_actor_images(
-        instance,
-        &actor,
-        &storage.media_dir,
-        None,
-        None,
-    ).await;
-    let (identity_proofs, payment_options, extra_fields) =
-        actor.parse_attachments();
+    let (maybe_avatar, maybe_banner) =
+        fetch_actor_images(instance, &actor, &storage.media_dir, None, None).await;
+    let (identity_proofs, payment_options, extra_fields) = actor.parse_attachments();
     let aliases = parse_aliases(&actor);
-    let emojis = parse_tags(
-        db_client,
-        instance,
-        storage,
-        &actor,
-    ).await?;
+    let emojis = parse_tags(db_client, instance, storage, &actor).await?;
     let mut profile_data = ProfileCreateData {
         username: actor.preferred_username.clone(),
         hostname: Some(actor_address.hostname),
@@ -203,11 +178,7 @@ pub async fn update_remote_profile(
 ) -> Result<DbActorProfile, HandlerError> {
     let actor_old = profile.actor_json.ok_or(HandlerError::LocalObject)?;
     if actor_old.id != actor.id {
-        log::warn!(
-            "actor ID changed from {} to {}",
-            actor_old.id,
-            actor.id,
-        );
+        log::warn!("actor ID changed from {} to {}", actor_old.id, actor.id,);
     };
     if actor_old.public_key.public_key_pem != actor.public_key.public_key_pem {
         log::warn!(
@@ -222,16 +193,11 @@ pub async fn update_remote_profile(
         &storage.media_dir,
         profile.avatar,
         profile.banner,
-    ).await;
-    let (identity_proofs, payment_options, extra_fields) =
-        actor.parse_attachments();
+    )
+    .await;
+    let (identity_proofs, payment_options, extra_fields) = actor.parse_attachments();
     let aliases = parse_aliases(&actor);
-    let emojis = parse_tags(
-        db_client,
-        instance,
-        storage,
-        &actor,
-    ).await?;
+    let emojis = parse_tags(db_client, instance, storage, &actor).await?;
     let mut profile_data = ProfileUpdateData {
         display_name: actor.name.clone(),
         bio: actor.summary.clone(),

@@ -9,8 +9,9 @@ pub async fn find_orphaned_files(
     db_client: &impl DatabaseClient,
     files: Vec<String>,
 ) -> Result<Vec<String>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         SELECT DISTINCT fname
         FROM unnest($1::text[]) AS fname
         WHERE
@@ -27,9 +28,11 @@ pub async fn find_orphaned_files(
                 WHERE image ->> 'file_name' = fname
             )
         ",
-        &[&files],
-    ).await?;
-    let orphaned_files = rows.iter()
+            &[&files],
+        )
+        .await?;
+    let orphaned_files = rows
+        .iter()
         .map(|row| row.try_get("fname"))
         .collect::<Result<_, _>>()?;
     Ok(orphaned_files)
@@ -39,8 +42,9 @@ pub async fn find_orphaned_ipfs_objects(
     db_client: &impl DatabaseClient,
     ipfs_objects: Vec<String>,
 ) -> Result<Vec<String>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         SELECT DISTINCT cid
         FROM unnest($1::text[]) AS cid
         WHERE
@@ -51,9 +55,11 @@ pub async fn find_orphaned_ipfs_objects(
                 SELECT 1 FROM post WHERE ipfs_cid = cid
             )
         ",
-        &[&ipfs_objects],
-    ).await?;
-    let orphaned_ipfs_objects = rows.iter()
+            &[&ipfs_objects],
+        )
+        .await?;
+    let orphaned_ipfs_objects = rows
+        .iter()
         .map(|row| row.try_get("cid"))
         .collect::<Result<_, _>>()?;
     Ok(orphaned_ipfs_objects)

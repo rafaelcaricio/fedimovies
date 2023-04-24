@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::database::{DatabaseClient, DatabaseError};
 use super::types::{DbBackgroundJob, JobStatus, JobType};
+use crate::database::{DatabaseClient, DatabaseError};
 
 pub async fn enqueue_job(
     db_client: &impl DatabaseClient,
@@ -12,8 +12,9 @@ pub async fn enqueue_job(
     scheduled_for: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
     let job_id = Uuid::new_v4();
-    db_client.execute(
-        "
+    db_client
+        .execute(
+            "
         INSERT INTO background_job (
             id,
             job_type,
@@ -22,8 +23,9 @@ pub async fn enqueue_job(
         )
         VALUES ($1, $2, $3, $4)
         ",
-        &[&job_id, &job_type, &job_data, &scheduled_for],
-    ).await?;
+            &[&job_id, &job_type, &job_data, &scheduled_for],
+        )
+        .await?;
     Ok(())
 }
 
@@ -35,8 +37,9 @@ pub async fn get_job_batch(
 ) -> Result<Vec<DbBackgroundJob>, DatabaseError> {
     // https://github.com/sfackler/rust-postgres/issues/60
     let job_timeout_pg = format!("{}S", job_timeout); // interval
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         UPDATE background_job
         SET
             job_status = $1,
@@ -62,15 +65,17 @@ pub async fn get_job_batch(
         )
         RETURNING background_job
         ",
-        &[
-            &JobStatus::Running,
-            &job_type,
-            &JobStatus::Queued,
-            &i64::from(batch_size),
-            &job_timeout_pg,
-        ],
-    ).await?;
-    let jobs = rows.iter()
+            &[
+                &JobStatus::Running,
+                &job_type,
+                &JobStatus::Queued,
+                &i64::from(batch_size),
+                &job_timeout_pg,
+            ],
+        )
+        .await?;
+    let jobs = rows
+        .iter()
         .map(|row| row.try_get("background_job"))
         .collect::<Result<_, _>>()?;
     Ok(jobs)
@@ -80,13 +85,15 @@ pub async fn delete_job_from_queue(
     db_client: &impl DatabaseClient,
     job_id: &Uuid,
 ) -> Result<(), DatabaseError> {
-    let deleted_count = db_client.execute(
-        "
+    let deleted_count = db_client
+        .execute(
+            "
         DELETE FROM background_job
         WHERE id = $1
         ",
-        &[&job_id],
-    ).await?;
+            &[&job_id],
+        )
+        .await?;
     if deleted_count == 0 {
         return Err(DatabaseError::NotFound("background job"));
     };
@@ -95,10 +102,10 @@ pub async fn delete_job_from_queue(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::database::test_utils::create_test_database;
     use serde_json::json;
     use serial_test::serial;
-    use crate::database::test_utils::create_test_database;
-    use super::*;
 
     #[tokio::test]
     #[serial]
@@ -111,7 +118,9 @@ mod tests {
             "failure_count": 0,
         });
         let scheduled_for = Utc::now();
-        enqueue_job(db_client, &job_type, &job_data, &scheduled_for).await.unwrap();
+        enqueue_job(db_client, &job_type, &job_data, &scheduled_for)
+            .await
+            .unwrap();
 
         let batch_1 = get_job_batch(db_client, &job_type, 10, 3600).await.unwrap();
         assert_eq!(batch_1.len(), 1);

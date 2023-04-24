@@ -1,55 +1,31 @@
-use actix_web::{
-    dev::ConnectionInfo,
-    get,
-    post,
-    web,
-    HttpResponse,
-    Scope,
-};
+use actix_web::{dev::ConnectionInfo, get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
 use mitra_models::{
     database::{get_database_client, DatabaseError, DbPool},
     profiles::helpers::find_verified_aliases,
-    profiles::queries::{
-        get_profile_by_acct,
-        get_profile_by_remote_actor_id,
-        update_profile,
-    },
+    profiles::queries::{get_profile_by_acct, get_profile_by_remote_actor_id, update_profile},
     profiles::types::ProfileUpdateData,
-    users::queries::{
-        set_user_password,
-        update_client_config,
-    },
+    users::queries::{set_user_password, update_client_config},
     users::types::ClientConfig,
 };
 use mitra_utils::passwords::hash_password;
 
+use super::helpers::{
+    export_followers, export_follows, import_follows_task, move_followers_task, parse_address_list,
+};
+use super::types::{
+    AddAliasRequest, ImportFollowsRequest, MoveFollowersRequest, PasswordChangeRequest,
+};
 use crate::activitypub::{
-    builders::update_person::prepare_update_person,
-    identifiers::profile_actor_id,
+    builders::update_person::prepare_update_person, identifiers::profile_actor_id,
 };
 use crate::errors::ValidationError;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
-    accounts::helpers::get_aliases,
-    accounts::types::Account,
-    errors::MastodonError,
+    accounts::helpers::get_aliases, accounts::types::Account, errors::MastodonError,
     oauth::auth::get_current_user,
-};
-use super::helpers::{
-    export_followers,
-    export_follows,
-    import_follows_task,
-    move_followers_task,
-    parse_address_list,
-};
-use super::types::{
-    AddAliasRequest,
-    ImportFollowsRequest,
-    MoveFollowersRequest,
-    PasswordChangeRequest,
 };
 
 // Similar to Pleroma settings store
@@ -67,14 +43,17 @@ async fn client_config_view(
     if request_data.len() != 1 {
         return Err(ValidationError("can't update more than one config").into());
     };
-    let (client_name, client_config_value) =
-        request_data.iter().next().expect("hashmap entry should exist");
+    let (client_name, client_config_value) = request_data
+        .iter()
+        .next()
+        .expect("hashmap entry should exist");
     current_user.client_config = update_client_config(
         db_client,
         &current_user.id,
         client_name,
         client_config_value,
-    ).await?;
+    )
+    .await?;
     let account = Account::from_user(
         &get_request_base_url(connection_info),
         &config.instance_url(),
@@ -93,8 +72,8 @@ async fn change_password_view(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let password_hash = hash_password(&request_data.new_password)
-        .map_err(|_| MastodonError::InternalError)?;
+    let password_hash =
+        hash_password(&request_data.new_password).map_err(|_| MastodonError::InternalError)?;
     set_user_password(db_client, &current_user.id, password_hash).await?;
     let account = Account::from_user(
         &get_request_base_url(connection_info),
@@ -121,23 +100,18 @@ async fn add_alias_view(
     if !profile_data.aliases.contains(&alias_id) {
         profile_data.aliases.push(alias_id);
     };
-    current_user.profile = update_profile(
-        db_client,
-        &current_user.id,
-        profile_data,
-    ).await?;
-    prepare_update_person(
-        db_client,
-        &instance,
-        &current_user,
-        None,
-    ).await?.enqueue(db_client).await?;
+    current_user.profile = update_profile(db_client, &current_user.id, profile_data).await?;
+    prepare_update_person(db_client, &instance, &current_user, None)
+        .await?
+        .enqueue(db_client)
+        .await?;
     let aliases = get_aliases(
         db_client,
         &get_request_base_url(connection_info),
         &instance.url(),
         &current_user.profile,
-    ).await?;
+    )
+    .await?;
     Ok(HttpResponse::Ok().json(aliases))
 }
 
@@ -149,14 +123,8 @@ async fn export_followers_view(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let csv = export_followers(
-        db_client,
-        &config.instance().hostname(),
-        &current_user.id,
-    ).await?;
-    let response = HttpResponse::Ok()
-        .content_type("text/csv")
-        .body(csv);
+    let csv = export_followers(db_client, &config.instance().hostname(), &current_user.id).await?;
+    let response = HttpResponse::Ok().content_type("text/csv").body(csv);
     Ok(response)
 }
 
@@ -168,14 +136,8 @@ async fn export_follows_view(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let csv = export_follows(
-        db_client,
-        &config.instance().hostname(),
-        &current_user.id,
-    ).await?;
-    let response = HttpResponse::Ok()
-        .content_type("text/csv")
-        .body(csv);
+    let csv = export_follows(db_client, &config.instance().hostname(), &current_user.id).await?;
+    let response = HttpResponse::Ok().content_type("text/csv").body(csv);
     Ok(response)
 }
 
@@ -190,14 +152,11 @@ async fn import_follows_view(
     let current_user = get_current_user(db_client, auth.token()).await?;
     let address_list = parse_address_list(&request_data.follows_csv)?;
     tokio::spawn(async move {
-        import_follows_task(
-            &config,
-            current_user,
-            &db_pool,
-            address_list,
-        ).await.unwrap_or_else(|error| {
-            log::error!("import follows: {}", error);
-        });
+        import_follows_task(&config, current_user, &db_pool, address_list)
+            .await
+            .unwrap_or_else(|error| {
+                log::error!("import follows: {}", error);
+            });
     });
     Ok(HttpResponse::NoContent().finish())
 }
@@ -221,20 +180,16 @@ async fn move_followers(
     };
     // Existence of actor is not verified because
     // the old profile could have been deleted
-    let maybe_from_profile = match get_profile_by_remote_actor_id(
-        db_client,
-        &request_data.from_actor_id,
-    ).await {
-        Ok(profile) => Some(profile),
-        Err(DatabaseError::NotFound(_)) => None,
-        Err(other_error) => return Err(other_error.into()),
-    };
+    let maybe_from_profile =
+        match get_profile_by_remote_actor_id(db_client, &request_data.from_actor_id).await {
+            Ok(profile) => Some(profile),
+            Err(DatabaseError::NotFound(_)) => None,
+            Err(other_error) => return Err(other_error.into()),
+        };
     if maybe_from_profile.is_some() {
         // Find known aliases of the current user
-        let mut aliases = find_verified_aliases(
-            db_client,
-            &current_user.profile,
-        ).await?
+        let mut aliases = find_verified_aliases(db_client, &current_user.profile)
+            .await?
             .into_iter()
             .map(|profile| profile_actor_id(&instance.url(), &profile));
         if !aliases.any(|actor_id| actor_id == request_data.from_actor_id) {
@@ -251,7 +206,9 @@ async fn move_followers(
             &request_data.from_actor_id,
             maybe_from_profile,
             address_list,
-        ).await.unwrap_or_else(|error| {
+        )
+        .await
+        .unwrap_or_else(|error| {
             log::error!("move followers: {}", error);
         });
     });

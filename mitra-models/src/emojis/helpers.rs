@@ -1,10 +1,7 @@
 use crate::database::{DatabaseClient, DatabaseError};
 
+use super::queries::{get_emoji_by_name_and_hostname, get_local_emoji_by_name};
 use super::types::DbEmoji;
-use super::queries::{
-    get_local_emoji_by_name,
-    get_emoji_by_name_and_hostname,
-};
 
 pub async fn get_emoji_by_name(
     db_client: &impl DatabaseClient,

@@ -3,7 +3,9 @@ use uuid::Uuid;
 
 use crate::mastodon_api::pagination::PageSize;
 
-fn default_page_size() -> PageSize { PageSize::new(20) }
+fn default_page_size() -> PageSize {
+    PageSize::new(20)
+}
 
 #[derive(Deserialize)]
 pub struct TimelineQueryParams {

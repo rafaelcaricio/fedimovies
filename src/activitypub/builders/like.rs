@@ -12,12 +12,7 @@ use mitra_models::{
 use crate::activitypub::{
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
-    identifiers::{
-        local_actor_id,
-        local_object_id,
-        post_object_id,
-        profile_actor_id,
-    },
+    identifiers::{local_actor_id, local_object_id, post_object_id, profile_actor_id},
     types::{build_default_context, Context},
     vocabulary::LIKE,
 };
@@ -60,8 +55,7 @@ fn build_like(
 ) -> Like {
     let activity_id = local_object_id(instance_url, reaction_id);
     let actor_id = local_actor_id(instance_url, &actor_profile.username);
-    let (primary_audience, secondary_audience) =
-        get_like_audience(post_author_id, post_visibility);
+    let (primary_audience, secondary_audience) = get_like_audience(post_author_id, post_visibility);
     Like {
         context: build_default_context(),
         activity_type: LIKE.to_string(),
@@ -92,11 +86,7 @@ pub async fn prepare_like(
     post: &Post,
     reaction_id: &Uuid,
 ) -> Result<OutgoingActivity, DatabaseError> {
-    let recipients = get_like_recipients(
-        db_client,
-        &instance.url(),
-        post,
-    ).await?;
+    let recipients = get_like_recipients(db_client, &instance.url(), post).await?;
     let object_id = post_object_id(&instance.url(), post);
     let post_author_id = profile_actor_id(&instance.url(), &post.author);
     let activity = build_like(
@@ -108,17 +98,14 @@ pub async fn prepare_like(
         &post.visibility,
     );
     Ok(OutgoingActivity::new(
-        instance,
-        sender,
-        activity,
-        recipients,
+        instance, sender, activity, recipients,
     ))
 }
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::id::generate_ulid;
     use super::*;
+    use mitra_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 

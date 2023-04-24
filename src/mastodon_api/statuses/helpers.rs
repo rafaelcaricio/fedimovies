@@ -14,7 +14,7 @@ use mitra_models::{
 use super::microsyntax::{
     emojis::find_emojis,
     hashtags::{find_hashtags, replace_hashtags},
-    links::{replace_object_links, find_linked_posts},
+    links::{find_linked_posts, replace_object_links},
     mentions::{find_mentioned_profiles, replace_mentions},
 };
 use super::types::Status;
@@ -34,11 +34,7 @@ pub async fn parse_microsyntaxes(
     mut content: String,
 ) -> Result<PostContent, DatabaseError> {
     // Mentions
-    let mention_map = find_mentioned_profiles(
-        db_client,
-        &instance.hostname(),
-        &content,
-    ).await?;
+    let mention_map = find_mentioned_profiles(db_client, &instance.hostname(), &content).await?;
     content = replace_mentions(
         &mention_map,
         &instance.hostname(),
@@ -48,30 +44,23 @@ pub async fn parse_microsyntaxes(
     let mentions = mention_map.values().map(|profile| profile.id).collect();
     // Hashtags
     let hashtags = find_hashtags(&content);
-    content = replace_hashtags(
-        &instance.url(),
-        &content,
-        &hashtags,
-    );
+    content = replace_hashtags(&instance.url(), &content, &hashtags);
     // Links
-    let link_map = find_linked_posts(
-        db_client,
-        &instance.url(),
-        &content,
-    ).await?;
-    content = replace_object_links(
-        &link_map,
-        &content,
-    );
+    let link_map = find_linked_posts(db_client, &instance.url(), &content).await?;
+    content = replace_object_links(&link_map, &content);
     let links = link_map.values().map(|post| post.id).collect();
     let linked = link_map.into_values().collect();
     // Emojis
-    let emoji_map = find_emojis(
-        db_client,
-        &content,
-    ).await?;
+    let emoji_map = find_emojis(db_client, &content).await?;
     let emojis = emoji_map.into_values().collect();
-    Ok(PostContent { content, mentions, hashtags, links, linked, emojis })
+    Ok(PostContent {
+        content,
+        mentions,
+        hashtags,
+        links,
+        linked,
+        emojis,
+    })
 }
 
 /// Load related objects and build status for API response

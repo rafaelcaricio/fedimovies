@@ -28,8 +28,7 @@ pub const SUPPORTED_MEDIA_TYPES: [&str; 11] = [
 fn get_file_name(data: &[u8], media_type: Option<&str>) -> String {
     let digest = Sha256::digest(data);
     let mut file_name = hex::encode(digest);
-    let maybe_extension = media_type
-        .and_then(get_media_type_extension);
+    let maybe_extension = media_type.and_then(get_media_type_extension);
     if let Some(extension) = maybe_extension {
         // Append extension for known media types
         file_name = format!("{}.{}", file_name, extension);
@@ -61,28 +60,26 @@ pub fn remove_files(files: Vec<String>, from_dir: &Path) -> () {
             Ok(_) => log::info!("removed file {}", file_path_str),
             Err(err) => {
                 log::warn!("failed to remove file {} ({})", file_path_str, err);
-            },
+            }
         };
-    };
+    }
 }
 
-pub async fn remove_media(
-    config: &Config,
-    queue: DeletionQueue,
-) -> () {
+pub async fn remove_media(config: &Config, queue: DeletionQueue) -> () {
     remove_files(queue.files, &config.media_dir());
     if !queue.ipfs_objects.is_empty() {
         match &config.ipfs_api_url {
             Some(ipfs_api_url) => {
-                ipfs_store::remove(ipfs_api_url, queue.ipfs_objects).await
+                ipfs_store::remove(ipfs_api_url, queue.ipfs_objects)
+                    .await
                     .unwrap_or_else(|err| log::error!("{}", err));
-            },
+            }
             None => {
                 log::error!(
                     "can not remove objects because IPFS API URL is not set: {:?}",
                     queue.ipfs_objects,
                 );
-            },
+            }
         }
     }
 }
@@ -105,8 +102,8 @@ impl From<&Config> for MediaStorage {
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::files::sniff_media_type;
     use super::*;
+    use mitra_utils::files::sniff_media_type;
 
     #[test]
     fn test_get_file_name() {

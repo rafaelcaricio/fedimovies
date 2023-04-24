@@ -10,26 +10,16 @@ use mitra_models::{
         helpers::{can_view_post, get_local_post_by_id},
         types::Post,
     },
-    profiles::queries::{
-        search_profiles,
-        search_profiles_by_did_only,
-    },
+    profiles::queries::{search_profiles, search_profiles_by_did_only},
     profiles::types::DbActorProfile,
     tags::queries::search_tags,
-    users::{
-        queries::get_user_by_name,
-        types::User,
-    },
+    users::{queries::get_user_by_name, types::User},
 };
-use mitra_utils::{
-    did::Did,
-};
+use mitra_utils::did::Did;
 
 use crate::activitypub::{
     fetcher::helpers::{
-        get_or_import_profile_by_actor_id,
-        import_post,
-        import_profile_by_actor_address,
+        get_or_import_profile_by_actor_id, import_post, import_profile_by_actor_address,
     },
     identifiers::{parse_local_actor_id, parse_local_object_id},
     HandlerError,
@@ -48,29 +38,34 @@ enum SearchQuery {
     Unknown,
 }
 
-fn parse_profile_query(query: &str) ->
-    Result<(String, Option<String>), ValidationError>
-{
+fn parse_profile_query(query: &str) -> Result<(String, Option<String>), ValidationError> {
     // See also: ACTOR_ADDRESS_RE in webfinger::types
     let acct_query_re =
         Regex::new(r"^(@|!)?(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+))?$").unwrap();
-    let acct_query_caps = acct_query_re.captures(query)
+    let acct_query_caps = acct_query_re
+        .captures(query)
         .ok_or(ValidationError("invalid profile query"))?;
-    let username = acct_query_caps.name("username")
+    let username = acct_query_caps
+        .name("username")
         .ok_or(ValidationError("invalid profile query"))?
-        .as_str().to_string();
-    let maybe_hostname = acct_query_caps.name("hostname")
+        .as_str()
+        .to_string();
+    let maybe_hostname = acct_query_caps
+        .name("hostname")
         .map(|val| val.as_str().to_string());
     Ok((username, maybe_hostname))
 }
 
 fn parse_tag_query(query: &str) -> Result<String, ValidationError> {
     let tag_query_re = Regex::new(r"^#(?P<tag>\w+)$").unwrap();
-    let tag_query_caps = tag_query_re.captures(query)
+    let tag_query_caps = tag_query_re
+        .captures(query)
         .ok_or(ValidationError("invalid tag query"))?;
-    let tag = tag_query_caps.name("tag")
+    let tag = tag_query_caps
+        .name("tag")
         .ok_or(ValidationError("invalid tag query"))?
-        .as_str().to_string();
+        .as_str()
+        .to_string();
     Ok(tag)
 }
 
@@ -107,12 +102,8 @@ async fn search_profiles_or_import(
             maybe_hostname = None;
         };
     };
-    let mut profiles = search_profiles(
-        db_client,
-        &username,
-        maybe_hostname.as_ref(),
-        limit,
-    ).await?;
+    let mut profiles =
+        search_profiles(db_client, &username, maybe_hostname.as_ref(), limit).await?;
     if profiles.is_empty() && resolve {
         if let Some(hostname) = maybe_hostname {
             let actor_address = ActorAddress { username, hostname };
@@ -122,21 +113,23 @@ async fn search_profiles_or_import(
                 &instance,
                 &MediaStorage::from(config),
                 &actor_address,
-            ).await {
+            )
+            .await
+            {
                 Ok(profile) => {
                     profiles.push(profile);
-                },
+                }
                 Err(HandlerError::DatabaseError(db_error)) => {
                     // Propagate database errors
                     return Err(db_error);
-                },
+                }
                 Err(other_error) => {
                     log::warn!(
                         "failed to import profile {}: {}",
                         actor_address,
                         other_error,
                     );
-                },
+                }
             };
         };
     };
@@ -159,23 +152,17 @@ async fn find_post_by_url(
                 Err(DatabaseError::NotFound(_)) => None,
                 Err(other_error) => return Err(other_error),
             }
-        },
+        }
         Err(_) => {
             instance.fetcher_timeout = SEARCH_FETCHER_TIMEOUT;
-            match import_post(
-                db_client,
-                &instance,
-                &storage,
-                url.to_string(),
-                None,
-            ).await {
+            match import_post(db_client, &instance, &storage, url.to_string(), None).await {
                 Ok(post) => Some(post),
                 Err(err) => {
                     log::warn!("{}", err);
                     None
-                },
+                }
             }
-        },
+        }
     };
     Ok(maybe_post)
 }
@@ -194,7 +181,7 @@ async fn find_profile_by_url(
                 Err(DatabaseError::NotFound(_)) => None,
                 Err(other_error) => return Err(other_error),
             }
-        },
+        }
         Err(_) => {
             instance.fetcher_timeout = SEARCH_FETCHER_TIMEOUT;
             get_or_import_profile_by_actor_id(
@@ -202,10 +189,11 @@ async fn find_profile_by_url(
                 &instance,
                 &MediaStorage::from(config),
                 url,
-            ).await
-                .map_err(|err| log::warn!("{}", err))
-                .ok()
-        },
+            )
+            .await
+            .map_err(|err| log::warn!("{}", err))
+            .ok()
+        }
     };
     Ok(profile)
 }
@@ -224,22 +212,13 @@ pub async fn search(
     let mut tags = vec![];
     match parse_search_query(search_query) {
         SearchQuery::ProfileQuery(username, maybe_hostname) => {
-            profiles = search_profiles_or_import(
-                config,
-                db_client,
-                username,
-                maybe_hostname,
-                true,
-                limit,
-            ).await?;
-        },
+            profiles =
+                search_profiles_or_import(config, db_client, username, maybe_hostname, true, limit)
+                    .await?;
+        }
         SearchQuery::TagQuery(tag) => {
-            tags = search_tags(
-                db_client,
-                &tag,
-                limit,
-            ).await?;
-        },
+            tags = search_tags(db_client, &tag, limit).await?;
+        }
         SearchQuery::Url(url) => {
             let maybe_post = find_post_by_url(config, db_client, &url).await?;
             if let Some(post) = maybe_post {
@@ -247,22 +226,15 @@ pub async fn search(
                     posts = vec![post];
                 };
             } else {
-                let maybe_profile = find_profile_by_url(
-                    config,
-                    db_client,
-                    &url,
-                ).await?;
+                let maybe_profile = find_profile_by_url(config, db_client, &url).await?;
                 if let Some(profile) = maybe_profile {
                     profiles = vec![profile];
                 };
             };
-        },
+        }
         SearchQuery::Did(did) => {
-            profiles = search_profiles_by_did_only(
-                db_client,
-                &did,
-            ).await?;
-        },
+            profiles = search_profiles_by_did_only(db_client, &did).await?;
+        }
         SearchQuery::Unknown => (), // ignore
     };
     Ok((profiles, posts, tags))
@@ -279,14 +251,9 @@ pub async fn search_profiles_only(
         Ok(result) => result,
         Err(_) => return Ok(vec![]),
     };
-    let profiles = search_profiles_or_import(
-        config,
-        db_client,
-        username,
-        maybe_hostname,
-        resolve,
-        limit,
-    ).await?;
+    let profiles =
+        search_profiles_or_import(config, db_client, username, maybe_hostname, resolve, limit)
+            .await?;
     Ok(profiles)
 }
 

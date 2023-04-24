@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use log::{Level as LogLevel};
+use log::Level as LogLevel;
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use url::Url;
@@ -14,9 +14,13 @@ use super::registration::RegistrationConfig;
 use super::retention::RetentionConfig;
 use super::REEF_VERSION;
 
-fn default_log_level() -> LogLevel { LogLevel::Info }
+fn default_log_level() -> LogLevel {
+    LogLevel::Info
+}
 
-fn default_login_message() -> String { "What?!".to_string() }
+fn default_login_message() -> String {
+    "What?!".to_string()
+}
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
@@ -95,9 +99,8 @@ impl Config {
             onion_proxy_url: self.federation.onion_proxy_url.clone(),
             i2p_proxy_url: self.federation.i2p_proxy_url.clone(),
             // Private instance doesn't send activities and sign requests
-            is_private:
-                !self.federation.enabled ||
-                matches!(self.environment, Environment::Development),
+            is_private: !self.federation.enabled
+                || matches!(self.environment, Environment::Development),
             fetcher_timeout: self.federation.fetcher_timeout,
             deliverer_timeout: self.federation.deliverer_timeout,
         }
@@ -139,8 +142,8 @@ impl Instance {
     pub fn agent(&self) -> String {
         format!(
             "Reef {version}; {instance_url}",
-            version= REEF_VERSION,
-            instance_url=self.url(),
+            version = REEF_VERSION,
+            instance_url = self.url(),
         )
     }
 }
@@ -164,8 +167,8 @@ impl Instance {
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
+    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
 
     #[test]
     fn test_instance_url_https_dns() {

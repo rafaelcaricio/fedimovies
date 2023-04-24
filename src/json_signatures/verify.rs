@@ -5,10 +5,7 @@ use serde_json::Value;
 use url::Url;
 
 use mitra_utils::{
-    canonicalization::{
-        canonicalize_object,
-        CanonicalizationError,
-    },
+    canonicalization::{canonicalize_object, CanonicalizationError},
     crypto_rsa::verify_rsa_sha256_signature,
     did::Did,
     did_key::DidKey,
@@ -16,15 +13,9 @@ use mitra_utils::{
     multibase::{decode_multibase_base58btc, MultibaseError},
 };
 
-use crate::identity::{
-    minisign::verify_minisign_signature,
-};
-use super::create::{
-    IntegrityProof,
-    PROOF_KEY,
-    PROOF_PURPOSE,
-};
+use super::create::{IntegrityProof, PROOF_KEY, PROOF_PURPOSE};
 use super::proofs::{ProofType, DATA_INTEGRITY_PROOF};
+use crate::identity::minisign::verify_minisign_signature;
 
 #[derive(Debug, PartialEq)]
 pub enum JsonSigner {
@@ -62,13 +53,13 @@ pub enum JsonSignatureVerificationError {
 
 type VerificationError = JsonSignatureVerificationError;
 
-pub fn get_json_signature(
-    object: &Value,
-) -> Result<SignatureData, VerificationError> {
+pub fn get_json_signature(object: &Value) -> Result<SignatureData, VerificationError> {
     let mut object = object.clone();
-    let object_map = object.as_object_mut()
+    let object_map = object
+        .as_object_mut()
         .ok_or(VerificationError::InvalidObject)?;
-    let proof_value = object_map.remove(PROOF_KEY)
+    let proof_value = object_map
+        .remove(PROOF_KEY)
         .ok_or(VerificationError::NoProof)?;
     let proof: IntegrityProof = serde_json::from_value(proof_value)
         .map_err(|_| VerificationError::InvalidProof("invalid proof"))?;
@@ -76,12 +67,18 @@ pub fn get_json_signature(
         return Err(VerificationError::InvalidProof("invalid proof purpose"));
     };
     let proof_type = if proof.proof_type == DATA_INTEGRITY_PROOF {
-        let cryptosuite = proof.cryptosuite.as_ref()
-            .ok_or(VerificationError::InvalidProof("cryptosuite is not specified"))?;
+        let cryptosuite = proof
+            .cryptosuite
+            .as_ref()
+            .ok_or(VerificationError::InvalidProof(
+                "cryptosuite is not specified",
+            ))?;
         ProofType::from_cryptosuite(cryptosuite)
             .map_err(|_| VerificationError::InvalidProof("unsupported proof type"))?
     } else {
-        proof.proof_type.parse()
+        proof
+            .proof_type
+            .parse()
             .map_err(|_| VerificationError::InvalidProof("unsupported proof type"))?
     };
     let signer = if let Ok(did) = Did::from_str(&proof.verification_method) {
@@ -89,7 +86,9 @@ pub fn get_json_signature(
     } else if Url::parse(&proof.verification_method).is_ok() {
         JsonSigner::ActorKeyId(proof.verification_method)
     } else {
-        return Err(VerificationError::InvalidProof("unsupported verification method"));
+        return Err(VerificationError::InvalidProof(
+            "unsupported verification method",
+        ));
     };
     let transformed_object = canonicalize_object(&object)?;
     let signature = decode_multibase_base58btc(&proof.proof_value)?;
@@ -136,13 +135,10 @@ pub fn verify_ed25519_json_signature(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-    use mitra_utils::{
-        crypto_rsa::generate_weak_rsa_key,
-        currencies::Currency,
-    };
-    use crate::json_signatures::create::sign_object;
     use super::*;
+    use crate::json_signatures::create::sign_object;
+    use mitra_utils::{crypto_rsa::generate_weak_rsa_key, currencies::Currency};
+    use serde_json::json;
 
     #[test]
     fn test_get_json_signature_eip191() {
@@ -158,10 +154,7 @@ mod tests {
             },
         });
         let signature_data = get_json_signature(&signed_object).unwrap();
-        assert_eq!(
-            signature_data.signature_type,
-            ProofType::JcsEip191Signature,
-        );
+        assert_eq!(signature_data.signature_type, ProofType::JcsEip191Signature,);
         let expected_signer = JsonSigner::Did(Did::Pkh(DidPkh::from_address(
             &Currency::Ethereum,
             "0xb9c5714089478a327f09197987f16f9e5d936e8a",
@@ -187,25 +180,15 @@ mod tests {
                 "content": "test",
             },
         });
-        let signed_object = sign_object(
-            &object,
-            &signer_key,
-            signer_key_id,
-        ).unwrap();
+        let signed_object = sign_object(&object, &signer_key, signer_key_id).unwrap();
 
         let signature_data = get_json_signature(&signed_object).unwrap();
-        assert_eq!(
-            signature_data.signature_type,
-            ProofType::JcsRsaSignature,
-        );
+        assert_eq!(signature_data.signature_type, ProofType::JcsRsaSignature,);
         let expected_signer = JsonSigner::ActorKeyId(signer_key_id.to_string());
         assert_eq!(signature_data.signer, expected_signer);
 
         let signer_public_key = RsaPublicKey::from(signer_key);
-        let result = verify_rsa_json_signature(
-            &signature_data,
-            &signer_public_key,
-        );
+        let result = verify_rsa_json_signature(&signature_data, &signer_public_key);
         assert_eq!(result.is_ok(), true);
     }
 }

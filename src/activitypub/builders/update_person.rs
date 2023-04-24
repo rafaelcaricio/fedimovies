@@ -41,8 +41,7 @@ pub fn build_update_person(
 ) -> Result<UpdatePerson, ActorKeyError> {
     let actor = get_local_actor(user, instance_url)?;
     // Update(Person) is idempotent so its ID can be random
-    let internal_activity_id =
-        maybe_internal_activity_id.unwrap_or(generate_ulid());
+    let internal_activity_id = maybe_internal_activity_id.unwrap_or(generate_ulid());
     let activity_id = local_object_id(instance_url, &internal_activity_id);
     let activity = UpdatePerson {
         context: build_default_context(),
@@ -68,7 +67,7 @@ async fn get_update_person_recipients(
         if let Some(remote_actor) = profile.actor_json {
             recipients.push(remote_actor);
         };
-    };
+    }
     Ok(recipients)
 }
 
@@ -78,28 +77,17 @@ pub async fn prepare_update_person(
     user: &User,
     maybe_internal_activity_id: Option<Uuid>,
 ) -> Result<OutgoingActivity, DatabaseError> {
-    let activity = build_update_person(
-        &instance.url(),
-        user,
-        maybe_internal_activity_id,
-    ).map_err(|_| DatabaseTypeError)?;
+    let activity = build_update_person(&instance.url(), user, maybe_internal_activity_id)
+        .map_err(|_| DatabaseTypeError)?;
     let recipients = get_update_person_recipients(db_client, &user.id).await?;
-    Ok(OutgoingActivity::new(
-        instance,
-        user,
-        activity,
-        recipients,
-    ))
+    Ok(OutgoingActivity::new(instance, user, activity, recipients))
 }
 
 #[cfg(test)]
 mod tests {
-    use mitra_models::profiles::types::DbActorProfile;
-    use mitra_utils::crypto_rsa::{
-        generate_weak_rsa_key,
-        serialize_private_key,
-    };
     use super::*;
+    use mitra_models::profiles::types::DbActorProfile;
+    use mitra_utils::crypto_rsa::{generate_weak_rsa_key, serialize_private_key};
 
     const INSTANCE_URL: &str = "https://example.com";
 
@@ -116,11 +104,7 @@ mod tests {
             ..Default::default()
         };
         let internal_id = generate_ulid();
-        let activity = build_update_person(
-            INSTANCE_URL,
-            &user,
-            Some(internal_id),
-        ).unwrap();
+        let activity = build_update_person(INSTANCE_URL, &user, Some(internal_id)).unwrap();
         assert_eq!(
             activity.id,
             format!("{}/objects/{}", INSTANCE_URL, internal_id),
@@ -129,9 +113,12 @@ mod tests {
             activity.object.id,
             format!("{}/users/testuser", INSTANCE_URL),
         );
-        assert_eq!(activity.to, vec![
-            AP_PUBLIC.to_string(),
-            format!("{}/users/testuser/followers", INSTANCE_URL),
-        ]);
+        assert_eq!(
+            activity.to,
+            vec![
+                AP_PUBLIC.to_string(),
+                format!("{}/users/testuser/followers", INSTANCE_URL),
+            ]
+        );
     }
 }

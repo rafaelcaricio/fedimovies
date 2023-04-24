@@ -36,16 +36,13 @@ impl PeriodicTask {
             Some(last_run) => {
                 let time_passed = Utc::now() - *last_run;
                 time_passed.num_seconds() >= self.period()
-            },
+            }
             None => true,
         }
     }
 }
 
-pub fn run(
-    config: Config,
-    db_pool: DbPool,
-) -> () {
+pub fn run(config: Config, db_pool: DbPool) -> () {
     tokio::spawn(async move {
         let mut scheduler_state = HashMap::from([
             (PeriodicTask::SubscriptionExpirationMonitor, None),
@@ -71,26 +68,24 @@ pub fn run(
                 let task_result = match task {
                     PeriodicTask::IncomingActivityQueueExecutor => {
                         incoming_activity_queue_executor(&config, &db_pool).await
-                    },
+                    }
                     PeriodicTask::OutgoingActivityQueueExecutor => {
                         outgoing_activity_queue_executor(&config, &db_pool).await
-                    },
+                    }
                     PeriodicTask::DeleteExtraneousPosts => {
                         delete_extraneous_posts(&config, &db_pool).await
-                    },
+                    }
                     PeriodicTask::DeleteEmptyProfiles => {
                         delete_empty_profiles(&config, &db_pool).await
-                    },
-                    PeriodicTask::PruneRemoteEmojis => {
-                        prune_remote_emojis(&config, &db_pool).await
-                    },
+                    }
+                    PeriodicTask::PruneRemoteEmojis => prune_remote_emojis(&config, &db_pool).await,
                     PeriodicTask::SubscriptionExpirationMonitor => Ok(()),
                 };
                 task_result.unwrap_or_else(|err| {
                     log::error!("{:?}: {}", task, err);
                 });
                 *last_run = Some(Utc::now());
-            };
-        };
+            }
+        }
     });
 }

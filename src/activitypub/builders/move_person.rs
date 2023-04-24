@@ -2,10 +2,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use mitra_config::Instance;
-use mitra_models::{
-    profiles::types::DbActor,
-    users::types::User,
-};
+use mitra_models::{profiles::types::DbActor, users::types::User};
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
@@ -38,7 +35,8 @@ pub fn build_move_person(
     followers: &[String],
     maybe_internal_activity_id: Option<&Uuid>,
 ) -> MovePerson {
-    let internal_activity_id = maybe_internal_activity_id.copied()
+    let internal_activity_id = maybe_internal_activity_id
+        .copied()
         .unwrap_or(generate_ulid());
     let activity_id = local_object_id(instance_url, &internal_activity_id);
     let actor_id = local_actor_id(instance_url, &sender.profile.username);
@@ -60,9 +58,7 @@ pub fn prepare_move_person(
     followers: Vec<DbActor>,
     maybe_internal_activity_id: Option<&Uuid>,
 ) -> OutgoingActivity {
-    let followers_ids: Vec<String> = followers.iter()
-        .map(|actor| actor.id.clone())
-        .collect();
+    let followers_ids: Vec<String> = followers.iter().map(|actor| actor.id.clone()).collect();
     let activity = build_move_person(
         &instance.url(),
         sender,
@@ -70,19 +66,14 @@ pub fn prepare_move_person(
         &followers_ids,
         maybe_internal_activity_id,
     );
-    OutgoingActivity::new(
-        instance,
-        sender,
-        activity,
-        followers,
-    )
+    OutgoingActivity::new(instance, sender, activity, followers)
 }
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::id::generate_ulid;
-    use mitra_models::profiles::types::DbActorProfile;
     use super::*;
+    use mitra_models::profiles::types::DbActorProfile;
+    use mitra_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 

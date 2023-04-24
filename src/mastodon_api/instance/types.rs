@@ -1,10 +1,6 @@
 use serde::Serialize;
 
-use mitra_config::{
-    Config,
-    RegistrationType,
-    REEF_VERSION,
-};
+use mitra_config::{Config, RegistrationType, REEF_VERSION};
 use mitra_utils::markdown::markdown_to_html;
 
 use crate::mastodon_api::MASTODON_API_VERSION;
@@ -57,20 +53,11 @@ pub struct InstanceInfo {
 }
 
 fn get_full_api_version(version: &str) -> String {
-    format!(
-        "{0} (compatible; Reef {1})",
-        MASTODON_API_VERSION,
-        version,
-    )
+    format!("{0} (compatible; Reef {1})", MASTODON_API_VERSION, version,)
 }
 
 impl InstanceInfo {
-    pub fn create(
-        config: &Config,
-        user_count: i64,
-        post_count: i64,
-        peer_count: i64,
-    ) -> Self {
+    pub fn create(config: &Config, user_count: i64, post_count: i64, peer_count: i64) -> Self {
         Self {
             uri: config.instance().hostname(),
             title: config.instance_title.clone(),
@@ -78,13 +65,9 @@ impl InstanceInfo {
             description: markdown_to_html(&config.instance_description),
             description_source: config.instance_description.clone(),
             version: get_full_api_version(REEF_VERSION),
-            registrations:
-                config.registration.registration_type !=
-                RegistrationType::Invite,
+            registrations: config.registration.registration_type != RegistrationType::Invite,
             approval_required: false,
-            invites_enabled:
-                config.registration.registration_type ==
-                RegistrationType::Invite,
+            invites_enabled: config.registration.registration_type == RegistrationType::Invite,
             stats: InstanceStats {
                 user_count,
                 status_count: post_count,
@@ -96,8 +79,10 @@ impl InstanceInfo {
                     max_media_attachments: ATTACHMENT_LIMIT,
                 },
                 media_attachments: InstanceMediaLimits {
-                    supported_mime_types: SUPPORTED_MEDIA_TYPES.iter()
-                        .map(|media_type| media_type.to_string()).collect(),
+                    supported_mime_types: SUPPORTED_MEDIA_TYPES
+                        .iter()
+                        .map(|media_type| media_type.to_string())
+                        .collect(),
                     image_size_limit: config.limits.media.file_size_limit,
                 },
             },

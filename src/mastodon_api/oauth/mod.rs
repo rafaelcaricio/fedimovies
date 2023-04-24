@@ -1,4 +1,4 @@
 pub mod auth;
 mod types;
-pub mod views;
 pub mod utils;
+pub mod views;

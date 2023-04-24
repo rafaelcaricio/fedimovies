@@ -1,11 +1,5 @@
 /// https://docs.joinmastodon.org/methods/instance/directory/
-use actix_web::{
-    dev::ConnectionInfo,
-    get,
-    web,
-    HttpResponse,
-    Scope,
-};
+use actix_web::{dev::ConnectionInfo, get, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
@@ -14,13 +8,11 @@ use mitra_models::{
     profiles::queries::get_profiles,
 };
 
+use super::types::DirectoryQueryParams;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
-    accounts::types::Account,
-    errors::MastodonError,
-    oauth::auth::get_current_user,
+    accounts::types::Account, errors::MastodonError, oauth::auth::get_current_user,
 };
-use super::types::DirectoryQueryParams;
 
 #[get("")]
 async fn profile_directory(
@@ -37,21 +29,17 @@ async fn profile_directory(
         query_params.local,
         query_params.offset,
         query_params.limit.inner(),
-    ).await?;
+    )
+    .await?;
     let base_url = get_request_base_url(connection_info);
     let instance_url = config.instance().url();
     let accounts: Vec<Account> = profiles
         .into_iter()
-        .map(|profile| Account::from_profile(
-            &base_url,
-            &instance_url,
-            profile,
-        ))
+        .map(|profile| Account::from_profile(&base_url, &instance_url, profile))
         .collect();
     Ok(HttpResponse::Ok().json(accounts))
 }
 
 pub fn directory_api_scope() -> Scope {
-    web::scope("/api/v1/directory")
-        .service(profile_directory)
+    web::scope("/api/v1/directory").service(profile_directory)
 }

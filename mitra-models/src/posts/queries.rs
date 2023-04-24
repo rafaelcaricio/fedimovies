@@ -3,40 +3,17 @@ use uuid::Uuid;
 
 use mitra_utils::id::generate_ulid;
 
-use crate::attachments::{
-    queries::set_attachment_ipfs_cid,
-    types::DbMediaAttachment,
-};
-use crate::cleanup::{
-    find_orphaned_files,
-    find_orphaned_ipfs_objects,
-    DeletionQueue,
-};
-use crate::database::{
-    catch_unique_violation,
-    query_macro::query,
-    DatabaseClient,
-    DatabaseError,
-};
+use crate::attachments::{queries::set_attachment_ipfs_cid, types::DbMediaAttachment};
+use crate::cleanup::{find_orphaned_files, find_orphaned_ipfs_objects, DeletionQueue};
+use crate::database::{catch_unique_violation, query_macro::query, DatabaseClient, DatabaseError};
 use crate::emojis::types::DbEmoji;
 use crate::notifications::queries::{
-    create_mention_notification,
-    create_reply_notification,
-    create_repost_notification,
+    create_mention_notification, create_reply_notification, create_repost_notification,
 };
-use crate::profiles::{
-    queries::update_post_count,
-    types::DbActorProfile,
-};
+use crate::profiles::{queries::update_post_count, types::DbActorProfile};
 use crate::relationships::types::RelationshipType;
 
-use super::types::{
-    DbPost,
-    Post,
-    PostCreateData,
-    PostUpdateData,
-    Visibility,
-};
+use super::types::{DbPost, Post, PostCreateData, PostUpdateData, Visibility};
 
 async fn create_post_attachments(
     db_client: &impl DatabaseClient,
@@ -44,20 +21,23 @@ async fn create_post_attachments(
     author_id: &Uuid,
     attachments: Vec<Uuid>,
 ) -> Result<Vec<DbMediaAttachment>, DatabaseError> {
-    let attachments_rows = db_client.query(
-        "
+    let attachments_rows = db_client
+        .query(
+            "
         UPDATE media_attachment
         SET post_id = $1
         WHERE owner_id = $2 AND id = ANY($3)
         RETURNING media_attachment
         ",
-        &[&post_id, &author_id, &attachments],
-    ).await?;
+            &[&post_id, &author_id, &attachments],
+        )
+        .await?;
     if attachments_rows.len() != attachments.len() {
         // Some attachments were not found
         return Err(DatabaseError::NotFound("attachment"));
     };
-    let mut attachments: Vec<DbMediaAttachment> = attachments_rows.iter()
+    let mut attachments: Vec<DbMediaAttachment> = attachments_rows
+        .iter()
         .map(|row| row.try_get("media_attachment"))
         .collect::<Result<_, _>>()?;
     attachments.sort_by(|a, b| a.created_at.cmp(&b.created_at));
@@ -69,8 +49,9 @@ async fn create_post_mentions(
     post_id: &Uuid,
     mentions: Vec<Uuid>,
 ) -> Result<Vec<DbActorProfile>, DatabaseError> {
-    let mentions_rows = db_client.query(
-        "
+    let mentions_rows = db_client
+        .query(
+            "
         INSERT INTO mention (post_id, profile_id)
         SELECT $1, actor_profile.id FROM actor_profile WHERE id = ANY($2)
         RETURNING (
@@ -78,13 +59,15 @@ async fn create_post_mentions(
             WHERE actor_profile.id = profile_id
         ) AS actor_profile
         ",
-        &[&post_id, &mentions],
-    ).await?;
+            &[&post_id, &mentions],
+        )
+        .await?;
     if mentions_rows.len() != mentions.len() {
         // Some profiles were not found
         return Err(DatabaseError::NotFound("profile"));
     };
-    let profiles = mentions_rows.iter()
+    let profiles = mentions_rows
+        .iter()
         .map(|row| row.try_get("actor_profile"))
         .collect::<Result<_, _>>()?;
     Ok(profiles)
@@ -95,26 +78,31 @@ async fn create_post_tags(
     post_id: &Uuid,
     tags: Vec<String>,
 ) -> Result<Vec<String>, DatabaseError> {
-    db_client.execute(
-        "
+    db_client
+        .execute(
+            "
         INSERT INTO tag (tag_name)
         SELECT unnest($1::text[])
         ON CONFLICT (tag_name) DO NOTHING
         ",
-        &[&tags],
-    ).await?;
-    let tags_rows = db_client.query(
-        "
+            &[&tags],
+        )
+        .await?;
+    let tags_rows = db_client
+        .query(
+            "
         INSERT INTO post_tag (post_id, tag_id)
         SELECT $1, tag.id FROM tag WHERE tag_name = ANY($2)
         RETURNING (SELECT tag_name FROM tag WHERE tag.id = tag_id)
         ",
-        &[&post_id, &tags],
-    ).await?;
+            &[&post_id, &tags],
+        )
+        .await?;
     if tags_rows.len() != tags.len() {
         return Err(DatabaseError::NotFound("tag"));
     };
-    let tags = tags_rows.iter()
+    let tags = tags_rows
+        .iter()
         .map(|row| row.try_get("tag_name"))
         .collect::<Result<_, _>>()?;
     Ok(tags)
@@ -125,18 +113,21 @@ async fn create_post_links(
     post_id: &Uuid,
     links: Vec<Uuid>,
 ) -> Result<Vec<Uuid>, DatabaseError> {
-    let links_rows = db_client.query(
-        "
+    let links_rows = db_client
+        .query(
+            "
         INSERT INTO post_link (source_id, target_id)
         SELECT $1, post.id FROM post WHERE id = ANY($2)
         RETURNING target_id
         ",
-        &[&post_id, &links],
-    ).await?;
+            &[&post_id, &links],
+        )
+        .await?;
     if links_rows.len() != links.len() {
         return Err(DatabaseError::NotFound("post"));
     };
-    let links = links_rows.iter()
+    let links = links_rows
+        .iter()
         .map(|row| row.try_get("target_id"))
         .collect::<Result<_, _>>()?;
     Ok(links)
@@ -147,8 +138,9 @@ async fn create_post_emojis(
     post_id: &Uuid,
     emojis: Vec<Uuid>,
 ) -> Result<Vec<DbEmoji>, DatabaseError> {
-    let emojis_rows = db_client.query(
-        "
+    let emojis_rows = db_client
+        .query(
+            "
         INSERT INTO post_emoji (post_id, emoji_id)
         SELECT $1, emoji.id FROM emoji WHERE id = ANY($2)
         RETURNING (
@@ -156,12 +148,14 @@ async fn create_post_emojis(
             WHERE emoji.id = emoji_id
         )
         ",
-        &[&post_id, &emojis],
-    ).await?;
+            &[&post_id, &emojis],
+        )
+        .await?;
     if emojis_rows.len() != emojis.len() {
         return Err(DatabaseError::NotFound("emoji"));
     };
-    let emojis = emojis_rows.iter()
+    let emojis = emojis_rows
+        .iter()
         .map(|row| row.try_get("emoji"))
         .collect::<Result<_, _>>()?;
     Ok(emojis)
@@ -202,22 +196,25 @@ pub async fn create_post(
         )
         RETURNING post
         ",
-        visibility_public=i16::from(&Visibility::Public),
+        visibility_public = i16::from(&Visibility::Public),
     );
-    let maybe_post_row = transaction.query_opt(
-        &insert_statement,
-        &[
-            &post_id,
-            &author_id,
-            &post_data.content,
-            &post_data.in_reply_to_id,
-            &post_data.repost_of_id,
-            &post_data.visibility,
-            &post_data.is_sensitive,
-            &post_data.object_id,
-            &post_data.created_at,
-        ],
-    ).await.map_err(catch_unique_violation("post"))?;
+    let maybe_post_row = transaction
+        .query_opt(
+            &insert_statement,
+            &[
+                &post_id,
+                &author_id,
+                &post_data.content,
+                &post_data.in_reply_to_id,
+                &post_data.repost_of_id,
+                &post_data.visibility,
+                &post_data.is_sensitive,
+                &post_data.object_id,
+                &post_data.created_at,
+            ],
+        )
+        .await
+        .map_err(catch_unique_violation("post"))?;
     // Return NotFound error if reply/repost is not allowed
     let post_row = maybe_post_row.ok_or(DatabaseError::NotFound("post"))?;
     let db_post: DbPost = post_row.try_get("post")?;
@@ -228,27 +225,12 @@ pub async fn create_post(
         &db_post.id,
         &db_post.author_id,
         post_data.attachments,
-    ).await?;
-    let db_mentions = create_post_mentions(
-        &transaction,
-        &db_post.id,
-        post_data.mentions,
-    ).await?;
-    let db_tags = create_post_tags(
-        &transaction,
-        &db_post.id,
-        post_data.tags,
-    ).await?;
-    let db_links = create_post_links(
-        &transaction,
-        &db_post.id,
-        post_data.links,
-    ).await?;
-    let db_emojis = create_post_emojis(
-        &transaction,
-        &db_post.id,
-        post_data.emojis,
-    ).await?;
+    )
+    .await?;
+    let db_mentions = create_post_mentions(&transaction, &db_post.id, post_data.mentions).await?;
+    let db_tags = create_post_tags(&transaction, &db_post.id, post_data.tags).await?;
+    let db_links = create_post_links(&transaction, &db_post.id, post_data.links).await?;
+    let db_emojis = create_post_emojis(&transaction, &db_post.id, post_data.emojis).await?;
 
     // Update counters
     let author = update_post_count(&transaction, &db_post.author_id, 1).await?;
@@ -256,31 +238,31 @@ pub async fn create_post(
     if let Some(in_reply_to_id) = &db_post.in_reply_to_id {
         update_reply_count(&transaction, in_reply_to_id, 1).await?;
         let in_reply_to_author = get_post_author(&transaction, in_reply_to_id).await?;
-        if in_reply_to_author.is_local() &&
-            in_reply_to_author.id != db_post.author_id
-        {
+        if in_reply_to_author.is_local() && in_reply_to_author.id != db_post.author_id {
             create_reply_notification(
                 &transaction,
                 &db_post.author_id,
                 &in_reply_to_author.id,
                 &db_post.id,
-            ).await?;
+            )
+            .await?;
             notified_users.push(in_reply_to_author.id);
         };
     };
     if let Some(repost_of_id) = &db_post.repost_of_id {
         update_repost_count(&transaction, repost_of_id, 1).await?;
         let repost_of_author = get_post_author(&transaction, repost_of_id).await?;
-        if repost_of_author.is_local() &&
-            repost_of_author.id != db_post.author_id &&
-            !notified_users.contains(&repost_of_author.id)
+        if repost_of_author.is_local()
+            && repost_of_author.id != db_post.author_id
+            && !notified_users.contains(&repost_of_author.id)
         {
             create_repost_notification(
                 &transaction,
                 &db_post.author_id,
                 &repost_of_author.id,
                 repost_of_id,
-            ).await?;
+            )
+            .await?;
             notified_users.push(repost_of_author.id);
         };
     };
@@ -292,14 +274,10 @@ pub async fn create_post(
             // or to the author of reposted post
             !notified_users.contains(&profile.id)
         {
-            create_mention_notification(
-                &transaction,
-                &db_post.author_id,
-                &profile.id,
-                &db_post.id,
-            ).await?;
+            create_mention_notification(&transaction, &db_post.author_id, &profile.id, &db_post.id)
+                .await?;
         };
-    };
+    }
     // Construct post object
     let post = Post::new(
         db_post,
@@ -321,8 +299,9 @@ pub async fn update_post(
 ) -> Result<(), DatabaseError> {
     let transaction = db_client.transaction().await?;
     // Reposts and immutable posts can't be updated
-    let maybe_row = transaction.query_opt(
-        "
+    let maybe_row = transaction
+        .query_opt(
+            "
         UPDATE post
         SET
             content = $1,
@@ -333,98 +312,77 @@ pub async fn update_post(
             AND ipfs_cid IS NULL
         RETURNING post
         ",
-        &[
-            &post_data.content,
-            &post_data.is_sensitive,
-            &post_data.updated_at,
-            &post_id,
-        ],
-    ).await?;
-   let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
-   let db_post: DbPost = row.try_get("post")?;
+            &[
+                &post_data.content,
+                &post_data.is_sensitive,
+                &post_data.updated_at,
+                &post_id,
+            ],
+        )
+        .await?;
+    let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
+    let db_post: DbPost = row.try_get("post")?;
 
     // Delete and re-create related objects
-    transaction.execute(
-        "DELETE FROM media_attachment WHERE post_id = $1",
-        &[&db_post.id],
-    ).await?;
-    transaction.execute(
-        "DELETE FROM mention WHERE post_id = $1",
-        &[&db_post.id],
-    ).await?;
-    transaction.execute(
-        "DELETE FROM post_tag WHERE post_id = $1",
-        &[&db_post.id],
-    ).await?;
-    transaction.execute(
-        "DELETE FROM post_link WHERE source_id = $1",
-        &[&db_post.id],
-    ).await?;
-    transaction.execute(
-        "DELETE FROM post_emoji WHERE post_id = $1",
-        &[&db_post.id],
-    ).await?;
+    transaction
+        .execute(
+            "DELETE FROM media_attachment WHERE post_id = $1",
+            &[&db_post.id],
+        )
+        .await?;
+    transaction
+        .execute("DELETE FROM mention WHERE post_id = $1", &[&db_post.id])
+        .await?;
+    transaction
+        .execute("DELETE FROM post_tag WHERE post_id = $1", &[&db_post.id])
+        .await?;
+    transaction
+        .execute("DELETE FROM post_link WHERE source_id = $1", &[&db_post.id])
+        .await?;
+    transaction
+        .execute("DELETE FROM post_emoji WHERE post_id = $1", &[&db_post.id])
+        .await?;
     create_post_attachments(
         &transaction,
         &db_post.id,
         &db_post.author_id,
         post_data.attachments,
-    ).await?;
-    create_post_mentions(
-        &transaction,
-        &db_post.id,
-        post_data.mentions,
-    ).await?;
-    create_post_tags(
-        &transaction,
-        &db_post.id,
-        post_data.tags,
-    ).await?;
-    create_post_links(
-        &transaction,
-        &db_post.id,
-        post_data.links,
-    ).await?;
-    create_post_emojis(
-        &transaction,
-        &db_post.id,
-        post_data.emojis,
-    ).await?;
+    )
+    .await?;
+    create_post_mentions(&transaction, &db_post.id, post_data.mentions).await?;
+    create_post_tags(&transaction, &db_post.id, post_data.tags).await?;
+    create_post_links(&transaction, &db_post.id, post_data.links).await?;
+    create_post_emojis(&transaction, &db_post.id, post_data.emojis).await?;
 
     transaction.commit().await?;
     Ok(())
 }
 
-pub const RELATED_ATTACHMENTS: &str =
-    "ARRAY(
+pub const RELATED_ATTACHMENTS: &str = "ARRAY(
         SELECT media_attachment
         FROM media_attachment WHERE post_id = post.id
         ORDER BY media_attachment.created_at
     ) AS attachments";
 
-pub const RELATED_MENTIONS: &str =
-    "ARRAY(
+pub const RELATED_MENTIONS: &str = "ARRAY(
         SELECT actor_profile
         FROM mention
         JOIN actor_profile ON mention.profile_id = actor_profile.id
         WHERE post_id = post.id
     ) AS mentions";
 
-pub const RELATED_TAGS: &str =
-    "ARRAY(
+pub const RELATED_TAGS: &str = "ARRAY(
         SELECT tag.tag_name FROM tag
         JOIN post_tag ON post_tag.tag_id = tag.id
         WHERE post_tag.post_id = post.id
     ) AS tags";
 
-pub const RELATED_LINKS: &str =
-    "ARRAY(
+pub const RELATED_LINKS: &str = "ARRAY(
         SELECT post_link.target_id FROM post_link
         WHERE post_link.source_id = post.id
     ) AS links";
 
-pub const RELATED_EMOJIS: &str =
-    "ARRAY(
+pub const RELATED_EMOJIS: &str = "ARRAY(
         SELECT emoji
         FROM post_emoji
         JOIN emoji ON post_emoji.emoji_id = emoji.id
@@ -449,9 +407,9 @@ fn build_visibility_filter() -> String {
                     AND relationship_type = {relationship_follow}
             )
         )",
-        visibility_public=i16::from(&Visibility::Public),
-        visibility_followers=i16::from(&Visibility::Followers),
-        relationship_follow=i16::from(&RelationshipType::Follow),
+        visibility_public = i16::from(&Visibility::Public),
+        visibility_followers = i16::from(&Visibility::Followers),
+        relationship_follow = i16::from(&RelationshipType::Follow),
     )
 }
 
@@ -548,14 +506,12 @@ pub async fn get_home_timeline(
     let limit: i64 = limit.into();
     let query = query!(
         &statement,
-        current_user_id=current_user_id,
-        max_post_id=max_post_id,
-        limit=limit,
+        current_user_id = current_user_id,
+        max_post_id = max_post_id,
+        limit = limit,
     )?;
     let rows = db_client.query(query.sql(), query.parameters()).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
+    let posts: Vec<Post> = rows.iter().map(Post::try_from).collect::<Result<_, _>>()?;
     Ok(posts)
 }
 
@@ -583,24 +539,22 @@ pub async fn get_local_timeline(
         ORDER BY post.id DESC
         LIMIT $limit
         ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-        related_emojis=RELATED_EMOJIS,
-        visibility_public=i16::from(&Visibility::Public),
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
+        visibility_public = i16::from(&Visibility::Public),
     );
     let limit: i64 = limit.into();
     let query = query!(
         &statement,
-        current_user_id=current_user_id,
-        max_post_id=max_post_id,
-        limit=limit,
+        current_user_id = current_user_id,
+        max_post_id = max_post_id,
+        limit = limit,
     )?;
     let rows = db_client.query(query.sql(), query.parameters()).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
+    let posts: Vec<Post> = rows.iter().map(Post::try_from).collect::<Result<_, _>>()?;
     Ok(posts)
 }
 
@@ -634,19 +588,14 @@ pub async fn get_related_posts(
             WHERE post.id = ANY($1)
         )
         ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-        related_emojis=RELATED_EMOJIS,
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
     );
-    let rows = db_client.query(
-        &statement,
-        &[&posts_ids],
-    ).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
+    let rows = db_client.query(&statement, &[&posts_ids]).await?;
+    let posts: Vec<Post> = rows.iter().map(Post::try_from).collect::<Result<_, _>>()?;
     Ok(posts)
 }
 
@@ -663,7 +612,7 @@ pub async fn get_posts_by_author(
         "post.author_id = $profile_id
         AND {visibility_filter}
         AND ($max_post_id::uuid IS NULL OR post.id < $max_post_id)",
-        visibility_filter=build_visibility_filter(),
+        visibility_filter = build_visibility_filter(),
     );
     if !include_replies {
         condition.push_str(" AND post.in_reply_to_id IS NULL");
@@ -686,25 +635,23 @@ pub async fn get_posts_by_author(
         ORDER BY post.created_at DESC
         LIMIT $limit
         ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-        related_emojis=RELATED_EMOJIS,
-        condition=condition,
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
+        condition = condition,
     );
     let limit: i64 = limit.into();
     let query = query!(
         &statement,
-        profile_id=profile_id,
-        current_user_id=current_user_id,
-        max_post_id=max_post_id,
-        limit=limit,
+        profile_id = profile_id,
+        current_user_id = current_user_id,
+        max_post_id = max_post_id,
+        limit = limit,
     )?;
     let rows = db_client.query(query.sql(), query.parameters()).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
+    let posts: Vec<Post> = rows.iter().map(Post::try_from).collect::<Result<_, _>>()?;
     Ok(posts)
 }
 
@@ -737,25 +684,23 @@ pub async fn get_posts_by_tag(
         ORDER BY post.id DESC
         LIMIT $limit
         ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-        related_emojis=RELATED_EMOJIS,
-        visibility_filter=build_visibility_filter(),
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
+        visibility_filter = build_visibility_filter(),
     );
     let limit: i64 = limit.into();
     let query = query!(
         &statement,
-        tag_name=tag_name,
-        current_user_id=current_user_id,
-        max_post_id=max_post_id,
-        limit=limit,
+        tag_name = tag_name,
+        current_user_id = current_user_id,
+        max_post_id = max_post_id,
+        limit = limit,
     )?;
     let rows = db_client.query(query.sql(), query.parameters()).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
+    let posts: Vec<Post> = rows.iter().map(Post::try_from).collect::<Result<_, _>>()?;
     Ok(posts)
 }
 
@@ -776,16 +721,13 @@ pub async fn get_post_by_id(
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id = $1
         ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-        related_emojis=RELATED_EMOJIS,
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
     );
-    let maybe_row = db_client.query_opt(
-        &statement,
-        &[&post_id],
-    ).await?;
+    let maybe_row = db_client.query_opt(&statement, &[&post_id]).await?;
     let post = match maybe_row {
         Some(row) => Post::try_from(&row)?,
         None => return Err(DatabaseError::NotFound("post")),
@@ -833,22 +775,20 @@ pub async fn get_thread(
         WHERE {visibility_filter}
         ORDER BY thread.path
         ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-        related_emojis=RELATED_EMOJIS,
-        visibility_filter=build_visibility_filter(),
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
+        visibility_filter = build_visibility_filter(),
     );
     let query = query!(
         &statement,
-        post_id=post_id,
-        current_user_id=current_user_id,
+        post_id = post_id,
+        current_user_id = current_user_id,
     )?;
     let rows = db_client.query(query.sql(), query.parameters()).await?;
-    let posts: Vec<Post> = rows.iter()
-        .map(Post::try_from)
-        .collect::<Result<_, _>>()?;
+    let posts: Vec<Post> = rows.iter().map(Post::try_from).collect::<Result<_, _>>()?;
     if posts.is_empty() {
         return Err(DatabaseError::NotFound("post"));
     }
@@ -872,16 +812,13 @@ pub async fn get_post_by_remote_object_id(
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.object_id = $1
         ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-        related_emojis=RELATED_EMOJIS,
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
     );
-    let maybe_row = db_client.query_opt(
-        &statement,
-        &[&object_id],
-    ).await?;
+    let maybe_row = db_client.query_opt(&statement, &[&object_id]).await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
     let post = Post::try_from(&row)?;
     Ok(post)
@@ -904,16 +841,13 @@ pub async fn get_post_by_ipfs_cid(
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.ipfs_cid = $1
         ",
-        related_attachments=RELATED_ATTACHMENTS,
-        related_mentions=RELATED_MENTIONS,
-        related_tags=RELATED_TAGS,
-        related_links=RELATED_LINKS,
-        related_emojis=RELATED_EMOJIS,
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
     );
-    let result = db_client.query_opt(
-        &statement,
-        &[&ipfs_cid],
-    ).await?;
+    let result = db_client.query_opt(&statement, &[&ipfs_cid]).await?;
     let post = match result {
         Some(row) => Post::try_from(&row)?,
         None => return Err(DatabaseError::NotFound("post")),
@@ -926,14 +860,16 @@ pub async fn update_reply_count(
     post_id: &Uuid,
     change: i32,
 ) -> Result<(), DatabaseError> {
-    let updated_count = db_client.execute(
-        "
+    let updated_count = db_client
+        .execute(
+            "
         UPDATE post
         SET reply_count = reply_count + $1
         WHERE id = $2 AND repost_of_id IS NULL
         ",
-        &[&change, &post_id],
-    ).await?;
+            &[&change, &post_id],
+        )
+        .await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));
     }
@@ -945,14 +881,16 @@ pub async fn update_reaction_count(
     post_id: &Uuid,
     change: i32,
 ) -> Result<(), DatabaseError> {
-    let updated_count = db_client.execute(
-        "
+    let updated_count = db_client
+        .execute(
+            "
         UPDATE post
         SET reaction_count = reaction_count + $1
         WHERE id = $2 AND repost_of_id IS NULL
         ",
-        &[&change, &post_id],
-    ).await?;
+            &[&change, &post_id],
+        )
+        .await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));
     };
@@ -964,14 +902,16 @@ pub async fn update_repost_count(
     post_id: &Uuid,
     change: i32,
 ) -> Result<(), DatabaseError> {
-    let updated_count = db_client.execute(
-        "
+    let updated_count = db_client
+        .execute(
+            "
         UPDATE post
         SET repost_count = repost_count + $1
         WHERE id = $2 AND repost_of_id IS NULL
         ",
-        &[&change, &post_id],
-    ).await?;
+            &[&change, &post_id],
+        )
+        .await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));
     };
@@ -985,22 +925,24 @@ pub async fn set_post_ipfs_cid(
     attachments: Vec<(Uuid, String)>,
 ) -> Result<(), DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let updated_count = transaction.execute(
-        "
+    let updated_count = transaction
+        .execute(
+            "
         UPDATE post
         SET ipfs_cid = $1
         WHERE id = $2
             AND repost_of_id IS NULL
             AND ipfs_cid IS NULL
         ",
-        &[&ipfs_cid, &post_id],
-    ).await?;
+            &[&ipfs_cid, &post_id],
+        )
+        .await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));
     };
     for (attachment_id, cid) in attachments {
         set_attachment_ipfs_cid(&transaction, &attachment_id, &cid).await?;
-    };
+    }
     transaction.commit().await?;
     Ok(())
 }
@@ -1010,16 +952,18 @@ pub async fn set_post_token_id(
     post_id: &Uuid,
     token_id: i32,
 ) -> Result<(), DatabaseError> {
-    let updated_count = db_client.execute(
-        "
+    let updated_count = db_client
+        .execute(
+            "
         UPDATE post
         SET token_id = $1
         WHERE id = $2
             AND repost_of_id IS NULL
             AND token_id IS NULL
         ",
-        &[&token_id, &post_id],
-    ).await?;
+            &[&token_id, &post_id],
+        )
+        .await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));
     };
@@ -1031,15 +975,17 @@ pub async fn set_post_token_tx_id(
     post_id: &Uuid,
     token_tx_id: &str,
 ) -> Result<(), DatabaseError> {
-    let updated_count = db_client.execute(
-        "
+    let updated_count = db_client
+        .execute(
+            "
         UPDATE post
         SET token_tx_id = $1
         WHERE id = $2
             AND repost_of_id IS NULL
         ",
-        &[&token_tx_id, &post_id],
-    ).await?;
+            &[&token_tx_id, &post_id],
+        )
+        .await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("post"));
     };
@@ -1050,15 +996,17 @@ pub async fn get_post_author(
     db_client: &impl DatabaseClient,
     post_id: &Uuid,
 ) -> Result<DbActorProfile, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT actor_profile
         FROM post
         JOIN actor_profile ON post.author_id = actor_profile.id
         WHERE post.id = $1
         ",
-        &[&post_id],
-    ).await?;
+            &[&post_id],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("post"))?;
     let author: DbActorProfile = row.try_get("actor_profile")?;
     Ok(author)
@@ -1070,15 +1018,18 @@ pub async fn find_reposts_by_user(
     user_id: &Uuid,
     posts_ids: &[Uuid],
 ) -> Result<Vec<Uuid>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         SELECT post.id
         FROM post
         WHERE post.author_id = $1 AND post.repost_of_id = ANY($2)
         ",
-        &[&user_id, &posts_ids],
-    ).await?;
-    let reposts: Vec<Uuid> = rows.iter()
+            &[&user_id, &posts_ids],
+        )
+        .await?;
+    let reposts: Vec<Uuid> = rows
+        .iter()
         .map(|row| row.try_get("id"))
         .collect::<Result<_, _>>()?;
     Ok(reposts)
@@ -1090,8 +1041,9 @@ pub async fn find_reposted_by_user(
     user_id: &Uuid,
     posts_ids: &[Uuid],
 ) -> Result<Vec<Uuid>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         SELECT post.id
         FROM post
         WHERE post.id = ANY($2) AND EXISTS (
@@ -1099,9 +1051,11 @@ pub async fn find_reposted_by_user(
             WHERE repost.author_id = $1 AND repost.repost_of_id = post.id
         )
         ",
-        &[&user_id, &posts_ids],
-    ).await?;
-    let reposted: Vec<Uuid> = rows.iter()
+            &[&user_id, &posts_ids],
+        )
+        .await?;
+    let reposted: Vec<Uuid> = rows
+        .iter()
         .map(|row| row.try_get("id"))
         .collect::<Result<_, _>>()?;
     Ok(reposted)
@@ -1110,15 +1064,18 @@ pub async fn find_reposted_by_user(
 pub async fn get_token_waitlist(
     db_client: &impl DatabaseClient,
 ) -> Result<Vec<Uuid>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         SELECT post.id
         FROM post
         WHERE token_tx_id IS NOT NULL AND token_id IS NULL
         ",
-        &[],
-    ).await?;
-    let waitlist: Vec<Uuid> = rows.iter()
+            &[],
+        )
+        .await?;
+    let waitlist: Vec<Uuid> = rows
+        .iter()
         .map(|row| row.try_get("id"))
         .collect::<Result<_, _>>()?;
     Ok(waitlist)
@@ -1131,8 +1088,9 @@ pub async fn find_extraneous_posts(
     db_client: &impl DatabaseClient,
     updated_before: &DateTime<Utc>,
 ) -> Result<Vec<Uuid>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         WITH RECURSIVE context_post (id, post_id, created_at) AS (
             SELECT post.id, post.id, post.created_at
             FROM post
@@ -1193,9 +1151,11 @@ pub async fn find_extraneous_posts(
                     AND actor_profile.actor_json IS NULL
             )
         ",
-        &[&updated_before],
-    ).await?;
-    let ids: Vec<Uuid> = rows.iter()
+            &[&updated_before],
+        )
+        .await?;
+    let ids: Vec<Uuid> = rows
+        .iter()
         .map(|row| row.try_get("id"))
         .collect::<Result<_, _>>()?;
     Ok(ids)
@@ -1209,8 +1169,9 @@ pub async fn delete_post(
     let transaction = db_client.transaction().await?;
     // Select all posts that will be deleted.
     // This includes given post, its descendants and reposts.
-    let posts_rows = transaction.query(
-        "
+    let posts_rows = transaction
+        .query(
+            "
         WITH RECURSIVE context (post_id) AS (
             SELECT post.id FROM post
             WHERE post.id = $1
@@ -1223,25 +1184,31 @@ pub async fn delete_post(
         )
         SELECT post_id FROM context
         ",
-        &[&post_id],
-    ).await?;
-    let posts: Vec<Uuid> = posts_rows.iter()
+            &[&post_id],
+        )
+        .await?;
+    let posts: Vec<Uuid> = posts_rows
+        .iter()
         .map(|row| row.try_get("post_id"))
         .collect::<Result<_, _>>()?;
     // Get list of attached files
-    let files_rows = transaction.query(
-        "
+    let files_rows = transaction
+        .query(
+            "
         SELECT file_name
         FROM media_attachment WHERE post_id = ANY($1)
         ",
-        &[&posts],
-    ).await?;
-    let files: Vec<String> = files_rows.iter()
+            &[&posts],
+        )
+        .await?;
+    let files: Vec<String> = files_rows
+        .iter()
         .map(|row| row.try_get("file_name"))
         .collect::<Result<_, _>>()?;
     // Get list of linked IPFS objects
-    let ipfs_objects_rows = transaction.query(
-        "
+    let ipfs_objects_rows = transaction
+        .query(
+            "
         SELECT ipfs_cid
         FROM media_attachment
         WHERE post_id = ANY($1) AND ipfs_cid IS NOT NULL
@@ -1250,14 +1217,17 @@ pub async fn delete_post(
         FROM post
         WHERE id = ANY($1) AND ipfs_cid IS NOT NULL
         ",
-        &[&posts],
-    ).await?;
-    let ipfs_objects: Vec<String> = ipfs_objects_rows.iter()
+            &[&posts],
+        )
+        .await?;
+    let ipfs_objects: Vec<String> = ipfs_objects_rows
+        .iter()
         .map(|row| row.try_get("ipfs_cid"))
         .collect::<Result<_, _>>()?;
     // Update post counters
-    transaction.execute(
-        "
+    transaction
+        .execute(
+            "
         UPDATE actor_profile
         SET post_count = post_count - post.count
         FROM (
@@ -1267,16 +1237,19 @@ pub async fn delete_post(
         ) AS post
         WHERE actor_profile.id = post.author_id
         ",
-        &[&posts],
-    ).await?;
+            &[&posts],
+        )
+        .await?;
     // Delete post
-    let maybe_post_row = transaction.query_opt(
-        "
+    let maybe_post_row = transaction
+        .query_opt(
+            "
         DELETE FROM post WHERE id = $1
         RETURNING post
         ",
-        &[&post_id],
-    ).await?;
+            &[&post_id],
+        )
+        .await?;
     let post_row = maybe_post_row.ok_or(DatabaseError::NotFound("post"))?;
     let db_post: DbPost = post_row.try_get("post")?;
     // Update counters
@@ -1295,41 +1268,31 @@ pub async fn delete_post(
     })
 }
 
-pub async fn get_local_post_count(
-    db_client: &impl DatabaseClient,
-) -> Result<i64, DatabaseError> {
-    let row = db_client.query_one(
-        "
+pub async fn get_local_post_count(db_client: &impl DatabaseClient) -> Result<i64, DatabaseError> {
+    let row = db_client
+        .query_one(
+            "
         SELECT count(post)
         FROM post
         JOIN user_account ON (post.author_id = user_account.id)
         WHERE post.in_reply_to_id IS NULL AND post.repost_of_id IS NULL
         ",
-        &[],
-    ).await?;
+            &[],
+        )
+        .await?;
     let count = row.try_get("count")?;
     Ok(count)
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::database::test_utils::create_test_database;
+    use crate::profiles::{queries::create_profile, types::ProfileCreateData};
+    use crate::relationships::queries::{follow, hide_reposts, subscribe};
+    use crate::users::{queries::create_user, types::UserCreateData};
     use chrono::Duration;
     use serial_test::serial;
-    use crate::database::test_utils::create_test_database;
-    use crate::profiles::{
-        queries::create_profile,
-        types::ProfileCreateData,
-    };
-    use crate::relationships::queries::{
-        follow,
-        hide_reposts,
-        subscribe,
-    };
-    use crate::users::{
-        queries::create_user,
-        types::UserCreateData,
-    };
-    use super::*;
 
     #[tokio::test]
     #[serial]
@@ -1364,12 +1327,16 @@ mod tests {
         };
         let author = create_profile(db_client, author_data).await.unwrap();
         let post_data_1 = PostCreateData::default();
-        let post_1 = create_post(db_client, &author.id, post_data_1).await.unwrap();
+        let post_1 = create_post(db_client, &author.id, post_data_1)
+            .await
+            .unwrap();
         let post_data_2 = PostCreateData {
             links: vec![post_1.id],
             ..Default::default()
         };
-        let post_2 = create_post(db_client, &author.id, post_data_2).await.unwrap();
+        let post_2 = create_post(db_client, &author.id, post_data_2)
+            .await
+            .unwrap();
         assert_eq!(post_2.links, vec![post_1.id]);
     }
 
@@ -1402,7 +1369,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_delete_post() {
-         let db_client = &mut create_test_database().await;
+        let db_client = &mut create_test_database().await;
         let user_data = UserCreateData {
             username: "test".to_string(),
             password_hash: Some("test".to_string()),
@@ -1434,14 +1401,18 @@ mod tests {
             content: "my post".to_string(),
             ..Default::default()
         };
-        let post_1 = create_post(db_client, &current_user.id, post_data_1).await.unwrap();
+        let post_1 = create_post(db_client, &current_user.id, post_data_1)
+            .await
+            .unwrap();
         // Current user's direct message
         let post_data_2 = PostCreateData {
             content: "my post".to_string(),
             visibility: Visibility::Direct,
             ..Default::default()
         };
-        let post_2 = create_post(db_client, &current_user.id, post_data_2).await.unwrap();
+        let post_2 = create_post(db_client, &current_user.id, post_data_2)
+            .await
+            .unwrap();
         // Another user's public post
         let user_data_1 = UserCreateData {
             username: "another-user".to_string(),
@@ -1453,7 +1424,9 @@ mod tests {
             content: "test post".to_string(),
             ..Default::default()
         };
-        let post_3 = create_post(db_client, &user_1.id, post_data_3).await.unwrap();
+        let post_3 = create_post(db_client, &user_1.id, post_data_3)
+            .await
+            .unwrap();
         // Direct message from another user to current user
         let post_data_4 = PostCreateData {
             content: "test post".to_string(),
@@ -1461,14 +1434,18 @@ mod tests {
             mentions: vec![current_user.id],
             ..Default::default()
         };
-        let post_4 = create_post(db_client, &user_1.id, post_data_4).await.unwrap();
+        let post_4 = create_post(db_client, &user_1.id, post_data_4)
+            .await
+            .unwrap();
         // Followers-only post from another user
         let post_data_5 = PostCreateData {
             content: "followers only".to_string(),
             visibility: Visibility::Followers,
             ..Default::default()
         };
-        let post_5 = create_post(db_client, &user_1.id, post_data_5).await.unwrap();
+        let post_5 = create_post(db_client, &user_1.id, post_data_5)
+            .await
+            .unwrap();
         // Followed user's public post
         let user_data_2 = UserCreateData {
             username: "followed".to_string(),
@@ -1476,18 +1453,24 @@ mod tests {
             ..Default::default()
         };
         let user_2 = create_user(db_client, user_data_2).await.unwrap();
-        follow(db_client, &current_user.id, &user_2.id).await.unwrap();
+        follow(db_client, &current_user.id, &user_2.id)
+            .await
+            .unwrap();
         let post_data_6 = PostCreateData {
             content: "test post".to_string(),
             ..Default::default()
         };
-        let post_6 = create_post(db_client, &user_2.id, post_data_6).await.unwrap();
+        let post_6 = create_post(db_client, &user_2.id, post_data_6)
+            .await
+            .unwrap();
         // Followed user's repost
         let post_data_7 = PostCreateData {
             repost_of_id: Some(post_3.id),
             ..Default::default()
         };
-        let post_7 = create_post(db_client, &user_2.id, post_data_7).await.unwrap();
+        let post_7 = create_post(db_client, &user_2.id, post_data_7)
+            .await
+            .unwrap();
         // Direct message from followed user sent to another user
         let post_data_8 = PostCreateData {
             content: "test post".to_string(),
@@ -1495,21 +1478,27 @@ mod tests {
             mentions: vec![user_1.id],
             ..Default::default()
         };
-        let post_8 = create_post(db_client, &user_2.id, post_data_8).await.unwrap();
+        let post_8 = create_post(db_client, &user_2.id, post_data_8)
+            .await
+            .unwrap();
         // Followers-only post from followed user
         let post_data_9 = PostCreateData {
             content: "followers only".to_string(),
             visibility: Visibility::Followers,
             ..Default::default()
         };
-        let post_9 = create_post(db_client, &user_2.id, post_data_9).await.unwrap();
+        let post_9 = create_post(db_client, &user_2.id, post_data_9)
+            .await
+            .unwrap();
         // Subscribers-only post by followed user
         let post_data_10 = PostCreateData {
             content: "subscribers only".to_string(),
             visibility: Visibility::Subscribers,
             ..Default::default()
         };
-        let post_10 = create_post(db_client, &user_2.id, post_data_10).await.unwrap();
+        let post_10 = create_post(db_client, &user_2.id, post_data_10)
+            .await
+            .unwrap();
         // Subscribers-only post by subscription (without mention)
         let user_data_3 = UserCreateData {
             username: "subscription".to_string(),
@@ -1517,13 +1506,17 @@ mod tests {
             ..Default::default()
         };
         let user_3 = create_user(db_client, user_data_3).await.unwrap();
-        subscribe(db_client, &current_user.id, &user_3.id).await.unwrap();
+        subscribe(db_client, &current_user.id, &user_3.id)
+            .await
+            .unwrap();
         let post_data_11 = PostCreateData {
             content: "subscribers only".to_string(),
             visibility: Visibility::Subscribers,
             ..Default::default()
         };
-        let post_11 = create_post(db_client, &user_3.id, post_data_11).await.unwrap();
+        let post_11 = create_post(db_client, &user_3.id, post_data_11)
+            .await
+            .unwrap();
         // Subscribers-only post by subscription (with mention)
         let post_data_12 = PostCreateData {
             content: "subscribers only".to_string(),
@@ -1531,7 +1524,9 @@ mod tests {
             mentions: vec![current_user.id],
             ..Default::default()
         };
-        let post_12 = create_post(db_client, &user_3.id, post_data_12).await.unwrap();
+        let post_12 = create_post(db_client, &user_3.id, post_data_12)
+            .await
+            .unwrap();
         // Repost from followed user if hiding reposts
         let user_data_4 = UserCreateData {
             username: "hide reposts".to_string(),
@@ -1539,15 +1534,23 @@ mod tests {
             ..Default::default()
         };
         let user_4 = create_user(db_client, user_data_4).await.unwrap();
-        follow(db_client, &current_user.id, &user_4.id).await.unwrap();
-        hide_reposts(db_client, &current_user.id, &user_4.id).await.unwrap();
+        follow(db_client, &current_user.id, &user_4.id)
+            .await
+            .unwrap();
+        hide_reposts(db_client, &current_user.id, &user_4.id)
+            .await
+            .unwrap();
         let post_data_13 = PostCreateData {
             repost_of_id: Some(post_3.id),
             ..Default::default()
         };
-        let post_13 = create_post(db_client, &user_4.id, post_data_13).await.unwrap();
+        let post_13 = create_post(db_client, &user_4.id, post_data_13)
+            .await
+            .unwrap();
 
-        let timeline = get_home_timeline(db_client, &current_user.id, None, 20).await.unwrap();
+        let timeline = get_home_timeline(db_client, &current_user.id, None, 20)
+            .await
+            .unwrap();
         assert_eq!(timeline.len(), 7);
         assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_2.id), true);
@@ -1616,9 +1619,9 @@ mod tests {
         let repost = create_post(db_client, &user.id, repost_data).await.unwrap();
 
         // Anonymous viewer
-        let timeline = get_posts_by_author(
-            db_client, &user.id, None, false, true, None, 10
-        ).await.unwrap();
+        let timeline = get_posts_by_author(db_client, &user.id, None, false, true, None, 10)
+            .await
+            .unwrap();
         assert_eq!(timeline.len(), 2);
         assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
         assert_eq!(timeline.iter().any(|post| post.id == post_2.id), false);
@@ -1649,11 +1652,9 @@ mod tests {
             ..Default::default()
         };
         let post_2 = create_post(db_client, &user.id, post_data_2).await.unwrap();
-        let thread = get_thread(
-            db_client,
-            &post_2.id,
-            Some(&user.id),
-        ).await.unwrap();
+        let thread = get_thread(db_client, &post_2.id, Some(&user.id))
+            .await
+            .unwrap();
         assert_eq!(thread[0].id, post_1.id);
         assert_eq!(thread[1].id, post_2.id);
     }
@@ -1673,10 +1674,9 @@ mod tests {
         };
         create_post(db_client, &author.id, post_data).await.unwrap();
         let updated_before = Utc::now() - Duration::days(1);
-        let result = find_extraneous_posts(
-            db_client,
-            &updated_before,
-        ).await.unwrap();
+        let result = find_extraneous_posts(db_client, &updated_before)
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 }

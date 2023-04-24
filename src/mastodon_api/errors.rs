@@ -1,9 +1,4 @@
-use actix_web::{
-    error::ResponseError,
-    http::StatusCode,
-    HttpResponse,
-    HttpResponseBuilder,
-};
+use actix_web::{error::ResponseError, http::StatusCode, HttpResponse, HttpResponseBuilder};
 use serde::Serialize;
 
 use mitra_models::database::DatabaseError;
@@ -47,9 +42,9 @@ impl From<DatabaseError> for MastodonError {
     fn from(error: DatabaseError) -> Self {
         match error {
             DatabaseError::NotFound(name) => Self::NotFoundError(name),
-            DatabaseError::AlreadyExists(name) => Self::ValidationError(
-                format!("{} already exists", name),
-            ),
+            DatabaseError::AlreadyExists(name) => {
+                Self::ValidationError(format!("{} already exists", name))
+            }
             _ => Self::DatabaseError(error),
         }
     }
@@ -75,8 +70,7 @@ impl ResponseError for MastodonError {
 
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::ActixError(error) =>
-                error.as_response_error().status_code(),
+            Self::ActixError(error) => error.as_response_error().status_code(),
             Self::ValidationError(_) => StatusCode::BAD_REQUEST,
             Self::ValidationErrorAuto(_) => StatusCode::BAD_REQUEST,
             Self::AuthError(_) => StatusCode::UNAUTHORIZED,

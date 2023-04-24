@@ -1,30 +1,18 @@
 /// https://docs.joinmastodon.org/methods/timelines/
-use actix_web::{
-    dev::ConnectionInfo,
-    get,
-    web,
-    HttpResponse,
-    Scope,
-};
+use actix_web::{dev::ConnectionInfo, get, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_config::Config;
 use mitra_models::{
     database::{get_database_client, DbPool},
-    posts::queries::{
-        get_home_timeline,
-        get_local_timeline,
-        get_posts_by_tag,
-    },
+    posts::queries::{get_home_timeline, get_local_timeline, get_posts_by_tag},
 };
 
+use super::types::TimelineQueryParams;
 use crate::http::get_request_base_url;
 use crate::mastodon_api::{
-    errors::MastodonError,
-    oauth::auth::get_current_user,
-    statuses::helpers::build_status_list,
+    errors::MastodonError, oauth::auth::get_current_user, statuses::helpers::build_status_list,
 };
-use super::types::TimelineQueryParams;
 
 #[get("/home")]
 async fn home_timeline(
@@ -41,14 +29,16 @@ async fn home_timeline(
         &current_user.id,
         query_params.max_id,
         query_params.limit.inner(),
-    ).await?;
+    )
+    .await?;
     let statuses = build_status_list(
         db_client,
         &get_request_base_url(connection_info),
         &config.instance_url(),
         Some(&current_user),
         posts,
-    ).await?;
+    )
+    .await?;
     Ok(HttpResponse::Ok().json(statuses))
 }
 
@@ -68,14 +58,16 @@ async fn public_timeline(
         &current_user.id,
         query_params.max_id,
         query_params.limit.inner(),
-    ).await?;
+    )
+    .await?;
     let statuses = build_status_list(
         db_client,
         &get_request_base_url(connection_info),
         &config.instance_url(),
         Some(&current_user),
         posts,
-    ).await?;
+    )
+    .await?;
     Ok(HttpResponse::Ok().json(statuses))
 }
 
@@ -99,14 +91,16 @@ async fn hashtag_timeline(
         maybe_current_user.as_ref().map(|user| &user.id),
         query_params.max_id,
         query_params.limit.inner(),
-    ).await?;
+    )
+    .await?;
     let statuses = build_status_list(
         db_client,
         &get_request_base_url(connection_info),
         &config.instance_url(),
         maybe_current_user.as_ref(),
         posts,
-    ).await?;
+    )
+    .await?;
     Ok(HttpResponse::Ok().json(statuses))
 }
 

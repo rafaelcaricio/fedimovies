@@ -5,30 +5,13 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use mitra_models::{
-    profiles::types::{
-        DbActorProfile,
-        ExtraField,
-        PaymentOption,
-        ProfileImage,
-        ProfileUpdateData,
-    },
+    profiles::types::{DbActorProfile, ExtraField, PaymentOption, ProfileImage, ProfileUpdateData},
     subscriptions::types::Subscription,
-    users::types::{
-        ClientConfig,
-        Permission,
-        Role,
-        User,
-    },
+    users::types::{ClientConfig, Permission, Role, User},
 };
-use mitra_utils::{
-    did::Did,
-    markdown::markdown_basic_to_html,
-};
+use mitra_utils::{did::Did, markdown::markdown_basic_to_html};
 
-use crate::activitypub::{
-    actors::helpers::ACTOR_IMAGE_MAX_SIZE,
-    identifiers::profile_actor_url,
-};
+use crate::activitypub::{actors::helpers::ACTOR_IMAGE_MAX_SIZE, identifiers::profile_actor_url};
 use crate::errors::ValidationError;
 use crate::mastodon_api::{
     custom_emojis::types::CustomEmoji,
@@ -78,16 +61,18 @@ impl ApiRole {
             Role::ReadOnlyUser => "read_only_user",
         };
         // Mastodon 4.0 uses bitmask
-        let permissions = role.get_permissions().iter()
+        let permissions = role
+            .get_permissions()
+            .iter()
             .map(|permission| {
                 match permission {
                     Permission::CreateFollowRequest => "create_follow_request",
                     Permission::CreatePost => "create_post",
                     Permission::DeleteAnyPost => "delete_any_post",
                     Permission::DeleteAnyProfile => "delete_any_profile",
-                    Permission::ManageSubscriptionOptions =>
-                        "manage_subscription_options",
-                }.to_string()
+                    Permission::ManageSubscriptionOptions => "manage_subscription_options",
+                }
+                .to_string()
             })
             .collect();
         Self {
@@ -127,25 +112,22 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn from_profile(
-        base_url: &str,
-        instance_url: &str,
-        profile: DbActorProfile,
-    ) -> Self {
+    pub fn from_profile(base_url: &str, instance_url: &str, profile: DbActorProfile) -> Self {
         let profile_url = profile_actor_url(instance_url, &profile);
-        let avatar_url = profile.avatar
+        let avatar_url = profile
+            .avatar
             .map(|image| get_file_url(base_url, &image.file_name));
-        let header_url = profile.banner
+        let header_url = profile
+            .banner
             .map(|image| get_file_url(base_url, &image.file_name));
 
         let mut identity_proofs = vec![];
         for proof in profile.identity_proofs.into_inner() {
             let (field_name, field_value) = match proof.issuer {
-                Did::Key(did_key) => {
-                    ("Key".to_string(), did_key.key_multibase())
-                },
+                Did::Key(did_key) => ("Key".to_string(), did_key.key_multibase()),
                 Did::Pkh(did_pkh) => {
-                    let field_name = did_pkh.currency()
+                    let field_name = did_pkh
+                        .currency()
                         .map(|currency| currency.field_name())
                         .unwrap_or("$".to_string());
                     (field_name, did_pkh.address)
@@ -158,7 +140,7 @@ impl Account {
                 verified_at: Some(Utc::now()),
             };
             identity_proofs.push(field);
-        };
+        }
 
         let mut extra_fields = vec![];
         for extra_field in profile.extra_fields.into_inner() {
@@ -168,31 +150,31 @@ impl Account {
                 verified_at: None,
             };
             extra_fields.push(field);
-        };
+        }
 
-        let payment_options = profile.payment_options.into_inner()
+        let payment_options = profile
+            .payment_options
+            .into_inner()
             .into_iter()
-            .map(|option| {
-                match option {
-                    PaymentOption::Link(link) => {
-                        AccountPaymentOption::Link {
-                            name: link.name,
-                            href: link.href,
-                        }
-                    },
-                    PaymentOption::EthereumSubscription(_) => {
-                        AccountPaymentOption::EthereumSubscription
-                    },
-                    PaymentOption::MoneroSubscription(payment_info) => {
-                        AccountPaymentOption::MoneroSubscription {
-                            price: payment_info.price,
-                        }
-                    },
+            .map(|option| match option {
+                PaymentOption::Link(link) => AccountPaymentOption::Link {
+                    name: link.name,
+                    href: link.href,
+                },
+                PaymentOption::EthereumSubscription(_) => {
+                    AccountPaymentOption::EthereumSubscription
+                }
+                PaymentOption::MoneroSubscription(payment_info) => {
+                    AccountPaymentOption::MoneroSubscription {
+                        price: payment_info.price,
+                    }
                 }
             })
             .collect();
 
-        let emojis = profile.emojis.into_inner()
+        let emojis = profile
+            .emojis
+            .into_inner()
             .into_iter()
             .map(|db_emoji| CustomEmoji::from_db(base_url, db_emoji))
             .collect();
@@ -222,13 +204,13 @@ impl Account {
         }
     }
 
-    pub fn from_user(
-        base_url: &str,
-        instance_url: &str,
-        user: User,
-    ) -> Self {
-        let fields_sources = user.profile.extra_fields.clone()
-            .into_inner().into_iter()
+    pub fn from_user(base_url: &str, instance_url: &str, user: User) -> Self {
+        let fields_sources = user
+            .profile
+            .extra_fields
+            .clone()
+            .into_inner()
+            .into_iter()
             .map(|field| AccountField {
                 name: field.name,
                 value: field.value_source.unwrap_or(field.value),
@@ -240,11 +222,7 @@ impl Account {
             fields: fields_sources,
         };
         let role = ApiRole::from_db(user.role);
-        let mut account = Self::from_profile(
-            base_url,
-            instance_url,
-            user.profile,
-        );
+        let mut account = Self::from_profile(base_url, instance_url, user.profile);
         account.source = Some(source);
         account.role = Some(role);
         account.client_config = Some(user.client_config);
@@ -301,14 +279,10 @@ fn process_b64_image_field_value(
                     ACTOR_IMAGE_MAX_SIZE,
                     Some("image/"),
                 )?;
-                let image = ProfileImage::new(
-                    file_name,
-                    file_size,
-                    Some(media_type),
-                );
+                let image = ProfileImage::new(file_name, file_size, Some(media_type));
                 Some(image)
             }
-        },
+        }
         // Keep current value
         None => db_value,
     };
@@ -352,7 +326,7 @@ impl AccountUpdateData {
                 value_source: Some(field_source.value),
             };
             extra_fields.push(extra_field);
-        };
+        }
         let profile_data = ProfileUpdateData {
             display_name: self.display_name,
             bio: maybe_bio,
@@ -428,9 +402,13 @@ pub struct RelationshipMap {
     pub showing_replies: bool,
 }
 
-fn default_showing_reblogs() -> bool { true }
+fn default_showing_reblogs() -> bool {
+    true
+}
 
-fn default_showing_replies() -> bool { true }
+fn default_showing_replies() -> bool {
+    true
+}
 
 impl Default for RelationshipMap {
     fn default() -> Self {
@@ -452,7 +430,9 @@ pub struct LookupAcctQueryParams {
     pub acct: String,
 }
 
-fn default_search_page_size() -> PageSize { PageSize::new(40) }
+fn default_search_page_size() -> PageSize {
+    PageSize::new(40)
+}
 
 #[derive(Deserialize)]
 pub struct SearchAcctQueryParams {
@@ -478,9 +458,13 @@ pub struct FollowData {
     pub replies: bool,
 }
 
-fn default_status_page_size() -> PageSize { PageSize::new(20) }
+fn default_status_page_size() -> PageSize {
+    PageSize::new(20)
+}
 
-fn default_exclude_replies() -> bool { true }
+fn default_exclude_replies() -> bool {
+    true
+}
 
 #[derive(Deserialize)]
 pub struct StatusListQueryParams {
@@ -496,7 +480,9 @@ pub struct StatusListQueryParams {
     pub limit: PageSize,
 }
 
-fn default_follow_list_page_size() -> PageSize { PageSize::new(40) }
+fn default_follow_list_page_size() -> PageSize {
+    PageSize::new(40)
+}
 
 #[derive(Deserialize)]
 pub struct FollowListQueryParams {
@@ -520,11 +506,7 @@ impl ApiSubscription {
         instance_url: &str,
         subscription: Subscription,
     ) -> Self {
-        let sender = Account::from_profile(
-            base_url,
-            instance_url,
-            subscription.sender,
-        );
+        let sender = Account::from_profile(base_url, instance_url, subscription.sender);
         Self {
             id: subscription.id,
             sender,
@@ -542,8 +524,8 @@ pub struct Aliases {
 
 #[cfg(test)]
 mod tests {
-    use mitra_models::profiles::types::ProfileImage;
     use super::*;
+    use mitra_models::profiles::types::ProfileImage;
 
     const INSTANCE_URL: &str = "https://example.com";
 
@@ -553,11 +535,7 @@ mod tests {
             avatar: Some(ProfileImage::new("test".to_string(), 1000, None)),
             ..Default::default()
         };
-        let account = Account::from_profile(
-            INSTANCE_URL,
-            INSTANCE_URL,
-            profile,
-        );
+        let account = Account::from_profile(INSTANCE_URL, INSTANCE_URL, profile);
 
         assert_eq!(
             account.avatar.unwrap(),
@@ -579,15 +557,8 @@ mod tests {
             profile,
             ..Default::default()
         };
-        let account = Account::from_user(
-            INSTANCE_URL,
-            INSTANCE_URL,
-            user,
-        );
+        let account = Account::from_user(INSTANCE_URL, INSTANCE_URL, user);
 
-        assert_eq!(
-            account.source.unwrap().note.unwrap(),
-            bio_source,
-        );
+        assert_eq!(account.source.unwrap().note.unwrap(), bio_source,);
     }
 }

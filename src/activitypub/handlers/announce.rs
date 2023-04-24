@@ -4,13 +4,11 @@ use serde_json::Value;
 use mitra_config::Config;
 use mitra_models::{
     database::{DatabaseClient, DatabaseError},
-    posts::queries::{
-        create_post,
-        get_post_by_remote_object_id,
-    },
+    posts::queries::{create_post, get_post_by_remote_object_id},
     posts::types::PostCreateData,
 };
 
+use super::HandlerResult;
 use crate::activitypub::{
     fetcher::helpers::{get_or_import_profile_by_actor_id, import_post},
     identifiers::parse_local_object_id,
@@ -19,7 +17,6 @@ use crate::activitypub::{
 };
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
-use super::HandlerResult;
 
 #[derive(Deserialize)]
 struct Announce {
@@ -44,43 +41,24 @@ pub async fn handle_announce(
     let activity: Announce = serde_json::from_value(activity)
         .map_err(|_| ValidationError("unexpected activity structure"))?;
     let repost_object_id = activity.id;
-    match get_post_by_remote_object_id(
-        db_client,
-        &repost_object_id,
-    ).await {
+    match get_post_by_remote_object_id(db_client, &repost_object_id).await {
         Ok(_) => return Ok(None), // Ignore if repost already exists
         Err(DatabaseError::NotFound(_)) => (),
         Err(other_error) => return Err(other_error.into()),
     };
     let instance = config.instance();
     let storage = MediaStorage::from(config);
-    let author = get_or_import_profile_by_actor_id(
-        db_client,
-        &instance,
-        &storage,
-        &activity.actor,
-    ).await?;
-    let post_id = match parse_local_object_id(
-        &instance.url(),
-        &activity.object,
-    ) {
+    let author =
+        get_or_import_profile_by_actor_id(db_client, &instance, &storage, &activity.actor).await?;
+    let post_id = match parse_local_object_id(&instance.url(), &activity.object) {
         Ok(post_id) => post_id,
         Err(_) => {
             // Try to get remote post
-            let post = import_post(
-                db_client,
-                &instance,
-                &storage,
-                activity.object,
-                None,
-            ).await?;
+            let post = import_post(db_client, &instance, &storage, activity.object, None).await?;
             post.id
-        },
+        }
     };
-    let repost_data = PostCreateData::repost(
-        post_id,
-        Some(repost_object_id.clone()),
-    );
+    let repost_data = PostCreateData::repost(post_id, Some(repost_object_id.clone()));
     match create_post(db_client, &author.id, repost_data).await {
         Ok(_) => Ok(Some(NOTE)),
         Err(DatabaseError::AlreadyExists("post")) => {
@@ -88,7 +66,7 @@ pub async fn handle_announce(
             // object ID, or due to race condition in a handler).
             log::warn!("repost already exists: {}", repost_object_id);
             Ok(None)
-        },
+        }
         // May return "post not found" error if post if not public
         Err(other_error) => Err(other_error.into()),
     }
@@ -96,8 +74,8 @@ pub async fn handle_announce(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn test_deserialize_announce() {

@@ -37,14 +37,8 @@ fn build_undo_follow(
     target_actor_id: &str,
     follow_request_id: &Uuid,
 ) -> UndoFollow {
-    let follow_activity_id = local_object_id(
-        instance_url,
-        follow_request_id,
-    );
-    let follow_actor_id = local_actor_id(
-        instance_url,
-        &actor_profile.username,
-    );
+    let follow_activity_id = local_object_id(instance_url, follow_request_id);
+    let follow_actor_id = local_actor_id(instance_url, &actor_profile.username);
     let object = Follow {
         context: build_default_context(),
         activity_type: FOLLOW.to_string(),
@@ -78,18 +72,13 @@ pub fn prepare_undo_follow(
         follow_request_id,
     );
     let recipients = vec![target_actor.clone()];
-    OutgoingActivity::new(
-        instance,
-        sender,
-        activity,
-        recipients,
-    )
+    OutgoingActivity::new(instance, sender, activity, recipients)
 }
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::id::generate_ulid;
     use super::*;
+    use mitra_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 

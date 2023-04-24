@@ -8,10 +8,7 @@ use mitra_models::{
 };
 
 use crate::activitypub::{
-    fetcher::helpers::{
-        get_or_import_profile_by_actor_id,
-        get_post_by_object_id,
-    },
+    fetcher::helpers::{get_or_import_profile_by_actor_id, get_post_by_object_id},
     receiver::deserialize_into_object_id,
     vocabulary::NOTE,
 };
@@ -40,23 +37,16 @@ pub async fn handle_like(
         &config.instance(),
         &MediaStorage::from(config),
         &activity.actor,
-    ).await?;
-    let post_id = match get_post_by_object_id(
-        db_client,
-        &config.instance_url(),
-        &activity.object,
-    ).await {
-        Ok(post) => post.id,
-        // Ignore like if post is not found locally
-        Err(DatabaseError::NotFound(_)) => return Ok(None),
-        Err(other_error) => return Err(other_error.into()),
-    };
-    match create_reaction(
-        db_client,
-        &author.id,
-        &post_id,
-        Some(&activity.id),
-    ).await {
+    )
+    .await?;
+    let post_id =
+        match get_post_by_object_id(db_client, &config.instance_url(), &activity.object).await {
+            Ok(post) => post.id,
+            // Ignore like if post is not found locally
+            Err(DatabaseError::NotFound(_)) => return Ok(None),
+            Err(other_error) => return Err(other_error.into()),
+        };
+    match create_reaction(db_client, &author.id, &post_id, Some(&activity.id)).await {
         Ok(_) => (),
         // Ignore activity if reaction is already saved
         Err(DatabaseError::AlreadyExists(_)) => return Ok(None),

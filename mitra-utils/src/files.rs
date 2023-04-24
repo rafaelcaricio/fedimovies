@@ -1,10 +1,6 @@
-use std::fs::{
-    set_permissions,
-    File,
-    Permissions,
-};
-use std::io::Error;
+use std::fs::{set_permissions, File, Permissions};
 use std::io::prelude::*;
+use std::io::Error;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
@@ -19,11 +15,9 @@ pub fn get_media_type_extension(media_type: &str) -> Option<&'static str> {
     match media_type {
         // Override extension provided by mime_guess
         "image/jpeg" => Some("jpg"),
-        _ => {
-            get_mime_extensions_str(media_type)
-                .and_then(|extensions| extensions.first())
-                .copied()
-        }
+        _ => get_mime_extensions_str(media_type)
+            .and_then(|extensions| extensions.first())
+            .copied(),
     }
 }
 
@@ -45,13 +39,7 @@ mod tests {
 
     #[test]
     fn test_get_media_type_extension() {
-        assert_eq!(
-            get_media_type_extension("image/png"),
-            Some("png"),
-        );
-        assert_eq!(
-            get_media_type_extension("image/jpeg"),
-            Some("jpg"),
-        );
+        assert_eq!(get_media_type_extension("image/png"), Some("png"),);
+        assert_eq!(get_media_type_extension("image/jpeg"), Some("jpg"),);
     }
 }

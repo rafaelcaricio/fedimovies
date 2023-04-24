@@ -8,25 +8,18 @@ use mitra_models::{
 
 use crate::activitypub::{
     constants::AP_MEDIA_TYPE,
-    identifiers::{
-        local_actor_id,
-        local_instance_actor_id,
-        parse_local_actor_id,
-    },
+    identifiers::{local_actor_id, local_instance_actor_id, parse_local_actor_id},
 };
 use crate::errors::{HttpError, ValidationError};
 
 use super::types::{
-    ActorAddress,
-    Link,
-    JsonResourceDescriptor,
-    WebfingerQueryParams,
-    JRD_CONTENT_TYPE,
+    ActorAddress, JsonResourceDescriptor, Link, WebfingerQueryParams, JRD_CONTENT_TYPE,
 };
 
 // https://datatracker.ietf.org/doc/html/rfc7565#section-7
 fn parse_acct_uri(uri: &str) -> Result<ActorAddress, ValidationError> {
-    let actor_address = uri.strip_prefix("acct:")
+    let actor_address = uri
+        .strip_prefix("acct:")
         .ok_or(ValidationError("invalid query target"))?
         .parse()?;
     Ok(actor_address)
@@ -46,7 +39,10 @@ async fn get_jrd(
         } else {
             parse_local_actor_id(&instance.url(), resource)?
         };
-        ActorAddress { username, hostname: instance.hostname() }
+        ActorAddress {
+            username,
+            hostname: instance.hostname(),
+        }
     };
     if actor_address.hostname != instance.hostname() {
         // Wrong instance
@@ -87,28 +83,19 @@ pub async fn webfinger_view(
     query_params: web::Query<WebfingerQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
     let db_client = &**get_database_client(&db_pool).await?;
-    let jrd = get_jrd(
-        db_client,
-        config.instance(),
-        &query_params.resource,
-    ).await?;
-    let response = HttpResponse::Ok()
-        .content_type(JRD_CONTENT_TYPE)
-        .json(jrd);
+    let jrd = get_jrd(db_client, config.instance(), &query_params.resource).await?;
+    let response = HttpResponse::Ok().content_type(JRD_CONTENT_TYPE).json(jrd);
     Ok(response)
 }
 
 #[cfg(test)]
 mod tests {
-    use serial_test::serial;
+    use super::*;
     use mitra_models::{
         database::test_utils::create_test_database,
-        users::{
-            queries::create_user,
-            types::UserCreateData,
-        },
+        users::{queries::create_user, types::UserCreateData},
     };
-    use super::*;
+    use serial_test::serial;
 
     #[test]
     fn test_parse_acct_uri() {

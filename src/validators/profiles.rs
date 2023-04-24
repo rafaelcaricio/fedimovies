@@ -1,10 +1,6 @@
 use regex::Regex;
 
-use mitra_models::profiles::types::{
-    ExtraField,
-    ProfileCreateData,
-    ProfileUpdateData,
-};
+use mitra_models::profiles::types::{ExtraField, ProfileCreateData, ProfileUpdateData};
 use mitra_utils::html::{clean_html, clean_html_strict};
 
 use crate::errors::ValidationError;
@@ -32,9 +28,7 @@ pub fn validate_username(username: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-fn validate_display_name(display_name: &str)
-    -> Result<(), ValidationError>
-{
+fn validate_display_name(display_name: &str) -> Result<(), ValidationError> {
     if display_name.chars().count() > DISPLAY_NAME_MAX_LENGTH {
         return Err(ValidationError("display name is too long"));
     };
@@ -75,7 +69,7 @@ fn clean_extra_fields(
             return Err(ValidationError("field value is too long"));
         };
         cleaned_extra_fields.push(field);
-    };
+    }
     #[allow(clippy::collapsible_else_if)]
     if is_remote {
         if cleaned_extra_fields.len() > 100 {
@@ -104,10 +98,7 @@ pub fn clean_profile_create_data(
         let cleaned_bio = clean_bio(bio, is_remote)?;
         profile_data.bio = Some(cleaned_bio);
     };
-    profile_data.extra_fields = clean_extra_fields(
-        &profile_data.extra_fields,
-        is_remote,
-    )?;
+    profile_data.extra_fields = clean_extra_fields(&profile_data.extra_fields, is_remote)?;
     if profile_data.emojis.len() > EMOJI_LIMIT {
         return Err(ValidationError("too many emojis"));
     };
@@ -125,10 +116,7 @@ pub fn clean_profile_update_data(
         let cleaned_bio = clean_bio(bio, is_remote)?;
         profile_data.bio = Some(cleaned_bio);
     };
-    profile_data.extra_fields = clean_extra_fields(
-        &profile_data.extra_fields,
-        is_remote,
-    )?;
+    profile_data.extra_fields = clean_extra_fields(&profile_data.extra_fields, is_remote)?;
     if profile_data.emojis.len() > EMOJI_LIMIT {
         return Err(ValidationError("too many emojis"));
     };
@@ -137,8 +125,8 @@ pub fn clean_profile_update_data(
 
 #[cfg(test)]
 mod tests {
-    use mitra_models::profiles::types::DbActor;
     use super::*;
+    use mitra_models::profiles::types::DbActor;
 
     #[test]
     fn test_validate_username() {
@@ -182,7 +170,9 @@ mod tests {
             value_source: None,
         }];
         let result = clean_extra_fields(&extra_fields, false)
-            .unwrap().pop().unwrap();
+            .unwrap()
+            .pop()
+            .unwrap();
         assert_eq!(result.name, "$ETH");
         assert_eq!(result.value, "0x1234");
     }

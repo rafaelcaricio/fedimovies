@@ -6,13 +6,13 @@ use mitra_models::{
     posts::helpers::get_local_post_by_id,
     posts::queries::get_post_by_remote_object_id,
     posts::types::Post,
-    profiles::queries::{
-        get_profile_by_acct,
-        get_profile_by_remote_actor_id,
-    },
+    profiles::queries::{get_profile_by_acct, get_profile_by_remote_actor_id},
     profiles::types::DbActorProfile,
 };
 
+use super::fetchers::{
+    fetch_actor, fetch_object, fetch_outbox, perform_webfinger_query, FetchError,
+};
 use crate::activitypub::{
     actors::helpers::{create_remote_profile, update_remote_profile},
     handlers::create::{get_object_links, handle_note},
@@ -23,13 +23,6 @@ use crate::activitypub::{
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
 use crate::webfinger::types::ActorAddress;
-use super::fetchers::{
-    fetch_actor,
-    fetch_object,
-    fetch_outbox,
-    perform_webfinger_query,
-    FetchError,
-};
 
 pub async fn get_or_import_profile_by_actor_id(
     db_client: &mut impl DatabaseClient,
@@ -40,37 +33,28 @@ pub async fn get_or_import_profile_by_actor_id(
     if actor_id.starts_with(&instance.url()) {
         return Err(HandlerError::LocalObject);
     };
-    let profile = match get_profile_by_remote_actor_id(
-        db_client,
-        actor_id,
-    ).await {
+    let profile = match get_profile_by_remote_actor_id(db_client, actor_id).await {
         Ok(profile) => {
             if profile.possibly_outdated() {
                 // Try to re-fetch actor profile
                 match fetch_actor(instance, actor_id).await {
                     Ok(actor) => {
                         log::info!("re-fetched profile {}", profile.acct);
-                        let profile_updated = update_remote_profile(
-                            db_client,
-                            instance,
-                            storage,
-                            profile,
-                            actor,
-                        ).await?;
+                        let profile_updated =
+                            update_remote_profile(db_client, instance, storage, profile, actor)
+                                .await?;
                         profile_updated
-                    },
+                    }
                     Err(err) => {
                         // Ignore error and return stored profile
-                        log::warn!(
-                            "failed to re-fetch {} ({})", profile.acct, err,
-                        );
+                        log::warn!("failed to re-fetch {} ({})", profile.acct, err,);
                         profile
-                    },
+                    }
                 }
             } else {
                 profile
             }
-        },
+        }
         Err(DatabaseError::NotFound(_)) => {
             let actor = fetch_actor(instance, actor_id).await?;
             let actor_address = actor.address()?;
@@ -79,28 +63,19 @@ pub async fn get_or_import_profile_by_actor_id(
                 Ok(profile) => {
                     // WARNING: Possible actor ID change
                     log::info!("re-fetched profile {}", profile.acct);
-                    let profile_updated = update_remote_profile(
-                        db_client,
-                        instance,
-                        storage,
-                        profile,
-                        actor,
-                    ).await?;
+                    let profile_updated =
+                        update_remote_profile(db_client, instance, storage, profile, actor).await?;
                     profile_updated
-                },
+                }
                 Err(DatabaseError::NotFound(_)) => {
                     log::info!("fetched profile {}", acct);
-                    let profile = create_remote_profile(
-                        db_client,
-                        instance,
-                        storage,
-                        actor,
-                    ).await?;
+                    let profile =
+                        create_remote_profile(db_client, instance, storage, actor).await?;
                     profile
-                },
+                }
                 Err(other_error) => return Err(other_error.into()),
             }
-        },
+        }
         Err(other_error) => return Err(other_error.into()),
     };
     Ok(profile)
@@ -128,12 +103,7 @@ pub async fn import_profile_by_actor_address(
         };
     };
     log::info!("fetched profile {}", profile_acct);
-    let profile = create_remote_profile(
-        db_client,
-        instance,
-        storage,
-        actor,
-    ).await?;
+    let profile = create_remote_profile(db_client, instance, storage, actor).await?;
     Ok(profile)
 }
 
@@ -145,22 +115,14 @@ pub async fn get_or_import_profile_by_actor_address(
     actor_address: &ActorAddress,
 ) -> Result<DbActorProfile, HandlerError> {
     let acct = actor_address.acct(&instance.hostname());
-    let profile = match get_profile_by_acct(
-        db_client,
-        &acct,
-    ).await {
+    let profile = match get_profile_by_acct(db_client, &acct).await {
         Ok(profile) => profile,
         Err(db_error @ DatabaseError::NotFound(_)) => {
             if actor_address.hostname == instance.hostname() {
                 return Err(db_error.into());
             };
-            import_profile_by_actor_address(
-                db_client,
-                instance,
-                storage,
-                actor_address,
-            ).await?
-        },
+            import_profile_by_actor_address(db_client, instance, storage, actor_address).await?
+        }
         Err(other_error) => return Err(other_error.into()),
     };
     Ok(profile)
@@ -176,12 +138,12 @@ pub async fn get_post_by_object_id(
             // Local post
             let post = get_local_post_by_id(db_client, &post_id).await?;
             Ok(post)
-        },
+        }
         Err(_) => {
             // Remote post
             let post = get_post_by_remote_object_id(db_client, object_id).await?;
             Ok(post)
-        },
+        }
     }
 }
 
@@ -222,10 +184,7 @@ pub async fn import_post(
                     get_local_post_by_id(db_client, &post_id).await?;
                     continue;
                 };
-                match get_post_by_remote_object_id(
-                    db_client,
-                    &object_id,
-                ).await {
+                match get_post_by_remote_object_id(db_client, &object_id).await {
                     Ok(post) => {
                         // Object already fetched
                         if objects.len() == 0 {
@@ -233,16 +192,16 @@ pub async fn import_post(
                             return Ok(post);
                         };
                         continue;
-                    },
+                    }
                     Err(DatabaseError::NotFound(_)) => (),
                     Err(other_error) => return Err(other_error.into()),
                 };
                 object_id
-            },
+            }
             None => {
                 // No object to fetch
                 break;
-            },
+            }
         };
         let object = match maybe_object {
             Some(object) => object,
@@ -251,15 +210,14 @@ pub async fn import_post(
                     // TODO: create tombstone
                     return Err(FetchError::RecursionError.into());
                 };
-                let object = fetch_object(instance, &object_id).await
-                    .map_err(|err| {
-                        log::warn!("{}", err);
-                        ValidationError("failed to fetch object")
-                    })?;
+                let object = fetch_object(instance, &object_id).await.map_err(|err| {
+                    log::warn!("{}", err);
+                    ValidationError("failed to fetch object")
+                })?;
                 log::info!("fetched object {}", object.id);
-                fetch_count +=  1;
+                fetch_count += 1;
                 object
-            },
+            }
         };
         if object.id != object_id {
             // ID of fetched object doesn't match requested ID
@@ -277,27 +235,22 @@ pub async fn import_post(
         for object_id in get_object_links(&object) {
             // Fetch linked objects after fetching current thread
             queue.insert(0, object_id);
-        };
+        }
         maybe_object = None;
         objects.push(object);
-    };
+    }
     let initial_object_id = objects[0].id.clone();
 
     // Objects are ordered according to their place in reply tree,
     // starting with the root
     objects.reverse();
     for object in objects {
-        let post = handle_note(
-            db_client,
-            instance,
-            storage,
-            object,
-            &redirects,
-        ).await?;
+        let post = handle_note(db_client, instance, storage, object, &redirects).await?;
         posts.push(post);
-    };
+    }
 
-    let initial_post = posts.into_iter()
+    let initial_post = posts
+        .into_iter()
         .find(|post| post.object_id.as_ref() == Some(&initial_object_id))
         .unwrap();
     Ok(initial_post)
@@ -314,24 +267,20 @@ pub async fn import_from_outbox(
     let activities = fetch_outbox(&instance, &actor.outbox, limit).await?;
     log::info!("fetched {} activities", activities.len());
     for activity in activities {
-        let activity_actor = activity["actor"].as_str()
+        let activity_actor = activity["actor"]
+            .as_str()
             .ok_or(ValidationError("actor property is missing"))?;
         if activity_actor != actor.id {
             log::warn!("activity doesn't belong to outbox owner");
             continue;
         };
         handle_activity(
-            config,
-            db_client,
-            &activity,
-            true, // is authenticated
-        ).await.unwrap_or_else(|error| {
-            log::warn!(
-                "failed to process activity ({}): {}",
-                error,
-                activity,
-            );
+            config, db_client, &activity, true, // is authenticated
+        )
+        .await
+        .unwrap_or_else(|error| {
+            log::warn!("failed to process activity ({}): {}", error, activity,);
         });
-    };
+    }
     Ok(())
 }

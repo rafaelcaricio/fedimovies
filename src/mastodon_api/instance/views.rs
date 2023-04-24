@@ -3,7 +3,7 @@ use actix_web::{get, web, HttpResponse, Scope};
 use mitra_config::Config;
 use mitra_models::{
     database::{get_database_client, DbPool},
-    instances::queries::{get_peers, get_peer_count},
+    instances::queries::{get_peer_count, get_peers},
     posts::queries::get_local_post_count,
     users::queries::get_user_count,
 };
@@ -22,19 +22,12 @@ async fn instance_view(
     let user_count = get_user_count(db_client).await?;
     let post_count = get_local_post_count(db_client).await?;
     let peer_count = get_peer_count(db_client).await?;
-    let instance = InstanceInfo::create(
-        config.as_ref(),
-        user_count,
-        post_count,
-        peer_count,
-    );
+    let instance = InstanceInfo::create(config.as_ref(), user_count, post_count, peer_count);
     Ok(HttpResponse::Ok().json(instance))
 }
 
 #[get("/peers")]
-async fn instance_peers_view(
-    db_pool: web::Data<DbPool>,
-) -> Result<HttpResponse, MastodonError> {
+async fn instance_peers_view(db_pool: web::Data<DbPool>) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let peers = get_peers(db_client).await?;
     Ok(HttpResponse::Ok().json(peers))

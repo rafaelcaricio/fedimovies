@@ -1,7 +1,7 @@
 use std::io::Write;
 
-use log::Level;
 use chrono::Local;
+use log::Level;
 
 pub fn configure_logger(base_level: Level) -> () {
     let actix_level = match base_level {
@@ -10,7 +10,8 @@ pub fn configure_logger(base_level: Level) -> () {
     };
     env_logger::Builder::new()
         .format(|buf, record| {
-            writeln!(buf,
+            writeln!(
+                buf,
                 "{} {} [{}] {}",
                 Local::now().format("%Y-%m-%dT%H:%M:%S"),
                 record.target(),
@@ -19,6 +20,9 @@ pub fn configure_logger(base_level: Level) -> () {
             )
         })
         .filter_level(base_level.to_level_filter())
-        .filter_module("actix_web::middleware::logger", actix_level.to_level_filter())
+        .filter_module(
+            "actix_web::middleware::logger",
+            actix_level.to_level_filter(),
+        )
         .init();
 }

@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
-use serde_json::Value;
 use postgres_types::FromSql;
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::database::{

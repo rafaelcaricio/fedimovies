@@ -1,12 +1,8 @@
 /// https://webfinger.net/
-use std::{
-    collections::HashMap,
-    fmt,
-    str::FromStr,
-};
+use std::{collections::HashMap, fmt, str::FromStr};
 
 use regex::Regex;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use mitra_models::profiles::types::DbActorProfile;
 
@@ -29,24 +25,19 @@ pub struct ActorAddress {
 }
 
 impl ActorAddress {
-    pub fn from_mention(
-        mention: &str,
-    ) -> Result<Self, ValidationError> {
+    pub fn from_mention(mention: &str) -> Result<Self, ValidationError> {
         // @ prefix is optional
-        let actor_address = mention.strip_prefix('@')
-            .unwrap_or(mention)
-            .parse()?;
+        let actor_address = mention.strip_prefix('@').unwrap_or(mention).parse()?;
         Ok(actor_address)
     }
 
-    pub fn from_profile(
-        local_hostname: &str,
-        profile: &DbActorProfile,
-    ) -> Self {
+    pub fn from_profile(local_hostname: &str, profile: &DbActorProfile) -> Self {
         assert_eq!(profile.hostname.is_none(), profile.is_local());
         Self {
             username: profile.username.clone(),
-            hostname: profile.hostname.as_deref()
+            hostname: profile
+                .hostname
+                .as_deref()
                 .unwrap_or(local_hostname)
                 .to_string(),
         }
@@ -57,7 +48,7 @@ impl ActorAddress {
         if self.hostname == local_hostname {
             self.username.clone()
         } else {
-           self.to_string()
+            self.to_string()
         }
     }
 }
@@ -67,7 +58,8 @@ impl FromStr for ActorAddress {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let actor_address_re = Regex::new(ACTOR_ADDRESS_RE).unwrap();
-        let caps = actor_address_re.captures(value)
+        let caps = actor_address_re
+            .captures(value)
             .ok_or(ValidationError("invalid actor address"))?;
         let actor_address = Self {
             username: caps["username"].to_string(),
@@ -105,8 +97,8 @@ pub struct JsonResourceDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use mitra_models::profiles::types::DbActor;
     use super::*;
+    use mitra_models::profiles::types::DbActor;
 
     #[test]
     fn test_local_actor_address() {
@@ -118,18 +110,9 @@ mod tests {
             actor_json: None,
             ..Default::default()
         };
-        let actor_address = ActorAddress::from_profile(
-            local_hostname,
-            &local_profile,
-        );
-        assert_eq!(
-            actor_address.to_string(),
-            "user@example.com",
-        );
-        assert_eq!(
-            actor_address.acct(local_hostname),
-            local_profile.acct,
-        );
+        let actor_address = ActorAddress::from_profile(local_hostname, &local_profile);
+        assert_eq!(actor_address.to_string(), "user@example.com",);
+        assert_eq!(actor_address.acct(local_hostname), local_profile.acct,);
     }
 
     #[test]
@@ -145,18 +128,9 @@ mod tests {
             }),
             ..Default::default()
         };
-        let actor_address = ActorAddress::from_profile(
-            local_hostname,
-            &remote_profile,
-        );
-        assert_eq!(
-            actor_address.to_string(),
-            remote_profile.acct,
-        );
-        assert_eq!(
-            actor_address.acct(local_hostname),
-            remote_profile.acct,
-        );
+        let actor_address = ActorAddress::from_profile(local_hostname, &remote_profile);
+        assert_eq!(actor_address.to_string(), remote_profile.acct,);
+        assert_eq!(actor_address.acct(local_hostname), remote_profile.acct,);
     }
 
     #[test]

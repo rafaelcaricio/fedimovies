@@ -1,10 +1,7 @@
 use serde::Serialize;
 
 use mitra_config::Instance;
-use mitra_models::{
-    profiles::types::DbActor,
-    users::types::User,
-};
+use mitra_models::{profiles::types::DbActor, users::types::User};
 use mitra_utils::id::generate_ulid;
 
 use crate::activitypub::{
@@ -67,12 +64,7 @@ pub fn prepare_update_collection(
         remove,
     );
     let recipients = vec![person.clone()];
-    OutgoingActivity::new(
-        instance,
-        sender,
-        activity,
-        recipients,
-    )
+    OutgoingActivity::new(instance, sender, activity, recipients)
 }
 
 pub fn prepare_add_person(
@@ -95,13 +87,8 @@ mod tests {
         let sender_username = "local";
         let person_id = "https://test.remote/actor/test";
         let collection = LocalActorCollection::Subscribers;
-        let activity = build_update_collection(
-            INSTANCE_URL,
-            sender_username,
-            person_id,
-            collection,
-            false,
-        );
+        let activity =
+            build_update_collection(INSTANCE_URL, sender_username, person_id, collection, false);
 
         assert_eq!(activity.activity_type, "Add");
         assert_eq!(

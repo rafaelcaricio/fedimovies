@@ -1,33 +1,21 @@
-use actix_web::{
-    dev::ConnectionInfo,
-    get,
-    post,
-    web,
-    HttpResponse,
-    Scope,
-};
+use actix_web::{dev::ConnectionInfo, get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
+use crate::http::get_request_base_url;
+use crate::mastodon_api::{
+    accounts::types::Account, errors::MastodonError, oauth::auth::get_current_user,
+};
 use mitra_config::Config;
 use mitra_models::{
     database::{get_database_client, DbPool},
-    invoices::queries::{get_invoice_by_id},
+    invoices::queries::get_invoice_by_id,
     subscriptions::queries::get_subscription_by_participants,
     users::types::Permission,
 };
-use crate::http::get_request_base_url;
-use crate::mastodon_api::{
-    accounts::types::Account,
-    errors::MastodonError,
-    oauth::auth::get_current_user,
-};
 
 use super::types::{
-    Invoice,
-    SubscriptionAuthorizationQueryParams,
-    SubscriptionDetails,
-    SubscriptionOption,
+    Invoice, SubscriptionAuthorizationQueryParams, SubscriptionDetails, SubscriptionOption,
     SubscriptionQueryParams,
 };
 
@@ -54,8 +42,11 @@ async fn get_subscription_options(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    let options: Vec<SubscriptionOption> = current_user.profile
-        .payment_options.into_inner().into_iter()
+    let options: Vec<SubscriptionOption> = current_user
+        .profile
+        .payment_options
+        .into_inner()
+        .into_iter()
         .filter_map(SubscriptionOption::from_payment_option)
         .collect();
     Ok(HttpResponse::Ok().json(options))
@@ -71,7 +62,10 @@ pub async fn register_subscription_option(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
-    if !current_user.role.has_permission(Permission::ManageSubscriptionOptions) {
+    if !current_user
+        .role
+        .has_permission(Permission::ManageSubscriptionOptions)
+    {
         return Err(MastodonError::PermissionError);
     };
 
@@ -93,14 +87,14 @@ async fn find_subscription(
         db_client,
         &query_params.sender_id,
         &query_params.recipient_id,
-    ).await?;
+    )
+    .await?;
     let details = SubscriptionDetails {
         id: subscription.id,
         expires_at: subscription.expires_at,
     };
     Ok(HttpResponse::Ok().json(details))
 }
-
 
 #[get("/invoices/{invoice_id}")]
 async fn get_invoice(

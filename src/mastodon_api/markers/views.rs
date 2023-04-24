@@ -3,19 +3,13 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use mitra_models::{
     database::{get_database_client, DbPool},
-    markers::queries::{
-        create_or_update_marker,
-        get_marker_opt,
-    },
+    markers::queries::{create_or_update_marker, get_marker_opt},
     markers::types::Timeline,
 };
 
-use crate::mastodon_api::{
-    errors::MastodonError,
-    oauth::auth::get_current_user,
-};
+use crate::mastodon_api::{errors::MastodonError, oauth::auth::get_current_user};
 
-use super::types::{MarkerQueryParams, MarkerCreateData, Markers};
+use super::types::{MarkerCreateData, MarkerQueryParams, Markers};
 
 /// https://docs.joinmastodon.org/methods/timelines/markers/
 #[get("")]
@@ -47,8 +41,11 @@ async fn update_marker_view(
         &current_user.id,
         Timeline::Notifications,
         marker_data.into_inner().notifications,
-    ).await?;
-    let markers = Markers { notifications: Some(db_marker.into()) };
+    )
+    .await?;
+    let markers = Markers {
+        notifications: Some(db_marker.into()),
+    };
     Ok(HttpResponse::Ok().json(markers))
 }
 

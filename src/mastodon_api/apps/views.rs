@@ -1,10 +1,4 @@
-use actix_web::{
-    post,
-    web,
-    Either,
-    HttpResponse,
-    Scope,
-};
+use actix_web::{post, web, Either, HttpResponse, Scope};
 use uuid::Uuid;
 
 use mitra_models::{
@@ -13,20 +7,14 @@ use mitra_models::{
     oauth::types::DbOauthAppData,
 };
 
-use crate::mastodon_api::{
-    errors::MastodonError,
-    oauth::utils::generate_access_token,
-};
-use super::types::{OauthApp, CreateAppRequest};
+use super::types::{CreateAppRequest, OauthApp};
+use crate::mastodon_api::{errors::MastodonError, oauth::utils::generate_access_token};
 
 /// https://docs.joinmastodon.org/methods/apps/
 #[post("")]
 async fn create_app_view(
     db_pool: web::Data<DbPool>,
-    request_data: Either<
-        web::Json<CreateAppRequest>,
-        web::Form<CreateAppRequest>,
-    >,
+    request_data: Either<web::Json<CreateAppRequest>, web::Form<CreateAppRequest>>,
 ) -> Result<HttpResponse, MastodonError> {
     let request_data = match request_data {
         Either::Left(json) => json.into_inner(),
@@ -53,6 +41,5 @@ async fn create_app_view(
 }
 
 pub fn application_api_scope() -> Scope {
-    web::scope("/api/v1/apps")
-        .service(create_app_view)
+    web::scope("/api/v1/apps").service(create_app_view)
 }

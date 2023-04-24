@@ -2,10 +2,7 @@ use actix_web::http::Method;
 use chrono::Utc;
 use rsa::RsaPrivateKey;
 
-use mitra_utils::crypto_rsa::{
-    create_rsa_sha256_signature,
-    get_message_digest,
-};
+use mitra_utils::crypto_rsa::{create_rsa_sha256_signature, get_message_digest};
 
 const HTTP_SIGNATURE_ALGORITHM: &str = "rsa-sha256";
 const HTTP_SIGNATURE_DATE_FORMAT: &str = "%a, %d %b %Y %T GMT";
@@ -41,17 +38,15 @@ pub fn create_http_signature(
         request_method.as_str().to_lowercase(),
         request_url_object.path(),
     );
-    let host = request_url_object.host_str()
+    let host = request_url_object
+        .host_str()
         .ok_or(url::ParseError::EmptyHost)?
         .to_string();
     let date = Utc::now().format(HTTP_SIGNATURE_DATE_FORMAT).to_string();
     let maybe_digest = if request_body.is_empty() {
         None
     } else {
-        let digest = format!(
-            "SHA-256={}",
-            get_message_digest(request_body),
-        );
+        let digest = format!("SHA-256={}", get_message_digest(request_body),);
         Some(digest)
     };
 
@@ -64,11 +59,13 @@ pub fn create_http_signature(
         headers.push(("digest", digest));
     };
 
-    let message = headers.iter()
+    let message = headers
+        .iter()
         .map(|(name, value)| format!("{}: {}", name, value))
         .collect::<Vec<String>>()
         .join("\n");
-    let headers_parameter = headers.iter()
+    let headers_parameter = headers
+        .iter()
         .map(|(name, _)| name.to_string())
         .collect::<Vec<String>>()
         .join(" ");
@@ -76,10 +73,7 @@ pub fn create_http_signature(
     let signature_parameter = base64::encode(signature);
     let signature_header = format!(
         r#"keyId="{}",algorithm="{}",headers="{}",signature="{}""#,
-        signer_key_id,
-        HTTP_SIGNATURE_ALGORITHM,
-        headers_parameter,
-        signature_parameter,
+        signer_key_id, HTTP_SIGNATURE_ALGORITHM, headers_parameter, signature_parameter,
     );
     let headers = HttpSignatureHeaders {
         host,
@@ -92,8 +86,8 @@ pub fn create_http_signature(
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
+    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
 
     #[test]
     fn test_create_signature_get() {
@@ -101,13 +95,9 @@ mod tests {
         let signer_key = generate_weak_rsa_key().unwrap();
         let signer_key_id = "https://myserver.org/actor#main-key";
 
-        let headers = create_http_signature(
-            Method::GET,
-            request_url,
-            "",
-            &signer_key,
-            signer_key_id,
-        ).unwrap();
+        let headers =
+            create_http_signature(Method::GET, request_url, "", &signer_key, signer_key_id)
+                .unwrap();
 
         assert_eq!(headers.host, "example.org");
         assert_eq!(headers.digest, None);

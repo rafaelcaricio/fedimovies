@@ -1,9 +1,15 @@
 use serde::Deserialize;
 
-fn default_federation_enabled() -> bool { true }
+fn default_federation_enabled() -> bool {
+    true
+}
 
-const fn default_fetcher_timeout() -> u64 { 300 }
-const fn default_deliverer_timeout() -> u64 { 30 }
+const fn default_fetcher_timeout() -> u64 {
+    300
+}
+const fn default_deliverer_timeout() -> u64 {
+    30
+}
 
 #[derive(Clone, Deserialize)]
 pub struct FederationConfig {

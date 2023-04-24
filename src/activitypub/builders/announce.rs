@@ -14,11 +14,7 @@ use crate::activitypub::{
     constants::AP_PUBLIC,
     deliverer::OutgoingActivity,
     identifiers::{
-        local_actor_followers,
-        local_actor_id,
-        local_object_id,
-        post_object_id,
-        profile_actor_id,
+        local_actor_followers, local_actor_id, local_object_id, post_object_id, profile_actor_id,
     },
     types::{build_default_context, Context},
     vocabulary::ANNOUNCE,
@@ -41,12 +37,11 @@ pub struct Announce {
     cc: Vec<String>,
 }
 
-pub fn build_announce(
-    instance_url: &str,
-    repost: &Post,
-) -> Announce {
+pub fn build_announce(instance_url: &str, repost: &Post) -> Announce {
     let actor_id = local_actor_id(instance_url, &repost.author.username);
-    let post = repost.repost_of.as_ref()
+    let post = repost
+        .repost_of
+        .as_ref()
         .expect("repost_of field should be populated");
     let object_id = post_object_id(instance_url, post);
     let activity_id = local_object_id(instance_url, &repost.id);
@@ -76,7 +71,7 @@ pub async fn get_announce_recipients(
         if let Some(remote_actor) = profile.actor_json {
             recipients.push(remote_actor);
         };
-    };
+    }
     let primary_recipient = profile_actor_id(instance_url, &post.author);
     if let Some(remote_actor) = post.author.actor_json.as_ref() {
         recipients.push(remote_actor.clone());
@@ -91,30 +86,21 @@ pub async fn prepare_announce(
     repost: &Post,
 ) -> Result<OutgoingActivity, DatabaseError> {
     assert_eq!(sender.id, repost.author.id);
-    let post = repost.repost_of.as_ref()
+    let post = repost
+        .repost_of
+        .as_ref()
         .expect("repost_of field should be populated");
-    let (recipients, _) = get_announce_recipients(
-        db_client,
-        &instance.url(),
-        sender,
-        post,
-    ).await?;
-    let activity = build_announce(
-        &instance.url(),
-        repost,
-    );
+    let (recipients, _) = get_announce_recipients(db_client, &instance.url(), sender, post).await?;
+    let activity = build_announce(&instance.url(), repost);
     Ok(OutgoingActivity::new(
-        instance,
-        sender,
-        activity,
-        recipients,
+        instance, sender, activity, recipients,
     ))
 }
 
 #[cfg(test)]
 mod tests {
-    use mitra_models::profiles::types::DbActorProfile;
     use super::*;
+    use mitra_models::profiles::types::DbActorProfile;
 
     const INSTANCE_URL: &str = "https://example.com";
 
@@ -145,18 +131,12 @@ mod tests {
             repost_of: Some(Box::new(post)),
             ..Default::default()
         };
-        let activity = build_announce(
-            INSTANCE_URL,
-            &repost,
-        );
+        let activity = build_announce(INSTANCE_URL, &repost);
         assert_eq!(
             activity.id,
             format!("{}/objects/{}", INSTANCE_URL, repost.id),
         );
-        assert_eq!(
-            activity.actor,
-            format!("{}/users/announcer", INSTANCE_URL),
-        );
+        assert_eq!(activity.actor, format!("{}/users/announcer", INSTANCE_URL),);
         assert_eq!(activity.object, post_id);
         assert_eq!(activity.to, vec![AP_PUBLIC, post_author_id]);
     }

@@ -4,22 +4,10 @@ use serde_json::Value;
 use mitra_config::Config;
 use mitra_models::{
     database::{DatabaseClient, DatabaseError},
-    posts::queries::{
-        delete_post,
-        get_post_by_remote_object_id,
-    },
-    profiles::queries::{
-        get_profile_by_acct,
-        get_profile_by_remote_actor_id,
-    },
-    reactions::queries::{
-        delete_reaction,
-        get_reaction_by_remote_activity_id,
-    },
-    relationships::queries::{
-        get_follow_request_by_activity_id,
-        unfollow,
-    },
+    posts::queries::{delete_post, get_post_by_remote_object_id},
+    profiles::queries::{get_profile_by_acct, get_profile_by_remote_actor_id},
+    reactions::queries::{delete_reaction, get_reaction_by_remote_activity_id},
+    relationships::queries::{get_follow_request_by_activity_id, unfollow},
 };
 
 use crate::activitypub::{
@@ -44,15 +32,9 @@ async fn handle_undo_follow(
 ) -> HandlerResult {
     let activity: UndoFollow = serde_json::from_value(activity)
         .map_err(|_| ValidationError("unexpected activity structure"))?;
-    let source_profile = get_profile_by_remote_actor_id(
-        db_client,
-        &activity.actor,
-    ).await?;
+    let source_profile = get_profile_by_remote_actor_id(db_client, &activity.actor).await?;
     let target_actor_id = find_object_id(&activity.object["object"])?;
-    let target_username = parse_local_actor_id(
-        &config.instance_url(),
-        &target_actor_id,
-    )?;
+    let target_username = parse_local_actor_id(&config.instance_url(), &target_actor_id)?;
     // acct equals username if profile is local
     let target_profile = get_profile_by_acct(db_client, &target_username).await?;
     match unfollow(db_client, &source_profile.id, &target_profile.id).await {
@@ -83,10 +65,7 @@ pub async fn handle_undo(
 
     let activity: Undo = serde_json::from_value(activity)
         .map_err(|_| ValidationError("unexpected activity structure"))?;
-    let actor_profile = get_profile_by_remote_actor_id(
-        db_client,
-        &activity.actor,
-    ).await?;
+    let actor_profile = get_profile_by_remote_actor_id(db_client, &activity.actor).await?;
 
     match get_follow_request_by_activity_id(db_client, &activity.object).await {
         Ok(follow_request) => {
@@ -98,9 +77,10 @@ pub async fn handle_undo(
                 db_client,
                 &follow_request.source_id,
                 &follow_request.target_id,
-            ).await?;
+            )
+            .await?;
             return Ok(Some(FOLLOW));
-        },
+        }
         Err(DatabaseError::NotFound(_)) => (), // try other object types
         Err(other_error) => return Err(other_error.into()),
     };
@@ -111,19 +91,12 @@ pub async fn handle_undo(
             if reaction.author_id != actor_profile.id {
                 return Err(ValidationError("actor is not an author").into());
             };
-            delete_reaction(
-                db_client,
-                &reaction.author_id,
-                &reaction.post_id,
-            ).await?;
+            delete_reaction(db_client, &reaction.author_id, &reaction.post_id).await?;
             Ok(Some(LIKE))
-        },
+        }
         Err(DatabaseError::NotFound(_)) => {
             // Undo(Announce)
-            let post = match get_post_by_remote_object_id(
-                db_client,
-                &activity.object,
-            ).await {
+            let post = match get_post_by_remote_object_id(db_client, &activity.object).await {
                 Ok(post) => post,
                 // Ignore undo if neither reaction nor repost is found
                 Err(DatabaseError::NotFound(_)) => return Ok(None),
@@ -139,7 +112,7 @@ pub async fn handle_undo(
                 None => return Err(ValidationError("object is not a repost").into()),
             };
             Ok(Some(ANNOUNCE))
-        },
+        }
         Err(other_error) => Err(other_error.into()),
     }
 }

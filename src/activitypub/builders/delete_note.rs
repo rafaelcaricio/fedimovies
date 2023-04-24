@@ -15,11 +15,7 @@ use crate::activitypub::{
     vocabulary::{DELETE, NOTE, TOMBSTONE},
 };
 
-use super::create_note::{
-    build_note,
-    get_note_recipients,
-    Note,
-};
+use super::create_note::{build_note, get_note_recipients, Note};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -48,20 +44,12 @@ struct DeleteNote {
     cc: Vec<String>,
 }
 
-fn build_delete_note(
-    instance_hostname: &str,
-    instance_url: &str,
-    post: &Post,
-) -> DeleteNote {
+fn build_delete_note(instance_hostname: &str, instance_url: &str, post: &Post) -> DeleteNote {
     assert!(post.is_local());
     let object_id = local_object_id(instance_url, &post.id);
     let activity_id = format!("{}/delete", object_id);
     let actor_id = local_actor_id(instance_url, &post.author.username);
-    let Note { to, cc, .. } = build_note(
-        instance_hostname,
-        instance_url,
-        post,
-    );
+    let Note { to, cc, .. } = build_note(instance_hostname, instance_url, post);
     DeleteNote {
         context: build_default_context(),
         activity_type: DELETE.to_string(),
@@ -86,28 +74,18 @@ pub async fn prepare_delete_note(
     assert_eq!(author.id, post.author.id);
     let mut post = post.clone();
     add_related_posts(db_client, vec![&mut post]).await?;
-    let activity = build_delete_note(
-        &instance.hostname(),
-        &instance.url(),
-        &post,
-    );
+    let activity = build_delete_note(&instance.hostname(), &instance.url(), &post);
     let recipients = get_note_recipients(db_client, author, &post).await?;
     Ok(OutgoingActivity::new(
-        instance,
-        author,
-        activity,
-        recipients,
+        instance, author, activity, recipients,
     ))
 }
 
 #[cfg(test)]
 mod tests {
-    use mitra_models::profiles::types::DbActorProfile;
-    use crate::activitypub::{
-        constants::AP_PUBLIC,
-        identifiers::local_actor_followers,
-    };
     use super::*;
+    use crate::activitypub::{constants::AP_PUBLIC, identifiers::local_actor_followers};
+    use mitra_models::profiles::types::DbActorProfile;
 
     const INSTANCE_HOSTNAME: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";
@@ -118,12 +96,11 @@ mod tests {
             username: "author".to_string(),
             ..Default::default()
         };
-        let post = Post { author, ..Default::default() };
-        let activity = build_delete_note(
-            INSTANCE_HOSTNAME,
-            INSTANCE_URL,
-            &post,
-        );
+        let post = Post {
+            author,
+            ..Default::default()
+        };
+        let activity = build_delete_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(
             activity.id,

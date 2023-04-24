@@ -1,9 +1,4 @@
-use actix_web::{
-    error::ResponseError,
-    http::StatusCode,
-    HttpResponse,
-    HttpResponseBuilder,
-};
+use actix_web::{error::ResponseError, http::StatusCode, HttpResponse, HttpResponseBuilder};
 use serde::Serialize;
 
 use mitra_models::database::DatabaseError;
@@ -47,9 +42,9 @@ impl From<DatabaseError> for HttpError {
     fn from(err: DatabaseError) -> Self {
         match err {
             DatabaseError::NotFound(name) => HttpError::NotFoundError(name),
-            DatabaseError::AlreadyExists(name) => HttpError::ValidationError(
-                format!("{} already exists", name),
-            ),
+            DatabaseError::AlreadyExists(name) => {
+                HttpError::ValidationError(format!("{} already exists", name))
+            }
             _ => HttpError::DatabaseError(err),
         }
     }
@@ -62,7 +57,9 @@ struct ErrorInfo {
 
 impl ResponseError for HttpError {
     fn error_response(&self) -> HttpResponse {
-        let err = ErrorInfo { message: self.to_string() };
+        let err = ErrorInfo {
+            message: self.to_string(),
+        };
         HttpResponseBuilder::new(self.status_code()).json(err)
     }
 

@@ -1,5 +1,4 @@
 /// http://nodeinfo.diaspora.software/schema.html
-
 use serde::Serialize;
 
 use mitra_config::{Config, RegistrationType, REEF_VERSION};

@@ -9,7 +9,8 @@ impl Currency {
         match self {
             Self::Ethereum => "ETH",
             Self::Monero => "XMR",
-        }.to_string()
+        }
+        .to_string()
     }
 
     pub fn field_name(&self) -> String {

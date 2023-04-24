@@ -3,13 +3,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use regex::Regex;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-    Serializer,
-    de::Error as DeserializerError,
-};
+use serde::{de::Error as DeserializerError, Deserialize, Deserializer, Serialize, Serializer};
 
 use super::currencies::Currency;
 
@@ -52,7 +46,9 @@ impl ChainId {
         if !self.is_ethereum() {
             return Err(ChainIdError("namespace is not eip155"));
         };
-        let chain_id: u32 = self.reference.parse()
+        let chain_id: u32 = self
+            .reference
+            .parse()
             .map_err(|_| ChainIdError("invalid EIP-155 chain ID"))?;
         Ok(chain_id)
     }
@@ -76,7 +72,8 @@ impl FromStr for ChainId {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let caip2_re = Regex::new(CAIP2_RE).unwrap();
-        let caps = caip2_re.captures(value)
+        let caps = caip2_re
+            .captures(value)
             .ok_or(ChainIdError("invalid chain ID"))?;
         let chain_id = Self {
             namespace: caps["namespace"].to_string(),
@@ -94,7 +91,8 @@ impl fmt::Display for ChainId {
 
 impl Serialize for ChainId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer
+    where
+        S: Serializer,
     {
         serializer.serialize_str(&self.to_string())
     }
@@ -102,10 +100,12 @@ impl Serialize for ChainId {
 
 impl<'de> Deserialize<'de> for ChainId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         String::deserialize(deserializer)?
-            .parse().map_err(DeserializerError::custom)
+            .parse()
+            .map_err(DeserializerError::custom)
     }
 }
 

@@ -2,14 +2,9 @@ use std::cell::RefCell;
 
 use comrak::{
     arena_tree::Node,
-    format_commonmark,
-    format_html,
+    format_commonmark, format_html,
     nodes::{Ast, AstNode, ListType, NodeValue},
-    parse_document,
-    Arena,
-    ComrakOptions,
-    ComrakExtensionOptions,
-    ComrakParseOptions,
+    parse_document, Arena, ComrakExtensionOptions, ComrakOptions, ComrakParseOptions,
     ComrakRenderOptions,
 };
 
@@ -37,16 +32,14 @@ fn build_comrak_options() -> ComrakOptions {
     }
 }
 
-fn iter_nodes<'a, F>(
-    node: &'a AstNode<'a>,
-    func: &F,
-) -> Result<(), MarkdownError>
-    where F: Fn(&'a AstNode<'a>) -> Result<(), MarkdownError>
+fn iter_nodes<'a, F>(node: &'a AstNode<'a>, func: &F) -> Result<(), MarkdownError>
+where
+    F: Fn(&'a AstNode<'a>) -> Result<(), MarkdownError>,
 {
     func(node)?;
     for child in node.children() {
         iter_nodes(child, func)?;
-    };
+    }
     Ok(())
 }
 
@@ -80,15 +73,13 @@ fn replace_with_markdown<'a>(
     let markdown = node_to_markdown(node, options)?;
     for child in node.children() {
         child.detach();
-    };
+    }
     let text = NodeValue::Text(markdown);
     replace_node_value(node, text);
     Ok(())
 }
 
-fn fix_microsyntaxes<'a>(
-    node: &'a AstNode<'a>,
-) -> Result<(), MarkdownError> {
+fn fix_microsyntaxes<'a>(node: &'a AstNode<'a>) -> Result<(), MarkdownError> {
     if let Some(prev) = node.previous_sibling() {
         if let NodeValue::Text(ref prev_text) = prev.data.borrow().value {
             // Remove autolink if mention or object link syntax is found
@@ -100,7 +91,7 @@ fn fix_microsyntaxes<'a>(
                     if let NodeValue::Text(child_text) = child_value {
                         link_text.push_str(child_text);
                     };
-                };
+                }
                 let text = NodeValue::Text(link_text);
                 replace_node_value(node, text);
             };
@@ -138,11 +129,7 @@ fn fix_linebreaks(html: &str) -> String {
 pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
     let options = build_comrak_options();
     let arena = Arena::new();
-    let root = parse_document(
-        &arena,
-        text,
-        &options,
-    );
+    let root = parse_document(&arena, text, &options);
 
     // Re-render blockquotes, headings, HRs, images and lists
     // Headings: poorly degrade on Pleroma
@@ -160,12 +147,12 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                 };
                 for child in node.children() {
                     child.detach();
-                };
+                }
                 let text = NodeValue::Text(markdown);
                 let text_node = arena.alloc(create_node(text));
                 node.append(text_node);
                 replace_node_value(node, NodeValue::Paragraph);
-            },
+            }
             NodeValue::Image(_) => replace_with_markdown(node, &options)?,
             NodeValue::List(_) => {
                 // Replace list and list item nodes
@@ -176,11 +163,10 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                     for paragraph in list_item.children() {
                         for content_node in paragraph.children() {
                             contents.push(content_node);
-                        };
+                        }
                         paragraph.detach();
-                    };
-                    let mut list_prefix_markdown =
-                        node_to_markdown(list_item, &options)?;
+                    }
+                    let mut list_prefix_markdown = node_to_markdown(list_item, &options)?;
                     if let NodeValue::Item(item) = list_item.data.borrow().value {
                         if item.list_type == ListType::Ordered {
                             // Preserve numbering in ordered lists
@@ -200,14 +186,14 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
                     replacements.push(list_prefix_node);
                     for content_node in contents {
                         replacements.push(content_node);
-                    };
+                    }
                     list_item.detach();
-                };
+                }
                 for child_node in replacements {
                     node.append(child_node);
-                };
+                }
                 replace_node_value(node, NodeValue::Paragraph);
-            },
+            }
             NodeValue::Link(_) => fix_microsyntaxes(node)?,
             _ => (),
         };
@@ -224,20 +210,15 @@ pub fn markdown_lite_to_html(text: &str) -> Result<String, MarkdownError> {
 pub fn markdown_basic_to_html(text: &str) -> Result<String, MarkdownError> {
     let options = build_comrak_options();
     let arena = Arena::new();
-    let root = parse_document(
-        &arena,
-        text,
-        &options,
-    );
+    let root = parse_document(&arena, text, &options);
 
     iter_nodes(root, &|node| {
         let node_value = node.data.borrow().value.clone();
         match node_value {
-            NodeValue::Document |
-            NodeValue::Text(_) |
-            NodeValue::SoftBreak |
-            NodeValue::LineBreak
-                => (),
+            NodeValue::Document
+            | NodeValue::Text(_)
+            | NodeValue::SoftBreak
+            | NodeValue::LineBreak => (),
             NodeValue::Link(_) => fix_microsyntaxes(node)?,
             NodeValue::Paragraph => {
                 if node.next_sibling().is_some() {
@@ -248,13 +229,12 @@ pub fn markdown_basic_to_html(text: &str) -> Result<String, MarkdownError> {
                         let last_child_value = &last_child.data.borrow().value;
                         if !matches!(last_child_value, NodeValue::LineBreak) {
                             let line_break = NodeValue::LineBreak;
-                            let line_break_node =
-                                arena.alloc(create_node(line_break));
+                            let line_break_node = arena.alloc(create_node(line_break));
                             node.append(line_break_node);
                         };
                     };
                 };
-            },
+            }
             _ => replace_with_markdown(node, &options)?,
         };
         Ok(())
@@ -340,9 +320,6 @@ mod tests {
     fn test_markdown_to_html() {
         let text = "# heading\n\ntest";
         let html = markdown_to_html(text);
-        assert_eq!(
-            html,
-            "<h1>heading</h1>\n<p>test</p>\n",
-        );
+        assert_eq!(html, "<h1>heading</h1>\n<p>test</p>\n",);
     }
 }

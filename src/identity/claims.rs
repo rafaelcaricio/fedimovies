@@ -1,10 +1,7 @@
 use serde::Serialize;
 
 use mitra_utils::{
-    canonicalization::{
-        canonicalize_object,
-        CanonicalizationError,
-    },
+    canonicalization::{canonicalize_object, CanonicalizationError},
     did::Did,
 };
 
@@ -17,10 +14,7 @@ struct Claim {
 }
 
 /// Creates key ownership claim and prepares it for signing
-pub fn create_identity_claim(
-    actor_id: &str,
-    did: &Did,
-) -> Result<String, CanonicalizationError> {
+pub fn create_identity_claim(actor_id: &str, did: &Did) -> Result<String, CanonicalizationError> {
     let claim = Claim {
         id: actor_id.to_string(),
         owner_of: did.clone(),
@@ -31,20 +25,14 @@ pub fn create_identity_claim(
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::{
-        currencies::Currency,
-        did_pkh::DidPkh,
-    };
     use super::*;
+    use mitra_utils::{currencies::Currency, did_pkh::DidPkh};
 
     #[test]
     fn test_create_identity_claim() {
         let actor_id = "https://example.org/users/test";
         let ethereum_address = "0xB9C5714089478a327F09197987f16f9E5d936E8a";
-        let did = Did::Pkh(DidPkh::from_address(
-            &Currency::Ethereum,
-            ethereum_address,
-        ));
+        let did = Did::Pkh(DidPkh::from_address(&Currency::Ethereum, ethereum_address));
         let claim = create_identity_claim(actor_id, &did).unwrap();
         assert_eq!(
             claim,

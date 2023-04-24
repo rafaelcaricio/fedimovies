@@ -6,8 +6,7 @@ use uuid::Uuid;
 use crate::attachments::types::DbMediaAttachment;
 use crate::database::{
     int_enum::{int_enum_from_sql, int_enum_to_sql},
-    DatabaseError,
-    DatabaseTypeError,
+    DatabaseError, DatabaseTypeError,
 };
 use crate::emojis::types::DbEmoji;
 use crate::profiles::types::DbActorProfile;
@@ -21,7 +20,9 @@ pub enum Visibility {
 }
 
 impl Default for Visibility {
-    fn default() -> Self { Self::Public }
+    fn default() -> Self {
+        Self::Public
+    }
 }
 
 impl From<&Visibility> for i16 {
@@ -130,19 +131,19 @@ impl Post {
         if db_author.is_local() != db_post.object_id.is_none() {
             return Err(DatabaseTypeError);
         };
-        if db_post.repost_of_id.is_some() && (
-            db_post.content.len() != 0 ||
-            db_post.is_sensitive ||
-            db_post.in_reply_to_id.is_some() ||
-            db_post.ipfs_cid.is_some() ||
-            db_post.token_id.is_some() ||
-            db_post.token_tx_id.is_some() ||
-            !db_attachments.is_empty() ||
-            !db_mentions.is_empty() ||
-            !db_tags.is_empty() ||
-            !db_links.is_empty() ||
-            !db_emojis.is_empty()
-        ) {
+        if db_post.repost_of_id.is_some()
+            && (db_post.content.len() != 0
+                || db_post.is_sensitive
+                || db_post.in_reply_to_id.is_some()
+                || db_post.ipfs_cid.is_some()
+                || db_post.token_id.is_some()
+                || db_post.token_tx_id.is_some()
+                || !db_attachments.is_empty()
+                || !db_mentions.is_empty()
+                || !db_tags.is_empty()
+                || !db_links.is_empty()
+                || !db_emojis.is_empty())
+        {
             return Err(DatabaseTypeError);
         };
         let post = Self {
@@ -218,7 +219,6 @@ impl Default for Post {
 }
 
 impl TryFrom<&Row> for Post {
-
     type Error = DatabaseError;
 
     fn try_from(row: &Row) -> Result<Self, Self::Error> {
@@ -259,10 +259,7 @@ pub struct PostCreateData {
 }
 
 impl PostCreateData {
-    pub fn repost(
-        repost_of_id: Uuid,
-        object_id: Option<String>,
-    ) -> Self {
+    pub fn repost(repost_of_id: Uuid, object_id: Option<String>) -> Self {
         Self {
             repost_of_id: Some(repost_of_id),
             object_id: object_id,

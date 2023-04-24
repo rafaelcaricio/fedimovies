@@ -1,11 +1,6 @@
 /// https://jedisct1.github.io/minisign/
 use blake2::{Blake2b512, Digest};
-use ed25519_dalek::{
-    PublicKey,
-    Signature,
-    SignatureError,
-    Verifier,
-};
+use ed25519_dalek::{PublicKey, Signature, SignatureError, Verifier};
 
 use mitra_utils::did_key::{DidKey, MulticodecError};
 
@@ -29,9 +24,7 @@ pub enum ParseError {
 
 // Public key format:
 // base64(<signature_algorithm> || <key_id> || <public_key>)
-fn parse_minisign_public_key(key_b64: &str)
-    -> Result<[u8; 32], ParseError>
-{
+fn parse_minisign_public_key(key_b64: &str) -> Result<[u8; 32], ParseError> {
     let key_bin = base64::decode(key_b64)?;
     if key_bin.len() != 42 {
         return Err(ParseError::InvalidKeyLength);
@@ -58,9 +51,7 @@ pub fn minisign_key_to_did(key_b64: &str) -> Result<DidKey, ParseError> {
 
 // Signature format:
 // base64(<signature_algorithm> || <key_id> || <signature>)
-pub fn parse_minisign_signature(signature_b64: &str)
-    -> Result<[u8; 64], ParseError>
-{
+pub fn parse_minisign_signature(signature_b64: &str) -> Result<[u8; 64], ParseError> {
     let signature_bin = base64::decode(signature_b64)?;
     if signature_bin.len() != 74 {
         return Err(ParseError::InvalidSignatureLength);
@@ -111,14 +102,11 @@ pub fn verify_minisign_signature(
     signature: &[u8],
 ) -> Result<(), VerificationError> {
     let ed25519_key = signer.try_ed25519_key()?;
-    let ed25519_signature = signature.try_into()
+    let ed25519_signature = signature
+        .try_into()
         .map_err(|_| ParseError::InvalidSignatureLength)?;
     let message = format!("{}\n", message);
-    _verify_ed25519_signature(
-        &message,
-        ed25519_key,
-        ed25519_signature,
-    )?;
+    _verify_ed25519_signature(&message, ed25519_key, ed25519_signature)?;
     Ok(())
 }
 
@@ -128,8 +116,7 @@ mod tests {
 
     #[test]
     fn test_verify_minisign_signature() {
-        let minisign_key =
-            "RWSA58rRENpGFYwAjRjbdST7VHFoIuH9JBHfO2u6i5JgANPIoQhABAF/";
+        let minisign_key = "RWSA58rRENpGFYwAjRjbdST7VHFoIuH9JBHfO2u6i5JgANPIoQhABAF/";
         let message = "test";
         let minisign_signature =
             "RUSA58rRENpGFVKxdZGMG1WdIJ+dlyP83qOqw6GP0H/Li6Brug2A3mFKLtleIRLi6IIG0smzOlX5CEsisNnc897OUHIOSNLsQQs=";

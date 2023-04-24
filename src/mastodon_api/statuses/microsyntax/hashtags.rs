@@ -1,7 +1,7 @@
 use regex::{Captures, Regex};
 
-use crate::activitypub::identifiers::local_tag_collection;
 use super::links::is_inside_code_block;
+use crate::activitypub::identifiers::local_tag_collection;
 
 // See also: HASHTAG_NAME_RE in validators::tags
 const HASHTAG_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])#(?P<tag>[^\s<]+)";
@@ -24,7 +24,7 @@ pub fn find_hashtags(text: &str) -> Vec<String> {
                 tags.push(tag_name);
             };
         };
-    };
+    }
     tags
 }
 
@@ -47,10 +47,7 @@ pub fn replace_hashtags(instance_url: &str, text: &str, tags: &[String]) -> Stri
                 let tag_url = local_tag_collection(instance_url, &tag_name);
                 return format!(
                     r#"{}<a class="hashtag" href="{}">#{}</a>{}"#,
-                    before,
-                    tag_url,
-                    tag,
-                    after,
+                    before, tag_url, tag, after,
                 );
             };
         };
@@ -75,14 +72,10 @@ mod tests {
     fn test_find_hashtags() {
         let tags = find_hashtags(TEXT_WITH_TAGS);
 
-        assert_eq!(tags, vec![
-            "testtag",
-            "tag1",
-            "tag2",
-            "tag3",
-            "tag4",
-            "tag5",
-        ]);
+        assert_eq!(
+            tags,
+            vec!["testtag", "tag1", "tag2", "tag3", "tag4", "tag5",]
+        );
     }
 
     #[test]
@@ -91,7 +84,8 @@ mod tests {
         let output = replace_hashtags(INSTANCE_URL, TEXT_WITH_TAGS, &tags);
 
         let expected_output = concat!(
-            r#"@user1@server1 some text <a class="hashtag" href="https://example.com/collections/tags/testtag">#TestTag</a>."#, "\n",
+            r#"@user1@server1 some text <a class="hashtag" href="https://example.com/collections/tags/testtag">#TestTag</a>."#,
+            "\n",
             r#"<a class="hashtag" href="https://example.com/collections/tags/tag1">#TAG1</a> "#,
             r#"<a class="hashtag" href="https://example.com/collections/tags/tag1">#tag1</a> "#,
             r#"#test_underscore #test*special "#,

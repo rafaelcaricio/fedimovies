@@ -1,17 +1,12 @@
 use chrono::{DateTime, Duration, Utc};
 use postgres_types::FromSql;
 use serde::{
-    Deserialize, Deserializer, Serialize, Serializer,
-    de::Error as DeserializerError,
-    ser::SerializeMap,
-    __private::ser::FlatMapSerializer,
+    Deserialize, Deserializer, Serialize, Serializer, __private::ser::FlatMapSerializer,
+    de::Error as DeserializerError, ser::SerializeMap,
 };
 use uuid::Uuid;
 
-use mitra_utils::{
-    caip2::ChainId,
-    did::Did,
-};
+use mitra_utils::{caip2::ChainId, did::Did};
 
 use crate::database::{
     json_macro::{json_from_sql, json_to_sql},
@@ -27,11 +22,7 @@ pub struct ProfileImage {
 }
 
 impl ProfileImage {
-    pub fn new(
-        file_name: String,
-        file_size: usize,
-        media_type: Option<String>,
-    ) -> Self {
+    pub fn new(file_name: String, file_size: usize, media_type: Option<String>) -> Self {
         Self {
             file_name,
             file_size: Some(file_size),
@@ -73,16 +64,19 @@ impl TryFrom<i16> for IdentityProofType {
 
 impl<'de> Deserialize<'de> for IdentityProofType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         i16::deserialize(deserializer)?
-            .try_into().map_err(DeserializerError::custom)
+            .try_into()
+            .map_err(DeserializerError::custom)
     }
 }
 
 impl Serialize for IdentityProofType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer
+    where
+        S: Serializer,
     {
         serializer.serialize_i16(self.into())
     }
@@ -194,30 +188,31 @@ impl PaymentOption {
 // Workaround: https://stackoverflow.com/a/65576570
 impl<'de> Deserialize<'de> for PaymentOption {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         let value = serde_json::Value::deserialize(deserializer)?;
-        let payment_type = value.get("payment_type")
+        let payment_type = value
+            .get("payment_type")
             .and_then(serde_json::Value::as_u64)
             .and_then(|val| i16::try_from(val).ok())
             .and_then(|val| PaymentType::try_from(val).ok())
             .ok_or(DeserializerError::custom("invalid payment type"))?;
         let payment_option = match payment_type {
             PaymentType::Link => {
-                let link = PaymentLink::deserialize(value)
-                    .map_err(DeserializerError::custom)?;
+                let link = PaymentLink::deserialize(value).map_err(DeserializerError::custom)?;
                 Self::Link(link)
-            },
+            }
             PaymentType::EthereumSubscription => {
-                let payment_info = EthereumSubscription::deserialize(value)
-                    .map_err(DeserializerError::custom)?;
+                let payment_info =
+                    EthereumSubscription::deserialize(value).map_err(DeserializerError::custom)?;
                 Self::EthereumSubscription(payment_info)
-            },
+            }
             PaymentType::MoneroSubscription => {
-                let payment_info = MoneroSubscription::deserialize(value)
-                    .map_err(DeserializerError::custom)?;
+                let payment_info =
+                    MoneroSubscription::deserialize(value).map_err(DeserializerError::custom)?;
                 Self::MoneroSubscription(payment_info)
-            },
+            }
         };
         Ok(payment_option)
     }
@@ -225,7 +220,8 @@ impl<'de> Deserialize<'de> for PaymentOption {
 
 impl Serialize for PaymentOption {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer,
+    where
+        S: Serializer,
     {
         let mut map = serializer.serialize_map(None)?;
         let payment_type = self.payment_type();
@@ -235,10 +231,10 @@ impl Serialize for PaymentOption {
             Self::Link(link) => link.serialize(FlatMapSerializer(&mut map))?,
             Self::EthereumSubscription(payment_info) => {
                 payment_info.serialize(FlatMapSerializer(&mut map))?
-            },
+            }
             Self::MoneroSubscription(payment_info) => {
                 payment_info.serialize(FlatMapSerializer(&mut map))?
-            },
+            }
         };
         map.end()
     }
@@ -267,7 +263,8 @@ impl PaymentOptions {
     /// of the given type.
     pub fn any(&self, payment_type: PaymentType) -> bool {
         let Self(payment_options) = self;
-        payment_options.iter()
+        payment_options
+            .iter()
             .any(|option| option.payment_type() == payment_type)
     }
 }
@@ -306,7 +303,8 @@ pub struct Aliases(Vec<Alias>);
 impl Aliases {
     pub fn new(actor_ids: Vec<String>) -> Self {
         // Not signed
-        let aliases = actor_ids.into_iter()
+        let aliases = actor_ids
+            .into_iter()
             .map(|actor_id| Alias { id: actor_id })
             .collect();
         Self(aliases)
@@ -369,7 +367,7 @@ pub struct DbActorProfile {
     pub username: String,
     pub hostname: Option<String>,
     pub display_name: Option<String>,
-    pub bio: Option<String>, // html
+    pub bio: Option<String>,        // html
     pub bio_source: Option<String>, // plaintext or markdown
     pub avatar: Option<ProfileImage>,
     pub banner: Option<ProfileImage>,
@@ -491,16 +489,16 @@ impl ProfileUpdateData {
     /// Adds new identity proof
     /// or replaces the existing one if it has the same issuer.
     pub fn add_identity_proof(&mut self, proof: IdentityProof) -> () {
-        self.identity_proofs.retain(|item| item.issuer != proof.issuer);
+        self.identity_proofs
+            .retain(|item| item.issuer != proof.issuer);
         self.identity_proofs.push(proof);
     }
 
     /// Adds new payment option
     /// or replaces the existing one if it has the same type.
     pub fn add_payment_option(&mut self, option: PaymentOption) -> () {
-        self.payment_options.retain(|item| {
-            item.payment_type() != option.payment_type()
-        });
+        self.payment_options
+            .retain(|item| item.payment_type() != option.payment_type());
         self.payment_options.push(option);
     }
 }
@@ -519,7 +517,10 @@ impl From<&DbActorProfile> for ProfileUpdateData {
             payment_options: profile.payment_options.into_inner(),
             extra_fields: profile.extra_fields.into_inner(),
             aliases: profile.aliases.into_actor_ids(),
-            emojis: profile.emojis.into_inner().into_iter()
+            emojis: profile
+                .emojis
+                .into_inner()
+                .into_iter()
                 .map(|emoji| emoji.id)
                 .collect(),
             actor_json: profile.actor_json,
@@ -539,7 +540,10 @@ mod tests {
             Did::Pkh(ref did_pkh) => did_pkh,
             _ => panic!("unexpected did method"),
         };
-        assert_eq!(did_pkh.address, "0xb9c5714089478a327f09197987f16f9e5d936e8a");
+        assert_eq!(
+            did_pkh.address,
+            "0xb9c5714089478a327f09197987f16f9e5d936e8a"
+        );
         let serialized = serde_json::to_string(&proof).unwrap();
         assert_eq!(serialized, json_data);
     }

@@ -4,21 +4,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use mitra_utils::{
-    canonicalization::{
-        canonicalize_object,
-        CanonicalizationError,
-    },
+    canonicalization::{canonicalize_object, CanonicalizationError},
     crypto_rsa::create_rsa_sha256_signature,
     did_key::DidKey,
     did_pkh::DidPkh,
     multibase::encode_multibase_base58btc,
 };
 
-use super::proofs::{
-    PROOF_TYPE_JCS_ED25519,
-    PROOF_TYPE_JCS_EIP191,
-    PROOF_TYPE_JCS_RSA,
-};
+use super::proofs::{PROOF_TYPE_JCS_ED25519, PROOF_TYPE_JCS_EIP191, PROOF_TYPE_JCS_RSA};
 
 pub(super) const PROOF_KEY: &str = "proof";
 pub(super) const PROOF_PURPOSE: &str = "assertionMethod";
@@ -39,10 +32,7 @@ pub struct IntegrityProof {
 }
 
 impl IntegrityProof {
-    fn jcs_rsa(
-        signer_key_id: &str,
-        signature: &[u8],
-    ) -> Self {
+    fn jcs_rsa(signer_key_id: &str, signature: &[u8]) -> Self {
         Self {
             proof_type: PROOF_TYPE_JCS_RSA.to_string(),
             cryptosuite: None,
@@ -53,10 +43,7 @@ impl IntegrityProof {
         }
     }
 
-    pub fn jcs_eip191(
-        signer: &DidPkh,
-        signature: &[u8],
-    ) -> Self {
+    pub fn jcs_eip191(signer: &DidPkh, signature: &[u8]) -> Self {
         Self {
             proof_type: PROOF_TYPE_JCS_EIP191.to_string(),
             cryptosuite: None,
@@ -67,10 +54,7 @@ impl IntegrityProof {
         }
     }
 
-    pub fn jcs_ed25519(
-        signer: &DidKey,
-        signature: &[u8],
-    ) -> Self {
+    pub fn jcs_ed25519(signer: &DidKey, signature: &[u8]) -> Self {
         Self {
             proof_type: PROOF_TYPE_JCS_ED25519.to_string(),
             cryptosuite: None,
@@ -104,7 +88,8 @@ pub fn add_integrity_proof(
     object_value: &mut Value,
     proof: IntegrityProof,
 ) -> Result<(), JsonSignatureError> {
-    let object_map = object_value.as_object_mut()
+    let object_map = object_value
+        .as_object_mut()
         .ok_or(JsonSignatureError::InvalidObject)?;
     if object_map.contains_key(PROOF_KEY) {
         return Err(JsonSignatureError::AlreadySigned);
@@ -122,10 +107,7 @@ pub fn sign_object(
     // Canonicalize
     let transformed_object = canonicalize_object(object)?;
     // Sign
-    let signature = create_rsa_sha256_signature(
-        signer_key,
-        &transformed_object,
-    )?;
+    let signature = create_rsa_sha256_signature(signer_key, &transformed_object)?;
     // Insert proof
     let proof = IntegrityProof::jcs_rsa(signer_key_id, &signature);
     let mut signed_object = object.clone();
@@ -139,9 +121,9 @@ pub fn is_object_signed(object: &Value) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
     use super::*;
+    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
+    use serde_json::json;
 
     #[test]
     fn test_sign_object() {

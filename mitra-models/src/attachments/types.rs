@@ -35,7 +35,7 @@ impl AttachmentType {
                 } else {
                     Self::Unknown
                 }
-            },
+            }
             None => Self::Unknown,
         }
     }

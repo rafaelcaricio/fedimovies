@@ -6,10 +6,7 @@ use regex::Regex;
 
 use super::{
     did::DidParseError,
-    multibase::{
-        decode_multibase_base58btc,
-        encode_multibase_base58btc,
-    },
+    multibase::{decode_multibase_base58btc, encode_multibase_base58btc},
 };
 
 const DID_KEY_RE: &str = r"did:key:(?P<key>z[a-km-zA-HJ-NP-Z1-9]+)";
@@ -34,10 +31,7 @@ impl DidKey {
     }
 
     pub fn from_ed25519_key(key: [u8; 32]) -> Self {
-        let prefixed_key = [
-            MULTICODEC_ED25519_PREFIX.to_vec(),
-            key.to_vec(),
-        ].concat();
+        let prefixed_key = [MULTICODEC_ED25519_PREFIX.to_vec(), key.to_vec()].concat();
         Self { key: prefixed_key }
     }
 
@@ -62,8 +56,7 @@ impl FromStr for DidKey {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let did_key_re = Regex::new(DID_KEY_RE).unwrap();
         let caps = did_key_re.captures(value).ok_or(DidParseError)?;
-        let key = decode_multibase_base58btc(&caps["key"])
-            .map_err(|_| DidParseError)?;
+        let key = decode_multibase_base58btc(&caps["key"]).map_err(|_| DidParseError)?;
         let did_key = Self { key };
         Ok(did_key)
     }

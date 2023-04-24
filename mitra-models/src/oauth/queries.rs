@@ -1,11 +1,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::database::{
-    catch_unique_violation,
-    DatabaseClient,
-    DatabaseError,
-};
+use crate::database::{catch_unique_violation, DatabaseClient, DatabaseError};
 use crate::profiles::types::DbActorProfile;
 use crate::users::types::{DbUser, User};
 
@@ -15,8 +11,9 @@ pub async fn create_oauth_app(
     db_client: &impl DatabaseClient,
     app_data: DbOauthAppData,
 ) -> Result<DbOauthApp, DatabaseError> {
-    let row = db_client.query_one(
-        "
+    let row = db_client
+        .query_one(
+            "
         INSERT INTO oauth_application (
             app_name,
             website,
@@ -28,15 +25,17 @@ pub async fn create_oauth_app(
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING oauth_application
         ",
-        &[
-            &app_data.app_name,
-            &app_data.website,
-            &app_data.scopes,
-            &app_data.redirect_uri,
-            &app_data.client_id,
-            &app_data.client_secret,
-        ],
-    ).await.map_err(catch_unique_violation("oauth_application"))?;
+            &[
+                &app_data.app_name,
+                &app_data.website,
+                &app_data.scopes,
+                &app_data.redirect_uri,
+                &app_data.client_id,
+                &app_data.client_secret,
+            ],
+        )
+        .await
+        .map_err(catch_unique_violation("oauth_application"))?;
     let app = row.try_get("oauth_application")?;
     Ok(app)
 }
@@ -45,14 +44,16 @@ pub async fn get_oauth_app_by_client_id(
     db_client: &impl DatabaseClient,
     client_id: &Uuid,
 ) -> Result<DbOauthApp, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT oauth_application
         FROM oauth_application
         WHERE client_id = $1
         ",
-        &[&client_id],
-    ).await?;
+            &[&client_id],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("oauth application"))?;
     let app = row.try_get("oauth_application")?;
     Ok(app)
@@ -67,8 +68,9 @@ pub async fn create_oauth_authorization(
     created_at: &DateTime<Utc>,
     expires_at: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
-    db_client.execute(
-        "
+    db_client
+        .execute(
+            "
         INSERT INTO oauth_authorization (
             code,
             user_id,
@@ -79,15 +81,16 @@ pub async fn create_oauth_authorization(
         )
         VALUES ($1, $2, $3, $4, $5, $6)
         ",
-        &[
-            &authorization_code,
-            &user_id,
-            &application_id,
-            &scopes,
-            &created_at,
-            &expires_at,
-        ],
-    ).await?;
+            &[
+                &authorization_code,
+                &user_id,
+                &application_id,
+                &scopes,
+                &created_at,
+                &expires_at,
+            ],
+        )
+        .await?;
     Ok(())
 }
 
@@ -95,8 +98,9 @@ pub async fn get_user_by_authorization_code(
     db_client: &impl DatabaseClient,
     authorization_code: &str,
 ) -> Result<User, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT user_account, actor_profile
         FROM oauth_authorization
         JOIN user_account ON oauth_authorization.user_id = user_account.id
@@ -105,8 +109,9 @@ pub async fn get_user_by_authorization_code(
             oauth_authorization.code = $1
             AND oauth_authorization.expires_at > CURRENT_TIMESTAMP
         ",
-        &[&authorization_code],
-    ).await?;
+            &[&authorization_code],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("authorization"))?;
     let db_user: DbUser = row.try_get("user_account")?;
     let db_profile: DbActorProfile = row.try_get("actor_profile")?;
@@ -121,13 +126,15 @@ pub async fn save_oauth_token(
     created_at: &DateTime<Utc>,
     expires_at: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
-    db_client.execute(
-        "
+    db_client
+        .execute(
+            "
         INSERT INTO oauth_token (owner_id, token, created_at, expires_at)
         VALUES ($1, $2, $3, $4)
         ",
-        &[&owner_id, &token, &created_at, &expires_at],
-    ).await?;
+            &[&owner_id, &token, &created_at, &expires_at],
+        )
+        .await?;
     Ok(())
 }
 
@@ -137,24 +144,25 @@ pub async fn delete_oauth_token(
     token: &str,
 ) -> Result<(), DatabaseError> {
     let transaction = db_client.transaction().await?;
-    let maybe_row = transaction.query_opt(
-        "
+    let maybe_row = transaction
+        .query_opt(
+            "
         SELECT owner_id FROM oauth_token
         WHERE token = $1
         FOR UPDATE
         ",
-        &[&token],
-    ).await?;
+            &[&token],
+        )
+        .await?;
     if let Some(row) = maybe_row {
         let owner_id: Uuid = row.try_get("owner_id")?;
         if owner_id != *current_user_id {
             // Return error if token is owned by a different user
             return Err(DatabaseError::NotFound("token"));
         } else {
-            transaction.execute(
-                "DELETE FROM oauth_token WHERE token = $1",
-                &[&token],
-            ).await?;
+            transaction
+                .execute("DELETE FROM oauth_token WHERE token = $1", &[&token])
+                .await?;
         };
     };
     transaction.commit().await?;
@@ -165,10 +173,9 @@ pub async fn delete_oauth_tokens(
     db_client: &impl DatabaseClient,
     owner_id: &Uuid,
 ) -> Result<(), DatabaseError> {
-    db_client.execute(
-        "DELETE FROM oauth_token WHERE owner_id = $1",
-        &[&owner_id],
-    ).await?;
+    db_client
+        .execute("DELETE FROM oauth_token WHERE owner_id = $1", &[&owner_id])
+        .await?;
     Ok(())
 }
 
@@ -176,8 +183,9 @@ pub async fn get_user_by_oauth_token(
     db_client: &impl DatabaseClient,
     access_token: &str,
 ) -> Result<User, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT user_account, actor_profile
         FROM oauth_token
         JOIN user_account ON oauth_token.owner_id = user_account.id
@@ -186,8 +194,9 @@ pub async fn get_user_by_oauth_token(
             oauth_token.token = $1
             AND oauth_token.expires_at > CURRENT_TIMESTAMP
         ",
-        &[&access_token],
-    ).await?;
+            &[&access_token],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
     let db_profile: DbActorProfile = row.try_get("actor_profile")?;
@@ -197,13 +206,10 @@ pub async fn get_user_by_oauth_token(
 
 #[cfg(test)]
 mod tests {
-    use serial_test::serial;
-    use crate::database::test_utils::create_test_database;
-    use crate::users::{
-        queries::create_user,
-        types::UserCreateData,
-    };
     use super::*;
+    use crate::database::test_utils::create_test_database;
+    use crate::users::{queries::create_user, types::UserCreateData};
+    use serial_test::serial;
 
     #[tokio::test]
     #[serial]
@@ -240,7 +246,9 @@ mod tests {
             "read write",
             &Utc::now(),
             &Utc::now(),
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
@@ -254,17 +262,11 @@ mod tests {
         };
         let user = create_user(db_client, user_data).await.unwrap();
         let token = "test-token";
-        save_oauth_token(
-            db_client,
-            &user.id,
-            token,
-            &Utc::now(),
-            &Utc::now(),
-        ).await.unwrap();
-        delete_oauth_token(
-            db_client,
-            &user.id,
-            token,
-        ).await.unwrap();
+        save_oauth_token(db_client, &user.id, token, &Utc::now(), &Utc::now())
+            .await
+            .unwrap();
+        delete_oauth_token(db_client, &user.id, token)
+            .await
+            .unwrap();
     }
 }

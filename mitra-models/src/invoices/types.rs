@@ -1,14 +1,6 @@
 use chrono::{DateTime, Utc};
 use postgres_protocol::types::{text_from_sql, text_to_sql};
-use postgres_types::{
-    accepts,
-    private::BytesMut,
-    to_sql_checked,
-    FromSql,
-    IsNull,
-    ToSql,
-    Type,
-};
+use postgres_types::{accepts, private::BytesMut, to_sql_checked, FromSql, IsNull, ToSql, Type};
 use uuid::Uuid;
 
 use mitra_utils::caip2::ChainId;
@@ -44,10 +36,7 @@ impl PartialEq<ChainId> for DbChainId {
 }
 
 impl<'a> FromSql<'a> for DbChainId {
-    fn from_sql(
-        _: &Type,
-        raw: &'a [u8],
-    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+    fn from_sql(_: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
         let value_str = text_from_sql(raw)?;
         let value: ChainId = value_str.parse()?;
         Ok(Self(value))

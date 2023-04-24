@@ -34,7 +34,8 @@ pub fn render_authorization_page() -> String {
     </form>
 </body>
 </html>
-"#.to_string();
+"#
+    .to_string();
     page
 }
 

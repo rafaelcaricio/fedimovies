@@ -14,7 +14,7 @@ macro_rules! json_from_sql {
 
             postgres_types::accepts!(JSON, JSONB);
         }
-    }
+    };
 }
 
 /// Implements ToSql trait for any serializable type
@@ -33,7 +33,7 @@ macro_rules! json_to_sql {
             postgres_types::accepts!(JSON, JSONB);
             postgres_types::to_sql_checked!();
         }
-    }
+    };
 }
 
 pub(crate) use {json_from_sql, json_to_sql};

@@ -1,10 +1,7 @@
 use regex::Regex;
 use uuid::Uuid;
 
-use mitra_models::{
-    posts::types::Post,
-    profiles::types::DbActorProfile,
-};
+use mitra_models::{posts::types::Post, profiles::types::DbActorProfile};
 use mitra_utils::urls::get_hostname;
 
 use crate::errors::ValidationError;
@@ -83,45 +80,41 @@ pub fn local_tag_collection(instance_url: &str, tag_name: &str) -> String {
 }
 
 pub fn validate_object_id(object_id: &str) -> Result<(), ValidationError> {
-    get_hostname(object_id)
-        .map_err(|_| ValidationError("invalid object ID"))?;
+    get_hostname(object_id).map_err(|_| ValidationError("invalid object ID"))?;
     Ok(())
 }
 
-pub fn parse_local_actor_id(
-    instance_url: &str,
-    actor_id: &str,
-) -> Result<String, ValidationError> {
+pub fn parse_local_actor_id(instance_url: &str, actor_id: &str) -> Result<String, ValidationError> {
     let url_regexp_str = format!(
         "^{}/users/(?P<username>[0-9a-z_]+)$",
         instance_url.replace('.', r"\."),
     );
-    let url_regexp = Regex::new(&url_regexp_str)
-        .map_err(|_| ValidationError("error"))?;
-    let url_caps = url_regexp.captures(actor_id)
+    let url_regexp = Regex::new(&url_regexp_str).map_err(|_| ValidationError("error"))?;
+    let url_caps = url_regexp
+        .captures(actor_id)
         .ok_or(ValidationError("invalid actor ID"))?;
-    let username = url_caps.name("username")
+    let username = url_caps
+        .name("username")
         .ok_or(ValidationError("invalid actor ID"))?
         .as_str()
         .to_owned();
     Ok(username)
 }
 
-pub fn parse_local_object_id(
-    instance_url: &str,
-    object_id: &str,
-) -> Result<Uuid, ValidationError> {
+pub fn parse_local_object_id(instance_url: &str, object_id: &str) -> Result<Uuid, ValidationError> {
     let url_regexp_str = format!(
         "^{}/objects/(?P<uuid>[0-9a-f-]+)$",
         instance_url.replace('.', r"\."),
     );
-    let url_regexp = Regex::new(&url_regexp_str)
-        .map_err(|_| ValidationError("error"))?;
-    let url_caps = url_regexp.captures(object_id)
+    let url_regexp = Regex::new(&url_regexp_str).map_err(|_| ValidationError("error"))?;
+    let url_caps = url_regexp
+        .captures(object_id)
         .ok_or(ValidationError("invalid object ID"))?;
-    let internal_object_id: Uuid = url_caps.name("uuid")
+    let internal_object_id: Uuid = url_caps
+        .name("uuid")
         .ok_or(ValidationError("invalid object ID"))?
-        .as_str().parse()
+        .as_str()
+        .parse()
         .map_err(|_| ValidationError("invalid object ID"))?;
     Ok(internal_object_id)
 }
@@ -151,68 +144,51 @@ pub fn profile_actor_url(instance_url: &str, profile: &DbActorProfile) -> String
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::id::generate_ulid;
     use super::*;
+    use mitra_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.org";
 
     #[test]
     fn test_parse_local_actor_id() {
-        let username = parse_local_actor_id(
-            INSTANCE_URL,
-            "https://example.org/users/test",
-        ).unwrap();
+        let username =
+            parse_local_actor_id(INSTANCE_URL, "https://example.org/users/test").unwrap();
         assert_eq!(username, "test".to_string());
     }
 
     #[test]
     fn test_parse_local_actor_id_wrong_path() {
-        let error = parse_local_actor_id(
-            INSTANCE_URL,
-            "https://example.org/user/test",
-        ).unwrap_err();
+        let error =
+            parse_local_actor_id(INSTANCE_URL, "https://example.org/user/test").unwrap_err();
         assert_eq!(error.to_string(), "invalid actor ID");
     }
 
     #[test]
     fn test_parse_local_actor_id_invalid_username() {
-        let error = parse_local_actor_id(
-            INSTANCE_URL,
-            "https://example.org/users/tes-t",
-        ).unwrap_err();
+        let error =
+            parse_local_actor_id(INSTANCE_URL, "https://example.org/users/tes-t").unwrap_err();
         assert_eq!(error.to_string(), "invalid actor ID");
     }
 
     #[test]
     fn test_parse_local_actor_id_invalid_instance_url() {
-        let error = parse_local_actor_id(
-            INSTANCE_URL,
-            "https://example.gov/users/test",
-        ).unwrap_err();
+        let error =
+            parse_local_actor_id(INSTANCE_URL, "https://example.gov/users/test").unwrap_err();
         assert_eq!(error.to_string(), "invalid actor ID");
     }
 
     #[test]
     fn test_parse_local_object_id() {
         let expected_uuid = generate_ulid();
-        let object_id = format!(
-            "https://example.org/objects/{}",
-            expected_uuid,
-        );
-        let internal_object_id = parse_local_object_id(
-            INSTANCE_URL,
-            &object_id,
-        ).unwrap();
+        let object_id = format!("https://example.org/objects/{}", expected_uuid,);
+        let internal_object_id = parse_local_object_id(INSTANCE_URL, &object_id).unwrap();
         assert_eq!(internal_object_id, expected_uuid);
     }
 
     #[test]
     fn test_parse_local_object_id_invalid_uuid() {
         let object_id = "https://example.org/objects/1234";
-        let error = parse_local_object_id(
-            INSTANCE_URL,
-            object_id,
-        ).unwrap_err();
+        let error = parse_local_object_id(INSTANCE_URL, object_id).unwrap_err();
         assert_eq!(error.to_string(), "invalid object ID");
     }
 
@@ -223,9 +199,6 @@ mod tests {
             ..Default::default()
         };
         let profile_url = profile_actor_url(INSTANCE_URL, &profile);
-        assert_eq!(
-            profile_url,
-            "https://example.org/users/test",
-        );
+        assert_eq!(profile_url, "https://example.org/users/test",);
     }
 }

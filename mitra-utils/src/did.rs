@@ -3,10 +3,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use regex::Regex;
-use serde::{
-    Deserialize, Deserializer, Serialize, Serializer,
-    de::Error as DeserializerError,
-};
+use serde::{de::Error as DeserializerError, Deserialize, Deserializer, Serialize, Serializer};
 
 use super::did_key::DidKey;
 use super::did_pkh::DidPkh;
@@ -33,11 +30,11 @@ impl FromStr for Did {
             "key" => {
                 let did_key = DidKey::from_str(value)?;
                 Self::Key(did_key)
-            },
+            }
             "pkh" => {
                 let did_pkh = DidPkh::from_str(value)?;
                 Self::Pkh(did_pkh)
-            },
+            }
             _ => return Err(DidParseError),
         };
         Ok(did)
@@ -56,7 +53,8 @@ impl fmt::Display for Did {
 
 impl<'de> Deserialize<'de> for Did {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         let did_str: String = Deserialize::deserialize(deserializer)?;
         did_str.parse().map_err(DeserializerError::custom)
@@ -65,7 +63,8 @@ impl<'de> Deserialize<'de> for Did {
 
 impl Serialize for Did {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer
+    where
+        S: Serializer,
     {
         let did_str = self.to_string();
         serializer.serialize_str(&did_str)

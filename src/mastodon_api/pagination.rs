@@ -1,17 +1,8 @@
 use actix_web::HttpResponse;
 use serde::{Deserialize, Serialize};
 
-fn get_pagination_header(
-    instance_url: &str,
-    path: &str,
-    last_id: &str,
-) -> String {
-    let next_page_url = format!(
-        "{}{}?max_id={}",
-        instance_url,
-        path,
-        last_id
-    );
+fn get_pagination_header(instance_url: &str, path: &str, last_id: &str) -> String {
+    let next_page_url = format!("{}{}?max_id={}", instance_url, path, last_id);
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link
     format!(r#"<{}>; rel="next""#, next_page_url)
 }
@@ -23,11 +14,8 @@ pub fn get_paginated_response(
     maybe_last_item_id: Option<impl ToString>,
 ) -> HttpResponse {
     if let Some(last_item_id) = maybe_last_item_id {
-        let pagination_header = get_pagination_header(
-            instance_url,
-            path,
-            &last_item_id.to_string(),
-        );
+        let pagination_header =
+            get_pagination_header(instance_url, path, &last_item_id.to_string());
         HttpResponse::Ok()
             .append_header(("Link", pagination_header))
             .json(items)
@@ -39,13 +27,17 @@ pub fn get_paginated_response(
 const PAGE_MAX_SIZE: u16 = 200;
 
 #[derive(Debug, Deserialize)]
-#[serde(try_from="u16")]
+#[serde(try_from = "u16")]
 pub struct PageSize(u16);
 
 impl PageSize {
-    pub fn new(size: u16) -> Self { Self(size) }
+    pub fn new(size: u16) -> Self {
+        Self(size)
+    }
 
-    pub fn inner(&self) -> u16 { self.0 }
+    pub fn inner(&self) -> u16 {
+        self.0
+    }
 }
 
 impl TryFrom<u16> for PageSize {
@@ -68,11 +60,7 @@ mod tests {
 
     #[test]
     fn test_get_next_page_link() {
-        let result = get_pagination_header(
-            INSTANCE_URL,
-            "/api/v1/notifications",
-            "123",
-        );
+        let result = get_pagination_header(INSTANCE_URL, "/api/v1/notifications", "123");
         assert_eq!(
             result,
             r#"<https://example.org/api/v1/notifications?max_id=123>; rel="next""#,

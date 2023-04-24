@@ -3,11 +3,7 @@ use uuid::Uuid;
 
 use mitra_utils::caip2::ChainId;
 
-use crate::database::{
-    catch_unique_violation,
-    DatabaseClient,
-    DatabaseError,
-};
+use crate::database::{catch_unique_violation, DatabaseClient, DatabaseError};
 use crate::invoices::types::DbChainId;
 use crate::profiles::types::PaymentType;
 use crate::relationships::{
@@ -28,8 +24,9 @@ pub async fn create_subscription(
 ) -> Result<(), DatabaseError> {
     assert!(chain_id.is_ethereum() == sender_address.is_some());
     let mut transaction = db_client.transaction().await?;
-    transaction.execute(
-        "
+    transaction
+        .execute(
+            "
         INSERT INTO subscription (
             sender_id,
             sender_address,
@@ -40,15 +37,17 @@ pub async fn create_subscription(
         )
         VALUES ($1, $2, $3, $4, $5, $6)
         ",
-        &[
-            &sender_id,
-            &sender_address,
-            &recipient_id,
-            &DbChainId::new(chain_id),
-            &expires_at,
-            &updated_at,
-        ],
-    ).await.map_err(catch_unique_violation("subscription"))?;
+            &[
+                &sender_id,
+                &sender_address,
+                &recipient_id,
+                &DbChainId::new(chain_id),
+                &expires_at,
+                &updated_at,
+            ],
+        )
+        .await
+        .map_err(catch_unique_violation("subscription"))?;
     subscribe(&mut transaction, sender_id, recipient_id).await?;
     transaction.commit().await?;
     Ok(())
@@ -61,8 +60,9 @@ pub async fn update_subscription(
     updated_at: &DateTime<Utc>,
 ) -> Result<(), DatabaseError> {
     let mut transaction = db_client.transaction().await?;
-    let maybe_row = transaction.query_opt(
-        "
+    let maybe_row = transaction
+        .query_opt(
+            "
         UPDATE subscription
         SET
             expires_at = $2,
@@ -70,12 +70,9 @@ pub async fn update_subscription(
         WHERE id = $1
         RETURNING sender_id, recipient_id
         ",
-        &[
-            &subscription_id,
-            &expires_at,
-            &updated_at,
-        ],
-    ).await?;
+            &[&subscription_id, &expires_at, &updated_at],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("subscription"))?;
     let sender_id: Uuid = row.try_get("sender_id")?;
     let recipient_id: Uuid = row.try_get("recipient_id")?;
@@ -91,14 +88,16 @@ pub async fn get_subscription_by_participants(
     sender_id: &Uuid,
     recipient_id: &Uuid,
 ) -> Result<DbSubscription, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT subscription
         FROM subscription
         WHERE sender_id = $1 AND recipient_id = $2
         ",
-        &[sender_id, recipient_id],
-    ).await?;
+            &[sender_id, recipient_id],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("subscription"))?;
     let subscription: DbSubscription = row.try_get("subscription")?;
     Ok(subscription)
@@ -107,8 +106,9 @@ pub async fn get_subscription_by_participants(
 pub async fn get_expired_subscriptions(
     db_client: &impl DatabaseClient,
 ) -> Result<Vec<DbSubscription>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         SELECT subscription
         FROM subscription
         JOIN relationship
@@ -119,9 +119,11 @@ pub async fn get_expired_subscriptions(
         )
         WHERE subscription.expires_at <= CURRENT_TIMESTAMP
         ",
-        &[&RelationshipType::Subscription],
-    ).await?;
-   let subscriptions = rows.iter()
+            &[&RelationshipType::Subscription],
+        )
+        .await?;
+    let subscriptions = rows
+        .iter()
         .map(|row| row.try_get("subscription"))
         .collect::<Result<_, _>>()?;
     Ok(subscriptions)
@@ -133,8 +135,9 @@ pub async fn get_incoming_subscriptions(
     max_subscription_id: Option<i32>,
     limit: u16,
 ) -> Result<Vec<Subscription>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         SELECT subscription, actor_profile AS sender
         FROM actor_profile
         JOIN subscription
@@ -145,9 +148,11 @@ pub async fn get_incoming_subscriptions(
         ORDER BY subscription.id DESC
         LIMIT $3
         ",
-        &[&recipient_id, &max_subscription_id, &i64::from(limit)],
-    ).await?;
-    let subscriptions = rows.iter()
+            &[&recipient_id, &max_subscription_id, &i64::from(limit)],
+        )
+        .await?;
+    let subscriptions = rows
+        .iter()
         .map(Subscription::try_from)
         .collect::<Result<_, _>>()?;
     Ok(subscriptions)
@@ -161,8 +166,9 @@ pub async fn reset_subscriptions(
     if ethereum_contract_replaced {
         // Ethereum subscription configuration is stored in contract.
         // If contract is replaced, payment option needs to be deleted.
-        transaction.execute(
-            "
+        transaction
+            .execute(
+                "
             UPDATE actor_profile
             SET payment_options = '[]'
             WHERE
@@ -174,19 +180,22 @@ pub async fn reset_subscriptions(
                     WHERE CAST(option ->> 'payment_type' AS SMALLINT) = $1
                 )
             ",
-            &[&i16::from(&PaymentType::EthereumSubscription)],
-        ).await?;
+                &[&i16::from(&PaymentType::EthereumSubscription)],
+            )
+            .await?;
     };
-    transaction.execute(
-        "
+    transaction
+        .execute(
+            "
         DELETE FROM relationship
         WHERE relationship_type = $1
         ",
-        &[&RelationshipType::Subscription],
-    ).await?;
-    transaction.execute(
-        "UPDATE actor_profile SET subscriber_count = 0", &[],
-    ).await?;
+            &[&RelationshipType::Subscription],
+        )
+        .await?;
+    transaction
+        .execute("UPDATE actor_profile SET subscriber_count = 0", &[])
+        .await?;
     transaction.execute("DELETE FROM subscription", &[]).await?;
     transaction.commit().await?;
     Ok(())
@@ -194,21 +203,12 @@ pub async fn reset_subscriptions(
 
 #[cfg(test)]
 mod tests {
-    use serial_test::serial;
-    use crate::database::test_utils::create_test_database;
-    use crate::profiles::{
-        queries::create_profile,
-        types::ProfileCreateData,
-    };
-    use crate::relationships::{
-        queries::has_relationship,
-        types::RelationshipType,
-    };
-    use crate::users::{
-        queries::create_user,
-        types::UserCreateData,
-    };
     use super::*;
+    use crate::database::test_utils::create_test_database;
+    use crate::profiles::{queries::create_profile, types::ProfileCreateData};
+    use crate::relationships::{queries::has_relationship, types::RelationshipType};
+    use crate::users::{queries::create_user, types::UserCreateData};
+    use serial_test::serial;
 
     #[tokio::test]
     #[serial]
@@ -237,14 +237,18 @@ mod tests {
             &chain_id,
             &expires_at,
             &updated_at,
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
 
         let is_subscribed = has_relationship(
             db_client,
             &sender.id,
             &recipient.id,
             RelationshipType::Subscription,
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
         assert_eq!(is_subscribed, true);
     }
 }

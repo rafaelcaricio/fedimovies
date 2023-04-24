@@ -1,30 +1,16 @@
-use serde_json::{Value as JsonValue};
+use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
-use mitra_utils::{
-    currencies::Currency,
-    did::Did,
-    did_pkh::DidPkh,
-};
+use mitra_utils::{currencies::Currency, did::Did, did_pkh::DidPkh};
 
-use crate::database::{
-    catch_unique_violation,
-    DatabaseClient,
-    DatabaseError,
-};
+use crate::database::{catch_unique_violation, DatabaseClient, DatabaseError};
 use crate::profiles::{
     queries::create_profile,
     types::{DbActorProfile, ProfileCreateData},
 };
 
 use super::types::{
-    ClientConfig,
-    DbClientConfig,
-    DbInviteCode,
-    DbUser,
-    Role,
-    User,
-    UserCreateData,
+    ClientConfig, DbClientConfig, DbInviteCode, DbUser, Role, User, UserCreateData,
 };
 use super::utils::generate_invite_code;
 
@@ -33,28 +19,33 @@ pub async fn create_invite_code(
     note: Option<&str>,
 ) -> Result<String, DatabaseError> {
     let invite_code = generate_invite_code();
-    db_client.execute(
-        "
+    db_client
+        .execute(
+            "
         INSERT INTO user_invite_code (code, note)
         VALUES ($1, $2)
         ",
-        &[&invite_code, &note],
-    ).await?;
+            &[&invite_code, &note],
+        )
+        .await?;
     Ok(invite_code)
 }
 
 pub async fn get_invite_codes(
     db_client: &impl DatabaseClient,
 ) -> Result<Vec<DbInviteCode>, DatabaseError> {
-    let rows = db_client.query(
-        "
+    let rows = db_client
+        .query(
+            "
         SELECT user_invite_code
         FROM user_invite_code
         WHERE used = FALSE
         ",
-        &[],
-    ).await?;
-    let codes = rows.iter()
+            &[],
+        )
+        .await?;
+    let codes = rows
+        .iter()
         .map(|row| row.try_get("user_invite_code"))
         .collect::<Result<_, _>>()?;
     Ok(codes)
@@ -64,13 +55,15 @@ pub async fn is_valid_invite_code(
     db_client: &impl DatabaseClient,
     invite_code: &str,
 ) -> Result<bool, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT 1 FROM user_invite_code
         WHERE code = $1 AND used = FALSE
         ",
-        &[&invite_code],
-    ).await?;
+            &[&invite_code],
+        )
+        .await?;
     Ok(maybe_row.is_some())
 }
 
@@ -78,37 +71,39 @@ pub async fn create_user(
     db_client: &mut impl DatabaseClient,
     user_data: UserCreateData,
 ) -> Result<User, DatabaseError> {
-    assert!(user_data.password_hash.is_some() ||
-            user_data.wallet_address.is_some());
+    assert!(user_data.password_hash.is_some() || user_data.wallet_address.is_some());
     let mut transaction = db_client.transaction().await?;
     // Prevent changes to actor_profile table
-    transaction.execute(
-        "LOCK TABLE actor_profile IN EXCLUSIVE MODE",
-        &[],
-    ).await?;
+    transaction
+        .execute("LOCK TABLE actor_profile IN EXCLUSIVE MODE", &[])
+        .await?;
     // Ensure there are no local accounts with a similar name
-    let maybe_row = transaction.query_opt(
-        "
+    let maybe_row = transaction
+        .query_opt(
+            "
         SELECT 1
         FROM user_account JOIN actor_profile USING (id)
         WHERE actor_profile.username ILIKE $1
         LIMIT 1
         ",
-        &[&user_data.username],
-    ).await?;
+            &[&user_data.username],
+        )
+        .await?;
     if maybe_row.is_some() {
         return Err(DatabaseError::AlreadyExists("user"));
     };
     // Use invite code
     if let Some(ref invite_code) = user_data.invite_code {
-        let updated_count = transaction.execute(
-            "
+        let updated_count = transaction
+            .execute(
+                "
             UPDATE user_invite_code
             SET used = TRUE
             WHERE code = $1 AND used = FALSE
             ",
-            &[&invite_code],
-        ).await?;
+                &[&invite_code],
+            )
+            .await?;
         if updated_count == 0 {
             return Err(DatabaseError::NotFound("invite code"));
         };
@@ -131,8 +126,9 @@ pub async fn create_user(
     };
     let profile = create_profile(&mut transaction, profile_data).await?;
     // Create user
-    let row = transaction.query_one(
-        "
+    let row = transaction
+        .query_one(
+            "
         INSERT INTO user_account (
             id,
             wallet_address,
@@ -144,15 +140,17 @@ pub async fn create_user(
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING user_account
         ",
-        &[
-            &profile.id,
-            &user_data.wallet_address,
-            &user_data.password_hash,
-            &user_data.private_key_pem,
-            &user_data.invite_code,
-            &user_data.role,
-        ],
-    ).await.map_err(catch_unique_violation("user"))?;
+            &[
+                &profile.id,
+                &user_data.wallet_address,
+                &user_data.password_hash,
+                &user_data.private_key_pem,
+                &user_data.invite_code,
+                &user_data.role,
+            ],
+        )
+        .await
+        .map_err(catch_unique_violation("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
     let user = User::new(db_user, profile);
     transaction.commit().await?;
@@ -164,13 +162,15 @@ pub async fn set_user_password(
     user_id: &Uuid,
     password_hash: String,
 ) -> Result<(), DatabaseError> {
-    let updated_count = db_client.execute(
-        "
+    let updated_count = db_client
+        .execute(
+            "
         UPDATE user_account SET password_hash = $1
         WHERE id = $2
         ",
-        &[&password_hash, &user_id],
-    ).await?;
+            &[&password_hash, &user_id],
+        )
+        .await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("user"));
     };
@@ -182,13 +182,15 @@ pub async fn set_user_role(
     user_id: &Uuid,
     role: Role,
 ) -> Result<(), DatabaseError> {
-    let updated_count = db_client.execute(
-        "
+    let updated_count = db_client
+        .execute(
+            "
         UPDATE user_account SET user_role = $1
         WHERE id = $2
         ",
-        &[&role, &user_id],
-    ).await?;
+            &[&role, &user_id],
+        )
+        .await?;
     if updated_count == 0 {
         return Err(DatabaseError::NotFound("user"));
     };
@@ -201,15 +203,17 @@ pub async fn update_client_config(
     client_name: &str,
     client_config_value: &JsonValue,
 ) -> Result<ClientConfig, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         UPDATE user_account
         SET client_config = jsonb_set(client_config, ARRAY[$1], $2, true)
         WHERE id = $3
         RETURNING client_config
         ",
-        &[&client_name, &client_config_value, &user_id],
-    ).await?;
+            &[&client_name, &client_config_value, &user_id],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
     let client_config: DbClientConfig = row.try_get("client_config")?;
     Ok(client_config.into_inner())
@@ -219,14 +223,16 @@ pub async fn get_user_by_id(
     db_client: &impl DatabaseClient,
     user_id: &Uuid,
 ) -> Result<User, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT user_account, actor_profile
         FROM user_account JOIN actor_profile USING (id)
         WHERE id = $1
         ",
-        &[&user_id],
-    ).await?;
+            &[&user_id],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
     let db_profile: DbActorProfile = row.try_get("actor_profile")?;
@@ -238,14 +244,16 @@ pub async fn get_user_by_name(
     db_client: &impl DatabaseClient,
     username: &str,
 ) -> Result<User, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT user_account, actor_profile
         FROM user_account JOIN actor_profile USING (id)
         WHERE actor_profile.username = $1
         ",
-        &[&username],
-    ).await?;
+            &[&username],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
     let db_profile: DbActorProfile = row.try_get("actor_profile")?;
@@ -257,13 +265,15 @@ pub async fn is_registered_user(
     db_client: &impl DatabaseClient,
     username: &str,
 ) -> Result<bool, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT 1 FROM user_account JOIN actor_profile USING (id)
         WHERE actor_profile.username = $1
         ",
-        &[&username],
-    ).await?;
+            &[&username],
+        )
+        .await?;
     Ok(maybe_row.is_some())
 }
 
@@ -271,14 +281,16 @@ pub async fn get_user_by_login_address(
     db_client: &impl DatabaseClient,
     wallet_address: &str,
 ) -> Result<User, DatabaseError> {
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT user_account, actor_profile
         FROM user_account JOIN actor_profile USING (id)
         WHERE wallet_address = $1
         ",
-        &[&wallet_address],
-    ).await?;
+            &[&wallet_address],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
     let db_profile: DbActorProfile = row.try_get("actor_profile")?;
@@ -291,8 +303,9 @@ pub async fn get_user_by_did(
     did: &Did,
 ) -> Result<User, DatabaseError> {
     // DIDs must be locally unique
-    let maybe_row = db_client.query_opt(
-        "
+    let maybe_row = db_client
+        .query_opt(
+            "
         SELECT user_account, actor_profile
         FROM user_account JOIN actor_profile USING (id)
         WHERE
@@ -302,8 +315,9 @@ pub async fn get_user_by_did(
                 WHERE proof ->> 'issuer' = $1
             )
         ",
-        &[&did.to_string()],
-    ).await?;
+            &[&did.to_string()],
+        )
+        .await?;
     let row = maybe_row.ok_or(DatabaseError::NotFound("user"))?;
     let db_user: DbUser = row.try_get("user_account")?;
     let db_profile: DbActorProfile = row.try_get("actor_profile")?;
@@ -321,24 +335,21 @@ pub async fn get_user_by_public_wallet_address(
     get_user_by_did(db_client, &did).await
 }
 
-pub async fn get_user_count(
-    db_client: &impl DatabaseClient,
-) -> Result<i64, DatabaseError> {
-    let row = db_client.query_one(
-        "SELECT count(user_account) FROM user_account",
-        &[],
-    ).await?;
+pub async fn get_user_count(db_client: &impl DatabaseClient) -> Result<i64, DatabaseError> {
+    let row = db_client
+        .query_one("SELECT count(user_account) FROM user_account", &[])
+        .await?;
     let count = row.try_get("count")?;
     Ok(count)
 }
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-    use serial_test::serial;
+    use super::*;
     use crate::database::test_utils::create_test_database;
     use crate::users::types::Role;
-    use super::*;
+    use serde_json::json;
+    use serial_test::serial;
 
     #[tokio::test]
     #[serial]
@@ -392,7 +403,9 @@ mod tests {
         };
         let user = create_user(db_client, user_data).await.unwrap();
         assert_eq!(user.role, Role::NormalUser);
-        set_user_role(db_client, &user.id, Role::ReadOnlyUser).await.unwrap();
+        set_user_role(db_client, &user.id, Role::ReadOnlyUser)
+            .await
+            .unwrap();
         let user = get_user_by_id(db_client, &user.id).await.unwrap();
         assert_eq!(user.role, Role::ReadOnlyUser);
     }
@@ -410,12 +423,10 @@ mod tests {
         assert_eq!(user.client_config.is_empty(), true);
         let client_name = "test";
         let client_config_value = json!({"a": 1});
-        let client_config = update_client_config(
-            db_client,
-            &user.id,
-            client_name,
-            &client_config_value,
-        ).await.unwrap();
+        let client_config =
+            update_client_config(db_client, &user.id, client_name, &client_config_value)
+                .await
+                .unwrap();
         assert_eq!(
             client_config.get(client_name).unwrap(),
             &client_config_value,

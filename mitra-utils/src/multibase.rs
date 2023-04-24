@@ -12,10 +12,10 @@ pub enum MultibaseError {
 
 /// Decodes multibase base58 (bitcoin) value
 /// https://github.com/multiformats/multibase
-pub fn decode_multibase_base58btc(value: &str)
-    -> Result<Vec<u8>, MultibaseError>
-{
-    let base = value.chars().next()
+pub fn decode_multibase_base58btc(value: &str) -> Result<Vec<u8>, MultibaseError> {
+    let base = value
+        .chars()
+        .next()
         .ok_or(MultibaseError::InvalidBaseString)?;
     // z == base58btc
     // https://github.com/multiformats/multibase#multibase-table

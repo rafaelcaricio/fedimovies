@@ -14,9 +14,7 @@ pub enum Network {
     I2p,
 }
 
-pub fn get_network_type(request_url: &str) ->
-    Result<Network, url::ParseError>
-{
+pub fn get_network_type(request_url: &str) -> Result<Network, url::ParseError> {
     let hostname = get_hostname(request_url)?;
     let network = if hostname.ends_with(".onion") {
         Network::Tor
@@ -38,23 +36,18 @@ pub fn build_federation_client(
     match network {
         Network::Default => (),
         Network::Tor => {
-            maybe_proxy_url = instance.onion_proxy_url.as_ref()
-                .or(maybe_proxy_url);
-        },
+            maybe_proxy_url = instance.onion_proxy_url.as_ref().or(maybe_proxy_url);
+        }
         Network::I2p => {
-            maybe_proxy_url = instance.i2p_proxy_url.as_ref()
-                .or(maybe_proxy_url);
-        },
+            maybe_proxy_url = instance.i2p_proxy_url.as_ref().or(maybe_proxy_url);
+        }
     };
     if let Some(proxy_url) = maybe_proxy_url {
         let proxy = Proxy::all(proxy_url)?;
         client_builder = client_builder.proxy(proxy);
     };
     let request_timeout = Duration::from_secs(timeout);
-    let connect_timeout = Duration::from_secs(max(
-        timeout,
-        CONNECTION_TIMEOUT,
-    ));
+    let connect_timeout = Duration::from_secs(max(timeout, CONNECTION_TIMEOUT));
     client_builder
         .timeout(request_timeout)
         .connect_timeout(connect_timeout)

@@ -1,35 +1,17 @@
 use actix_web::HttpRequest;
-use serde::{
-    Deserialize,
-    Deserializer,
-    de::DeserializeOwned,
-    de::Error as DeserializerError,
-};
+use serde::{de::DeserializeOwned, de::Error as DeserializerError, Deserialize, Deserializer};
 use serde_json::Value;
 
 use mitra_config::Config;
 use mitra_models::database::{DatabaseClient, DatabaseError};
 
-use crate::errors::{
-    ConversionError,
-    HttpError,
-    ValidationError,
-};
-use super::authentication::{
-    verify_signed_activity,
-    verify_signed_request,
-    AuthenticationError,
-};
+use super::authentication::{verify_signed_activity, verify_signed_request, AuthenticationError};
 use super::fetcher::fetchers::FetchError;
 use super::handlers::{
     accept::handle_accept,
     add::handle_add,
     announce::handle_announce,
-    create::{
-        handle_create,
-        is_unsolicited_message,
-        CreateNote,
-    },
+    create::{handle_create, is_unsolicited_message, CreateNote},
     delete::handle_delete,
     follow::handle_follow,
     like::handle_like,
@@ -42,6 +24,7 @@ use super::handlers::{
 use super::identifiers::profile_actor_id;
 use super::queues::IncomingActivityJobData;
 use super::vocabulary::*;
+use crate::errors::{ConversionError, HttpError, ValidationError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum HandlerError {
@@ -65,14 +48,10 @@ impl From<HandlerError> for HttpError {
     fn from(error: HandlerError) -> Self {
         match error {
             HandlerError::LocalObject => HttpError::InternalError,
-            HandlerError::FetchError(error) => {
-                HttpError::ValidationError(error.to_string())
-            },
+            HandlerError::FetchError(error) => HttpError::ValidationError(error.to_string()),
             HandlerError::ValidationError(error) => error.into(),
             HandlerError::DatabaseError(error) => error.into(),
-            HandlerError::AuthError(_) => {
-                HttpError::AuthError("invalid signature")
-            },
+            HandlerError::AuthError(_) => HttpError::AuthError("invalid signature"),
         }
     }
 }
@@ -93,13 +72,13 @@ pub fn parse_array(value: &Value) -> Result<Vec<String>, ConversionError> {
                             // id property is missing
                             return Err(ConversionError);
                         };
-                    },
+                    }
                     // Unexpected array item type
                     _ => return Err(ConversionError),
                 };
-            };
+            }
             results
-        },
+        }
         // Unexpected value type
         _ => return Err(ConversionError),
     };
@@ -116,10 +95,9 @@ pub fn parse_property_value<T: DeserializeOwned>(value: &Value) -> Result<Vec<T>
     };
     let mut items = vec![];
     for object in objects {
-        let item: T = serde_json::from_value(object)
-            .map_err(|_| ConversionError)?;
+        let item: T = serde_json::from_value(object).map_err(|_| ConversionError)?;
         items.push(item);
-    };
+    }
     Ok(items)
 }
 
@@ -128,23 +106,22 @@ pub fn find_object_id(object: &Value) -> Result<String, ValidationError> {
     let object_id = match object.as_str() {
         Some(object_id) => object_id.to_owned(),
         None => {
-            let object_id = object["id"].as_str()
+            let object_id = object["id"]
+                .as_str()
                 .ok_or(ValidationError("missing object ID"))?
                 .to_string();
             object_id
-        },
+        }
     };
     Ok(object_id)
 }
 
-pub fn deserialize_into_object_id<'de, D>(
-    deserializer: D,
-) -> Result<String, D::Error>
-    where D: Deserializer<'de>
+pub fn deserialize_into_object_id<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
 {
     let value = Value::deserialize(deserializer)?;
-    let object_id = find_object_id(&value)
-        .map_err(DeserializerError::custom)?;
+    let object_id = find_object_id(&value).map_err(DeserializerError::custom)?;
     Ok(object_id)
 }
 
@@ -154,54 +131,32 @@ pub async fn handle_activity(
     activity: &Value,
     is_authenticated: bool,
 ) -> Result<(), HandlerError> {
-    let activity_type = activity["type"].as_str()
+    let activity_type = activity["type"]
+        .as_str()
         .ok_or(ValidationError("type property is missing"))?
         .to_owned();
-    let activity_actor = activity["actor"].as_str()
+    let activity_actor = activity["actor"]
+        .as_str()
         .ok_or(ValidationError("actor property is missing"))?
         .to_owned();
     let activity = activity.clone();
     let maybe_object_type = match activity_type.as_str() {
-        ACCEPT => {
-            handle_accept(config, db_client, activity).await?
-        },
-        ADD => {
-            handle_add(config, db_client, activity).await?
-        },
-        ANNOUNCE => {
-            handle_announce(config, db_client, activity).await?
-        },
-        CREATE => {
-            handle_create(config, db_client, activity, is_authenticated).await?
-        },
-        DELETE => {
-            handle_delete(config, db_client, activity).await?
-        },
-        FOLLOW => {
-            handle_follow(config, db_client, activity).await?
-        },
-        LIKE | EMOJI_REACT => {
-            handle_like(config, db_client, activity).await?
-        },
-        MOVE => {
-            handle_move(config, db_client, activity).await?
-        },
-        REJECT => {
-            handle_reject(config, db_client, activity).await?
-        },
-        REMOVE => {
-            handle_remove(config, db_client, activity).await?
-        },
-        UNDO => {
-            handle_undo(config, db_client, activity).await?
-        },
-        UPDATE => {
-            handle_update(config, db_client, activity).await?
-        },
+        ACCEPT => handle_accept(config, db_client, activity).await?,
+        ADD => handle_add(config, db_client, activity).await?,
+        ANNOUNCE => handle_announce(config, db_client, activity).await?,
+        CREATE => handle_create(config, db_client, activity, is_authenticated).await?,
+        DELETE => handle_delete(config, db_client, activity).await?,
+        FOLLOW => handle_follow(config, db_client, activity).await?,
+        LIKE | EMOJI_REACT => handle_like(config, db_client, activity).await?,
+        MOVE => handle_move(config, db_client, activity).await?,
+        REJECT => handle_reject(config, db_client, activity).await?,
+        REMOVE => handle_remove(config, db_client, activity).await?,
+        UNDO => handle_undo(config, db_client, activity).await?,
+        UPDATE => handle_update(config, db_client, activity).await?,
         _ => {
             log::warn!("activity type is not supported: {}", activity);
             None
-        },
+        }
     };
     if let Some(object_type) = maybe_object_type {
         log::info!(
@@ -220,9 +175,11 @@ pub async fn receive_activity(
     request: &HttpRequest,
     activity: &Value,
 ) -> Result<(), HandlerError> {
-    let activity_type = activity["type"].as_str()
+    let activity_type = activity["type"]
+        .as_str()
         .ok_or(ValidationError("type property is missing"))?;
-    let activity_actor = activity["actor"].as_str()
+    let activity_actor = activity["actor"]
+        .as_str()
         .ok_or(ValidationError("actor property is missing"))?;
 
     let actor_hostname = url::Url::parse(activity_actor)
@@ -230,7 +187,9 @@ pub async fn receive_activity(
         .host_str()
         .ok_or(ValidationError("invalid actor ID"))?
         .to_string();
-    if config.blocked_instances.iter()
+    if config
+        .blocked_instances
+        .iter()
         .any(|instance_hostname| &actor_hostname == instance_hostname)
     {
         log::warn!("ignoring activity from blocked instance: {}", activity);
@@ -240,7 +199,9 @@ pub async fn receive_activity(
     let is_self_delete = if activity_type == DELETE {
         let object_id = find_object_id(&activity["object"])?;
         object_id == activity_actor
-    } else { false };
+    } else {
+        false
+    };
 
     // HTTP signature is required
     let mut signer = match verify_signed_request(
@@ -249,24 +210,28 @@ pub async fn receive_activity(
         request,
         // Don't fetch signer if this is Delete(Person) activity
         is_self_delete,
-    ).await {
+    )
+    .await
+    {
         Ok(request_signer) => {
             log::debug!("request signed by {}", request_signer.acct);
             request_signer
-        },
+        }
         Err(error) => {
-            if is_self_delete && matches!(
-                error,
-                AuthenticationError::NoHttpSignature |
-                AuthenticationError::DatabaseError(DatabaseError::NotFound(_))
-            ) {
+            if is_self_delete
+                && matches!(
+                    error,
+                    AuthenticationError::NoHttpSignature
+                        | AuthenticationError::DatabaseError(DatabaseError::NotFound(_))
+                )
+            {
                 // Ignore Delete(Person) activities without HTTP signatures
                 // or if signer is not found in local database
                 return Ok(());
             };
             log::warn!("invalid HTTP signature: {}", error);
             return Err(error.into());
-        },
+        }
     };
 
     // JSON signature is optional
@@ -276,7 +241,9 @@ pub async fn receive_activity(
         activity,
         // Don't fetch actor if this is Delete(Person) activity
         is_self_delete,
-    ).await {
+    )
+    .await
+    {
         Ok(activity_signer) => {
             if activity_signer.acct != signer.acct {
                 log::warn!(
@@ -289,14 +256,16 @@ pub async fn receive_activity(
             };
             // Activity signature has higher priority
             signer = activity_signer;
-        },
+        }
         Err(AuthenticationError::NoJsonSignature) => (), // ignore
         Err(other_error) => {
             log::warn!("invalid JSON signature: {}", other_error);
-        },
+        }
     };
 
-    if config.blocked_instances.iter()
+    if config
+        .blocked_instances
+        .iter()
         .any(|instance| signer.hostname.as_ref() == Some(instance))
     {
         log::warn!("ignoring activity from blocked instance: {}", activity);
@@ -311,7 +280,7 @@ pub async fn receive_activity(
             DELETE | LIKE => {
                 // Ignore forwarded Delete and Like activities
                 return Ok(());
-            },
+            }
             _ => {
                 // Reject other types
                 log::warn!(
@@ -320,7 +289,7 @@ pub async fn receive_activity(
                     activity_actor,
                 );
                 return Err(AuthenticationError::UnexpectedSigner.into());
-            },
+            }
         };
     };
 
@@ -336,31 +305,24 @@ pub async fn receive_activity(
     if let ANNOUNCE | CREATE | DELETE | MOVE | UNDO | UPDATE = activity_type {
         // Add activity to job queue and release lock
         IncomingActivityJobData::new(activity, is_authenticated)
-            .into_job(db_client, 0).await?;
+            .into_job(db_client, 0)
+            .await?;
         log::debug!("activity added to the queue: {}", activity_type);
         return Ok(());
     };
 
-    handle_activity(
-        config,
-        db_client,
-        activity,
-        is_authenticated,
-    ).await
+    handle_activity(config, db_client, activity, is_authenticated).await
 }
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn test_parse_array_with_string() {
         let value = json!("test");
-        assert_eq!(
-            parse_array(&value).unwrap(),
-            vec!["test".to_string()],
-        );
+        assert_eq!(parse_array(&value).unwrap(), vec!["test".to_string()],);
     }
 
     #[test]

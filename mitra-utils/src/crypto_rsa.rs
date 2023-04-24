@@ -1,5 +1,5 @@
-use rsa::{Hash, PaddingScheme, PublicKey, RsaPrivateKey, RsaPublicKey};
 use rsa::pkcs8::{FromPrivateKey, FromPublicKey, ToPrivateKey, ToPublicKey};
+use rsa::{Hash, PaddingScheme, PublicKey, RsaPrivateKey, RsaPublicKey};
 use sha2::{Digest, Sha256};
 
 pub fn generate_rsa_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
@@ -16,32 +16,24 @@ pub fn generate_weak_rsa_key() -> Result<RsaPrivateKey, rsa::errors::Error> {
     RsaPrivateKey::new(&mut rng, bits)
 }
 
-pub fn serialize_private_key(
-    private_key: &RsaPrivateKey,
-) -> Result<String, rsa::pkcs8::Error> {
+pub fn serialize_private_key(private_key: &RsaPrivateKey) -> Result<String, rsa::pkcs8::Error> {
     private_key.to_pkcs8_pem().map(|val| val.to_string())
 }
 
-pub fn deserialize_private_key(
-    private_key_pem: &str,
-) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
+pub fn deserialize_private_key(private_key_pem: &str) -> Result<RsaPrivateKey, rsa::pkcs8::Error> {
     RsaPrivateKey::from_pkcs8_pem(private_key_pem)
 }
 
-pub fn get_public_key_pem(
-    private_key: &RsaPrivateKey,
-) -> Result<String, rsa::pkcs8::Error> {
+pub fn get_public_key_pem(private_key: &RsaPrivateKey) -> Result<String, rsa::pkcs8::Error> {
     let public_key = RsaPublicKey::from(private_key);
     public_key.to_public_key_pem()
 }
 
-pub fn deserialize_public_key(
-    public_key_pem: &str,
-) -> Result<RsaPublicKey, rsa::pkcs8::Error> {
+pub fn deserialize_public_key(public_key_pem: &str) -> Result<RsaPublicKey, rsa::pkcs8::Error> {
     // rsa package can't decode PEM string with non-standard wrap width,
     // so the input should be normalized first
-    let parsed_pem = pem::parse(public_key_pem.trim().as_bytes())
-        .map_err(|_| rsa::pkcs8::Error::Pem)?;
+    let parsed_pem =
+        pem::parse(public_key_pem.trim().as_bytes()).map_err(|_| rsa::pkcs8::Error::Pem)?;
     let normalized_pem = pem::encode(&parsed_pem);
     RsaPublicKey::from_public_key_pem(&normalized_pem)
 }
@@ -70,11 +62,7 @@ pub fn verify_rsa_sha256_signature(
 ) -> bool {
     let digest = Sha256::digest(message.as_bytes());
     let padding = PaddingScheme::new_pkcs1v15_sign(Some(Hash::SHA2_256));
-    let is_valid = public_key.verify(
-        padding,
-        &digest,
-        signature,
-    ).is_ok();
+    let is_valid = public_key.verify(padding, &digest, signature).is_ok();
     is_valid
 }
 
@@ -102,17 +90,10 @@ YsFtrgWDQ/s8k86sNBU+Ce2GOL7seh46kyAWgJeohh4Rcrr23rftHbvxOcRM8VzYuCeb1DgVhPGtA0xU
     fn test_verify_rsa_signature() {
         let private_key = generate_weak_rsa_key().unwrap();
         let message = "test".to_string();
-        let signature = create_rsa_sha256_signature(
-            &private_key,
-            &message,
-        ).unwrap();
+        let signature = create_rsa_sha256_signature(&private_key, &message).unwrap();
         let public_key = RsaPublicKey::from(&private_key);
 
-        let is_valid = verify_rsa_sha256_signature(
-            &public_key,
-            &message,
-            &signature,
-        );
+        let is_valid = verify_rsa_sha256_signature(&public_key, &message, &signature);
         assert_eq!(is_valid, true);
     }
 }

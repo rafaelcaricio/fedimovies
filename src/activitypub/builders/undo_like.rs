@@ -16,10 +16,7 @@ use crate::activitypub::{
     vocabulary::UNDO,
 };
 
-use super::like::{
-    get_like_audience,
-    get_like_recipients,
-};
+use super::like::{get_like_audience, get_like_recipients};
 
 #[derive(Serialize)]
 struct UndoLike {
@@ -47,8 +44,7 @@ fn build_undo_like(
     let object_id = local_object_id(instance_url, reaction_id);
     let activity_id = format!("{}/undo", object_id);
     let actor_id = local_actor_id(instance_url, &actor_profile.username);
-    let (primary_audience, secondary_audience) =
-        get_like_audience(post_author_id, post_visibility);
+    let (primary_audience, secondary_audience) = get_like_audience(post_author_id, post_visibility);
     UndoLike {
         context: build_default_context(),
         activity_type: UNDO.to_string(),
@@ -67,11 +63,7 @@ pub async fn prepare_undo_like(
     post: &Post,
     reaction_id: &Uuid,
 ) -> Result<OutgoingActivity, DatabaseError> {
-    let recipients = get_like_recipients(
-        db_client,
-        &instance.url(),
-        post,
-    ).await?;
+    let recipients = get_like_recipients(db_client, &instance.url(), post).await?;
     let post_author_id = profile_actor_id(&instance.url(), &post.author);
     let activity = build_undo_like(
         &instance.url(),
@@ -81,18 +73,15 @@ pub async fn prepare_undo_like(
         &post.visibility,
     );
     Ok(OutgoingActivity::new(
-        instance,
-        sender,
-        activity,
-        recipients,
+        instance, sender, activity, recipients,
     ))
 }
 
 #[cfg(test)]
 mod tests {
-    use mitra_utils::id::generate_ulid;
-    use crate::activitypub::constants::AP_PUBLIC;
     use super::*;
+    use crate::activitypub::constants::AP_PUBLIC;
+    use mitra_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 

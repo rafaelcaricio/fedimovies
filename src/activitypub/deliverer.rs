@@ -8,24 +8,14 @@ use serde_json::Value;
 
 use mitra_config::Instance;
 use mitra_models::{
-    database::{
-        DatabaseClient,
-        DatabaseError,
-    },
+    database::{DatabaseClient, DatabaseError},
     profiles::types::DbActor,
     users::types::User,
 };
 use mitra_utils::crypto_rsa::deserialize_private_key;
 
-use crate::http_signatures::create::{
-    create_http_signature,
-    HttpSignatureError,
-};
-use crate::json_signatures::create::{
-    is_object_signed,
-    sign_object,
-    JsonSignatureError,
-};
+use crate::http_signatures::create::{create_http_signature, HttpSignatureError};
+use crate::json_signatures::create::{is_object_signed, sign_object, JsonSignatureError};
 
 use super::{
     constants::AP_MEDIA_TYPE,
@@ -58,16 +48,9 @@ pub enum DelivererError {
     HttpError(reqwest::StatusCode),
 }
 
-fn build_client(
-    instance: &Instance,
-    request_url: &str,
-) -> Result<Client, DelivererError> {
+fn build_client(instance: &Instance, request_url: &str) -> Result<Client, DelivererError> {
     let network = get_network_type(request_url)?;
-    let client = build_federation_client(
-        instance,
-        network,
-        instance.deliverer_timeout,
-    )?;
+    let client = build_federation_client(instance, network, instance.deliverer_timeout)?;
     Ok(client)
 }
 
@@ -87,7 +70,8 @@ async fn send_activity(
     )?;
 
     let client = build_client(instance, inbox_url)?;
-    let request = client.post(inbox_url)
+    let request = client
+        .post(inbox_url)
         .header("Host", headers.host)
         .header("Date", headers.date)
         .header("Digest", headers.digest.unwrap())
@@ -97,15 +81,16 @@ async fn send_activity(
         .body(activity_json.to_owned());
 
     if instance.is_private {
-        log::info!(
-            "private mode: not sending activity to {}",
-            inbox_url,
-        );
+        log::info!("private mode: not sending activity to {}", inbox_url,);
     } else {
         let response = request.send().await?;
         let response_status = response.status();
-        let response_text: String = response.text().await?
-            .chars().filter(|chr| *chr != '\n' && *chr != '\r').take(75)
+        let response_text: String = response
+            .text()
+            .await?
+            .chars()
+            .filter(|chr| *chr != '\n' && *chr != '\r')
+            .take(75)
             .collect();
         log::info!(
             "response from {}: [{}] {}",
@@ -135,10 +120,7 @@ async fn deliver_activity_worker(
     recipients: &mut [Recipient],
 ) -> Result<(), DelivererError> {
     let actor_key = deserialize_private_key(&sender.private_key)?;
-    let actor_id = local_actor_id(
-        &instance.url(),
-        &sender.profile.username,
-    );
+    let actor_id = local_actor_id(&instance.url(), &sender.profile.username);
     let actor_key_id = local_actor_key_id(&actor_id);
     let activity_signed = if is_object_signed(&activity) {
         log::warn!("activity is already signed");
@@ -158,7 +140,9 @@ async fn deliver_activity_worker(
             &actor_key_id,
             &activity_json,
             &recipient.inbox,
-        ).await {
+        )
+        .await
+        {
             log::warn!(
                 "failed to deliver activity to {}: {}",
                 recipient.inbox,
@@ -167,7 +151,7 @@ async fn deliver_activity_worker(
         } else {
             recipient.is_delivered = true;
         };
-    };
+    }
     Ok(())
 }
 
@@ -196,32 +180,27 @@ impl OutgoingActivity {
                 };
                 recipient_map.insert(actor.id, recipient);
             };
-        };
+        }
         Self {
             instance: instance.clone(),
             sender: sender.clone(),
-            activity: serde_json::to_value(activity)
-                .expect("activity should be serializable"),
+            activity: serde_json::to_value(activity).expect("activity should be serializable"),
             recipients: recipient_map.into_values().collect(),
         }
     }
 
-    pub(super) async fn deliver(
-        mut self,
-    ) -> Result<Vec<Recipient>, DelivererError> {
+    pub(super) async fn deliver(mut self) -> Result<Vec<Recipient>, DelivererError> {
         deliver_activity_worker(
             self.instance,
             self.sender,
             self.activity,
             &mut self.recipients,
-        ).await?;
+        )
+        .await?;
         Ok(self.recipients)
     }
 
-    pub async fn enqueue(
-        self,
-        db_client: &impl DatabaseClient,
-    ) -> Result<(), DatabaseError> {
+    pub async fn enqueue(self, db_client: &impl DatabaseClient) -> Result<(), DatabaseError> {
         if self.recipients.is_empty() {
             return Ok(());
         };

@@ -7,7 +7,6 @@ use mitra_models::{
     profiles::types::PaymentOption,
 };
 
-
 #[derive(Deserialize)]
 pub struct InvoiceData {
     pub sender_id: Uuid,

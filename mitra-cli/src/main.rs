@@ -22,7 +22,7 @@ async fn main() {
             log::info!("config loaded from {}", config.config_path);
             for warning in config_warnings {
                 log::warn!("{}", warning);
-            };
+            }
 
             let db_config = config.database_url.parse().unwrap();
             let db_client = &mut create_database_client(&db_config).await;
@@ -39,19 +39,37 @@ async fn main() {
                 SubCommand::DeleteProfile(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeletePost(cmd) => cmd.execute(&config, db_client).await.unwrap(),
                 SubCommand::DeleteEmoji(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                SubCommand::DeleteExtraneousPosts(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                SubCommand::DeleteUnusedAttachments(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                SubCommand::DeleteOrphanedFiles(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                SubCommand::DeleteEmptyProfiles(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                SubCommand::PruneRemoteEmojis(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                SubCommand::ListUnreachableActors(cmd) => cmd.execute(&config, db_client).await.unwrap(),
+                SubCommand::DeleteExtraneousPosts(cmd) => {
+                    cmd.execute(&config, db_client).await.unwrap()
+                }
+                SubCommand::DeleteUnusedAttachments(cmd) => {
+                    cmd.execute(&config, db_client).await.unwrap()
+                }
+                SubCommand::DeleteOrphanedFiles(cmd) => {
+                    cmd.execute(&config, db_client).await.unwrap()
+                }
+                SubCommand::DeleteEmptyProfiles(cmd) => {
+                    cmd.execute(&config, db_client).await.unwrap()
+                }
+                SubCommand::PruneRemoteEmojis(cmd) => {
+                    cmd.execute(&config, db_client).await.unwrap()
+                }
+                SubCommand::ListUnreachableActors(cmd) => {
+                    cmd.execute(&config, db_client).await.unwrap()
+                }
                 SubCommand::ImportEmoji(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                SubCommand::UpdateCurrentBlock(cmd) => cmd.execute(&config, db_client).await.unwrap(),
-                SubCommand::ResetSubscriptions(cmd) => cmd.execute(&config, db_client).await.unwrap(),
+                SubCommand::UpdateCurrentBlock(cmd) => {
+                    cmd.execute(&config, db_client).await.unwrap()
+                }
+                SubCommand::ResetSubscriptions(cmd) => {
+                    cmd.execute(&config, db_client).await.unwrap()
+                }
                 SubCommand::CreateMoneroWallet(cmd) => cmd.execute(&config).await.unwrap(),
-                SubCommand::CheckExpiredInvoice(cmd) => cmd.execute(&config, db_client).await.unwrap(),
+                SubCommand::CheckExpiredInvoice(cmd) => {
+                    cmd.execute(&config, db_client).await.unwrap()
+                }
                 _ => unreachable!(),
             };
-        },
+        }
     };
 }

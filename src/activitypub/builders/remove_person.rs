@@ -1,13 +1,7 @@
 use mitra_config::Instance;
-use mitra_models::{
-    profiles::types::DbActor,
-    users::types::User,
-};
+use mitra_models::{profiles::types::DbActor, users::types::User};
 
-use crate::activitypub::{
-    deliverer::OutgoingActivity,
-    identifiers::LocalActorCollection,
-};
+use crate::activitypub::{deliverer::OutgoingActivity, identifiers::LocalActorCollection};
 
 use super::add_person::prepare_update_collection;
 

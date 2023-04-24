@@ -8,19 +8,17 @@ use mitra_models::{
     profiles::types::DbActorProfile,
 };
 
+use super::links::is_inside_code_block;
 use crate::activitypub::identifiers::profile_actor_url;
 use crate::webfinger::types::ActorAddress;
-use super::links::is_inside_code_block;
 
 // See also: ACTOR_ADDRESS_RE in webfinger::types
 const MENTION_SEARCH_RE: &str = r"(?m)(?P<before>^|\s|>|[\(])@(?P<mention>[^\s<]+)";
-const MENTION_SEARCH_SECONDARY_RE: &str = r"^(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+\w))?(?P<after>[\.,:?!\)]?)$";
+const MENTION_SEARCH_SECONDARY_RE: &str =
+    r"^(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+\w))?(?P<after>[\.,:?!\)]?)$";
 
 /// Finds everything that looks like a mention
-fn find_mentions(
-    instance_hostname: &str,
-    text: &str,
-) -> Vec<String> {
+fn find_mentions(instance_hostname: &str, text: &str) -> Vec<String> {
     let mention_re = Regex::new(MENTION_SEARCH_RE).unwrap();
     let mention_secondary_re = Regex::new(MENTION_SEARCH_SECONDARY_RE).unwrap();
     let mut mentions = vec![];
@@ -32,7 +30,8 @@ fn find_mentions(
         };
         if let Some(secondary_caps) = mention_secondary_re.captures(&caps["mention"]) {
             let username = secondary_caps["username"].to_string();
-            let hostname = secondary_caps.name("hostname")
+            let hostname = secondary_caps
+                .name("hostname")
                 .map(|match_| match_.as_str())
                 .unwrap_or(instance_hostname)
                 .to_string();
@@ -42,7 +41,7 @@ fn find_mentions(
                 mentions.push(acct);
             };
         };
-    };
+    }
     mentions
 }
 
@@ -57,7 +56,7 @@ pub async fn find_mentioned_profiles(
     let mut mention_map: HashMap<String, DbActorProfile> = HashMap::new();
     for profile in profiles {
         mention_map.insert(profile.acct.clone(), profile);
-    };
+    }
     Ok(mention_map)
 }
 
@@ -77,7 +76,8 @@ pub fn replace_mentions(
         };
         if let Some(secondary_caps) = mention_secondary_re.captures(&caps["mention"]) {
             let username = secondary_caps["username"].to_string();
-            let hostname = secondary_caps.name("hostname")
+            let hostname = secondary_caps
+                .name("hostname")
                 .map(|match_| match_.as_str())
                 .unwrap_or(instance_hostname)
                 .to_string();
@@ -106,8 +106,8 @@ pub fn replace_mentions(
 
 #[cfg(test)]
 mod tests {
-    use mitra_models::profiles::types::DbActor;
     use super::*;
+    use mitra_models::profiles::types::DbActor;
 
     const INSTANCE_HOSTNAME: &str = "server1.com";
     const INSTANCE_URL: &str = "https://server1.com";
@@ -126,12 +126,10 @@ mod tests {
     #[test]
     fn test_find_mentions() {
         let results = find_mentions(INSTANCE_HOSTNAME, TEXT_WITH_MENTIONS);
-        assert_eq!(results, vec![
-            "user1",
-            "user_x",
-            "user2@server2.com",
-            "user3@server2.com",
-        ]);
+        assert_eq!(
+            results,
+            vec!["user1", "user_x", "user2@server2.com", "user3@server2.com",]
+        );
     }
 
     #[test]
@@ -181,7 +179,8 @@ mod tests {
             r#"<span class="h-card"><a class="u-url mention" href="https://server1.com/users/user1">@user1</a></span> "#,
             r#"<span class="h-card"><a class="u-url mention" href="https://server1.com/users/user_x">@user_x</a></span>,<br>"#,
             r#"(<span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> boosted) "#,
-            r#"<span class="h-card"><a class="u-url mention" href="https://server2.com/@user3">@user3</a></span>."#, "\n",
+            r#"<span class="h-card"><a class="u-url mention" href="https://server2.com/@user3">@user3</a></span>."#,
+            "\n",
             r#"@@invalid@server2.com @test@server3.com@nospace@server4.com "#,
             r#"@ email@unknown.org <span class="h-card"><a class="u-url mention" href="https://server2.com/@user2">@user2</a></span> copy some text"#,
         );
