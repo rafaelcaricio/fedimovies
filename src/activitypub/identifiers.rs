@@ -86,7 +86,7 @@ pub fn validate_object_id(object_id: &str) -> Result<(), ValidationError> {
 
 pub fn parse_local_actor_id(instance_url: &str, actor_id: &str) -> Result<String, ValidationError> {
     let url_regexp_str = format!(
-        "^{}/users/(?P<username>[0-9a-z_]+)$",
+        "^{}/users/(?P<username>[0-9a-zA-Z_]+)$",
         instance_url.replace('.', r"\."),
     );
     let url_regexp = Regex::new(&url_regexp_str).map_err(|_| ValidationError("error"))?;

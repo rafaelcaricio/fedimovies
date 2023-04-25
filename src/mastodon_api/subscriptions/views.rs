@@ -28,11 +28,8 @@ pub async fn authorize_subscription(
 ) -> Result<HttpResponse, MastodonError> {
     let db_client = &**get_database_client(&db_pool).await?;
     let _current_user = get_current_user(db_client, auth.token()).await?;
-
-    // The user must have a public ethereum address,
-    // because subscribers should be able
-    // to verify that payments are actually sent to the recipient.
-    return Err(MastodonError::PermissionError);
+    // We don't have subscriptions
+    Err(MastodonError::PermissionError)
 }
 
 #[get("/options")]

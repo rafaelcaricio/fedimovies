@@ -249,7 +249,7 @@ pub async fn get_user_by_name(
             "
         SELECT user_account, actor_profile
         FROM user_account JOIN actor_profile USING (id)
-        WHERE actor_profile.username = $1
+        WHERE lower(actor_profile.username) = lower($1)
         ",
             &[&username],
         )

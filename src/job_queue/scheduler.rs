@@ -16,6 +16,7 @@ enum PeriodicTask {
     DeleteExtraneousPosts,
     DeleteEmptyProfiles,
     PruneRemoteEmojis,
+    HandleMoviesMentions,
 }
 
 impl PeriodicTask {
@@ -28,6 +29,7 @@ impl PeriodicTask {
             Self::DeleteExtraneousPosts => 3600,
             Self::DeleteEmptyProfiles => 3600,
             Self::PruneRemoteEmojis => 3600,
+            Self::HandleMoviesMentions => 5,
         }
     }
 
@@ -49,6 +51,7 @@ pub fn run(config: Config, db_pool: DbPool) -> () {
             (PeriodicTask::IncomingActivityQueueExecutor, None),
             (PeriodicTask::OutgoingActivityQueueExecutor, None),
             (PeriodicTask::PruneRemoteEmojis, None),
+            (PeriodicTask::HandleMoviesMentions, None),
         ]);
         if config.retention.extraneous_posts.is_some() {
             scheduler_state.insert(PeriodicTask::DeleteExtraneousPosts, None);
@@ -80,6 +83,7 @@ pub fn run(config: Config, db_pool: DbPool) -> () {
                     }
                     PeriodicTask::PruneRemoteEmojis => prune_remote_emojis(&config, &db_pool).await,
                     PeriodicTask::SubscriptionExpirationMonitor => Ok(()),
+                    PeriodicTask::HandleMoviesMentions => handle_movies_mentions(&config, &db_pool).await,
                 };
                 task_result.unwrap_or_else(|err| {
                     log::error!("{:?}: {}", task, err);

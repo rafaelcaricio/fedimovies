@@ -153,6 +153,8 @@ pub async fn import_post(
     db_client: &mut impl DatabaseClient,
     instance: &Instance,
     storage: &MediaStorage,
+    tmdb_api_key: Option<String>,
+    default_movie_user_password: Option<String>,
     object_id: String,
     object_received: Option<Object>,
 ) -> Result<Post, HandlerError> {
@@ -245,7 +247,16 @@ pub async fn import_post(
     // starting with the root
     objects.reverse();
     for object in objects {
-        let post = handle_note(db_client, instance, storage, object, &redirects).await?;
+        let post = handle_note(
+            db_client,
+            instance,
+            storage,
+            tmdb_api_key.clone(),
+            default_movie_user_password.clone(),
+            object,
+            &redirects,
+        )
+        .await?;
         posts.push(post);
     }
 

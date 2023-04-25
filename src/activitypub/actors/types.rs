@@ -109,6 +109,8 @@ pub struct Actor {
     pub inbox: String,
     pub outbox: String,
 
+    pub bot: bool,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub followers: Option<String>,
 
@@ -325,6 +327,7 @@ pub fn get_local_actor(user: &User, instance_url: &str) -> Result<Actor, ActorKe
         preferred_username: username.to_string(),
         inbox,
         outbox,
+        bot: true,
         followers: Some(followers),
         following: Some(following),
         subscribers: Some(subscribers),
@@ -359,6 +362,7 @@ pub fn get_instance_actor(instance: &Instance) -> Result<Actor, ActorKeyError> {
         preferred_username: instance.hostname(),
         inbox: actor_inbox,
         outbox: actor_outbox,
+        bot: true,
         followers: None,
         following: None,
         subscribers: None,

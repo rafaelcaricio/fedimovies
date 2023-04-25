@@ -32,6 +32,22 @@ async fn create_notification(
     Ok(())
 }
 
+pub async fn delete_notification(
+    db_client: &impl DatabaseClient,
+    notification_id: i32,
+) -> Result<(), DatabaseError> {
+    db_client
+        .execute(
+            "
+        DELETE FROM notification
+        WHERE id = $1
+        ",
+            &[&notification_id],
+        )
+        .await?;
+    Ok(())
+}
+
 pub async fn create_follow_notification(
     db_client: &impl DatabaseClient,
     sender_id: &Uuid,
@@ -151,7 +167,7 @@ pub async fn get_notifications(
     let statement = format!(
         "
         SELECT
-            notification, sender, post, post_author,
+            notification, sender, post, post_author, recipient,
             {related_attachments},
             {related_mentions},
             {related_tags},
@@ -164,6 +180,8 @@ pub async fn get_notifications(
         ON notification.post_id = post.id
         LEFT JOIN actor_profile AS post_author
         ON post.author_id = post_author.id
+        LEFT JOIN actor_profile AS recipient
+        ON notification.recipient_id = recipient.id
         WHERE
             recipient_id = $1
             AND ($2::integer IS NULL OR notification.id < $2)
@@ -200,5 +218,54 @@ pub async fn get_notifications(
             .collect(),
     )
     .await?;
+    Ok(notifications)
+}
+
+pub async fn get_mention_notifications(
+    db_client: &impl DatabaseClient,
+    limit: u16,
+) -> Result<Vec<Notification>, DatabaseError> {
+    let statement = format!(
+        "
+        SELECT
+            notification, sender, post, post_author, recipient,
+            {related_attachments},
+            {related_mentions},
+            {related_tags},
+            {related_links},
+            {related_emojis}
+        FROM notification
+        JOIN actor_profile AS sender
+        ON notification.sender_id = sender.id
+        LEFT JOIN post
+        ON notification.post_id = post.id
+        LEFT JOIN actor_profile AS post_author
+        ON post.author_id = post_author.id
+        LEFT JOIN actor_profile AS recipient
+        ON notification.recipient_id = recipient.id
+        WHERE
+            event_type = $1
+        ORDER BY notification.id DESC
+        LIMIT $2
+        ",
+        related_attachments = RELATED_ATTACHMENTS,
+        related_mentions = RELATED_MENTIONS,
+        related_tags = RELATED_TAGS,
+        related_links = RELATED_LINKS,
+        related_emojis = RELATED_EMOJIS,
+    );
+    let rows = db_client
+        .query(
+            &statement,
+            &[
+                &EventType::Mention,
+                &i64::from(limit),
+            ],
+        )
+        .await?;
+    let mut notifications: Vec<Notification> = rows
+        .iter()
+        .map(Notification::try_from)
+        .collect::<Result<_, _>>()?;
     Ok(notifications)
 }

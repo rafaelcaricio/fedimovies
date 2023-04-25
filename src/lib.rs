@@ -12,6 +12,7 @@ pub mod logger;
 pub mod mastodon_api;
 pub mod media;
 pub mod nodeinfo;
+mod tmdb;
 pub mod validators;
 pub mod web_client;
 pub mod webfinger;

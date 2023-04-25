@@ -53,6 +53,11 @@ pub struct Config {
     pub instance_short_description: String,
     pub instance_description: String,
 
+    #[serde(default)]
+    pub tmdb_api_key: Option<String>,
+    #[serde(default)]
+    pub movie_user_password: Option<String>,
+
     #[serde(skip)]
     pub(super) instance_rsa_key: Option<RsaPrivateKey>,
 
@@ -99,8 +104,8 @@ impl Config {
             onion_proxy_url: self.federation.onion_proxy_url.clone(),
             i2p_proxy_url: self.federation.i2p_proxy_url.clone(),
             // Private instance doesn't send activities and sign requests
-            is_private: !self.federation.enabled
-                || matches!(self.environment, Environment::Development),
+            is_private: !self.federation.enabled,
+            // || matches!(self.environment, Environment::Development),
             fetcher_timeout: self.federation.fetcher_timeout,
             deliverer_timeout: self.federation.deliverer_timeout,
         }

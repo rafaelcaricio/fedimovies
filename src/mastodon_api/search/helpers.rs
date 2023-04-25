@@ -155,7 +155,19 @@ async fn find_post_by_url(
         }
         Err(_) => {
             instance.fetcher_timeout = SEARCH_FETCHER_TIMEOUT;
-            match import_post(db_client, &instance, &storage, url.to_string(), None).await {
+            let tmdb_api_key = config.tmdb_api_key.clone();
+            let default_movie_user_password = config.movie_user_password.clone();
+            match import_post(
+                db_client,
+                &instance,
+                &storage,
+                tmdb_api_key,
+                default_movie_user_password,
+                url.to_string(),
+                None,
+            )
+            .await
+            {
                 Ok(post) => Some(post),
                 Err(err) => {
                     log::warn!("{}", err);

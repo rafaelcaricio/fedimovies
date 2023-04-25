@@ -135,9 +135,9 @@ mod tests {
 
     #[test]
     fn test_actor_address_parse_address() {
-        let value = "user_1@example.com";
+        let value = "Matrix_1999@example.com";
         let actor_address: ActorAddress = value.parse().unwrap();
-        assert_eq!(actor_address.username, "user_1");
+        assert_eq!(actor_address.username, "Matrix_1999");
         assert_eq!(actor_address.hostname, "example.com");
         assert_eq!(actor_address.to_string(), value);
     }
@@ -146,7 +146,7 @@ mod tests {
     fn test_actor_address_parse_mention() {
         let value = "@user_1@example.com";
         let result = value.parse::<ActorAddress>();
-        assert_eq!(result.is_err(), true);
+        assert!(result.is_err());
     }
 
     #[test]
@@ -164,6 +164,6 @@ mod tests {
 
         let short_mention = "@user";
         let result = ActorAddress::from_mention(short_mention);
-        assert_eq!(result.is_err(), true);
+        assert!(result.is_err());
     }
 }

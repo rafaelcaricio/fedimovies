@@ -11,7 +11,7 @@ pub fn get_hostname(url: &str) -> Result<String, ParseError> {
 }
 
 pub fn guess_protocol(hostname: &str) -> &'static str {
-    if hostname == "localhost" || hostname.ends_with(".example.com") {
+    if hostname == "localhost" {
         return "http";
     };
     let maybe_ipv4_address = hostname.parse::<Ipv4Addr>();

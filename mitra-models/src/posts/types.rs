@@ -262,7 +262,7 @@ impl PostCreateData {
     pub fn repost(repost_of_id: Uuid, object_id: Option<String>) -> Self {
         Self {
             repost_of_id: Some(repost_of_id),
-            object_id: object_id,
+            object_id,
             created_at: Utc::now(),
             ..Default::default()
         }

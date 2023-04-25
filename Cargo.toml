@@ -5,7 +5,7 @@ description = "Federated micro-blogging platform and content subscription servic
 license = "AGPL-3.0"
 
 edition = "2021"
-rust-version = "1.57"
+rust-version = "1.68"
 publish = false
 default-run = "mitra"
 

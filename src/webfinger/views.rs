@@ -11,6 +11,8 @@ use crate::activitypub::{
     identifiers::{local_actor_id, local_instance_actor_id, parse_local_actor_id},
 };
 use crate::errors::{HttpError, ValidationError};
+use crate::media::MediaStorage;
+use crate::tmdb::lookup_and_create_movie_user;
 
 use super::types::{
     ActorAddress, JsonResourceDescriptor, Link, WebfingerQueryParams, JRD_CONTENT_TYPE,
@@ -82,8 +84,34 @@ pub async fn webfinger_view(
     db_pool: web::Data<DbPool>,
     query_params: web::Query<WebfingerQueryParams>,
 ) -> Result<HttpResponse, HttpError> {
-    let db_client = &**get_database_client(&db_pool).await?;
-    let jrd = get_jrd(db_client, config.instance(), &query_params.resource).await?;
+    let db_client = &mut **get_database_client(&db_pool).await?;
+    let jrd = match get_jrd(db_client, config.instance(), &query_params.resource).await {
+        Ok(jrd) => jrd,
+        Err(_) => {
+            // Lookup the movie in TMDB and create a local user. By now we know that the local
+            // user for this movie does not exist.
+            let config: &Config = &config;
+            if let Some(api_key) = &config.tmdb_api_key {
+                let movie_account = parse_acct_uri(&query_params.resource)?;
+                let instance = config.instance();
+                let storage = MediaStorage::from(config);
+                lookup_and_create_movie_user(
+                    &instance,
+                    db_client,
+                    api_key,
+                    &storage.media_dir,
+                    &movie_account.username,
+                    config.movie_user_password.clone(),
+                )
+                .await
+                .map_err(|err| {
+                    log::error!("Failed to create movie user: {}", err);
+                    HttpError::InternalError
+                })?;
+            }
+            get_jrd(db_client, config.instance(), &query_params.resource).await?
+        }
+    };
     let response = HttpResponse::Ok().content_type(JRD_CONTENT_TYPE).json(jrd);
     Ok(response)
 }

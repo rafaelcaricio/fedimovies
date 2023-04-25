@@ -67,8 +67,19 @@ async fn handle_update_note(
     if content.is_empty() && attachments.is_empty() {
         return Err(ValidationError("post is empty").into());
     };
-    let (mentions, hashtags, links, emojis) =
-        get_object_tags(db_client, &instance, &storage, &object, &HashMap::new()).await?;
+
+    let tmdb_api_key = config.tmdb_api_key.clone();
+    let default_movie_user_password = config.movie_user_password.clone();
+    let (mentions, hashtags, links, emojis) = get_object_tags(
+        db_client,
+        &instance,
+        &storage,
+        tmdb_api_key,
+        default_movie_user_password,
+        &object,
+        &HashMap::new(),
+    )
+    .await?;
     let updated_at = object.updated.unwrap_or(Utc::now());
     let post_data = PostUpdateData {
         content,

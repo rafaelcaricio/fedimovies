@@ -82,6 +82,7 @@ struct DbNotification {
 pub struct Notification {
     pub id: i32,
     pub sender: DbActorProfile,
+    pub recipient: DbActorProfile,
     pub post: Option<Post>,
     pub event_type: EventType,
     pub created_at: DateTime<Utc>,
@@ -93,6 +94,7 @@ impl TryFrom<&Row> for Notification {
     fn try_from(row: &Row) -> Result<Self, Self::Error> {
         let db_notification: DbNotification = row.try_get("notification")?;
         let db_sender: DbActorProfile = row.try_get("sender")?;
+        let db_recipient: DbActorProfile = row.try_get("recipient")?;
         let maybe_db_post: Option<DbPost> = row.try_get("post")?;
         let maybe_post = match maybe_db_post {
             Some(db_post) => {
@@ -118,6 +120,7 @@ impl TryFrom<&Row> for Notification {
         let notification = Self {
             id: db_notification.id,
             sender: db_sender,
+            recipient: db_recipient,
             post: maybe_post,
             event_type: db_notification.event_type,
             created_at: db_notification.created_at,

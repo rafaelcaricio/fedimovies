@@ -54,7 +54,18 @@ pub async fn handle_announce(
         Ok(post_id) => post_id,
         Err(_) => {
             // Try to get remote post
-            let post = import_post(db_client, &instance, &storage, activity.object, None).await?;
+            let tmdb_api_key = config.tmdb_api_key.clone();
+            let default_movie_user_password = config.movie_user_password.clone();
+            let post = import_post(
+                db_client,
+                &instance,
+                &storage,
+                tmdb_api_key,
+                default_movie_user_password,
+                activity.object,
+                None,
+            )
+            .await?;
             post.id
         }
     };

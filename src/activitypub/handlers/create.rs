@@ -36,6 +36,7 @@ use crate::activitypub::{
 };
 use crate::errors::ValidationError;
 use crate::media::MediaStorage;
+use crate::tmdb::lookup_and_create_movie_user;
 use crate::validators::{
     emojis::{validate_emoji_name, EMOJI_MEDIA_TYPES},
     posts::{
@@ -306,6 +307,8 @@ pub async fn get_object_tags(
     db_client: &mut impl DatabaseClient,
     instance: &Instance,
     storage: &MediaStorage,
+    api_key: Option<String>,
+    default_movie_user_password: Option<String>,
     object: &Object,
     redirects: &HashMap<String, String>,
 ) -> Result<(Vec<Uuid>, Vec<String>, Vec<Uuid>, Vec<Uuid>), HandlerError> {
@@ -346,7 +349,33 @@ pub async fn get_object_tags(
             // Try to find profile by actor ID.
             if let Some(href) = tag.href {
                 if let Ok(username) = parse_local_actor_id(&instance.url(), &href) {
-                    let user = get_user_by_name(db_client, &username).await?;
+                    // Check if local Movie account exists and if not, create the movie, if valid.
+                    let user = match get_user_by_name(db_client, &username).await {
+                        Ok(user) => {
+                            user
+                        },
+                        Err(DatabaseError::NotFound(_)) => {
+                            if let Some(api_key) = &api_key {
+                                log::warn!("failed to find mentioned user by name {}, checking if its a valid movie...", username);
+                                lookup_and_create_movie_user(
+                                    instance,
+                                    db_client,
+                                    api_key,
+                                    &storage.media_dir,
+                                    &username,
+                                    default_movie_user_password.clone(),
+                                )
+                                .await
+                                .map_err(|err| {
+                                    log::warn!("failed to create movie user {username}: {err}");
+                                    HandlerError::LocalObject
+                                })?
+                            } else {
+                                return Err(HandlerError::LocalObject);
+                            }
+                        }
+                        Err(error) => return Err(error.into()),
+                    };
                     if !mentions.contains(&user.id) {
                         mentions.push(user.id);
                     };
@@ -503,6 +532,8 @@ pub async fn handle_note(
     db_client: &mut impl DatabaseClient,
     instance: &Instance,
     storage: &MediaStorage,
+    tmdb_api_key: Option<String>,
+    default_movie_user_password: Option<String>,
     object: Object,
     redirects: &HashMap<String, String>,
 ) -> Result<Post, HandlerError> {
@@ -543,8 +574,16 @@ pub async fn handle_note(
         return Err(ValidationError("post is empty").into());
     };
 
-    let (mentions, hashtags, links, emojis) =
-        get_object_tags(db_client, instance, storage, &object, redirects).await?;
+    let (mentions, hashtags, links, emojis) = get_object_tags(
+        db_client,
+        instance,
+        storage,
+        tmdb_api_key,
+        default_movie_user_password,
+        &object,
+        redirects,
+    )
+    .await?;
 
     let in_reply_to_id = match object.in_reply_to {
         Some(ref object_id) => {
@@ -632,10 +671,15 @@ pub async fn handle_create(
         // Most likely it's a forwarded reply.
         None
     };
+
+    let tmdb_api_key = config.tmdb_api_key.clone();
+    let default_movie_user_password = config.movie_user_password.clone();
     import_post(
         db_client,
         &config.instance(),
         &MediaStorage::from(config),
+        tmdb_api_key,
+        default_movie_user_password,
         object_id,
         object_received,
     )
