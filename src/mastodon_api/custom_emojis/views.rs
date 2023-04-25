@@ -1,6 +1,6 @@
 use actix_web::{dev::ConnectionInfo, get, web, HttpResponse, Scope};
 
-use mitra_models::{
+use fedimovies_models::{
     database::{get_database_client, DbPool},
     emojis::queries::get_local_emojis,
 };

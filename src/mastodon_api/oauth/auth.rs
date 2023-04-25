@@ -1,4 +1,4 @@
-use mitra_models::{
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     oauth::queries::get_user_by_oauth_token,
     users::types::User,

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use regex::Regex;
 
-use mitra_models::{
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     emojis::queries::get_local_emojis_by_names,
     emojis::types::DbEmoji,

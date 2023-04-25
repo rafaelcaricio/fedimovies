@@ -3,8 +3,8 @@ use std::str::FromStr;
 use regex::Regex;
 use url::Url;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     posts::{
         helpers::{can_view_post, get_local_post_by_id},
@@ -15,7 +15,7 @@ use mitra_models::{
     tags::queries::search_tags,
     users::{queries::get_user_by_name, types::User},
 };
-use mitra_utils::did::Did;
+use fedimovies_utils::did::Did;
 
 use crate::activitypub::{
     fetcher::helpers::{

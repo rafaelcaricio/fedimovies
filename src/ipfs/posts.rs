@@ -56,7 +56,7 @@ impl PostMetadata {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::posts::types::Post;
+    use fedimovies_models::posts::types::Post;
 
     #[test]
     fn test_create_post_metadata() {

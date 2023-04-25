@@ -1,8 +1,8 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     posts::types::{Post, Visibility},
     profiles::types::DbActorProfile,
@@ -81,7 +81,7 @@ pub async fn prepare_undo_like(
 mod tests {
     use super::*;
     use crate::activitypub::constants::AP_PUBLIC;
-    use mitra_utils::id::generate_ulid;
+    use fedimovies_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 

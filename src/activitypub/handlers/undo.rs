@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     posts::queries::{delete_post, get_post_by_remote_object_id},
     profiles::queries::{get_profile_by_acct, get_profile_by_remote_actor_id},

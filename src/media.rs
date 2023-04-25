@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
-use mitra_config::Config;
-use mitra_models::cleanup::DeletionQueue;
-use mitra_utils::files::{get_media_type_extension, write_file};
+use fedimovies_config::Config;
+use fedimovies_models::cleanup::DeletionQueue;
+use fedimovies_utils::files::{get_media_type_extension, write_file};
 
 use crate::ipfs::store as ipfs_store;
 
@@ -103,7 +103,7 @@ impl From<&Config> for MediaStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_utils::files::sniff_media_type;
+    use fedimovies_utils::files::sniff_media_type;
 
     #[test]
     fn test_get_file_name() {

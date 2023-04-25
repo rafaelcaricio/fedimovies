@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use reqwest::{Client, Proxy};
 
-use mitra_config::Instance;
-use mitra_utils::urls::get_hostname;
+use fedimovies_config::Instance;
+use fedimovies_utils::urls::get_hostname;
 
 const CONNECTION_TIMEOUT: u64 = 30;
 

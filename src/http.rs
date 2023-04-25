@@ -9,7 +9,7 @@ use actix_web::{
 };
 use serde_json::json;
 
-use mitra_utils::urls::guess_protocol;
+use fedimovies_utils::urls::guess_protocol;
 
 use crate::errors::HttpError;
 

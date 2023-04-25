@@ -1,4 +1,4 @@
-use mitra_utils::html::clean_html_strict;
+use fedimovies_utils::html::clean_html_strict;
 
 use crate::errors::ValidationError;
 

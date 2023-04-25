@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use regex::{Captures, Match, Regex};
 
-use mitra_models::{
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     posts::types::{Post, Visibility},
 };

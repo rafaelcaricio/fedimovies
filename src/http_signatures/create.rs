@@ -2,7 +2,7 @@ use actix_web::http::Method;
 use chrono::Utc;
 use rsa::RsaPrivateKey;
 
-use mitra_utils::crypto_rsa::{create_rsa_sha256_signature, get_message_digest};
+use fedimovies_utils::crypto_rsa::{create_rsa_sha256_signature, get_message_digest};
 
 const HTTP_SIGNATURE_ALGORITHM: &str = "rsa-sha256";
 const HTTP_SIGNATURE_DATE_FORMAT: &str = "%a, %d %b %Y %T GMT";
@@ -87,7 +87,7 @@ pub fn create_http_signature(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
+    use fedimovies_utils::crypto_rsa::generate_weak_rsa_key;
 
     #[test]
     fn test_create_signature_get() {

@@ -1,7 +1,7 @@
 use actix_web::{get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
-use mitra_models::{
+use fedimovies_models::{
     database::{get_database_client, DbPool},
     markers::queries::{create_or_update_marker, get_marker_opt},
     markers::types::Timeline,

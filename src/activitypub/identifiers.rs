@@ -1,8 +1,8 @@
 use regex::Regex;
 use uuid::Uuid;
 
-use mitra_models::{posts::types::Post, profiles::types::DbActorProfile};
-use mitra_utils::urls::get_hostname;
+use fedimovies_models::{posts::types::Post, profiles::types::DbActorProfile};
+use fedimovies_utils::urls::get_hostname;
 
 use crate::errors::ValidationError;
 
@@ -145,7 +145,7 @@ pub fn profile_actor_url(instance_url: &str, profile: &DbActorProfile) -> String
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_utils::id::generate_ulid;
+    use fedimovies_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.org";
 

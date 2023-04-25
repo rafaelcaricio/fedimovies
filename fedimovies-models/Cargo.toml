@@ -1,0 +1,45 @@
+[package]
+name = "fedimovies-models"
+version = "1.22.0"
+license = "AGPL-3.0"
+edition = "2021"
+rust-version = "1.68"
+
+[dependencies]
+fedimovies-utils = { path = "../fedimovies-utils" }
+
+# Used for working with dates
+chrono = { version = "0.4.23", default-features = false, features = ["std", "serde"] }
+# Used for pooling database connections
+deadpool = "0.9.2"
+deadpool-postgres = { version = "0.10.2", default-features = false }
+# Used to work with hexadecimal strings
+hex = { version = "0.4.3", features = ["serde"] }
+# Used for logging
+log = "0.4.14"
+# Used for managing database migrations
+refinery = { version = "0.8.4", features = ["tokio-postgres"] }
+# Used for serialization/deserialization
+serde = { version = "1.0.136", features = ["derive"] }
+serde_json = "1.0.89"
+# Used for creating error types
+thiserror = "1.0.37"
+# Async runtime
+tokio = { version = "1.20.4", features = [] }
+# Used for working with Postgresql database
+tokio-postgres = { version = "0.7.6", features = ["with-chrono-0_4", "with-uuid-1", "with-serde_json-1"] }
+postgres-types = { version = "0.2.3", features = ["derive", "with-chrono-0_4", "with-uuid-1", "with-serde_json-1"] }
+postgres-protocol = "0.6.4"
+# Used to construct PostgreSQL queries
+postgres_query = { git = "https://github.com/nolanderc/rust-postgres-query", rev = "b4422051c8a31fbba4a35f88004c1cefb1878dd5" }
+postgres_query_macro = { git = "https://github.com/nolanderc/rust-postgres-query", rev = "b4422051c8a31fbba4a35f88004c1cefb1878dd5" }
+# Used to work with UUIDs
+uuid = { version = "1.1.2", features = ["serde", "v4"] }
+
+[dev-dependencies]
+fedimovies-utils = { path = "../fedimovies-utils", features = ["test-utils"] }
+
+serial_test = "0.7.0"
+
+[features]
+test-utils = []

@@ -9,8 +9,8 @@ use actix_web::{
 };
 use uuid::Uuid;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DbPool},
     posts::queries::get_post_by_id,
     profiles::queries::{get_profile_by_acct, get_profile_by_id},

@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     emojis::types::DbEmoji,
     posts::queries::get_post_author,
@@ -284,7 +284,7 @@ pub async fn prepare_create_note(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActorProfile;
+    use fedimovies_models::profiles::types::DbActorProfile;
     use serde_json::json;
 
     const INSTANCE_HOSTNAME: &str = "example.com";

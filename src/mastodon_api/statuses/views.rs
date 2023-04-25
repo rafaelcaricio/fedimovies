@@ -4,8 +4,8 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::Utc;
 use uuid::Uuid;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DatabaseError, DbPool},
     posts::helpers::{can_create_post, can_view_post},
     posts::queries::{
@@ -16,7 +16,7 @@ use mitra_models::{
     reactions::queries::{create_reaction, delete_reaction},
     relationships::queries::get_subscribers,
 };
-use mitra_utils::markdown::markdown_lite_to_html;
+use fedimovies_utils::markdown::markdown_lite_to_html;
 
 use super::helpers::{build_status, build_status_list, parse_microsyntaxes, PostContent};
 use super::types::{Context, Status, StatusData, StatusPreview, StatusPreviewData};

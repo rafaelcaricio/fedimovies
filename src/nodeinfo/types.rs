@@ -1,7 +1,7 @@
 /// http://nodeinfo.diaspora.software/schema.html
 use serde::Serialize;
 
-use mitra_config::{Config, RegistrationType, REEF_VERSION};
+use fedimovies_config::{Config, RegistrationType, REEF_VERSION};
 
 const MITRA_NAME: &str = "reef";
 const MITRA_REPOSITORY: &str = "https://code.caric.io/reef/reef";

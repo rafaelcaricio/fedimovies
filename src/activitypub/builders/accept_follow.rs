@@ -1,11 +1,11 @@
 use serde::Serialize;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     profiles::types::{DbActor, DbActorProfile},
     users::types::User,
 };
-use mitra_utils::id::generate_ulid;
+use fedimovies_utils::id::generate_ulid;
 
 use crate::activitypub::{
     deliverer::OutgoingActivity,

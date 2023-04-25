@@ -6,8 +6,8 @@ use crate::http::get_request_base_url;
 use crate::mastodon_api::{
     accounts::types::Account, errors::MastodonError, oauth::auth::get_current_user,
 };
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DbPool},
     invoices::queries::get_invoice_by_id,
     subscriptions::queries::get_subscription_by_participants,

@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use mitra_utils::{
+use fedimovies_utils::{
     canonicalization::{canonicalize_object, CanonicalizationError},
     did::Did,
 };
@@ -26,7 +26,7 @@ pub fn create_identity_claim(actor_id: &str, did: &Did) -> Result<String, Canoni
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_utils::{currencies::Currency, did_pkh::DidPkh};
+    use fedimovies_utils::{currencies::Currency, did_pkh::DidPkh};
 
     #[test]
     fn test_create_identity_claim() {

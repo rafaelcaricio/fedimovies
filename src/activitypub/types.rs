@@ -1,12 +1,7 @@
-use std::collections::HashMap;
-
 use chrono::{DateTime, Utc};
 use serde::{de::Error as DeserializerError, Deserialize, Deserializer, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 
-use super::constants::{
-    AP_CONTEXT, MITRA_CONTEXT, W3ID_DATA_INTEGRITY_CONTEXT, W3ID_SECURITY_CONTEXT,
-};
 use super::receiver::parse_property_value;
 use super::vocabulary::HASHTAG;
 
@@ -125,24 +120,67 @@ pub struct Object {
     pub url: Option<Value>,
 }
 
-pub type Context = (
-    &'static str,
-    &'static str,
-    &'static str,
-    HashMap<&'static str, &'static str>,
-);
+pub type Context = Value;
 
 pub fn build_default_context() -> Context {
-    (
-        AP_CONTEXT,
-        W3ID_SECURITY_CONTEXT,
-        W3ID_DATA_INTEGRITY_CONTEXT,
-        HashMap::from([
-            ("proofValue", "sec:proofValue"),
-            ("proofPurpose", "sec:proofPurpose"),
-            ("verificationMethod", "sec:verificationMethod"),
-            ("mitra", MITRA_CONTEXT),
-            ("MitraJcsRsaSignature2022", "mitra:MitraJcsRsaSignature2022"),
-        ]),
-    )
+    json!([
+        "https://www.w3.org/ns/activitystreams",
+        "https://w3id.org/security/v1",
+        {
+            "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+            "toot": "http://joinmastodon.org/ns#",
+            "featured": {
+                "@id": "toot:featured",
+                "@type": "@id"
+            },
+            "featuredTags": {
+                "@id": "toot:featuredTags",
+                "@type": "@id"
+            },
+            "alsoKnownAs": {
+                "@id": "as:alsoKnownAs",
+                "@type": "@id"
+            },
+            "movedTo": {
+                "@id": "as:movedTo",
+                "@type": "@id"
+            },
+            "schema": "http://schema.org#",
+            "PropertyValue": "schema:PropertyValue",
+            "value": "schema:value",
+            "IdentityProof": "toot:IdentityProof",
+            "discoverable": "toot:discoverable",
+            "Device": "toot:Device",
+            "Ed25519Signature": "toot:Ed25519Signature",
+            "Ed25519Key": "toot:Ed25519Key",
+            "Curve25519Key": "toot:Curve25519Key",
+            "EncryptedMessage": "toot:EncryptedMessage",
+            "publicKeyBase64": "toot:publicKeyBase64",
+            "deviceId": "toot:deviceId",
+            "claim": {
+                "@type": "@id",
+                "@id": "toot:claim"
+            },
+            "fingerprintKey": {
+                "@type": "@id",
+                "@id": "toot:fingerprintKey"
+            },
+            "identityKey": {
+                "@type": "@id",
+                "@id": "toot:identityKey"
+            },
+            "devices": {
+                "@type": "@id",
+                "@id": "toot:devices"
+            },
+            "messageFranking": "toot:messageFranking",
+            "messageType": "toot:messageType",
+            "cipherText": "toot:cipherText",
+            "suspended": "toot:suspended",
+            "focalPoint": {
+                "@container": "@list",
+                "@id": "toot:focalPoint"
+            }
+        }
+    ])
 }

@@ -1,4 +1,4 @@
-use mitra_models::users::types::Role;
+use fedimovies_models::users::types::Role;
 
 use crate::errors::ValidationError;
 

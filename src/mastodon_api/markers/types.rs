@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use mitra_models::markers::types::{DbTimelineMarker, Timeline};
+use fedimovies_models::markers::types::{DbTimelineMarker, Timeline};
 
 use crate::errors::ValidationError;
 

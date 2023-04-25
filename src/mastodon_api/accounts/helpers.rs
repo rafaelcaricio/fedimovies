@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use mitra_models::{
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     profiles::helpers::{find_declared_aliases, find_verified_aliases},
     profiles::types::DbActorProfile,
@@ -80,7 +80,7 @@ pub async fn get_aliases(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::{
+    use fedimovies_models::{
         database::test_utils::create_test_database,
         relationships::queries::{
             create_follow_request, follow, follow_request_accepted, hide_reposts, show_reposts,

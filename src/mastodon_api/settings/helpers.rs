@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DatabaseClient, DatabaseError, DbPool},
     profiles::types::DbActorProfile,
     relationships::queries::{follow, get_followers, get_following, unfollow},
@@ -179,7 +179,7 @@ pub async fn move_followers_task(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActor;
+    use fedimovies_models::profiles::types::DbActor;
 
     #[test]
     fn test_export_profiles_to_csv() {

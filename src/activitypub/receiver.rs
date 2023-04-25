@@ -2,8 +2,8 @@ use actix_web::HttpRequest;
 use serde::{de::DeserializeOwned, de::Error as DeserializerError, Deserialize, Deserializer};
 use serde_json::Value;
 
-use mitra_config::Config;
-use mitra_models::database::{DatabaseClient, DatabaseError};
+use fedimovies_config::Config;
+use fedimovies_models::database::{DatabaseClient, DatabaseError};
 
 use super::authentication::{verify_signed_activity, verify_signed_request, AuthenticationError};
 use super::fetcher::fetchers::FetchError;

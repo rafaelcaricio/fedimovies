@@ -2,8 +2,8 @@
 use actix_web::{post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     attachments::queries::create_attachment,
     database::{get_database_client, DbPool},
 };

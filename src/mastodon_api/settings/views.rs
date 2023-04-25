@@ -1,8 +1,8 @@
 use actix_web::{dev::ConnectionInfo, get, post, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DatabaseError, DbPool},
     profiles::helpers::find_verified_aliases,
     profiles::queries::{get_profile_by_acct, get_profile_by_remote_actor_id, update_profile},
@@ -10,7 +10,7 @@ use mitra_models::{
     users::queries::{set_user_password, update_client_config},
     users::types::ClientConfig,
 };
-use mitra_utils::passwords::hash_password;
+use fedimovies_utils::passwords::hash_password;
 
 use super::helpers::{
     export_followers, export_follows, import_follows_task, move_followers_task, parse_address_list,

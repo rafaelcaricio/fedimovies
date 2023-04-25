@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use mitra_models::{
+use fedimovies_models::{
     emojis::types::DbEmoji,
     posts::types::{Post, Visibility},
     profiles::types::DbActorProfile,

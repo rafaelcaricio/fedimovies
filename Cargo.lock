@@ -931,6 +931,121 @@ dependencies = [
 ]
 
 [[package]]
+name = "fedimovies"
+version = "1.22.0"
+dependencies = [
+ "actix-cors",
+ "actix-files",
+ "actix-web",
+ "actix-web-httpauth",
+ "anyhow",
+ "base64 0.13.1",
+ "blake2",
+ "chrono",
+ "ed25519",
+ "ed25519-dalek",
+ "env_logger",
+ "fedimovies-config",
+ "fedimovies-models",
+ "fedimovies-utils",
+ "hex",
+ "log",
+ "num_cpus",
+ "regex",
+ "reqwest",
+ "rsa",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "sha2 0.9.9",
+ "siwe",
+ "thiserror",
+ "tokio",
+ "url 2.3.1",
+ "uuid",
+]
+
+[[package]]
+name = "fedimovies-cli"
+version = "1.22.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "fedimovies",
+ "fedimovies-config",
+ "fedimovies-models",
+ "fedimovies-utils",
+ "log",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "fedimovies-config"
+version = "1.22.0"
+dependencies = [
+ "dotenv",
+ "fedimovies-utils",
+ "log",
+ "regex",
+ "rsa",
+ "serde",
+ "serde_yaml",
+ "thiserror",
+ "url 2.3.1",
+]
+
+[[package]]
+name = "fedimovies-models"
+version = "1.22.0"
+dependencies = [
+ "chrono",
+ "deadpool",
+ "deadpool-postgres",
+ "fedimovies-utils",
+ "hex",
+ "log",
+ "postgres-protocol",
+ "postgres-types",
+ "postgres_query",
+ "postgres_query_macro",
+ "refinery",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "thiserror",
+ "tokio",
+ "tokio-postgres",
+ "uuid",
+]
+
+[[package]]
+name = "fedimovies-utils"
+version = "1.22.0"
+dependencies = [
+ "ammonia",
+ "base64 0.13.1",
+ "bs58",
+ "chrono",
+ "comrak",
+ "mime-sniffer",
+ "mime_guess",
+ "pem",
+ "rand 0.8.5",
+ "regex",
+ "rsa",
+ "rust-argon2",
+ "serde",
+ "serde_jcs",
+ "serde_json",
+ "sha2 0.9.9",
+ "thiserror",
+ "ulid",
+ "url 2.3.1",
+ "uuid",
+]
+
+[[package]]
 name = "ff"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1606,121 +1721,6 @@ dependencies = [
  "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.45.0",
-]
-
-[[package]]
-name = "mitra"
-version = "1.22.0"
-dependencies = [
- "actix-cors",
- "actix-files",
- "actix-web",
- "actix-web-httpauth",
- "anyhow",
- "base64 0.13.1",
- "blake2",
- "chrono",
- "ed25519",
- "ed25519-dalek",
- "env_logger",
- "hex",
- "log",
- "mitra-config",
- "mitra-models",
- "mitra-utils",
- "num_cpus",
- "regex",
- "reqwest",
- "rsa",
- "serde",
- "serde_json",
- "serial_test",
- "sha2 0.9.9",
- "siwe",
- "thiserror",
- "tokio",
- "url 2.3.1",
- "uuid",
-]
-
-[[package]]
-name = "mitra-cli"
-version = "1.22.0"
-dependencies = [
- "anyhow",
- "clap",
- "log",
- "mitra",
- "mitra-config",
- "mitra-models",
- "mitra-utils",
- "tokio",
- "uuid",
-]
-
-[[package]]
-name = "mitra-config"
-version = "1.22.0"
-dependencies = [
- "dotenv",
- "log",
- "mitra-utils",
- "regex",
- "rsa",
- "serde",
- "serde_yaml",
- "thiserror",
- "url 2.3.1",
-]
-
-[[package]]
-name = "mitra-models"
-version = "1.22.0"
-dependencies = [
- "chrono",
- "deadpool",
- "deadpool-postgres",
- "hex",
- "log",
- "mitra-utils",
- "postgres-protocol",
- "postgres-types",
- "postgres_query",
- "postgres_query_macro",
- "refinery",
- "serde",
- "serde_json",
- "serial_test",
- "thiserror",
- "tokio",
- "tokio-postgres",
- "uuid",
-]
-
-[[package]]
-name = "mitra-utils"
-version = "1.22.0"
-dependencies = [
- "ammonia",
- "base64 0.13.1",
- "bs58",
- "chrono",
- "comrak",
- "mime-sniffer",
- "mime_guess",
- "pem",
- "rand 0.8.5",
- "regex",
- "rsa",
- "rust-argon2",
- "serde",
- "serde_jcs",
- "serde_json",
- "sha2 0.9.9",
- "thiserror",
- "ulid",
- "url 2.3.1",
- "uuid",
 ]
 
 [[package]]

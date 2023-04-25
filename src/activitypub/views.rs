@@ -8,8 +8,8 @@ use serde::Deserialize;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DatabaseError, DbPool},
     emojis::queries::get_local_emoji_by_name,
     posts::helpers::{add_related_posts, can_view_post},

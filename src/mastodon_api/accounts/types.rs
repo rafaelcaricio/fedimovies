@@ -4,12 +4,12 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use mitra_models::{
+use fedimovies_models::{
     profiles::types::{DbActorProfile, ExtraField, PaymentOption, ProfileImage, ProfileUpdateData},
     subscriptions::types::Subscription,
     users::types::{ClientConfig, Permission, Role, User},
 };
-use mitra_utils::{did::Did, markdown::markdown_basic_to_html};
+use fedimovies_utils::{did::Did, markdown::markdown_basic_to_html};
 
 use crate::activitypub::{actors::helpers::ACTOR_IMAGE_MAX_SIZE, identifiers::profile_actor_url};
 use crate::errors::ValidationError;
@@ -527,7 +527,7 @@ pub struct Aliases {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::ProfileImage;
+    use fedimovies_models::profiles::types::ProfileImage;
 
     const INSTANCE_URL: &str = "https://example.com";
 

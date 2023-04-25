@@ -6,13 +6,13 @@ use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     profiles::types::DbActor,
     users::types::User,
 };
-use mitra_utils::crypto_rsa::deserialize_private_key;
+use fedimovies_utils::crypto_rsa::deserialize_private_key;
 
 use crate::http_signatures::create::{create_http_signature, HttpSignatureError};
 use crate::json_signatures::create::{is_object_signed, sign_object, JsonSignatureError};

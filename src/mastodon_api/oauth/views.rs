@@ -2,8 +2,8 @@ use actix_web::{get, http::header as http_header, post, web, HttpResponse, Scope
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use chrono::{Duration, Utc};
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DatabaseError, DbPool},
     oauth::queries::{
         create_oauth_authorization, delete_oauth_token, get_oauth_app_by_client_id,
@@ -11,7 +11,7 @@ use mitra_models::{
     },
     users::queries::get_user_by_name,
 };
-use mitra_utils::passwords::verify_password;
+use fedimovies_utils::passwords::verify_password;
 
 use crate::errors::ValidationError;
 use crate::http::FormOrJson;

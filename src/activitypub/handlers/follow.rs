@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     relationships::queries::{create_remote_follow_request_opt, follow_request_accepted},
     users::queries::get_user_by_name,

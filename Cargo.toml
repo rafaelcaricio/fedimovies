@@ -1,34 +1,34 @@
 [package]
-name = "mitra"
+name = "fedimovies"
 version = "1.22.0"
-description = "Federated micro-blogging platform and content subscription service"
+description = "Movies reviews and ratings for the fediverse"
 license = "AGPL-3.0"
 
 edition = "2021"
 rust-version = "1.68"
 publish = false
-default-run = "mitra"
+default-run = "fedimovies"
 
 [workspace]
 members = [
   ".",
-  "mitra-cli",
-  "mitra-config",
-  "mitra-models",
-  "mitra-utils",
+  "fedimovies-cli",
+  "fedimovies-config",
+  "fedimovies-models",
+  "fedimovies-utils",
 ]
 default-members = [
   ".",
-  "mitra-cli",
-  "mitra-config",
-  "mitra-models",
-  "mitra-utils",
+  "fedimovies-cli",
+  "fedimovies-config",
+  "fedimovies-models",
+  "fedimovies-utils",
 ]
 
 [dependencies]
-mitra-config = { path = "mitra-config" }
-mitra-models = { path = "mitra-models" }
-mitra-utils = { path = "mitra-utils" }
+fedimovies-config = { path = "fedimovies-config" }
+fedimovies-models = { path = "fedimovies-models" }
+fedimovies-utils = { path = "fedimovies-utils" }
 
 # Used to handle incoming HTTP requests
 actix-cors = "0.6.4"
@@ -75,11 +75,11 @@ url = "2.2.2"
 uuid = { version = "1.1.2", features = ["serde", "v4"] }
 
 [dev-dependencies]
-mitra-config = { path = "mitra-config", features = ["test-utils"] }
-mitra-models = { path = "mitra-models", features = ["test-utils"] }
-mitra-utils = { path = "mitra-utils", features = ["test-utils"] }
+fedimovies-config = { path = "fedimovies-config", features = ["test-utils"] }
+fedimovies-models = { path = "fedimovies-models", features = ["test-utils"] }
+fedimovies-utils = { path = "fedimovies-utils", features = ["test-utils"] }
 
 serial_test = "0.7.0"
 
 [features]
-production = ["mitra-config/production"]
+production = ["fedimovies-config/production"]

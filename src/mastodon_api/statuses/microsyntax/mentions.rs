@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use regex::{Captures, Regex};
 
-use mitra_models::{
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     profiles::queries::get_profiles_by_accts,
     profiles::types::DbActorProfile,
@@ -107,7 +107,7 @@ pub fn replace_mentions(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActor;
+    use fedimovies_models::profiles::types::DbActor;
 
     const INSTANCE_HOSTNAME: &str = "server1.com";
     const INSTANCE_URL: &str = "https://server1.com";

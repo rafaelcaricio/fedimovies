@@ -1,7 +1,7 @@
 use actix_web::{error::ResponseError, http::StatusCode, HttpResponse, HttpResponseBuilder};
 use serde::Serialize;
 
-use mitra_models::database::DatabaseError;
+use fedimovies_models::database::DatabaseError;
 
 #[derive(thiserror::Error, Debug)]
 #[error("conversion error")]

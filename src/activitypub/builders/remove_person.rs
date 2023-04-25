@@ -1,5 +1,5 @@
-use mitra_config::Instance;
-use mitra_models::{profiles::types::DbActor, users::types::User};
+use fedimovies_config::Instance;
+use fedimovies_models::{profiles::types::DbActor, users::types::User};
 
 use crate::activitypub::{deliverer::OutgoingActivity, identifiers::LocalActorCollection};
 

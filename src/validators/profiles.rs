@@ -1,7 +1,7 @@
 use regex::Regex;
 
-use mitra_models::profiles::types::{ExtraField, ProfileCreateData, ProfileUpdateData};
-use mitra_utils::html::{clean_html, clean_html_strict};
+use fedimovies_models::profiles::types::{ExtraField, ProfileCreateData, ProfileUpdateData};
+use fedimovies_utils::html::{clean_html, clean_html_strict};
 
 use crate::errors::ValidationError;
 
@@ -126,7 +126,7 @@ pub fn clean_profile_update_data(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActor;
+    use fedimovies_models::profiles::types::DbActor;
 
     #[test]
     fn test_validate_username() {

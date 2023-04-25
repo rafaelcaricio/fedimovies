@@ -2,8 +2,8 @@
 use actix_web::{dev::ConnectionInfo, get, web, HttpResponse, Scope};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
-use mitra_config::Config;
-use mitra_models::database::{get_database_client, DbPool};
+use fedimovies_config::Config;
+use fedimovies_models::database::{get_database_client, DbPool};
 
 use super::helpers::search;
 use super::types::{SearchQueryParams, SearchResults};

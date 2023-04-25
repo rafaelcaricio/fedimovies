@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     background_jobs::queries::{delete_job_from_queue, enqueue_job, get_job_batch},
     background_jobs::types::JobType,
     database::{get_database_client, DatabaseClient, DatabaseError, DatabaseTypeError, DbPool},

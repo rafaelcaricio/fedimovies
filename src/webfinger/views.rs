@@ -1,7 +1,7 @@
 use actix_web::{get, web, HttpResponse};
 
-use mitra_config::{Config, Instance};
-use mitra_models::{
+use fedimovies_config::{Config, Instance};
+use fedimovies_models::{
     database::{get_database_client, DatabaseClient, DbPool},
     users::queries::is_registered_user,
 };
@@ -119,7 +119,7 @@ pub async fn webfinger_view(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::{
+    use fedimovies_models::{
         database::test_utils::create_test_database,
         users::{queries::create_user, types::UserCreateData},
     };

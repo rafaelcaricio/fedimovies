@@ -1,7 +1,7 @@
 use actix_web::{post, web, Either, HttpResponse, Scope};
 use uuid::Uuid;
 
-use mitra_models::{
+use fedimovies_models::{
     database::{get_database_client, DbPool},
     oauth::queries::create_oauth_app,
     oauth::types::DbOauthAppData,

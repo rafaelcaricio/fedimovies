@@ -4,7 +4,7 @@ use rsa::RsaPublicKey;
 use serde_json::Value;
 use url::Url;
 
-use mitra_utils::{
+use fedimovies_utils::{
     canonicalization::{canonicalize_object, CanonicalizationError},
     crypto_rsa::verify_rsa_sha256_signature,
     did::Did,
@@ -116,28 +116,11 @@ pub fn verify_rsa_json_signature(
     Ok(())
 }
 
-pub fn verify_eip191_json_signature(
-    _signer: &DidPkh,
-    _message: &str,
-    _signature: &[u8],
-) -> Result<(), VerificationError> {
-    Err(VerificationError::InvalidSignature)
-}
-
-pub fn verify_ed25519_json_signature(
-    signer: &DidKey,
-    message: &str,
-    signature: &[u8],
-) -> Result<(), VerificationError> {
-    verify_minisign_signature(signer, message, signature)
-        .map_err(|_| VerificationError::InvalidSignature)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::json_signatures::create::sign_object;
-    use mitra_utils::{crypto_rsa::generate_weak_rsa_key, currencies::Currency};
+    use fedimovies_utils::{crypto_rsa::generate_weak_rsa_key, currencies::Currency};
     use serde_json::json;
 
     #[test]

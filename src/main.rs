@@ -5,33 +5,33 @@ use actix_web::{
 };
 use tokio::sync::Mutex;
 
-use mitra::activitypub::views as activitypub;
-use mitra::atom::views::atom_scope;
-use mitra::http::{
+use fedimovies::activitypub::views as activitypub;
+use fedimovies::atom::views::atom_scope;
+use fedimovies::http::{
     create_auth_error_handler, create_default_headers_middleware, json_error_handler,
 };
-use mitra::job_queue::scheduler;
-use mitra::logger::configure_logger;
-use mitra::mastodon_api::accounts::views::account_api_scope;
-use mitra::mastodon_api::apps::views::application_api_scope;
-use mitra::mastodon_api::custom_emojis::views::custom_emoji_api_scope;
-use mitra::mastodon_api::directory::views::directory_api_scope;
-use mitra::mastodon_api::instance::views::instance_api_scope;
-use mitra::mastodon_api::markers::views::marker_api_scope;
-use mitra::mastodon_api::media::views::media_api_scope;
-use mitra::mastodon_api::notifications::views::notification_api_scope;
-use mitra::mastodon_api::oauth::views::oauth_api_scope;
-use mitra::mastodon_api::search::views::search_api_scope;
-use mitra::mastodon_api::settings::views::settings_api_scope;
-use mitra::mastodon_api::statuses::views::status_api_scope;
-use mitra::mastodon_api::subscriptions::views::subscription_api_scope;
-use mitra::mastodon_api::timelines::views::timeline_api_scope;
-use mitra::nodeinfo::views as nodeinfo;
-use mitra::web_client::views as web_client;
-use mitra::webfinger::views as webfinger;
-use mitra_config::{parse_config, Environment, REEF_VERSION};
-use mitra_models::database::migrate::apply_migrations;
-use mitra_models::database::{create_pool, get_database_client};
+use fedimovies::job_queue::scheduler;
+use fedimovies::logger::configure_logger;
+use fedimovies::mastodon_api::accounts::views::account_api_scope;
+use fedimovies::mastodon_api::apps::views::application_api_scope;
+use fedimovies::mastodon_api::custom_emojis::views::custom_emoji_api_scope;
+use fedimovies::mastodon_api::directory::views::directory_api_scope;
+use fedimovies::mastodon_api::instance::views::instance_api_scope;
+use fedimovies::mastodon_api::markers::views::marker_api_scope;
+use fedimovies::mastodon_api::media::views::media_api_scope;
+use fedimovies::mastodon_api::notifications::views::notification_api_scope;
+use fedimovies::mastodon_api::oauth::views::oauth_api_scope;
+use fedimovies::mastodon_api::search::views::search_api_scope;
+use fedimovies::mastodon_api::settings::views::settings_api_scope;
+use fedimovies::mastodon_api::statuses::views::status_api_scope;
+use fedimovies::mastodon_api::subscriptions::views::subscription_api_scope;
+use fedimovies::mastodon_api::timelines::views::timeline_api_scope;
+use fedimovies::nodeinfo::views as nodeinfo;
+use fedimovies::web_client::views as web_client;
+use fedimovies::webfinger::views as webfinger;
+use fedimovies_config::{parse_config, Environment, REEF_VERSION};
+use fedimovies_models::database::migrate::apply_migrations;
+use fedimovies_models::database::{create_pool, get_database_client};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

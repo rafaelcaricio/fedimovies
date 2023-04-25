@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     emojis::types::DbEmoji,
     posts::{

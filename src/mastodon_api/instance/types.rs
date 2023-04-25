@@ -1,7 +1,7 @@
 use serde::Serialize;
 
-use mitra_config::{Config, RegistrationType, REEF_VERSION};
-use mitra_utils::markdown::markdown_to_html;
+use fedimovies_config::{Config, RegistrationType, REEF_VERSION};
+use fedimovies_utils::markdown::markdown_to_html;
 
 use crate::mastodon_api::MASTODON_API_VERSION;
 use crate::media::SUPPORTED_MEDIA_TYPES;

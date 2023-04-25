@@ -1,7 +1,7 @@
 use actix_web::{get, web, HttpResponse, Scope};
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DbPool},
     instances::queries::{get_peer_count, get_peers},
     posts::queries::get_local_post_count,

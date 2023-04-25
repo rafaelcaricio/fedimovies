@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, Scope};
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DbPool},
     posts::queries::get_posts_by_author,
     users::queries::get_user_by_name,

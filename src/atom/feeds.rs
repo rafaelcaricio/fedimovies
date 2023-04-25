@@ -1,6 +1,6 @@
-use mitra_config::Instance;
-use mitra_models::{posts::types::Post, profiles::types::DbActorProfile};
-use mitra_utils::{
+use fedimovies_config::Instance;
+use fedimovies_models::{posts::types::Post, profiles::types::DbActorProfile};
+use fedimovies_utils::{
     datetime::get_min_datetime,
     html::{clean_html_all, escape_html},
 };

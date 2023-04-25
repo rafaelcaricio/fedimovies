@@ -1,8 +1,8 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     posts::types::{Post, Visibility},
     profiles::types::{DbActor, DbActorProfile},
@@ -105,7 +105,7 @@ pub async fn prepare_like(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_utils::id::generate_ulid;
+    use fedimovies_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 

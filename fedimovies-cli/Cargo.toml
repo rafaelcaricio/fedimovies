@@ -1,0 +1,27 @@
+[package]
+name = "fedimovies-cli"
+version = "1.22.0"
+license = "AGPL-3.0"
+edition = "2021"
+rust-version = "1.68"
+
+[[bin]]
+name = "mitractl"
+path = "src/main.rs"
+
+[dependencies]
+fedimovies-config = { path = "../fedimovies-config" }
+fedimovies-models = { path = "../fedimovies-models" }
+fedimovies-utils = { path = "../fedimovies-utils" }
+fedimovies = { path = ".." }
+
+# Used for catching errors
+anyhow = "1.0.58"
+# Used to build admin CLI tool
+clap = { version = "3.2.18", default-features = false, features = ["std", "derive"] }
+# Used for logging
+log = "0.4.14"
+# Async runtime
+tokio = { version = "1.20.4", features = ["macros"] }
+# Used to work with UUIDs
+uuid = "1.1.2"

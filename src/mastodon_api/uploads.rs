@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use mitra_utils::files::sniff_media_type;
+use fedimovies_utils::files::sniff_media_type;
 
 use super::errors::MastodonError;
 use crate::media::{save_file, SUPPORTED_MEDIA_TYPES};

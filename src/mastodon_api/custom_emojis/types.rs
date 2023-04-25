@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use mitra_models::emojis::types::DbEmoji;
+use fedimovies_models::emojis::types::DbEmoji;
 
 use crate::media::get_file_url;
 

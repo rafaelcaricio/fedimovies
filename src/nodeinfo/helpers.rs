@@ -1,4 +1,4 @@
-use mitra_models::{
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     posts::queries::get_local_post_count,
     users::queries::get_user_count,

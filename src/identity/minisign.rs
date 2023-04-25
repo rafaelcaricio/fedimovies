@@ -2,7 +2,7 @@
 use blake2::{Blake2b512, Digest};
 use ed25519_dalek::{PublicKey, Signature, SignatureError, Verifier};
 
-use mitra_utils::did_key::{DidKey, MulticodecError};
+use fedimovies_utils::did_key::{DidKey, MulticodecError};
 
 const MINISIGN_SIGNATURE_CODE: [u8; 2] = *b"Ed";
 const MINISIGN_SIGNATURE_HASHED_CODE: [u8; 2] = *b"ED";

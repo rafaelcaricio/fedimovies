@@ -1,18 +1,18 @@
 use anyhow::Error;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{get_database_client, DbPool},
     emojis::queries::{delete_emoji, find_unused_remote_emojis},
     posts::queries::{delete_post, find_extraneous_posts},
     profiles::queries::{delete_profile, find_empty_profiles, get_profile_by_id},
 };
-use mitra_models::database::DatabaseError;
-use mitra_models::notifications::queries::{delete_notification, get_mention_notifications};
-use mitra_models::posts::queries::create_post;
-use mitra_models::posts::types::PostCreateData;
-use mitra_models::users::queries::get_user_by_id;
-use mitra_utils::datetime::days_before_now;
+use fedimovies_models::database::DatabaseError;
+use fedimovies_models::notifications::queries::{delete_notification, get_mention_notifications};
+use fedimovies_models::posts::queries::create_post;
+use fedimovies_models::posts::types::PostCreateData;
+use fedimovies_models::users::queries::get_user_by_id;
+use fedimovies_utils::datetime::days_before_now;
 use crate::activitypub::builders::announce::prepare_announce;
 
 use crate::activitypub::queues::{

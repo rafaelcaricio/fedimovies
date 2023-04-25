@@ -1,8 +1,8 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     profiles::types::DbActor,
     relationships::queries::{get_followers, get_following},
@@ -73,7 +73,7 @@ pub async fn prepare_delete_person(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActorProfile;
+    use fedimovies_models::profiles::types::DbActorProfile;
 
     const INSTANCE_URL: &str = "https://example.com";
 

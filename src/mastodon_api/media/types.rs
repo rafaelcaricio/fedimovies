@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use mitra_models::attachments::types::{AttachmentType, DbMediaAttachment};
+use fedimovies_models::attachments::types::{AttachmentType, DbMediaAttachment};
 
 use crate::media::get_file_url;
 

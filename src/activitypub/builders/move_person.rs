@@ -1,9 +1,9 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-use mitra_config::Instance;
-use mitra_models::{profiles::types::DbActor, users::types::User};
-use mitra_utils::id::generate_ulid;
+use fedimovies_config::Instance;
+use fedimovies_models::{profiles::types::DbActor, users::types::User};
+use fedimovies_utils::id::generate_ulid;
 
 use crate::activitypub::{
     deliverer::OutgoingActivity,
@@ -72,8 +72,8 @@ pub fn prepare_move_person(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActorProfile;
-    use mitra_utils::id::generate_ulid;
+    use fedimovies_models::profiles::types::DbActorProfile;
+    use fedimovies_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 

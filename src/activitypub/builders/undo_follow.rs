@@ -1,8 +1,8 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     profiles::types::{DbActor, DbActorProfile},
     users::types::User,
 };
@@ -78,7 +78,7 @@ pub fn prepare_undo_follow(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_utils::id::generate_ulid;
+    use fedimovies_utils::id::generate_ulid;
 
     const INSTANCE_URL: &str = "https://example.com";
 

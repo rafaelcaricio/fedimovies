@@ -2,8 +2,8 @@ use actix_web::{dev::ConnectionInfo, get, patch, post, web, HttpRequest, HttpRes
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use uuid::Uuid;
 
-use mitra_config::{Config, DefaultRole, RegistrationType};
-use mitra_models::{
+use fedimovies_config::{Config, DefaultRole, RegistrationType};
+use fedimovies_models::{
     database::{get_database_client, DatabaseError, DbPool},
     posts::queries::get_posts_by_author,
     profiles::helpers::find_verified_aliases,
@@ -19,7 +19,7 @@ use mitra_models::{
     users::queries::{create_user, get_user_by_did, is_valid_invite_code},
     users::types::{Role, UserCreateData},
 };
-use mitra_utils::{
+use fedimovies_utils::{
     caip2::ChainId,
     canonicalization::canonicalize_object,
     crypto_rsa::{generate_rsa_key, serialize_private_key},
@@ -51,10 +51,7 @@ use crate::identity::{
     claims::create_identity_claim,
     minisign::{minisign_key_to_did, parse_minisign_signature, verify_minisign_signature},
 };
-use crate::json_signatures::{
-    create::{add_integrity_proof, IntegrityProof},
-    verify::{verify_ed25519_json_signature, verify_eip191_json_signature},
-};
+use crate::json_signatures::create::IntegrityProof;
 use crate::mastodon_api::{
     errors::MastodonError, oauth::auth::get_current_user, pagination::get_paginated_response,
     search::helpers::search_profiles_only, statuses::helpers::build_status_list,
@@ -204,171 +201,6 @@ async fn get_unsigned_update(
         message: canonical_json,
     };
     Ok(HttpResponse::Ok().json(data))
-}
-
-#[post("/send_activity")]
-async fn send_signed_activity(
-    auth: BearerAuth,
-    connection_info: ConnectionInfo,
-    config: web::Data<Config>,
-    db_pool: web::Data<DbPool>,
-    data: web::Json<SignedActivity>,
-) -> Result<HttpResponse, MastodonError> {
-    let db_client = &mut **get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, auth.token()).await?;
-    let signer = data
-        .signer
-        .parse::<Did>()
-        .map_err(|_| ValidationError("invalid DID"))?;
-    if !current_user.profile.identity_proofs.any(&signer) {
-        return Err(ValidationError("unknown signer").into());
-    };
-    let mut outgoing_activity = match &data.params {
-        ActivityParams::Update {
-            internal_activity_id,
-        } => prepare_update_person(
-            db_client,
-            &config.instance(),
-            &current_user,
-            Some(*internal_activity_id),
-        )
-        .await
-        .map_err(|_| MastodonError::InternalError)?,
-    };
-    let canonical_json = canonicalize_object(&outgoing_activity.activity)
-        .map_err(|_| MastodonError::InternalError)?;
-    let proof = match signer {
-        Did::Key(signer) => {
-            let signature_bin = parse_minisign_signature(&data.signature)
-                .map_err(|_| ValidationError("invalid encoding"))?;
-            verify_ed25519_json_signature(&signer, &canonical_json, &signature_bin)
-                .map_err(|_| ValidationError("invalid signature"))?;
-            IntegrityProof::jcs_ed25519(&signer, &signature_bin)
-        }
-        Did::Pkh(signer) => {
-            let signature_bin =
-                hex::decode(&data.signature).map_err(|_| ValidationError("invalid encoding"))?;
-            verify_eip191_json_signature(&signer, &canonical_json, &signature_bin)
-                .map_err(|_| ValidationError("invalid signature"))?;
-            IntegrityProof::jcs_eip191(&signer, &signature_bin)
-        }
-    };
-    add_integrity_proof(&mut outgoing_activity.activity, proof)
-        .map_err(|_| MastodonError::InternalError)?;
-
-    outgoing_activity.enqueue(db_client).await?;
-
-    let account = Account::from_user(
-        &get_request_base_url(connection_info),
-        &config.instance_url(),
-        current_user,
-    );
-    Ok(HttpResponse::Ok().json(account))
-}
-
-#[get("/identity_proof")]
-async fn get_identity_claim(
-    auth: BearerAuth,
-    config: web::Data<Config>,
-    db_pool: web::Data<DbPool>,
-    query_params: web::Query<IdentityClaimQueryParams>,
-) -> Result<HttpResponse, MastodonError> {
-    let db_client = &**get_database_client(&db_pool).await?;
-    let current_user = get_current_user(db_client, auth.token()).await?;
-    let did = match query_params.proof_type.as_str() {
-        "ethereum" => {
-            let did_pkh = DidPkh::from_address(&Currency::Ethereum, &query_params.signer);
-            Did::Pkh(did_pkh)
-        }
-        "minisign" => {
-            let did_key = minisign_key_to_did(&query_params.signer)
-                .map_err(|_| ValidationError("invalid key"))?;
-            Did::Key(did_key)
-        }
-        _ => return Err(ValidationError("unknown proof type").into()),
-    };
-    let actor_id = local_actor_id(&config.instance_url(), &current_user.profile.username);
-    let claim = create_identity_claim(&actor_id, &did).map_err(|_| MastodonError::InternalError)?;
-    let response = IdentityClaim { did, claim };
-    Ok(HttpResponse::Ok().json(response))
-}
-
-#[post("/identity_proof")]
-async fn create_identity_proof(
-    auth: BearerAuth,
-    connection_info: ConnectionInfo,
-    config: web::Data<Config>,
-    db_pool: web::Data<DbPool>,
-    proof_data: web::Json<IdentityProofData>,
-) -> Result<HttpResponse, MastodonError> {
-    let db_client = &mut **get_database_client(&db_pool).await?;
-    let mut current_user = get_current_user(db_client, auth.token()).await?;
-    let did = proof_data
-        .did
-        .parse::<Did>()
-        .map_err(|_| ValidationError("invalid DID"))?;
-    // Reject proof if there's another local user with the same DID.
-    // This is needed for matching ethereum subscriptions
-    match get_user_by_did(db_client, &did).await {
-        Ok(user) => {
-            if user.id != current_user.id {
-                return Err(ValidationError("DID already associated with another user").into());
-            };
-        }
-        Err(DatabaseError::NotFound(_)) => (),
-        Err(other_error) => return Err(other_error.into()),
-    };
-    let actor_id = local_actor_id(&config.instance_url(), &current_user.profile.username);
-    let message =
-        create_identity_claim(&actor_id, &did).map_err(|_| ValidationError("invalid claim"))?;
-
-    // Verify proof
-    let proof_type = match did {
-        Did::Key(ref did_key) => {
-            let signature_bin = parse_minisign_signature(&proof_data.signature)
-                .map_err(|_| ValidationError("invalid signature encoding"))?;
-            verify_minisign_signature(did_key, &message, &signature_bin)
-                .map_err(|_| ValidationError("invalid signature"))?;
-            IdentityProofType::LegacyMinisignIdentityProof
-        }
-        Did::Pkh(ref did_pkh) => {
-            if did_pkh.chain_id != ChainId::ethereum_mainnet() {
-                // DID must point to Ethereum Mainnet because it is a valid
-                // identifier on any Ethereum chain
-                return Err(ValidationError("unsupported chain ID").into());
-            };
-            let maybe_public_address = current_user.public_wallet_address(&Currency::Ethereum);
-            if let Some(address) = maybe_public_address {
-                // Do not allow to add more than one address proof
-                if did_pkh.address != address {
-                    return Err(ValidationError("DID doesn't match current identity").into());
-                };
-            };
-            return Err(ValidationError("invalid signature").into());
-        }
-    };
-
-    let proof = IdentityProof {
-        issuer: did,
-        proof_type: proof_type,
-        value: proof_data.signature.clone(),
-    };
-    let mut profile_data = ProfileUpdateData::from(&current_user.profile);
-    profile_data.add_identity_proof(proof);
-    current_user.profile = update_profile(db_client, &current_user.id, profile_data).await?;
-
-    // Federate
-    prepare_update_person(db_client, &config.instance(), &current_user, None)
-        .await?
-        .enqueue(db_client)
-        .await?;
-
-    let account = Account::from_user(
-        &get_request_base_url(connection_info),
-        &config.instance_url(),
-        current_user,
-    );
-    Ok(HttpResponse::Ok().json(account))
 }
 
 #[get("/relationships")]
@@ -726,9 +558,6 @@ pub fn account_api_scope() -> Scope {
         .service(verify_credentials)
         .service(update_credentials)
         .service(get_unsigned_update)
-        .service(send_signed_activity)
-        .service(get_identity_claim)
-        .service(create_identity_proof)
         .service(get_relationships_view)
         .service(lookup_acct)
         .service(search_by_acct)

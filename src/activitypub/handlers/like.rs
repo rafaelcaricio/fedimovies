@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     reactions::queries::create_reaction,
 };

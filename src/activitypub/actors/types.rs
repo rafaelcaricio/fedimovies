@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use serde::{de::Error as DeserializerError, Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     profiles::types::{DbActor, DbActorPublicKey, ExtraField, IdentityProof, PaymentOption},
     users::types::User,
 };
-use mitra_utils::{
+use fedimovies_utils::{
     crypto_rsa::{deserialize_private_key, get_public_key_pem},
     urls::get_hostname,
 };
@@ -23,6 +23,7 @@ use crate::activitypub::{
     types::deserialize_value_array,
     vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
 };
+use crate::activitypub::types::build_default_context;
 use crate::errors::ValidationError;
 use crate::media::get_file_url;
 use crate::webfinger::types::ActorAddress;
@@ -254,8 +255,8 @@ fn build_actor_context() -> (
             ("value", "schema:value"),
             ("toot", MASTODON_CONTEXT),
             ("IdentityProof", "toot:IdentityProof"),
-            ("mitra", MITRA_CONTEXT),
-            ("subscribers", "mitra:subscribers"),
+            ("fedimovies", MITRA_CONTEXT),
+            ("subscribers", "fedimovies:subscribers"),
         ]),
     )
 }
@@ -320,7 +321,7 @@ pub fn get_local_actor(user: &User, instance_url: &str) -> Result<Actor, ActorKe
     }
     let aliases = user.profile.aliases.clone().into_actor_ids();
     let actor = Actor {
-        context: Some(json!(build_actor_context())),
+        context: Some(build_default_context()),
         id: actor_id.clone(),
         object_type: PERSON.to_string(),
         name: user.profile.display_name.clone(),
@@ -355,7 +356,7 @@ pub fn get_instance_actor(instance: &Instance) -> Result<Actor, ActorKeyError> {
         public_key_pem: public_key_pem,
     };
     let actor = Actor {
-        context: Some(json!(build_actor_context())),
+        context: Some(build_default_context()),
         id: actor_id,
         object_type: SERVICE.to_string(),
         name: Some(instance.hostname()),
@@ -382,8 +383,8 @@ pub fn get_instance_actor(instance: &Instance) -> Result<Actor, ActorKeyError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActorProfile;
-    use mitra_utils::crypto_rsa::{generate_weak_rsa_key, serialize_private_key};
+    use fedimovies_models::profiles::types::DbActorProfile;
+    use fedimovies_utils::crypto_rsa::{generate_weak_rsa_key, serialize_private_key};
 
     const INSTANCE_HOSTNAME: &str = "example.com";
     const INSTANCE_URL: &str = "https://example.com";

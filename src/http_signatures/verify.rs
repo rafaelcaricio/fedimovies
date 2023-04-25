@@ -5,7 +5,7 @@ use chrono::{DateTime, Duration, TimeZone, Utc};
 use regex::Regex;
 use rsa::RsaPublicKey;
 
-use mitra_utils::crypto_rsa::verify_rsa_sha256_signature;
+use fedimovies_utils::crypto_rsa::verify_rsa_sha256_signature;
 
 const SIGNATURE_PARAMETER_RE: &str = r#"^(?P<key>[a-zA-Z]+)="(?P<value>.+)"$"#;
 
@@ -172,7 +172,7 @@ mod tests {
         header::{HeaderMap, HeaderName, HeaderValue},
         Uri,
     };
-    use mitra_utils::crypto_rsa::generate_weak_rsa_key;
+    use fedimovies_utils::crypto_rsa::generate_weak_rsa_key;
 
     #[test]
     fn test_parse_signature() {

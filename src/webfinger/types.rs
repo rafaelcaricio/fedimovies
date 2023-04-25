@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt, str::FromStr};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use mitra_models::profiles::types::DbActorProfile;
+use fedimovies_models::profiles::types::DbActorProfile;
 
 use crate::errors::ValidationError;
 
@@ -98,7 +98,7 @@ pub struct JsonResourceDescriptor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActor;
+    use fedimovies_models::profiles::types::DbActor;
 
     #[test]
     fn test_local_actor_address() {

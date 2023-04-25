@@ -5,8 +5,8 @@ use serde::Deserialize;
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
-use mitra_config::{Config, Instance};
-use mitra_models::{
+use fedimovies_config::{Config, Instance};
+use fedimovies_models::{
     attachments::queries::create_attachment,
     database::{DatabaseClient, DatabaseError},
     emojis::queries::{create_emoji, get_emoji_by_remote_object_id, update_emoji},
@@ -19,7 +19,7 @@ use mitra_models::{
     relationships::queries::has_local_followers,
     users::queries::get_user_by_name,
 };
-use mitra_utils::{html::clean_html, urls::get_hostname};
+use fedimovies_utils::{html::clean_html, urls::get_hostname};
 
 use super::HandlerResult;
 use crate::activitypub::{
@@ -691,7 +691,7 @@ pub async fn handle_create(
 mod tests {
     use super::*;
     use crate::activitypub::{types::Object, vocabulary::NOTE};
-    use mitra_models::profiles::types::DbActor;
+    use fedimovies_models::profiles::types::DbActor;
     use serde_json::json;
 
     #[test]

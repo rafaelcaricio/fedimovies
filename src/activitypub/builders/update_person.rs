@@ -1,14 +1,14 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError, DatabaseTypeError},
     profiles::types::DbActor,
     relationships::queries::get_followers,
     users::types::User,
 };
-use mitra_utils::id::generate_ulid;
+use fedimovies_utils::id::generate_ulid;
 
 use crate::activitypub::{
     actors::types::{get_local_actor, Actor, ActorKeyError},
@@ -86,8 +86,8 @@ pub async fn prepare_update_person(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActorProfile;
-    use mitra_utils::crypto_rsa::{generate_weak_rsa_key, serialize_private_key};
+    use fedimovies_models::profiles::types::DbActorProfile;
+    use fedimovies_utils::crypto_rsa::{generate_weak_rsa_key, serialize_private_key};
 
     const INSTANCE_URL: &str = "https://example.com";
 

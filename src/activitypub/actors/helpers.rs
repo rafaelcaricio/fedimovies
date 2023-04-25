@@ -2,8 +2,8 @@ use std::path::Path;
 
 use uuid::Uuid;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     database::DatabaseClient,
     profiles::queries::{create_profile, update_profile},
     profiles::types::{DbActorProfile, ProfileCreateData, ProfileImage, ProfileUpdateData},

@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 
-use mitra_config::Config;
-use mitra_models::database::DbPool;
+use fedimovies_config::Config;
+use fedimovies_models::database::DbPool;
 
 use super::periodic_tasks::*;
 

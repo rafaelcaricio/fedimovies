@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::DatabaseClient,
     notifications::queries::create_move_notification,
     profiles::helpers::find_verified_aliases,

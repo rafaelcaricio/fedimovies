@@ -1,7 +1,7 @@
-use mitra_models::profiles::types::{
+use fedimovies_models::profiles::types::{
     ExtraField, IdentityProof, IdentityProofType, PaymentLink, PaymentOption,
 };
-use mitra_utils::did::Did;
+use fedimovies_utils::did::Did;
 
 use crate::activitypub::vocabulary::{IDENTITY_PROOF, LINK, PROPERTY_VALUE};
 use crate::errors::ValidationError;
@@ -154,7 +154,7 @@ pub fn parse_extra_field(attachment: &ActorAttachment) -> Result<ExtraField, Val
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_utils::caip2::ChainId;
+    use fedimovies_utils::caip2::ChainId;
 
     const INSTANCE_URL: &str = "https://example.com";
 

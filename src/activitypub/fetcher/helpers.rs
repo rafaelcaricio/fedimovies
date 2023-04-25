@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use mitra_config::{Config, Instance};
-use mitra_models::{
+use fedimovies_config::{Config, Instance};
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     posts::helpers::get_local_post_by_id,
     posts::queries::get_post_by_remote_object_id,

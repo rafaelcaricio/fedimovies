@@ -4,8 +4,8 @@ use reqwest::{Client, Method, RequestBuilder};
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
 
-use mitra_config::Instance;
-use mitra_utils::{files::sniff_media_type, urls::guess_protocol};
+use fedimovies_config::Instance;
+use fedimovies_utils::{files::sniff_media_type, urls::guess_protocol};
 
 use crate::activitypub::{
     actors::types::Actor,

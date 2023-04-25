@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
-use mitra_config::Instance;
-use mitra_models::{
+use fedimovies_config::Instance;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     posts::types::Post,
     profiles::types::DbActor,
@@ -100,7 +100,7 @@ pub async fn prepare_announce(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mitra_models::profiles::types::DbActorProfile;
+    use fedimovies_models::profiles::types::DbActorProfile;
 
     const INSTANCE_URL: &str = "https://example.com";
 

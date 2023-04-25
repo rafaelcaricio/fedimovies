@@ -1,13 +1,13 @@
 use actix_web::HttpRequest;
 use serde_json::Value;
 
-use mitra_config::Config;
-use mitra_models::{
+use fedimovies_config::Config;
+use fedimovies_models::{
     database::{DatabaseClient, DatabaseError},
     profiles::queries::get_profile_by_remote_actor_id,
     profiles::types::DbActorProfile,
 };
-use mitra_utils::{crypto_rsa::deserialize_public_key, did::Did};
+use fedimovies_utils::{crypto_rsa::deserialize_public_key};
 
 use crate::http_signatures::verify::{
     parse_http_signature, verify_http_signature,
@@ -16,7 +16,7 @@ use crate::http_signatures::verify::{
 use crate::json_signatures::{
     proofs::ProofType,
     verify::{
-        get_json_signature, verify_ed25519_json_signature, verify_eip191_json_signature,
+        get_json_signature,
         verify_rsa_json_signature, JsonSignatureVerificationError as JsonSignatureError,
         JsonSigner,
     },
@@ -167,34 +167,7 @@ pub async fn verify_signed_activity(
             verify_rsa_json_signature(&signature_data, &signer_key)?;
         }
         JsonSigner::Did(did) => {
-            if !actor_profile.identity_proofs.any(&did) {
-                return Err(AuthenticationError::UnexpectedSigner);
-            };
-            match signature_data.signature_type {
-                ProofType::JcsEd25519Signature => {
-                    let did_key = match did {
-                        Did::Key(did_key) => did_key,
-                        _ => return Err(AuthenticationError::InvalidJsonSignatureType),
-                    };
-                    verify_ed25519_json_signature(
-                        &did_key,
-                        &signature_data.message,
-                        &signature_data.signature,
-                    )?;
-                }
-                ProofType::JcsEip191Signature => {
-                    let did_pkh = match did {
-                        Did::Pkh(did_pkh) => did_pkh,
-                        _ => return Err(AuthenticationError::InvalidJsonSignatureType),
-                    };
-                    verify_eip191_json_signature(
-                        &did_pkh,
-                        &signature_data.message,
-                        &signature_data.signature,
-                    )?;
-                }
-                _ => return Err(AuthenticationError::InvalidJsonSignatureType),
-            };
+            return Err(AuthenticationError::InvalidJsonSignatureType);
         }
     };
     // Signer is actor
