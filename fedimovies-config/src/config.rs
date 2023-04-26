@@ -33,6 +33,8 @@ pub struct Config {
 
     // Core settings
     pub database_url: String,
+    #[serde(default)]
+    pub tls_ca_file: Option<PathBuf>,
     pub storage_dir: PathBuf,
     pub web_client_dir: Option<PathBuf>,
 

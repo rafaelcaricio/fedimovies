@@ -1,5 +1,9 @@
 .env.local
 config.yaml
+/secret/*
 /files/*
 !/files/.gitkeep
+/build/*
+!/build/.gitkeep
 /target
+fly.toml
