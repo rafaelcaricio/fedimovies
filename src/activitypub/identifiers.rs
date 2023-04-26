@@ -80,7 +80,7 @@ pub fn local_tag_collection(instance_url: &str, tag_name: &str) -> String {
 }
 
 pub fn validate_object_id(object_id: &str) -> Result<(), ValidationError> {
-    get_hostname(object_id).map_err(|_| ValidationError("invalid object ID"))?;
+    get_hostname(object_id).map_err(|_| ValidationError("invalid object ID".to_string()))?;
     Ok(())
 }
 
@@ -89,13 +89,14 @@ pub fn parse_local_actor_id(instance_url: &str, actor_id: &str) -> Result<String
         "^{}/users/(?P<username>[0-9a-zA-Z_]+)$",
         instance_url.replace('.', r"\."),
     );
-    let url_regexp = Regex::new(&url_regexp_str).map_err(|_| ValidationError("error"))?;
+    let url_regexp =
+        Regex::new(&url_regexp_str).map_err(|_| ValidationError("error".to_string()))?;
     let url_caps = url_regexp
         .captures(actor_id)
-        .ok_or(ValidationError("invalid actor ID"))?;
+        .ok_or(ValidationError("invalid actor ID".to_string()))?;
     let username = url_caps
         .name("username")
-        .ok_or(ValidationError("invalid actor ID"))?
+        .ok_or(ValidationError("invalid actor ID".to_string()))?
         .as_str()
         .to_owned();
     Ok(username)
@@ -106,16 +107,17 @@ pub fn parse_local_object_id(instance_url: &str, object_id: &str) -> Result<Uuid
         "^{}/objects/(?P<uuid>[0-9a-f-]+)$",
         instance_url.replace('.', r"\."),
     );
-    let url_regexp = Regex::new(&url_regexp_str).map_err(|_| ValidationError("error"))?;
+    let url_regexp =
+        Regex::new(&url_regexp_str).map_err(|_| ValidationError("error".to_string()))?;
     let url_caps = url_regexp
         .captures(object_id)
-        .ok_or(ValidationError("invalid object ID"))?;
+        .ok_or(ValidationError("invalid object ID".to_string()))?;
     let internal_object_id: Uuid = url_caps
         .name("uuid")
-        .ok_or(ValidationError("invalid object ID"))?
+        .ok_or(ValidationError("invalid object ID".to_string()))?
         .as_str()
         .parse()
-        .map_err(|_| ValidationError("invalid object ID"))?;
+        .map_err(|_| ValidationError("invalid object ID".to_string()))?;
     Ok(internal_object_id)
 }
 

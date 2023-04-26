@@ -108,7 +108,7 @@ pub fn find_object_id(object: &Value) -> Result<String, ValidationError> {
         None => {
             let object_id = object["id"]
                 .as_str()
-                .ok_or(ValidationError("missing object ID"))?
+                .ok_or(ValidationError("missing object ID".to_string()))?
                 .to_string();
             object_id
         }
@@ -133,11 +133,11 @@ pub async fn handle_activity(
 ) -> Result<(), HandlerError> {
     let activity_type = activity["type"]
         .as_str()
-        .ok_or(ValidationError("type property is missing"))?
+        .ok_or(ValidationError("type property is missing".to_string()))?
         .to_owned();
     let activity_actor = activity["actor"]
         .as_str()
-        .ok_or(ValidationError("actor property is missing"))?
+        .ok_or(ValidationError("actor property is missing".to_string()))?
         .to_owned();
     let activity = activity.clone();
     let maybe_object_type = match activity_type.as_str() {
@@ -177,15 +177,15 @@ pub async fn receive_activity(
 ) -> Result<(), HandlerError> {
     let activity_type = activity["type"]
         .as_str()
-        .ok_or(ValidationError("type property is missing"))?;
+        .ok_or(ValidationError("type property is missing".to_string()))?;
     let activity_actor = activity["actor"]
         .as_str()
-        .ok_or(ValidationError("actor property is missing"))?;
+        .ok_or(ValidationError("actor property is missing".to_string()))?;
 
     let actor_hostname = url::Url::parse(activity_actor)
-        .map_err(|_| ValidationError("invalid actor ID"))?
+        .map_err(|_| ValidationError("invalid actor ID".to_string()))?
         .host_str()
-        .ok_or(ValidationError("invalid actor ID"))?
+        .ok_or(ValidationError("invalid actor ID".to_string()))?
         .to_string();
     if config
         .blocked_instances
@@ -295,7 +295,7 @@ pub async fn receive_activity(
 
     if activity_type == CREATE {
         let CreateNote { object, .. } = serde_json::from_value(activity.clone())
-            .map_err(|_| ValidationError("invalid object"))?;
+            .map_err(|_| ValidationError(format!("invalid CreateNote object: {}", activity)))?;
         if is_unsolicited_message(db_client, &config.instance_url(), &object).await? {
             log::warn!("unsolicited message rejected: {}", object.id);
             return Ok(());

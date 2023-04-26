@@ -42,18 +42,18 @@ async fn authorize_view(
     let password_hash = user
         .password_hash
         .as_ref()
-        .ok_or(ValidationError("password auth is disabled"))?;
+        .ok_or(ValidationError("password auth is disabled".to_string()))?;
     let password_correct = verify_password(password_hash, &form_data.password)
         .map_err(|_| MastodonError::InternalError)?;
     if !password_correct {
-        return Err(ValidationError("incorrect password").into());
+        return Err(ValidationError("incorrect password".to_string()).into());
     };
     if query_params.response_type != "code" {
-        return Err(ValidationError("invalid response type").into());
+        return Err(ValidationError("invalid response type".to_string()).into());
     };
     let oauth_app = get_oauth_app_by_client_id(db_client, &query_params.client_id).await?;
     if oauth_app.redirect_uri != query_params.redirect_uri {
-        return Err(ValidationError("invalid redirect_uri parameter").into());
+        return Err(ValidationError("invalid redirect_uri parameter".to_string()).into());
     };
 
     let authorization_code = generate_access_token();
@@ -91,36 +91,35 @@ async fn token_view(
     let db_client = &**get_database_client(&db_pool).await?;
     let user = match request_data.grant_type.as_str() {
         "authorization_code" => {
-            let authorization_code = request_data
-                .code
-                .as_ref()
-                .ok_or(ValidationError("authorization code is required"))?;
+            let authorization_code = request_data.code.as_ref().ok_or(ValidationError(
+                "authorization code is required".to_string(),
+            ))?;
             get_user_by_authorization_code(db_client, authorization_code).await?
         }
         "password" => {
             let username = request_data
                 .username
                 .as_ref()
-                .ok_or(ValidationError("username is required"))?;
+                .ok_or(ValidationError("username is required".to_string()))?;
             get_user_by_name(db_client, username).await?
         }
         _ => {
-            return Err(ValidationError("unsupported grant type").into());
+            return Err(ValidationError("unsupported grant type".to_string()).into());
         }
     };
     if request_data.grant_type == "password" || request_data.grant_type == "ethereum" {
         let password = request_data
             .password
             .as_ref()
-            .ok_or(ValidationError("password is required"))?;
+            .ok_or(ValidationError("password is required".to_string()))?;
         let password_hash = user
             .password_hash
             .as_ref()
-            .ok_or(ValidationError("password auth is disabled"))?;
+            .ok_or(ValidationError("password auth is disabled".to_string()))?;
         let password_correct =
             verify_password(password_hash, password).map_err(|_| MastodonError::InternalError)?;
         if !password_correct {
-            return Err(ValidationError("incorrect password").into());
+            return Err(ValidationError("incorrect password".to_string()).into());
         };
     };
     let access_token = generate_access_token();

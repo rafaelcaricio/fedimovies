@@ -34,12 +34,13 @@ pub async fn handle_move(
     activity: Value,
 ) -> HandlerResult {
     // Move(Person)
-    let activity: Move = serde_json::from_value(activity)
-        .map_err(|_| ValidationError("unexpected activity structure"))?;
+    let activity: Move = serde_json::from_value(activity.clone()).map_err(|_| {
+        ValidationError(format!("unexpected Move activity structure: {}", activity))
+    })?;
     // Mastodon: actor is old profile (object)
     // Mitra: actor is new profile (target)
     if activity.object != activity.actor && activity.target != activity.actor {
-        return Err(ValidationError("actor ID mismatch").into());
+        return Err(ValidationError("actor ID mismatch".to_string()).into());
     };
 
     let instance = config.instance();
@@ -70,7 +71,7 @@ pub async fn handle_move(
     // Add aliases reported by server (actor's alsoKnownAs property)
     aliases.extend(new_profile.aliases.clone().into_actor_ids());
     if !aliases.contains(&old_actor_id) {
-        return Err(ValidationError("target ID is not an alias").into());
+        return Err(ValidationError("target ID is not an alias".to_string()).into());
     };
 
     let followers = get_followers(db_client, &old_profile.id).await?;

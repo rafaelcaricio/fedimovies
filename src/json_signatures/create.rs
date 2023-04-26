@@ -3,6 +3,8 @@ use rsa::RsaPrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::json_signatures::proofs::PROOF_TYPE_JCS_RSA;
+use fedimovies_utils::crypto_rsa::create_rsa_signature;
 use fedimovies_utils::{
     canonicalization::{canonicalize_object, CanonicalizationError},
     crypto_rsa::create_rsa_sha256_signature,
@@ -29,6 +31,19 @@ pub struct IntegrityProof {
     pub proof_value: String,
 }
 
+impl IntegrityProof {
+    fn jcs_rsa(signer_key_id: &str, signature: &[u8]) -> Self {
+        Self {
+            proof_type: PROOF_TYPE_JCS_RSA.to_string(),
+            proof_purpose: PROOF_PURPOSE.to_string(),
+            cryptosuite: None,
+            verification_method: signer_key_id.to_string(),
+            created: Utc::now(),
+            proof_value: encode_multibase_base58btc(signature),
+        }
+    }
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum JsonSignatureError {
     #[error(transparent)]
@@ -40,16 +55,42 @@ pub enum JsonSignatureError {
     #[error("signing error")]
     SigningError(#[from] rsa::errors::Error),
 
-    #[error("invalid object")]
+    #[error("invalid JSON signature object")]
     InvalidObject,
+
+    #[error("already signed")]
+    AlreadySigned,
+}
+
+pub fn add_integrity_proof(
+    object_value: &mut Value,
+    proof: IntegrityProof,
+) -> Result<(), JsonSignatureError> {
+    let object_map = object_value
+        .as_object_mut()
+        .ok_or(JsonSignatureError::InvalidObject)?;
+    if object_map.contains_key(PROOF_KEY) {
+        return Err(JsonSignatureError::AlreadySigned);
+    };
+    let proof_value = serde_json::to_value(proof)?;
+    object_map.insert(PROOF_KEY.to_string(), proof_value);
+    Ok(())
 }
 
 pub fn sign_object(
-    _object: &Value,
-    _signer_key: &RsaPrivateKey,
-    _signer_key_id: &str,
+    object: &Value,
+    signer_key: &RsaPrivateKey,
+    signer_key_id: &str,
 ) -> Result<Value, JsonSignatureError> {
-    Err(JsonSignatureError::InvalidObject)
+    // Canonicalize
+    let message = canonicalize_object(object)?;
+    // Sign
+    let signature = create_rsa_signature(signer_key, &message)?;
+    // Insert proof
+    let proof = IntegrityProof::jcs_rsa(signer_key_id, &signature);
+    let mut object_value = serde_json::to_value(object)?;
+    add_integrity_proof(&mut object_value, proof)?;
+    Ok(object_value)
 }
 
 pub fn is_object_signed(object: &Value) -> bool {

@@ -49,6 +49,17 @@ pub fn create_rsa_sha256_signature(
     Ok(signature)
 }
 
+/// RSASSA-PKCS1-v1_5 signature
+pub fn create_rsa_signature(
+    private_key: &RsaPrivateKey,
+    message: &str,
+) -> Result<Vec<u8>, rsa::errors::Error> {
+    let digest = Sha256::digest(message.as_bytes());
+    let padding = PaddingScheme::new_pkcs1v15_sign(Some(Hash::SHA2_256));
+    let signature = private_key.sign(padding, &digest)?;
+    Ok(signature)
+}
+
 pub fn get_message_digest(message: &str) -> String {
     let digest = Sha256::digest(message.as_bytes());
     let digest_b64 = base64::encode(digest);

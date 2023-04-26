@@ -72,15 +72,15 @@ pub async fn create_account(
         let invite_code = account_data
             .invite_code
             .as_ref()
-            .ok_or(ValidationError("invite code is required"))?;
+            .ok_or(ValidationError("invite code is required".to_string()))?;
         if !is_valid_invite_code(db_client, invite_code).await? {
-            return Err(ValidationError("invalid invite code").into());
+            return Err(ValidationError("invalid invite code".to_string()).into());
         };
     };
 
     validate_local_username(&account_data.username)?;
     if account_data.password.is_none() && account_data.message.is_none() {
-        return Err(ValidationError("password or EIP-4361 message is required").into());
+        return Err(ValidationError("password or EIP-4361 message is required".to_string()).into());
     };
     let maybe_password_hash = if let Some(password) = account_data.password.as_ref() {
         let password_hash = hash_password(password).map_err(|_| MastodonError::InternalError)?;
@@ -117,7 +117,7 @@ pub async fn create_account(
     let user = match create_user(db_client, user_data).await {
         Ok(user) => user,
         Err(DatabaseError::AlreadyExists(_)) => {
-            return Err(ValidationError("user already exists").into())
+            return Err(ValidationError("user already exists".to_string()).into())
         }
         Err(other_error) => return Err(other_error.into()),
     };
@@ -280,7 +280,7 @@ async fn search_by_did(
     let did: Did = query_params
         .did
         .parse()
-        .map_err(|_| ValidationError("invalid DID"))?;
+        .map_err(|_| ValidationError("invalid DID".to_string()))?;
     let profiles = search_profiles_by_did(db_client, &did, false).await?;
     let base_url = get_request_base_url(connection_info);
     let instance_url = config.instance().url();

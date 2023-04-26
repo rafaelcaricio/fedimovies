@@ -16,7 +16,7 @@ impl MarkerQueryParams {
         let timeline = match self.timeline.as_ref() {
             "home" => Timeline::Home,
             "notifications" => Timeline::Notifications,
-            _ => return Err(ValidationError("invalid timeline name")),
+            _ => return Err(ValidationError("invalid timeline name".to_string())),
         };
         Ok(timeline)
     }

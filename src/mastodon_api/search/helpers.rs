@@ -44,10 +44,10 @@ fn parse_profile_query(query: &str) -> Result<(String, Option<String>), Validati
         Regex::new(r"^(@|!)?(?P<username>[\w\.-]+)(@(?P<hostname>[\w\.-]+))?$").unwrap();
     let acct_query_caps = acct_query_re
         .captures(query)
-        .ok_or(ValidationError("invalid profile query"))?;
+        .ok_or(ValidationError("invalid profile query".to_string()))?;
     let username = acct_query_caps
         .name("username")
-        .ok_or(ValidationError("invalid profile query"))?
+        .ok_or(ValidationError("invalid profile query".to_string()))?
         .as_str()
         .to_string();
     let maybe_hostname = acct_query_caps
@@ -60,10 +60,10 @@ fn parse_tag_query(query: &str) -> Result<String, ValidationError> {
     let tag_query_re = Regex::new(r"^#(?P<tag>\w+)$").unwrap();
     let tag_query_caps = tag_query_re
         .captures(query)
-        .ok_or(ValidationError("invalid tag query"))?;
+        .ok_or(ValidationError("invalid tag query".to_string()))?;
     let tag = tag_query_caps
         .name("tag")
-        .ok_or(ValidationError("invalid tag query"))?
+        .ok_or(ValidationError("invalid tag query".to_string()))?
         .as_str()
         .to_string();
     Ok(tag)

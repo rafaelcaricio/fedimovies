@@ -11,10 +11,10 @@ pub const EMOJI_MEDIA_TYPES: [&str; 4] = ["image/apng", "image/gif", "image/png"
 pub fn validate_emoji_name(emoji_name: &str) -> Result<(), ValidationError> {
     let name_re = Regex::new(EMOJI_NAME_RE).unwrap();
     if !name_re.is_match(emoji_name) {
-        return Err(ValidationError("invalid emoji name"));
+        return Err(ValidationError("invalid emoji name".to_string()));
     };
     if emoji_name.len() > EMOJI_NAME_SIZE_MAX {
-        return Err(ValidationError("emoji name is too long"));
+        return Err(ValidationError("emoji name is too long".to_string()));
     };
     Ok(())
 }

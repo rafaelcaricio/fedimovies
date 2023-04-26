@@ -7,7 +7,7 @@ use fedimovies_models::{
     profiles::queries::get_profile_by_remote_actor_id,
     profiles::types::DbActorProfile,
 };
-use fedimovies_utils::{crypto_rsa::deserialize_public_key};
+use fedimovies_utils::crypto_rsa::deserialize_public_key;
 
 use crate::http_signatures::verify::{
     parse_http_signature, verify_http_signature,
@@ -16,9 +16,8 @@ use crate::http_signatures::verify::{
 use crate::json_signatures::{
     proofs::ProofType,
     verify::{
-        get_json_signature,
-        verify_rsa_json_signature, JsonSignatureVerificationError as JsonSignatureError,
-        JsonSigner,
+        get_json_signature, verify_rsa_json_signature,
+        JsonSignatureVerificationError as JsonSignatureError, JsonSigner,
     },
 };
 use crate::media::MediaStorage;

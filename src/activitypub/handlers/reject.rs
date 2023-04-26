@@ -29,13 +29,17 @@ pub async fn handle_reject(
     activity: Value,
 ) -> HandlerResult {
     // Reject(Follow)
-    let activity: Reject = serde_json::from_value(activity)
-        .map_err(|_| ValidationError("unexpected activity structure"))?;
+    let activity: Reject = serde_json::from_value(activity.clone()).map_err(|_| {
+        ValidationError(format!(
+            "unexpected Reject activity structure: {}",
+            activity
+        ))
+    })?;
     let actor_profile = get_profile_by_remote_actor_id(db_client, &activity.actor).await?;
     let follow_request_id = parse_local_object_id(&config.instance_url(), &activity.object)?;
     let follow_request = get_follow_request_by_id(db_client, &follow_request_id).await?;
     if follow_request.target_id != actor_profile.id {
-        return Err(ValidationError("actor is not a target").into());
+        return Err(ValidationError("actor is not a target".to_string()).into());
     };
     if matches!(follow_request.request_status, FollowRequestStatus::Rejected) {
         // Ignore Reject if follow request already rejected

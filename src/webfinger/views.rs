@@ -22,7 +22,7 @@ use super::types::{
 fn parse_acct_uri(uri: &str) -> Result<ActorAddress, ValidationError> {
     let actor_address = uri
         .strip_prefix("acct:")
-        .ok_or(ValidationError("invalid query target"))?
+        .ok_or(ValidationError("invalid query target".to_string()))?
         .parse()?;
     Ok(actor_address)
 }

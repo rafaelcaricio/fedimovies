@@ -214,7 +214,7 @@ pub async fn import_post(
                 };
                 let object = fetch_object(instance, &object_id).await.map_err(|err| {
                     log::warn!("{}", err);
-                    ValidationError("failed to fetch object")
+                    ValidationError("failed to fetch object".into())
                 })?;
                 log::info!("fetched object {}", object.id);
                 fetch_count += 1;
@@ -278,9 +278,9 @@ pub async fn import_from_outbox(
     let activities = fetch_outbox(&instance, &actor.outbox, limit).await?;
     log::info!("fetched {} activities", activities.len());
     for activity in activities {
-        let activity_actor = activity["actor"]
-            .as_str()
-            .ok_or(ValidationError("actor property is missing"))?;
+        let activity_actor = activity["actor"].as_str().ok_or(ValidationError(
+            "actor property is missing from activity".to_string(),
+        ))?;
         if activity_actor != actor.id {
             log::warn!("activity doesn't belong to outbox owner");
             continue;

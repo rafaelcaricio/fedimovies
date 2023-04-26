@@ -41,7 +41,7 @@ async fn client_config_view(
     let db_client = &**get_database_client(&db_pool).await?;
     let mut current_user = get_current_user(db_client, auth.token()).await?;
     if request_data.len() != 1 {
-        return Err(ValidationError("can't update more than one config").into());
+        return Err(ValidationError("can't update more than one config".to_string()).into());
     };
     let (client_name, client_config_value) = request_data
         .iter()
@@ -172,11 +172,11 @@ async fn move_followers(
     let db_client = &mut **get_database_client(&db_pool).await?;
     let current_user = get_current_user(db_client, auth.token()).await?;
     if current_user.profile.identity_proofs.inner().is_empty() {
-        return Err(ValidationError("identity proof is required").into());
+        return Err(ValidationError("identity proof is required".to_string()).into());
     };
     let instance = config.instance();
     if request_data.from_actor_id.starts_with(&instance.url()) {
-        return Err(ValidationError("can't move from local actor").into());
+        return Err(ValidationError("can't move from local actor".to_string()).into());
     };
     // Existence of actor is not verified because
     // the old profile could have been deleted
@@ -193,7 +193,7 @@ async fn move_followers(
             .into_iter()
             .map(|profile| profile_actor_id(&instance.url(), &profile));
         if !aliases.any(|actor_id| actor_id == request_data.from_actor_id) {
-            return Err(ValidationError("old profile is not an alias").into());
+            return Err(ValidationError("old profile is not an alias".to_string()).into());
         };
     };
     let address_list = parse_address_list(&request_data.followers_csv)?;

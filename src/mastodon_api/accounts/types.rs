@@ -299,7 +299,7 @@ impl AccountUpdateData {
     ) -> Result<ProfileUpdateData, MastodonError> {
         let maybe_bio = if let Some(ref bio_source) = self.note {
             let bio = markdown_basic_to_html(bio_source)
-                .map_err(|_| ValidationError("invalid markdown"))?;
+                .map_err(|_| ValidationError("invalid markdown".to_string()))?;
             Some(bio)
         } else {
             None
@@ -321,7 +321,7 @@ impl AccountUpdateData {
         let mut extra_fields = vec![];
         for field_source in self.fields_attributes.unwrap_or(vec![]) {
             let value = markdown_basic_to_html(&field_source.value)
-                .map_err(|_| ValidationError("invalid markdown"))?;
+                .map_err(|_| ValidationError("invalid markdown".to_string()))?;
             let extra_field = ExtraField {
                 name: field_source.name,
                 value: value,

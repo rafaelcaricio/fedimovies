@@ -1,19 +1,19 @@
 use anyhow::Error;
 
+use crate::activitypub::builders::announce::prepare_announce;
 use fedimovies_config::Config;
+use fedimovies_models::database::DatabaseError;
+use fedimovies_models::notifications::queries::{delete_notification, get_mention_notifications};
+use fedimovies_models::posts::queries::create_post;
+use fedimovies_models::posts::types::PostCreateData;
+use fedimovies_models::users::queries::get_user_by_id;
 use fedimovies_models::{
     database::{get_database_client, DbPool},
     emojis::queries::{delete_emoji, find_unused_remote_emojis},
     posts::queries::{delete_post, find_extraneous_posts},
     profiles::queries::{delete_profile, find_empty_profiles, get_profile_by_id},
 };
-use fedimovies_models::database::DatabaseError;
-use fedimovies_models::notifications::queries::{delete_notification, get_mention_notifications};
-use fedimovies_models::posts::queries::create_post;
-use fedimovies_models::posts::types::PostCreateData;
-use fedimovies_models::users::queries::get_user_by_id;
 use fedimovies_utils::datetime::days_before_now;
-use crate::activitypub::builders::announce::prepare_announce;
 
 use crate::activitypub::queues::{
     process_queued_incoming_activities, process_queued_outgoing_activities,
@@ -80,7 +80,10 @@ pub async fn prune_remote_emojis(config: &Config, db_pool: &DbPool) -> Result<()
 }
 
 // Finds mention notifications and repost them
-pub async fn handle_movies_mentions(config: &Config, db_pool: &DbPool) -> Result<(), anyhow::Error> {
+pub async fn handle_movies_mentions(
+    config: &Config,
+    db_pool: &DbPool,
+) -> Result<(), anyhow::Error> {
     let db_client = &mut **get_database_client(db_pool).await?;
     log::debug!("Reviewing mentions..");
     // for each mention notification do repost
@@ -103,19 +106,25 @@ pub async fn handle_movies_mentions(config: &Config, db_pool: &DbPool) -> Result
             }
             let mut post = post_with_mention.clone();
             let post_id = post.id;
-            let current_user = get_user_by_id(&transaction, &mention_notification.recipient.id).await?;
+            let current_user =
+                get_user_by_id(&transaction, &mention_notification.recipient.id).await?;
 
             // Repost
             let repost_data = PostCreateData::repost(post.id, None);
-            let mut repost = match create_post(&mut transaction, &current_user.id, repost_data).await {
-                Ok(repost) => repost,
-                Err(DatabaseError::AlreadyExists(err)) => {
-                    log::info!("Review as Mention of {} already reposted the post with id {}", current_user.profile.username, post_id);
-                    delete_notification(&mut transaction, mention_notification.id).await?;
-                    continue;
-                }
-                Err(err) => return Err(err.into()),
-            };
+            let mut repost =
+                match create_post(&mut transaction, &current_user.id, repost_data).await {
+                    Ok(repost) => repost,
+                    Err(DatabaseError::AlreadyExists(err)) => {
+                        log::info!(
+                            "Review as Mention of {} already reposted the post with id {}",
+                            current_user.profile.username,
+                            post_id
+                        );
+                        delete_notification(&mut transaction, mention_notification.id).await?;
+                        continue;
+                    }
+                    Err(err) => return Err(err.into()),
+                };
             post.repost_count += 1;
             repost.repost_of = Some(Box::new(post));
 
@@ -128,7 +137,11 @@ pub async fn handle_movies_mentions(config: &Config, db_pool: &DbPool) -> Result
             // Delete notification to avoid re-processing
             delete_notification(&mut transaction, mention_notification.id).await?;
 
-            log::info!("Review as Mention of {} reposted with post id {}", current_user.profile.username, post_id);
+            log::info!(
+                "Review as Mention of {} reposted with post id {}",
+                current_user.profile.username,
+                post_id
+            );
         }
     }
     Ok(transaction.commit().await?)

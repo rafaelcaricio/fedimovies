@@ -83,7 +83,9 @@ pub fn run(config: Config, db_pool: DbPool) -> () {
                     }
                     PeriodicTask::PruneRemoteEmojis => prune_remote_emojis(&config, &db_pool).await,
                     PeriodicTask::SubscriptionExpirationMonitor => Ok(()),
-                    PeriodicTask::HandleMoviesMentions => handle_movies_mentions(&config, &db_pool).await,
+                    PeriodicTask::HandleMoviesMentions => {
+                        handle_movies_mentions(&config, &db_pool).await
+                    }
                 };
                 task_result.unwrap_or_else(|err| {
                     log::error!("{:?}: {}", task, err);

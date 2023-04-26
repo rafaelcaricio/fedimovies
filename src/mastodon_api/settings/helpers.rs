@@ -59,7 +59,9 @@ pub fn parse_address_list(csv: &str) -> Result<Vec<ActorAddress>, ValidationErro
     addresses.sort();
     addresses.dedup();
     if addresses.len() > 50 {
-        return Err(ValidationError("can't process more than 50 items at once"));
+        return Err(ValidationError(
+            "can't process more than 50 items at once".to_string(),
+        ));
     };
     Ok(addresses)
 }

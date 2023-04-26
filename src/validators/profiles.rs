@@ -16,21 +16,21 @@ const FIELD_VALUE_MAX_SIZE: usize = 5000;
 
 pub fn validate_username(username: &str) -> Result<(), ValidationError> {
     if username.is_empty() {
-        return Err(ValidationError("username is empty"));
+        return Err(ValidationError("username is empty".to_string()));
     };
     if username.len() > 100 {
-        return Err(ValidationError("username is too long"));
+        return Err(ValidationError("username is too long".to_string()));
     };
     let username_regexp = Regex::new(USERNAME_RE).unwrap();
     if !username_regexp.is_match(username) {
-        return Err(ValidationError("invalid username"));
+        return Err(ValidationError("invalid username".to_string()));
     };
     Ok(())
 }
 
 fn validate_display_name(display_name: &str) -> Result<(), ValidationError> {
     if display_name.chars().count() > DISPLAY_NAME_MAX_LENGTH {
-        return Err(ValidationError("display name is too long"));
+        return Err(ValidationError("display name is too long".to_string()));
     };
     Ok(())
 }
@@ -43,7 +43,7 @@ fn clean_bio(bio: &str, is_remote: bool) -> Result<String, ValidationError> {
     } else {
         // Local profile
         if bio.chars().count() > BIO_MAX_LENGTH {
-            return Err(ValidationError("bio is too long"));
+            return Err(ValidationError("bio is too long".to_string()));
         };
         clean_html_strict(bio, &BIO_ALLOWED_TAGS, vec![])
     };
@@ -63,21 +63,23 @@ fn clean_extra_fields(
             continue;
         };
         if field.name.len() > FIELD_NAME_MAX_SIZE {
-            return Err(ValidationError("field name is too long"));
+            return Err(ValidationError("field name is too long".to_string()));
         };
         if field.value.len() > FIELD_VALUE_MAX_SIZE {
-            return Err(ValidationError("field value is too long"));
+            return Err(ValidationError("field value is too long".to_string()));
         };
         cleaned_extra_fields.push(field);
     }
     #[allow(clippy::collapsible_else_if)]
     if is_remote {
         if cleaned_extra_fields.len() > 100 {
-            return Err(ValidationError("at most 100 fields are allowed"));
+            return Err(ValidationError(
+                "at most 100 fields are allowed".to_string(),
+            ));
         };
     } else {
         if cleaned_extra_fields.len() > 10 {
-            return Err(ValidationError("at most 10 fields are allowed"));
+            return Err(ValidationError("at most 10 fields are allowed".to_string()));
         };
     };
     Ok(cleaned_extra_fields)
@@ -88,7 +90,9 @@ pub fn clean_profile_create_data(
 ) -> Result<(), ValidationError> {
     validate_username(&profile_data.username)?;
     if profile_data.hostname.is_some() != profile_data.actor_json.is_some() {
-        return Err(ValidationError("hostname and actor_json field mismatch"));
+        return Err(ValidationError(
+            "hostname and actor_json field mismatch".to_string(),
+        ));
     };
     if let Some(display_name) = &profile_data.display_name {
         validate_display_name(display_name)?;
@@ -100,7 +104,7 @@ pub fn clean_profile_create_data(
     };
     profile_data.extra_fields = clean_extra_fields(&profile_data.extra_fields, is_remote)?;
     if profile_data.emojis.len() > EMOJI_LIMIT {
-        return Err(ValidationError("too many emojis"));
+        return Err(ValidationError("too many emojis".to_string()));
     };
     Ok(())
 }
@@ -118,7 +122,7 @@ pub fn clean_profile_update_data(
     };
     profile_data.extra_fields = clean_extra_fields(&profile_data.extra_fields, is_remote)?;
     if profile_data.emojis.len() > EMOJI_LIMIT {
-        return Err(ValidationError("too many emojis"));
+        return Err(ValidationError("too many emojis".to_string()));
     };
     Ok(())
 }

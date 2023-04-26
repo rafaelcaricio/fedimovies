@@ -57,14 +57,14 @@ async fn create_status(
         Some("direct") => Visibility::Direct,
         Some("private") => Visibility::Followers,
         Some("subscribers") => Visibility::Subscribers,
-        Some(_) => return Err(ValidationError("invalid visibility parameter").into()),
+        Some(_) => return Err(ValidationError("invalid visibility parameter".to_string()).into()),
         None => Visibility::Public,
     };
     let content = match status_data.content_type.as_str() {
         "text/html" => status_data.status,
         "text/markdown" => markdown_lite_to_html(&status_data.status)
-            .map_err(|_| ValidationError("invalid markdown"))?,
-        _ => return Err(ValidationError("unsupported content type").into()),
+            .map_err(|_| ValidationError("invalid markdown".to_string()))?,
+        _ => return Err(ValidationError("unsupported content type".to_string()).into()),
     };
     // Parse content
     let PostContent {
@@ -95,21 +95,21 @@ async fn create_status(
     mentions.sort();
     mentions.dedup();
     if mentions.len() > MENTION_LIMIT {
-        return Err(ValidationError("too many mentions").into());
+        return Err(ValidationError("too many mentions".to_string()).into());
     };
 
     // Links validation
     if links.len() > 0 && visibility != Visibility::Public {
-        return Err(ValidationError("can't add links to non-public posts").into());
+        return Err(ValidationError("can't add links to non-public posts".to_string()).into());
     };
     if links.len() > LINK_LIMIT {
-        return Err(ValidationError("too many links").into());
+        return Err(ValidationError("too many links".to_string()).into());
     };
 
     // Emoji validation
     let emojis: Vec<_> = emojis.iter().map(|emoji| emoji.id).collect();
     if emojis.len() > EMOJI_LIMIT {
-        return Err(ValidationError("too many emojis").into());
+        return Err(ValidationError("too many emojis".to_string()).into());
     };
 
     // Reply validation
@@ -117,15 +117,15 @@ async fn create_status(
         let in_reply_to = match get_post_by_id(db_client, in_reply_to_id).await {
             Ok(post) => post,
             Err(DatabaseError::NotFound(_)) => {
-                return Err(ValidationError("parent post does not exist").into());
+                return Err(ValidationError("parent post does not exist".to_string()).into());
             }
             Err(other_error) => return Err(other_error.into()),
         };
         if in_reply_to.repost_of_id.is_some() {
-            return Err(ValidationError("can't reply to repost").into());
+            return Err(ValidationError("can't reply to repost".to_string()).into());
         };
         if in_reply_to.visibility != Visibility::Public && visibility != Visibility::Direct {
-            return Err(ValidationError("reply must have direct visibility").into());
+            return Err(ValidationError("reply must have direct visibility".to_string()).into());
         };
         if visibility != Visibility::Public {
             let mut in_reply_to_audience: Vec<_> = in_reply_to
@@ -135,7 +135,7 @@ async fn create_status(
                 .collect();
             in_reply_to_audience.push(in_reply_to.author.id);
             if !mentions.iter().all(|id| in_reply_to_audience.contains(id)) {
-                return Err(ValidationError("audience can't be expanded").into());
+                return Err(ValidationError("audience can't be expanded".to_string()).into());
             };
         };
         Some(in_reply_to)
@@ -145,7 +145,7 @@ async fn create_status(
     // Validate attachments
     let attachments = status_data.media_ids.unwrap_or(vec![]);
     if attachments.len() > ATTACHMENT_LIMIT {
-        return Err(ValidationError("too many attachments").into());
+        return Err(ValidationError("too many attachments".to_string()).into());
     };
 
     // Create post
@@ -197,8 +197,8 @@ async fn preview_status(
     let content = match status_data.content_type.as_str() {
         "text/html" => status_data.status,
         "text/markdown" => markdown_lite_to_html(&status_data.status)
-            .map_err(|_| ValidationError("invalid markdown"))?,
-        _ => return Err(ValidationError("unsupported content type").into()),
+            .map_err(|_| ValidationError("invalid markdown".to_string()))?,
+        _ => return Err(ValidationError("unsupported content type".to_string()).into()),
     };
     let PostContent {
         mut content,

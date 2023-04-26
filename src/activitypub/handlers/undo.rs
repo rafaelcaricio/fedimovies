@@ -30,8 +30,12 @@ async fn handle_undo_follow(
     db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
-    let activity: UndoFollow = serde_json::from_value(activity)
-        .map_err(|_| ValidationError("unexpected activity structure"))?;
+    let activity: UndoFollow = serde_json::from_value(activity.clone()).map_err(|_| {
+        ValidationError(format!(
+            "unexpected UndoFollow activity structure: {}",
+            activity
+        ))
+    })?;
     let source_profile = get_profile_by_remote_actor_id(db_client, &activity.actor).await?;
     let target_actor_id = find_object_id(&activity.object["object"])?;
     let target_username = parse_local_actor_id(&config.instance_url(), &target_actor_id)?;
@@ -63,15 +67,16 @@ pub async fn handle_undo(
         return handle_undo_follow(config, db_client, activity).await;
     };
 
-    let activity: Undo = serde_json::from_value(activity)
-        .map_err(|_| ValidationError("unexpected activity structure"))?;
+    let activity: Undo = serde_json::from_value(activity.clone()).map_err(|_| {
+        ValidationError(format!("unexpected Undo activity structure: {}", activity))
+    })?;
     let actor_profile = get_profile_by_remote_actor_id(db_client, &activity.actor).await?;
 
     match get_follow_request_by_activity_id(db_client, &activity.object).await {
         Ok(follow_request) => {
             // Undo(Follow)
             if follow_request.source_id != actor_profile.id {
-                return Err(ValidationError("actor is not a follower").into());
+                return Err(ValidationError("actor is not a follower".to_string()).into());
             };
             unfollow(
                 db_client,
@@ -89,7 +94,7 @@ pub async fn handle_undo(
         Ok(reaction) => {
             // Undo(Like)
             if reaction.author_id != actor_profile.id {
-                return Err(ValidationError("actor is not an author").into());
+                return Err(ValidationError("actor is not an author".to_string()).into());
             };
             delete_reaction(db_client, &reaction.author_id, &reaction.post_id).await?;
             Ok(Some(LIKE))
@@ -103,13 +108,13 @@ pub async fn handle_undo(
                 Err(other_error) => return Err(other_error.into()),
             };
             if post.author.id != actor_profile.id {
-                return Err(ValidationError("actor is not an author").into());
+                return Err(ValidationError("actor is not an author".to_string()).into());
             };
             match post.repost_of_id {
                 // Ignore returned data because reposts don't have attached files
                 Some(_) => delete_post(db_client, &post.id).await?,
                 // Can't undo regular post
-                None => return Err(ValidationError("object is not a repost").into()),
+                None => return Err(ValidationError("object is not a repost".to_string()).into()),
             };
             Ok(Some(ANNOUNCE))
         }

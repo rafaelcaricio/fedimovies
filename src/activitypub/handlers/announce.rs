@@ -38,8 +38,8 @@ pub async fn handle_announce(
         // https://codeberg.org/fediverse/fep/src/branch/main/feps/fep-1b12.md
         return Ok(None);
     };
-    let activity: Announce = serde_json::from_value(activity)
-        .map_err(|_| ValidationError("unexpected activity structure"))?;
+    let activity: Announce = serde_json::from_value(activity.clone())
+        .map_err(|_| ValidationError(format!("unexpected activity structure: {}", activity)))?;
     let repost_object_id = activity.id;
     match get_post_by_remote_object_id(db_client, &repost_object_id).await {
         Ok(_) => return Ok(None), // Ignore if repost already exists

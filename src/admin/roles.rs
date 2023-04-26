@@ -9,7 +9,7 @@ pub fn role_from_str(role_str: &str) -> Result<Role, ValidationError> {
         "user" => Role::NormalUser,
         "admin" => Role::Admin,
         "read_only_user" => Role::ReadOnlyUser,
-        _ => return Err(ValidationError("unknown role")),
+        _ => return Err(ValidationError("unknown role".to_string())),
     };
     Ok(role)
 }

@@ -23,8 +23,8 @@ pub async fn handle_add(
     db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
-    let activity: Add = serde_json::from_value(activity)
-        .map_err(|_| ValidationError("unexpected activity structure"))?;
+    let activity: Add = serde_json::from_value(activity.clone())
+        .map_err(|_| ValidationError(format!("unexpected Add activity structure: {}", activity)))?;
     let actor_profile = get_profile_by_remote_actor_id(db_client, &activity.actor).await?;
     let actor = actor_profile.actor_json.ok_or(HandlerError::LocalObject)?;
     if Some(activity.target) == actor.subscribers {

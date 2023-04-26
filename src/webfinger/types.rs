@@ -60,7 +60,7 @@ impl FromStr for ActorAddress {
         let actor_address_re = Regex::new(ACTOR_ADDRESS_RE).unwrap();
         let caps = actor_address_re
             .captures(value)
-            .ok_or(ValidationError("invalid actor address"))?;
+            .ok_or(ValidationError("invalid actor address".to_string()))?;
         let actor_address = Self {
             username: caps["username"].to_string(),
             hostname: caps["hostname"].to_string(),

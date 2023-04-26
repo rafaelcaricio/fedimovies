@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
+use log::warn;
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
@@ -51,11 +52,11 @@ fn get_object_attributed_to(object: &Object) -> Result<String, ValidationError> 
     let attributed_to = object
         .attributed_to
         .as_ref()
-        .ok_or(ValidationError("unattributed note"))?;
+        .ok_or(ValidationError("unattributed note".to_string()))?;
     let author_id = parse_array(attributed_to)
-        .map_err(|_| ValidationError("invalid attributedTo property"))?
+        .map_err(|_| ValidationError("invalid attributedTo property".to_string()))?
         .get(0)
-        .ok_or(ValidationError("invalid attributedTo property"))?
+        .ok_or(ValidationError("invalid attributedTo property".to_string()))?
         .to_string();
     Ok(author_id)
 }
@@ -65,7 +66,7 @@ pub fn get_object_url(object: &Object) -> Result<String, ValidationError> {
         Some(JsonValue::String(string)) => Some(string.to_owned()),
         Some(other_value) => {
             let links: Vec<Link> = parse_property_value(other_value)
-                .map_err(|_| ValidationError("invalid object URL"))?;
+                .map_err(|_| ValidationError("invalid object URL".to_string()))?;
             links.get(0).map(|link| link.href.clone())
         }
         None => None,
@@ -87,7 +88,7 @@ pub fn get_object_content(object: &Object) -> Result<String, ValidationError> {
         object.name.as_deref().unwrap_or("").to_string()
     };
     if content.len() > CONTENT_MAX_SIZE {
-        return Err(ValidationError("content is too long"));
+        return Err(ValidationError("content is too long".to_string()));
     };
     let content_safe = clean_html(&content, content_allowed_classes());
     Ok(content_safe)
@@ -122,7 +123,7 @@ pub async fn get_object_attachments(
     let mut unprocessed = vec![];
     if let Some(ref value) = object.attachment {
         let list: Vec<Attachment> = parse_property_value(value)
-            .map_err(|_| ValidationError("invalid attachment property"))?;
+            .map_err(|_| ValidationError(format!("invalid attachment property: {value:?}")))?;
         let mut downloaded = vec![];
         for attachment in list {
             match attachment.attachment_type.as_str() {
@@ -138,7 +139,7 @@ pub async fn get_object_attachments(
             };
             let attachment_url = attachment
                 .url
-                .ok_or(ValidationError("attachment URL is missing"))?;
+                .ok_or(ValidationError("attachment URL is missing".to_string()))?;
             let (file_name, file_size, maybe_media_type) = match fetch_file(
                 instance,
                 &attachment_url,
@@ -155,8 +156,12 @@ pub async fn get_object_attachments(
                     continue;
                 }
                 Err(other_error) => {
-                    log::warn!("{}", other_error);
-                    return Err(ValidationError("failed to fetch attachment").into());
+                    log::warn!("failed to fetch attachment: {}", other_error);
+                    return Err(ValidationError(format!(
+                        "failed to fetch attachment: {}",
+                        other_error
+                    ))
+                    .into());
                 }
             };
             log::info!("downloaded attachment {}", attachment_url);
@@ -281,7 +286,8 @@ pub async fn handle_emoji(
     let emoji = if let Some(emoji_id) = maybe_emoji_id {
         update_emoji(db_client, &emoji_id, image, &tag.updated).await?
     } else {
-        let hostname = get_hostname(&tag.id).map_err(|_| ValidationError("invalid emoji ID"))?;
+        let hostname = get_hostname(&tag.id)
+            .map_err(|_| ValidationError(format!("invalid emoji tag ID: {}", tag.id)))?;
         match create_emoji(
             db_client,
             emoji_name,
@@ -351,9 +357,7 @@ pub async fn get_object_tags(
                 if let Ok(username) = parse_local_actor_id(&instance.url(), &href) {
                     // Check if local Movie account exists and if not, create the movie, if valid.
                     let user = match get_user_by_name(db_client, &username).await {
-                        Ok(user) => {
-                            user
-                        },
+                        Ok(user) => user,
                         Err(DatabaseError::NotFound(_)) => {
                             if let Some(api_key) = &api_key {
                                 log::warn!("failed to find mentioned user by name {}, checking if its a valid movie...", username);
@@ -484,15 +488,13 @@ pub async fn get_object_tags(
 
 fn get_audience(object: &Object) -> Result<Vec<String>, ValidationError> {
     let primary_audience = match object.to {
-        Some(ref value) => {
-            parse_array(value).map_err(|_| ValidationError("invalid 'to' property value"))?
-        }
+        Some(ref value) => parse_array(value)
+            .map_err(|_| ValidationError("invalid 'to' property value".to_string()))?,
         None => vec![],
     };
     let secondary_audience = match object.cc {
-        Some(ref value) => {
-            parse_array(value).map_err(|_| ValidationError("invalid 'cc' property value"))?
-        }
+        Some(ref value) => parse_array(value)
+            .map_err(|_| ValidationError("invalid 'cc' property value".to_string()))?,
         None => vec![],
     };
     let audience = [primary_audience, secondary_audience].concat();
@@ -543,12 +545,17 @@ pub async fn handle_note(
             log::info!("processing object of type {}", object.object_type);
         }
         other_type => {
-            log::warn!("discarding object of type {}", other_type);
-            return Err(ValidationError("unsupported object type").into());
+            let msg = format!("discarding object of type {}", other_type);
+            log::warn!("{msg}");
+            return Err(ValidationError(msg).into());
         }
     };
     if object.id.len() > OBJECT_ID_SIZE_MAX {
-        return Err(ValidationError("object ID is too long").into());
+        return Err(ValidationError(format!(
+            "object ID is too long, {} of length",
+            object.id.len()
+        ))
+        .into());
     };
 
     let author_id = get_object_attributed_to(&object)?;
@@ -571,7 +578,12 @@ pub async fn handle_note(
         content += &create_content_link(attachment_url);
     }
     if content.is_empty() && attachments.is_empty() {
-        return Err(ValidationError("post is empty").into());
+        return Err(ValidationError(format!(
+            "post is empty (content={}, attachments={})",
+            content.is_empty(),
+            attachments.is_empty()
+        ))
+        .into());
     };
 
     let (mentions, hashtags, links, emojis) = get_object_tags(
@@ -652,8 +664,8 @@ pub async fn handle_create(
     activity: JsonValue,
     mut is_authenticated: bool,
 ) -> HandlerResult {
-    let activity: CreateNote =
-        serde_json::from_value(activity).map_err(|_| ValidationError("invalid object"))?;
+    let activity: CreateNote = serde_json::from_value(activity.clone())
+        .map_err(|_| ValidationError(format!("invalid CreateNote activity: {}", activity)))?;
     let object = activity.object;
 
     // Verify attribution

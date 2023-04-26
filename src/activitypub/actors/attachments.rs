@@ -34,39 +34,39 @@ pub fn parse_identity_proof(
     attachment: &ActorAttachment,
 ) -> Result<IdentityProof, ValidationError> {
     if attachment.object_type != IDENTITY_PROOF {
-        return Err(ValidationError("invalid attachment type"));
+        return Err(ValidationError("invalid attachment type".to_string()));
     };
     let proof_type_str = attachment
         .signature_algorithm
         .as_ref()
-        .ok_or(ValidationError("missing proof type"))?;
+        .ok_or(ValidationError("missing proof type".to_string()))?;
     let proof_type = match proof_type_str.as_str() {
         PROOF_TYPE_ID_EIP191 => IdentityProofType::LegacyEip191IdentityProof,
         PROOF_TYPE_ID_MINISIGN => IdentityProofType::LegacyMinisignIdentityProof,
-        _ => return Err(ValidationError("unsupported proof type")),
+        _ => return Err(ValidationError("unsupported proof type".to_string())),
     };
     let did = attachment
         .name
         .parse::<Did>()
-        .map_err(|_| ValidationError("invalid DID"))?;
-    let message =
-        create_identity_claim(actor_id, &did).map_err(|_| ValidationError("invalid claim"))?;
+        .map_err(|_| ValidationError("invalid DID".to_string()))?;
+    let message = create_identity_claim(actor_id, &did)
+        .map_err(|_| ValidationError("invalid claim".to_string()))?;
     let signature = attachment
         .signature_value
         .as_ref()
-        .ok_or(ValidationError("missing signature"))?;
+        .ok_or(ValidationError("missing signature".to_string()))?;
     match did {
         Did::Key(ref did_key) => {
             if !matches!(proof_type, IdentityProofType::LegacyMinisignIdentityProof) {
-                return Err(ValidationError("incorrect proof type"));
+                return Err(ValidationError("incorrect proof type".to_string()));
             };
             let signature_bin = parse_minisign_signature(signature)
-                .map_err(|_| ValidationError("invalid signature encoding"))?;
+                .map_err(|_| ValidationError("invalid signature encoding".to_string()))?;
             verify_minisign_signature(did_key, &message, &signature_bin)
-                .map_err(|_| ValidationError("invalid identity proof"))?;
+                .map_err(|_| ValidationError("invalid identity proof".to_string()))?;
         }
         Did::Pkh(ref _did_pkh) => {
-            return Err(ValidationError("incorrect proof type"));
+            return Err(ValidationError("incorrect proof type".to_string()));
         }
     };
     let proof = IdentityProof {
@@ -110,12 +110,12 @@ pub fn parse_payment_option(
     attachment: &ActorAttachment,
 ) -> Result<PaymentOption, ValidationError> {
     if attachment.object_type != LINK {
-        return Err(ValidationError("invalid attachment type"));
+        return Err(ValidationError("invalid attachment type".to_string()));
     };
     let href = attachment
         .href
         .as_ref()
-        .ok_or(ValidationError("href attribute is required"))?
+        .ok_or(ValidationError("href attribute is required".to_string()))?
         .to_string();
     let payment_option = PaymentOption::Link(PaymentLink {
         name: attachment.name.clone(),
@@ -137,12 +137,12 @@ pub fn attach_extra_field(field: ExtraField) -> ActorAttachment {
 
 pub fn parse_extra_field(attachment: &ActorAttachment) -> Result<ExtraField, ValidationError> {
     if attachment.object_type != PROPERTY_VALUE {
-        return Err(ValidationError("invalid attachment type"));
+        return Err(ValidationError("invalid attachment type".to_string()));
     };
     let property_value = attachment
         .value
         .as_ref()
-        .ok_or(ValidationError("missing property value"))?;
+        .ok_or(ValidationError("missing property value".to_string()))?;
     let field = ExtraField {
         name: attachment.name.clone(),
         value: property_value.to_string(),

@@ -32,7 +32,7 @@ pub struct SignatureData {
 
 #[derive(thiserror::Error, Debug)]
 pub enum JsonSignatureVerificationError {
-    #[error("invalid object")]
+    #[error("invalid signature object")]
     InvalidObject,
 
     #[error("no proof")]

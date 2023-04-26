@@ -255,13 +255,7 @@ pub async fn get_mention_notifications(
         related_emojis = RELATED_EMOJIS,
     );
     let rows = db_client
-        .query(
-            &statement,
-            &[
-                &EventType::Mention,
-                &i64::from(limit),
-            ],
-        )
+        .query(&statement, &[&EventType::Mention, &i64::from(limit)])
         .await?;
     let notifications: Vec<Notification> = rows
         .iter()

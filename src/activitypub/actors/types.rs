@@ -13,6 +13,7 @@ use fedimovies_utils::{
     urls::get_hostname,
 };
 
+use crate::activitypub::types::build_default_context;
 use crate::activitypub::{
     constants::{
         AP_CONTEXT, MASTODON_CONTEXT, MITRA_CONTEXT, SCHEMA_ORG_CONTEXT, W3ID_SECURITY_CONTEXT,
@@ -23,7 +24,6 @@ use crate::activitypub::{
     types::deserialize_value_array,
     vocabulary::{IDENTITY_PROOF, IMAGE, LINK, PERSON, PROPERTY_VALUE, SERVICE},
 };
-use crate::activitypub::types::build_default_context;
 use crate::errors::ValidationError;
 use crate::media::get_file_url;
 use crate::webfinger::types::ActorAddress;
@@ -110,6 +110,7 @@ pub struct Actor {
     pub inbox: String,
     pub outbox: String,
 
+    #[serde(default)]
     pub bot: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -162,7 +163,8 @@ pub struct Actor {
 
 impl Actor {
     pub fn address(&self) -> Result<ActorAddress, ValidationError> {
-        let hostname = get_hostname(&self.id).map_err(|_| ValidationError("invalid actor ID"))?;
+        let hostname =
+            get_hostname(&self.id).map_err(|_| ValidationError("invalid actor ID".to_string()))?;
         let actor_address = ActorAddress {
             username: self.preferred_username.clone(),
             hostname: hostname,
@@ -203,7 +205,10 @@ impl Actor {
             let attachment = match serde_json::from_value(attachment_value.clone()) {
                 Ok(attachment) => attachment,
                 Err(_) => {
-                    log_error(attachment_type, ValidationError("invalid attachment"));
+                    log_error(
+                        attachment_type,
+                        ValidationError("invalid attachment".to_string()),
+                    );
                     continue;
                 }
             };
@@ -229,7 +234,7 @@ impl Actor {
                 _ => {
                     log_error(
                         attachment_type,
-                        ValidationError("unsupported attachment type"),
+                        ValidationError("unsupported attachment type".to_string()),
                     );
                 }
             };

@@ -9,7 +9,7 @@ pub struct ConversionError;
 
 #[derive(thiserror::Error, Debug)]
 #[error("{0}")]
-pub struct ValidationError(pub &'static str);
+pub struct ValidationError(pub String);
 
 #[derive(thiserror::Error, Debug)]
 pub enum HttpError {

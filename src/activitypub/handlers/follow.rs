@@ -31,8 +31,12 @@ pub async fn handle_follow(
     activity: Value,
 ) -> HandlerResult {
     // Follow(Person)
-    let activity: Follow = serde_json::from_value(activity)
-        .map_err(|_| ValidationError("unexpected activity structure"))?;
+    let activity: Follow = serde_json::from_value(activity.clone()).map_err(|_| {
+        ValidationError(format!(
+            "unexpected Follow activity structure: {}",
+            activity
+        ))
+    })?;
     let source_profile = get_or_import_profile_by_actor_id(
         db_client,
         &config.instance(),

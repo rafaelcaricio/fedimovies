@@ -30,8 +30,9 @@ pub async fn handle_like(
     db_client: &mut impl DatabaseClient,
     activity: Value,
 ) -> HandlerResult {
-    let activity: Like = serde_json::from_value(activity)
-        .map_err(|_| ValidationError("unexpected activity structure"))?;
+    let activity: Like = serde_json::from_value(activity.clone()).map_err(|_| {
+        ValidationError(format!("unexpected Like activity structure: {}", activity))
+    })?;
     let author = get_or_import_profile_by_actor_id(
         db_client,
         &config.instance(),
