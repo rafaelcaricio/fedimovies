@@ -26,10 +26,30 @@ struct InstanceMediaLimits {
     image_size_limit: usize,
 }
 
+#[derive(Serialize, Default)]
+struct PollsLimits {
+    max_options: usize,
+    max_option_characters_per_option: usize,
+    min_expiration: usize,
+    max_expiration: usize,
+}
+
 #[derive(Serialize)]
 struct InstanceConfiguration {
     statuses: InstanceStatusLimits,
     media_attachments: InstanceMediaLimits,
+    polls: PollsLimits,
+}
+
+#[derive(Serialize, Default)]
+struct Urls {
+    streaming_api: Option<String>,
+}
+
+#[derive(Serialize)]
+struct Rule {
+    id: String,
+    text: String,
 }
 
 /// https://docs.joinmastodon.org/entities/V1_Instance/
@@ -46,6 +66,11 @@ pub struct InstanceInfo {
     invites_enabled: bool,
     stats: InstanceStats,
     configuration: InstanceConfiguration,
+    thumbnail: Option<String>,
+    email: String,
+    languages: Vec<String>,
+    rules: Vec<Rule>,
+    urls: Option<Urls>,
 
     login_message: String,
     post_character_limit: usize, // deprecated
@@ -53,7 +78,10 @@ pub struct InstanceInfo {
 }
 
 fn get_full_api_version(version: &str) -> String {
-    format!("{0} (compatible; Reef {1})", MASTODON_API_VERSION, version,)
+    format!(
+        "{0} (compatible; FediMovies {1})",
+        MASTODON_API_VERSION, version,
+    )
 }
 
 impl InstanceInfo {
@@ -85,7 +113,13 @@ impl InstanceInfo {
                         .collect(),
                     image_size_limit: config.limits.media.file_size_limit,
                 },
+                polls: Default::default(),
             },
+            thumbnail: None,
+            email: "".to_string(),
+            languages: vec![],
+            rules: vec![],
+            urls: None,
             login_message: config.login_message.clone(),
             post_character_limit: config.limits.posts.character_limit,
             ipfs_gateway_url: config.ipfs_gateway_url.clone(),
