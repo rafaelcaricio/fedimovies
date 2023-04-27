@@ -9,6 +9,7 @@ pipeline:
       branch: [ main ]
       path:
         include:
+          - .woodpecker.yml
           - src/**/*.rs
           - fedimovies-cli/**/*.rs
           - fedimovies-config/**/*.rs
@@ -16,6 +17,7 @@ pipeline:
           - fedimovies-utils/**/*.rs
     commands:
       - rustup default $RUST
+      - rustup component add rustfmt
       - cargo fmt --all -- --check
 
   check-style:
@@ -24,6 +26,7 @@ pipeline:
       branch: [ main ]
       path:
         include:
+          - .woodpecker.yml
           - src/**/*.rs
           - fedimovies-cli/**/*.rs
           - fedimovies-config/**/*.rs
@@ -40,6 +43,7 @@ pipeline:
       branch: [ main ]
       path:
         include:
+          - .woodpecker.yml
           - src/**/*.rs
           - fedimovies-cli/**/*.rs
           - fedimovies-config/**/*.rs
