@@ -15,6 +15,9 @@ pipeline:
           - fedimovies-config/**/*.rs
           - fedimovies-models/**/*.rs
           - fedimovies-utils/**/*.rs
+    environment:
+      - CARGO_TERM_COLOR=always
+      - CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
     commands:
       - rustup default $RUST
       - rustup component add rustfmt
@@ -32,6 +35,9 @@ pipeline:
           - fedimovies-config/**/*.rs
           - fedimovies-models/**/*.rs
           - fedimovies-utils/**/*.rs
+    environment:
+      - CARGO_TERM_COLOR=always
+      - CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
     commands:
       - rustup default $RUST
       - rustup component add clippy
@@ -51,6 +57,7 @@ pipeline:
           - fedimovies-utils/**/*.rs
     environment:
       - CARGO_TERM_COLOR=always
+      - CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
     commands:
       - rustup default $RUST
       - cargo test --all -- --nocapture
