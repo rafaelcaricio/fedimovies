@@ -14,7 +14,6 @@ pub mod test_utils;
 
 pub type DbPool = deadpool_postgres::Pool;
 pub use tokio_postgres::GenericClient as DatabaseClient;
-use tokio_postgres::NoTls;
 
 #[derive(thiserror::Error, Debug)]
 #[error("database type error")]
@@ -81,7 +80,7 @@ pub fn create_pool(database_url: &str, ca_file_path: Option<&Path>, pool_size: u
             connector,
         )
     } else {
-        deadpool_postgres::Manager::new(database_url.parse().expect("invalid database URL"), NoTls)
+        deadpool_postgres::Manager::new(database_url.parse().expect("invalid database URL"), tokio_postgres::NoTls)
     };
 
     DbPool::builder(manager)

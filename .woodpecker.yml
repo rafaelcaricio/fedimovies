@@ -9,7 +9,11 @@ pipeline:
       branch: [ master ]
       path:
         include:
-          - "./**/*.rs"
+          - src/**/*.rs
+          - fedimovies-cli/**/*.rs
+          - fedimovies-config/**/*.rs
+          - fedimovies-models/**/*.rs
+          - fedimovies-utils/**/*.rs
     commands:
       - rustup default $RUST
       - cargo clippy --all-targets --all-features -- -D warnings
@@ -20,7 +24,11 @@ pipeline:
       branch: [ master ]
       path:
         include:
-          - "./**/*.rs"
+          - src/**/*.rs
+          - fedimovies-cli/**/*.rs
+          - fedimovies-config/**/*.rs
+          - fedimovies-models/**/*.rs
+          - fedimovies-utils/**/*.rs
     environment:
       - CARGO_TERM_COLOR=always
     commands:

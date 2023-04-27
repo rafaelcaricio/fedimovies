@@ -4,7 +4,7 @@ use tokio_postgres::config::Config;
 use tokio_postgres::Client;
 
 const DEFAULT_CONNECTION_URL: &str =
-    "postgres://fedimovies:fedimovies@127.0.0.1:55432/fedimovies-test";
+    "postgres://fedimovies:fedimovies@127.0.0.1:55432/fedimovies";
 
 pub async fn create_test_database() -> Client {
     let connection_url =
@@ -17,6 +17,7 @@ pub async fn create_test_database() -> Client {
         .expect("database name not specified")
         .to_string();
 
+    println!("Creating test database: {}", db_name);
     // Create connection without database name
     db_config.dbname("");
     let db_client = create_database_client(&db_config, None).await;

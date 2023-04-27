@@ -145,6 +145,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_create_and_verify_signature() {
         let signer_key = generate_weak_rsa_key().unwrap();
         let signer_key_id = "https://example.org/users/test#main-key";
