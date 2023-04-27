@@ -17,6 +17,7 @@ pub enum RelationshipType {
     Subscription,
     HideReposts,
     HideReplies,
+    Mute,
 }
 
 impl From<&RelationshipType> for i16 {
@@ -27,6 +28,7 @@ impl From<&RelationshipType> for i16 {
             RelationshipType::Subscription => 3,
             RelationshipType::HideReposts => 4,
             RelationshipType::HideReplies => 5,
+            RelationshipType::Mute => 6,
         }
     }
 }
@@ -41,6 +43,7 @@ impl TryFrom<i16> for RelationshipType {
             3 => Self::Subscription,
             4 => Self::HideReposts,
             5 => Self::HideReplies,
+            6 => Self::Mute,
             _ => return Err(DatabaseTypeError),
         };
         Ok(relationship_type)

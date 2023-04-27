@@ -18,6 +18,7 @@ struct InstanceStats {
 struct InstanceStatusLimits {
     max_characters: usize,
     max_media_attachments: usize,
+    characters_reserved_per_url: usize,
 }
 
 #[derive(Serialize)]
@@ -105,6 +106,7 @@ impl InstanceInfo {
                 statuses: InstanceStatusLimits {
                     max_characters: config.limits.posts.character_limit,
                     max_media_attachments: ATTACHMENT_LIMIT,
+                    characters_reserved_per_url: 32, // not real, but for compatibility
                 },
                 media_attachments: InstanceMediaLimits {
                     supported_mime_types: SUPPORTED_MEDIA_TYPES
@@ -117,7 +119,7 @@ impl InstanceInfo {
             },
             thumbnail: None,
             email: "".to_string(),
-            languages: vec![],
+            languages: vec!["en".to_string()],
             rules: vec![],
             urls: None,
             login_message: config.login_message.clone(),

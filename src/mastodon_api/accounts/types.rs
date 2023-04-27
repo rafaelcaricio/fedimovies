@@ -402,6 +402,7 @@ pub struct RelationshipMap {
     pub subscription_from: bool,
     pub showing_reblogs: bool,
     pub showing_replies: bool,
+    pub muting: bool,
 }
 
 fn default_showing_reblogs() -> bool {
@@ -423,6 +424,7 @@ impl Default for RelationshipMap {
             subscription_from: false,
             showing_reblogs: default_showing_reblogs(),
             showing_replies: default_showing_replies(),
+            muting: false,
         }
     }
 }

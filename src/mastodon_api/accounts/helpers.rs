@@ -52,6 +52,11 @@ pub async fn get_relationship(
                     relationship_map.showing_replies = false;
                 };
             }
+            RelationshipType::Mute => {
+                if relationship.is_direct(source_id, target_id)? {
+                    relationship_map.muting = true;
+                };
+            }
         };
     }
     Ok(relationship_map)
