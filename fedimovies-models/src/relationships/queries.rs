@@ -727,7 +727,7 @@ mod tests {
         let target_has_followers = has_local_followers(db_client, target_actor_id)
             .await
             .unwrap();
-        assert_eq!(target_has_followers, true);
+        assert!(target_has_followers);
 
         // Unfollow
         let follow_request_id = unfollow(db_client, &source.id, &target.id)

@@ -85,8 +85,8 @@ mod tests {
     fn test_deserialize_public_key_nowrap() {
         let public_key_pem = "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8ehqQ7n6+pw19U8q2UtxE/9017STW3yRnnqV5nVk8LJ00ba+berqwekxDW+nw77GAu3TJ+hYeeSerUNPup7y3yO3V
 YsFtrgWDQ/s8k86sNBU+Ce2GOL7seh46kyAWgJeohh4Rcrr23rftHbvxOcRM8VzYuCeb1DgVhPGtA0xULwIDAQAB\n-----END PUBLIC KEY-----";
-        let result = deserialize_public_key(&public_key_pem);
-        assert_eq!(result.is_ok(), true);
+        let result = deserialize_public_key(public_key_pem);
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -105,6 +105,6 @@ YsFtrgWDQ/s8k86sNBU+Ce2GOL7seh46kyAWgJeohh4Rcrr23rftHbvxOcRM8VzYuCeb1DgVhPGtA0xU
         let public_key = RsaPublicKey::from(&private_key);
 
         let is_valid = verify_rsa_sha256_signature(&public_key, &message, &signature);
-        assert_eq!(is_valid, true);
+        assert!(is_valid);
     }
 }

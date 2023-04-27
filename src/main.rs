@@ -46,7 +46,7 @@ async fn main() -> std::io::Result<()> {
     let db_pool_size = num_cpus::get() * 2;
     let db_pool = create_pool(
         &config.database_url,
-        config.tls_ca_file.as_ref().map(|s| s.as_path()),
+        config.tls_ca_file.as_deref(),
         db_pool_size,
     );
     let mut db_client = get_database_client(&db_pool).await.unwrap();

@@ -129,6 +129,6 @@ mod tests {
         );
         assert_eq!(activity.object, post_id);
         assert_eq!(activity.to, vec![post_author_id, AP_PUBLIC]);
-        assert_eq!(activity.cc.is_empty(), true);
+        assert!(activity.cc.is_empty());
     }
 }

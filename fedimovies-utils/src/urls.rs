@@ -89,7 +89,7 @@ mod tests {
     fn test_get_hostname_email() {
         let url = "mailto:user@example.org";
         let result = get_hostname(url);
-        assert_eq!(result.is_err(), true);
+        assert!(result.is_err());
     }
 
     #[test]

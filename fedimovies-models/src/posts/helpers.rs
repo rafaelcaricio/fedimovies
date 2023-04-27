@@ -172,7 +172,7 @@ mod tests {
         let post = create_post(db_client, &author.id, post_data).await.unwrap();
         let reply_data = PostCreateData {
             content: "reply".to_string(),
-            in_reply_to_id: Some(post.id.clone()),
+            in_reply_to_id: Some(post.id),
             ..Default::default()
         };
         let mut reply = create_post(db_client, &author.id, reply_data)
@@ -182,8 +182,8 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(reply.in_reply_to.unwrap().id, post.id);
-        assert_eq!(reply.repost_of.is_none(), true);
-        assert_eq!(reply.linked.is_empty(), true);
+        assert!(reply.repost_of.is_none());
+        assert!(reply.linked.is_empty());
     }
 
     #[tokio::test]
@@ -195,7 +195,7 @@ mod tests {
         };
         let db_client = &create_test_database().await;
         let result = can_view_post(db_client, None, &post).await.unwrap();
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[tokio::test]
@@ -208,7 +208,7 @@ mod tests {
         };
         let db_client = &create_test_database().await;
         let result = can_view_post(db_client, Some(&user), &post).await.unwrap();
-        assert_eq!(result, false);
+        assert!(!result);
     }
 
     #[tokio::test]
@@ -222,7 +222,7 @@ mod tests {
         };
         let db_client = &create_test_database().await;
         let result = can_view_post(db_client, Some(&user), &post).await.unwrap();
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[tokio::test]
@@ -236,7 +236,7 @@ mod tests {
             ..Default::default()
         };
         let result = can_view_post(db_client, None, &post).await.unwrap();
-        assert_eq!(result, false);
+        assert!(!result);
     }
 
     #[tokio::test]
@@ -254,7 +254,7 @@ mod tests {
         let result = can_view_post(db_client, Some(&follower), &post)
             .await
             .unwrap();
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[tokio::test]
@@ -274,19 +274,13 @@ mod tests {
             mentions: vec![subscriber.profile.clone()],
             ..Default::default()
         };
-        assert_eq!(can_view_post(db_client, None, &post).await.unwrap(), false,);
-        assert_eq!(
-            can_view_post(db_client, Some(&follower), &post)
-                .await
-                .unwrap(),
-            false,
-        );
-        assert_eq!(
-            can_view_post(db_client, Some(&subscriber), &post)
-                .await
-                .unwrap(),
-            true,
-        );
+        assert!(!can_view_post(db_client, None, &post).await.unwrap(),);
+        assert!(!can_view_post(db_client, Some(&follower), &post)
+            .await
+            .unwrap(),);
+        assert!(can_view_post(db_client, Some(&subscriber), &post)
+            .await
+            .unwrap(),);
     }
 
     #[test]
@@ -295,8 +289,8 @@ mod tests {
             role: Role::NormalUser,
             ..Default::default()
         };
-        assert_eq!(can_create_post(&user), true);
+        assert!(can_create_post(&user));
         user.role = Role::ReadOnlyUser;
-        assert_eq!(can_create_post(&user), false);
+        assert!(!can_create_post(&user));
     }
 }

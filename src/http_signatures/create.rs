@@ -107,10 +107,7 @@ mod tests {
             r#"headers="(request-target) host date","#,
             r#"signature=""#,
         );
-        assert_eq!(
-            headers.signature.starts_with(expected_signature_header),
-            true,
-        );
+        assert!(headers.signature.starts_with(expected_signature_header),);
     }
 
     #[test]
@@ -127,7 +124,7 @@ mod tests {
             &signer_key,
             signer_key_id,
         );
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
 
         let headers = result.unwrap();
         assert_eq!(headers.host, "example.org");
@@ -141,9 +138,6 @@ mod tests {
             r#"headers="(request-target) host date digest","#,
             r#"signature=""#,
         );
-        assert_eq!(
-            headers.signature.starts_with(expected_signature_header),
-            true,
-        );
+        assert!(headers.signature.starts_with(expected_signature_header),);
     }
 }

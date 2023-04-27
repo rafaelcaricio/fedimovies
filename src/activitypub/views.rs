@@ -357,7 +357,7 @@ mod tests {
             HeaderValue::from_static(r#"application/activity+json, application/ld+json; profile="https://www.w3.org/ns/activitystreams", text/html;q=0.1"#),
         );
         let result = is_activitypub_request(&request_headers);
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[test]
@@ -368,7 +368,7 @@ mod tests {
             HeaderValue::from_static("application/activity+json"),
         );
         let result = is_activitypub_request(&request_headers);
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[test]
@@ -376,6 +376,6 @@ mod tests {
         let mut request_headers = HeaderMap::new();
         request_headers.insert(header::ACCEPT, HeaderValue::from_static("text/html"));
         let result = is_activitypub_request(&request_headers);
-        assert_eq!(result, false);
+        assert!(!result);
     }
 }

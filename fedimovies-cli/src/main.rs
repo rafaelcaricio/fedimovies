@@ -25,11 +25,8 @@ async fn main() {
             }
 
             let db_config = config.database_url.parse().unwrap();
-            let db_client = &mut create_database_client(
-                &db_config,
-                config.tls_ca_file.as_ref().map(|p| p.as_path()),
-            )
-            .await;
+            let db_client =
+                &mut create_database_client(&db_config, config.tls_ca_file.as_deref()).await;
             apply_migrations(db_client).await;
 
             match subcmd {

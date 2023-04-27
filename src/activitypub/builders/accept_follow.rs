@@ -80,7 +80,7 @@ mod tests {
         let follower_id = "https://test.remote/users/123";
         let activity = build_accept_follow(INSTANCE_URL, &target, follower_id, follow_activity_id);
 
-        assert_eq!(activity.id.starts_with(INSTANCE_URL), true);
+        assert!(activity.id.starts_with(INSTANCE_URL));
         assert_eq!(activity.activity_type, "Accept");
         assert_eq!(activity.object, follow_activity_id);
         assert_eq!(activity.to, vec![follower_id]);

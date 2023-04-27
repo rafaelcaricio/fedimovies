@@ -1348,10 +1348,10 @@ mod tests {
         let post = create_post(db_client, &author.id, post_data).await.unwrap();
         assert_eq!(post.content, "test post");
         assert_eq!(post.author.id, author.id);
-        assert_eq!(post.attachments.is_empty(), true);
-        assert_eq!(post.mentions.is_empty(), true);
-        assert_eq!(post.tags.is_empty(), true);
-        assert_eq!(post.links.is_empty(), true);
+        assert!(post.attachments.is_empty());
+        assert!(post.mentions.is_empty());
+        assert!(post.tags.is_empty());
+        assert!(post.links.is_empty());
         assert_eq!(post.updated_at, None);
     }
 
@@ -1401,7 +1401,7 @@ mod tests {
         update_post(db_client, &post.id, post_data).await.unwrap();
         let post = get_post_by_id(db_client, &post.id).await.unwrap();
         assert_eq!(post.content, "test update");
-        assert_eq!(post.updated_at.is_some(), true);
+        assert!(post.updated_at.is_some());
     }
 
     #[tokio::test]
@@ -1590,19 +1590,19 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(timeline.len(), 7);
-        assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_2.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_3.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_4.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_5.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_6.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_7.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_8.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_9.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_10.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_11.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_12.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_13.id), false);
+        assert!(timeline.iter().any(|post| post.id == post_1.id));
+        assert!(timeline.iter().any(|post| post.id == post_2.id));
+        assert!(!timeline.iter().any(|post| post.id == post_3.id));
+        assert!(timeline.iter().any(|post| post.id == post_4.id));
+        assert!(!timeline.iter().any(|post| post.id == post_5.id));
+        assert!(timeline.iter().any(|post| post.id == post_6.id));
+        assert!(timeline.iter().any(|post| post.id == post_7.id));
+        assert!(!timeline.iter().any(|post| post.id == post_8.id));
+        assert!(timeline.iter().any(|post| post.id == post_9.id));
+        assert!(!timeline.iter().any(|post| post.id == post_10.id));
+        assert!(!timeline.iter().any(|post| post.id == post_11.id));
+        assert!(timeline.iter().any(|post| post.id == post_12.id));
+        assert!(!timeline.iter().any(|post| post.id == post_13.id));
     }
 
     #[tokio::test]
@@ -1645,13 +1645,13 @@ mod tests {
         // Reply
         let reply_data = PostCreateData {
             content: "my reply".to_string(),
-            in_reply_to_id: Some(post_1.id.clone()),
+            in_reply_to_id: Some(post_1.id),
             ..Default::default()
         };
         let reply = create_post(db_client, &user.id, reply_data).await.unwrap();
         // Repost
         let repost_data = PostCreateData {
-            repost_of_id: Some(reply.id.clone()),
+            repost_of_id: Some(reply.id),
             ..Default::default()
         };
         let repost = create_post(db_client, &user.id, repost_data).await.unwrap();
@@ -1661,12 +1661,12 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(timeline.len(), 2);
-        assert_eq!(timeline.iter().any(|post| post.id == post_1.id), true);
-        assert_eq!(timeline.iter().any(|post| post.id == post_2.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_3.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == post_4.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == reply.id), false);
-        assert_eq!(timeline.iter().any(|post| post.id == repost.id), true);
+        assert!(timeline.iter().any(|post| post.id == post_1.id));
+        assert!(!timeline.iter().any(|post| post.id == post_2.id));
+        assert!(!timeline.iter().any(|post| post.id == post_3.id));
+        assert!(!timeline.iter().any(|post| post.id == post_4.id));
+        assert!(!timeline.iter().any(|post| post.id == reply.id));
+        assert!(timeline.iter().any(|post| post.id == repost.id));
     }
 
     #[tokio::test]
@@ -1686,7 +1686,7 @@ mod tests {
         let post_1 = create_post(db_client, &user.id, post_data_1).await.unwrap();
         let post_data_2 = PostCreateData {
             content: "my reply".to_string(),
-            in_reply_to_id: Some(post_1.id.clone()),
+            in_reply_to_id: Some(post_1.id),
             ..Default::default()
         };
         let post_2 = create_post(db_client, &user.id, post_data_2).await.unwrap();

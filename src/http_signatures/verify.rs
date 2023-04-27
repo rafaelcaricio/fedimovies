@@ -183,7 +183,7 @@ mod tests {
         request_headers.insert(header::HOST, HeaderValue::from_static("example.com"));
         request_headers.insert(
             HeaderName::from_static("date"),
-            HeaderValue::from_str(&date).unwrap(),
+            HeaderValue::from_str(date).unwrap(),
         );
         let signature_header = concat!(
             r#"keyId="https://myserver.org/actor#main-key","#,
@@ -245,6 +245,6 @@ mod tests {
 
         let signer_public_key = RsaPublicKey::from(signer_key);
         let result = verify_http_signature(&signature_data, &signer_public_key);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
     }
 }

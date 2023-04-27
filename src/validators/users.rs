@@ -21,8 +21,8 @@ mod tests {
     #[test]
     fn test_validate_local_username() {
         let result_1 = validate_local_username("name_1");
-        assert_eq!(result_1.is_ok(), true);
+        assert!(result_1.is_ok());
         let result_2 = validate_local_username("name&");
-        assert_eq!(result_2.is_ok(), false);
+        assert!(!result_2.is_ok());
     }
 }

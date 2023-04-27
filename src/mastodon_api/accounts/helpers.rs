@@ -124,13 +124,13 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(relationship.id, user_2.id);
-        assert_eq!(relationship.following, false);
-        assert_eq!(relationship.followed_by, false);
-        assert_eq!(relationship.requested, false);
-        assert_eq!(relationship.subscription_to, false);
-        assert_eq!(relationship.subscription_from, false);
-        assert_eq!(relationship.showing_reblogs, true);
-        assert_eq!(relationship.showing_replies, true);
+        assert!(!relationship.following);
+        assert!(!relationship.followed_by);
+        assert!(!relationship.requested);
+        assert!(!relationship.subscription_to);
+        assert!(!relationship.subscription_from);
+        assert!(relationship.showing_reblogs);
+        assert!(relationship.showing_replies);
         // Follow request
         let follow_request = create_follow_request(db_client, &user_1.id, &user_2.id)
             .await
@@ -138,9 +138,9 @@ mod tests {
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
             .await
             .unwrap();
-        assert_eq!(relationship.following, false);
-        assert_eq!(relationship.followed_by, false);
-        assert_eq!(relationship.requested, true);
+        assert!(!relationship.following);
+        assert!(!relationship.followed_by);
+        assert!(relationship.requested);
         // Mutual follow
         follow_request_accepted(db_client, &follow_request.id)
             .await
@@ -149,17 +149,17 @@ mod tests {
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
             .await
             .unwrap();
-        assert_eq!(relationship.following, true);
-        assert_eq!(relationship.followed_by, true);
-        assert_eq!(relationship.requested, false);
+        assert!(relationship.following);
+        assert!(relationship.followed_by);
+        assert!(!relationship.requested);
         // Unfollow
         unfollow(db_client, &user_1.id, &user_2.id).await.unwrap();
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
             .await
             .unwrap();
-        assert_eq!(relationship.following, false);
-        assert_eq!(relationship.followed_by, true);
-        assert_eq!(relationship.requested, false);
+        assert!(!relationship.following);
+        assert!(relationship.followed_by);
+        assert!(!relationship.requested);
     }
 
     #[tokio::test]
@@ -172,8 +172,8 @@ mod tests {
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
             .await
             .unwrap();
-        assert_eq!(relationship.subscription_to, true);
-        assert_eq!(relationship.subscription_from, false);
+        assert!(relationship.subscription_to);
+        assert!(!relationship.subscription_from);
 
         unsubscribe(db_client, &user_1.id, &user_2.id)
             .await
@@ -181,8 +181,8 @@ mod tests {
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
             .await
             .unwrap();
-        assert_eq!(relationship.subscription_to, false);
-        assert_eq!(relationship.subscription_from, false);
+        assert!(!relationship.subscription_to);
+        assert!(!relationship.subscription_from);
     }
 
     #[tokio::test]
@@ -194,8 +194,8 @@ mod tests {
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
             .await
             .unwrap();
-        assert_eq!(relationship.following, true);
-        assert_eq!(relationship.showing_reblogs, true);
+        assert!(relationship.following);
+        assert!(relationship.showing_reblogs);
 
         hide_reposts(db_client, &user_1.id, &user_2.id)
             .await
@@ -203,8 +203,8 @@ mod tests {
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
             .await
             .unwrap();
-        assert_eq!(relationship.following, true);
-        assert_eq!(relationship.showing_reblogs, false);
+        assert!(relationship.following);
+        assert!(!relationship.showing_reblogs);
 
         show_reposts(db_client, &user_1.id, &user_2.id)
             .await
@@ -212,7 +212,7 @@ mod tests {
         let relationship = get_relationship(db_client, &user_1.id, &user_2.id)
             .await
             .unwrap();
-        assert_eq!(relationship.following, true);
-        assert_eq!(relationship.showing_reblogs, true);
+        assert!(relationship.following);
+        assert!(relationship.showing_reblogs);
     }
 }

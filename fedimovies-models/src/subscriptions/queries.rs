@@ -249,6 +249,6 @@ mod tests {
         )
         .await
         .unwrap();
-        assert_eq!(is_subscribed, true);
+        assert!(is_subscribed);
     }
 }

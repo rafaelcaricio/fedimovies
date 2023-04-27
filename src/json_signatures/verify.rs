@@ -171,6 +171,6 @@ mod tests {
 
         let signer_public_key = RsaPublicKey::from(signer_key);
         let result = verify_rsa_json_signature(&signature_data, &signer_public_key);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
     }
 }

@@ -194,6 +194,6 @@ mod tests {
             ..Default::default()
         };
         let result = clean_profile_create_data(&mut profile_data);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
     }
 }

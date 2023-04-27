@@ -120,7 +120,7 @@ pub async fn handle_movies_mentions(
                             current_user.profile.username,
                             post_id
                         );
-                        delete_notification(&mut transaction, mention_notification.id).await?;
+                        delete_notification(&transaction, mention_notification.id).await?;
                         continue;
                     }
                     Err(err) => return Err(err.into()),
@@ -131,11 +131,11 @@ pub async fn handle_movies_mentions(
             // Federate
             prepare_announce(&transaction, &config.instance(), &current_user, &repost)
                 .await?
-                .enqueue(&mut transaction)
+                .enqueue(&transaction)
                 .await?;
 
             // Delete notification to avoid re-processing
-            delete_notification(&mut transaction, mention_notification.id).await?;
+            delete_notification(&transaction, mention_notification.id).await?;
 
             log::info!(
                 "Review as Mention of {} reposted with post id {}",

@@ -127,6 +127,6 @@ mod tests {
         assert_eq!(attachment.file_name, file_name);
         assert_eq!(attachment.file_size.unwrap(), file_size as i32);
         assert_eq!(attachment.media_type.unwrap(), media_type);
-        assert_eq!(attachment.post_id.is_none(), true);
+        assert!(attachment.post_id.is_none());
     }
 }

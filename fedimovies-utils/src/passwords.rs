@@ -20,6 +20,6 @@ mod tests {
         let password = "$test123";
         let password_hash = hash_password(password).unwrap();
         let result = verify_password(&password_hash, password);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
     }
 }

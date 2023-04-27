@@ -339,7 +339,7 @@ mod tests {
             note.attributed_to,
             format!("{}/users/{}", INSTANCE_URL, post.author.username),
         );
-        assert_eq!(note.in_reply_to.is_none(), true);
+        assert!(note.in_reply_to.is_none());
         assert_eq!(note.content, post.content);
         assert_eq!(note.to, vec![AP_PUBLIC]);
         assert_eq!(
@@ -367,7 +367,7 @@ mod tests {
             note.to,
             vec![local_actor_followers(INSTANCE_URL, &post.author.username),]
         );
-        assert_eq!(note.cc.is_empty(), true);
+        assert!(note.cc.is_empty());
     }
 
     #[test]
@@ -397,7 +397,7 @@ mod tests {
                 subscriber_id.to_string(),
             ]
         );
-        assert_eq!(note.cc.is_empty(), true);
+        assert!(note.cc.is_empty());
     }
 
     #[test]
@@ -421,7 +421,7 @@ mod tests {
         let note = build_note(INSTANCE_HOSTNAME, INSTANCE_URL, &post);
 
         assert_eq!(note.to, vec![mentioned_id]);
-        assert_eq!(note.cc.is_empty(), true);
+        assert!(note.cc.is_empty());
     }
 
     #[test]

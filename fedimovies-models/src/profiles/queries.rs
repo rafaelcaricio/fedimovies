@@ -932,7 +932,7 @@ mod tests {
             .unwrap();
         let profile_data = ProfileCreateData {
             username: "test".to_string(),
-            emojis: vec![emoji.id.clone()],
+            emojis: vec![emoji.id],
             ..Default::default()
         };
         let profile = create_profile(db_client, profile_data).await.unwrap();
@@ -1078,7 +1078,7 @@ mod tests {
             .await
             .unwrap();
         let profile = get_profile_by_id(db_client, &profile.id).await.unwrap();
-        assert_eq!(profile.unreachable_since.is_some(), true);
+        assert!(profile.unreachable_since.is_some());
     }
 
     #[tokio::test]
@@ -1089,6 +1089,6 @@ mod tests {
         let profiles = find_empty_profiles(db_client, &updated_before)
             .await
             .unwrap();
-        assert_eq!(profiles.is_empty(), true);
+        assert!(profiles.is_empty());
     }
 }

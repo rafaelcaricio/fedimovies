@@ -117,7 +117,7 @@ mod tests {
         };
         let post_id = "https://test.net/obj/123";
         let post = Post {
-            author: post_author.clone(),
+            author: post_author,
             object_id: Some(post_id.to_string()),
             ..Default::default()
         };

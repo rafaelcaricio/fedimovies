@@ -115,7 +115,7 @@ mod tests {
         let mat = regexp.find(text).unwrap();
         assert_eq!(mat.start(), 9);
         let result = is_inside_code_block(&mat, text);
-        assert_eq!(result, true);
+        assert!(result);
     }
 
     #[test]

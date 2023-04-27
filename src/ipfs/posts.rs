@@ -80,6 +80,6 @@ mod tests {
         assert_eq!(post_metadata.external_url, post_url);
         let created_at_attr = &post_metadata.attributes[0];
         assert_eq!(created_at_attr.display_type, "date");
-        assert_eq!(created_at_attr.value.as_i64().is_some(), true);
+        assert!(created_at_attr.value.as_i64().is_some());
     }
 }

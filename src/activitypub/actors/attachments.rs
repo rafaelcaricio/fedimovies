@@ -28,7 +28,7 @@ pub fn parse_identity_proof(
     _actor_id: &str,
     _attachment: &ActorAttachment,
 ) -> Result<IdentityProof, ValidationError> {
-    return Err(ValidationError("incorrect proof type".to_string()));
+    Err(ValidationError("incorrect proof type".to_string()))
 }
 
 pub fn attach_payment_option(

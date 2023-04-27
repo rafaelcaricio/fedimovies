@@ -420,7 +420,7 @@ mod tests {
             ..Default::default()
         };
         let user = create_user(db_client, user_data).await.unwrap();
-        assert_eq!(user.client_config.is_empty(), true);
+        assert!(user.client_config.is_empty());
         let client_name = "test";
         let client_config_value = json!({"a": 1});
         let client_config =
