@@ -9,7 +9,7 @@ pipeline:
       branch: [ master ]
       path:
         include:
-          - "**/*.rs"
+          - "./**/*.rs"
     commands:
       - rustup default $RUST
       - cargo clippy --all-targets --all-features -- -D warnings
@@ -20,7 +20,7 @@ pipeline:
       branch: [ master ]
       path:
         include:
-          - "**/*.rs"
+          - "./**/*.rs"
     environment:
       - CARGO_TERM_COLOR=always
     commands:
