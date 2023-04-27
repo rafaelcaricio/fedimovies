@@ -19,7 +19,7 @@ pub async fn create_test_database() -> Client {
 
     // Create connection without database name
     db_config.dbname("");
-    let db_client = create_database_client(&db_config).await;
+    let db_client = create_database_client(&db_config, None).await;
     let drop_db_statement = format!("DROP DATABASE IF EXISTS {db_name:?}", db_name = db_name,);
     db_client.execute(&drop_db_statement, &[]).await.unwrap();
     let create_db_statement = format!(
@@ -31,7 +31,7 @@ pub async fn create_test_database() -> Client {
 
     // Create new connection to database
     db_config.dbname(&db_name);
-    let mut db_client = create_database_client(&db_config).await;
+    let mut db_client = create_database_client(&db_config, None).await;
     apply_migrations(&mut db_client).await;
     db_client
 }
