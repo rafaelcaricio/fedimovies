@@ -80,7 +80,10 @@ pub fn create_pool(database_url: &str, ca_file_path: Option<&Path>, pool_size: u
             connector,
         )
     } else {
-        deadpool_postgres::Manager::new(database_url.parse().expect("invalid database URL"), tokio_postgres::NoTls)
+        deadpool_postgres::Manager::new(
+            database_url.parse().expect("invalid database URL"),
+            tokio_postgres::NoTls,
+        )
     };
 
     DbPool::builder(manager)

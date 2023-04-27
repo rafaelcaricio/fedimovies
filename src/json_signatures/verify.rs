@@ -117,9 +117,9 @@ pub fn verify_rsa_json_signature(
 mod tests {
     use super::*;
     use crate::json_signatures::create::sign_object;
+    use fedimovies_utils::did_pkh::DidPkh;
     use fedimovies_utils::{crypto_rsa::generate_weak_rsa_key, currencies::Currency};
     use serde_json::json;
-    use fedimovies_utils::did_pkh::DidPkh;
 
     #[test]
     fn test_get_json_signature_eip191() {
