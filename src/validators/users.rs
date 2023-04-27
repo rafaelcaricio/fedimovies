@@ -23,6 +23,6 @@ mod tests {
         let result_1 = validate_local_username("name_1");
         assert!(result_1.is_ok());
         let result_2 = validate_local_username("name&");
-        assert!(!result_2.is_ok());
+        assert!(result_2.is_err());
     }
 }

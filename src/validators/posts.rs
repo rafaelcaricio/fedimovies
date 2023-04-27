@@ -41,7 +41,7 @@ mod tests {
     fn test_clean_content_empty() {
         let content = "  ";
         let result = clean_content(content);
-        assert!(!result.is_ok());
+        assert!(result.is_err());
     }
 
     #[test]
