@@ -3,8 +3,7 @@ use super::migrate::apply_migrations;
 use tokio_postgres::config::Config;
 use tokio_postgres::Client;
 
-const DEFAULT_CONNECTION_URL: &str =
-    "postgres://fedimovies:fedimovies@127.0.0.1:55432/fedimovies";
+const DEFAULT_CONNECTION_URL: &str = "postgres://fedimovies:fedimovies@127.0.0.1:55432/fedimovies";
 
 pub async fn create_test_database() -> Client {
     let connection_url =
