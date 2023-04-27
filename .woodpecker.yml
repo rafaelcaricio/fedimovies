@@ -2,9 +2,29 @@ matrix:
   RUST: [stable]
 
 pipeline:
-  test:
+
+  check-style:
     image: rust
-    environment: [CARGO_TERM_COLOR=always]
+    when:
+      branch: [ master ]
+      path:
+        include:
+          - src/**/*.rs
+          - fedimovies-*/**/*.rs
     commands:
       - rustup default $RUST
-      - cargo check
+      - cargo clippy --all-targets --all-features -- -D warnings
+
+  run-tests:
+    image: rust
+    when:
+      branch: [ master ]
+      path:
+        include:
+          - src/**/*.rs
+          - fedimovies-*/**/*.rs
+    environment:
+      - CARGO_TERM_COLOR=always
+    commands:
+      - rustup default $RUST
+      - cargo test --all -- --nocapture
