@@ -17,7 +17,6 @@ pub async fn create_test_database() -> Client {
         .expect("database name not specified")
         .to_string();
 
-    println!("Creating test database: {}", db_name);
     // Create connection without database name
     db_config.dbname("");
     let db_client = create_database_client(&db_config, None).await;
