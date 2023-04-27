@@ -3,6 +3,21 @@ matrix:
 
 pipeline:
 
+  check-formatting:
+    image: rust
+    when:
+      branch: [ main ]
+      path:
+        include:
+          - src/**/*.rs
+          - fedimovies-cli/**/*.rs
+          - fedimovies-config/**/*.rs
+          - fedimovies-models/**/*.rs
+          - fedimovies-utils/**/*.rs
+    commands:
+      - rustup default $RUST
+      - cargo fmt --all -- --check
+
   check-style:
     image: rust
     when:
@@ -16,6 +31,7 @@ pipeline:
           - fedimovies-utils/**/*.rs
     commands:
       - rustup default $RUST
+      - rustup component add clippy
       - cargo clippy --all-targets --all-features -- -D warnings
 
   run-tests:
