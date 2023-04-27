@@ -11,6 +11,7 @@ use crate::notifications::queries::{
     create_mention_notification, create_reply_notification, create_repost_notification,
 };
 use crate::profiles::{queries::update_post_count, types::DbActorProfile};
+use crate::relationships::queries::is_muted;
 use crate::relationships::types::RelationshipType;
 
 use super::types::{DbPost, Post, PostCreateData, PostUpdateData, Visibility};
@@ -249,20 +250,32 @@ pub async fn create_post(
             notified_users.push(in_reply_to_author.id);
         };
     };
+    // Notify reposted
     if let Some(repost_of_id) = &db_post.repost_of_id {
         update_repost_count(&transaction, repost_of_id, 1).await?;
         let repost_of_author = get_post_author(&transaction, repost_of_id).await?;
         if repost_of_author.is_local()
-            && repost_of_author.id != db_post.author_id
             && !notified_users.contains(&repost_of_author.id)
+            // Don't notify themselves that they reported their post
+            && repost_of_author.id != db_post.author_id
         {
-            create_repost_notification(
-                &transaction,
-                &db_post.author_id,
-                &repost_of_author.id,
-                repost_of_id,
-            )
-            .await?;
+            // Don't create mention notification if the author is muted
+            if is_muted(&transaction, &repost_of_author.id, &db_post.author_id).await? {
+                log::warn!(
+                    "User {} mentioned by muted author id {} on post id {}, ignoring mention..",
+                    repost_of_author.username,
+                    db_post.author_id,
+                    db_post.id
+                );
+            } else {
+                create_repost_notification(
+                    &transaction,
+                    &db_post.author_id,
+                    &repost_of_author.id,
+                    repost_of_id,
+                )
+                .await?;
+            }
             notified_users.push(repost_of_author.id);
         };
     };
@@ -274,8 +287,23 @@ pub async fn create_post(
             // or to the author of reposted post
             !notified_users.contains(&profile.id)
         {
-            create_mention_notification(&transaction, &db_post.author_id, &profile.id, &db_post.id)
+            // Don't create mention notification if the author is muted
+            if is_muted(&transaction, &profile.id, &db_post.author_id).await? {
+                log::warn!(
+                    "User {} mentioned by muted author {} in post id {}, ignoring mention..",
+                    profile.username,
+                    db_post.author_id,
+                    db_post.id
+                );
+            } else {
+                create_mention_notification(
+                    &transaction,
+                    &db_post.author_id,
+                    &profile.id,
+                    &db_post.id,
+                )
                 .await?;
+            }
         };
     }
     // Construct post object
@@ -437,6 +465,7 @@ pub async fn get_home_timeline(
             (
                 post.author_id = $current_user_id
                 OR (
+                    -- is following or subscribed the post author
                     EXISTS (
                         SELECT 1 FROM relationship
                         WHERE
@@ -487,6 +516,14 @@ pub async fn get_home_timeline(
                     WHERE post_id = post.id AND profile_id = $current_user_id
                 )
             )
+            -- author is not muted
+            AND NOT EXISTS (
+                SELECT 1 FROM relationship
+                WHERE
+                    source_id = $current_user_id
+                    AND target_id = post.author_id
+                    AND relationship_type = {relationship_mute}
+            )
             AND {visibility_filter}
             AND ($max_post_id::uuid IS NULL OR post.id < $max_post_id)
         ORDER BY post.id DESC
@@ -501,6 +538,7 @@ pub async fn get_home_timeline(
         relationship_subscription=i16::from(&RelationshipType::Subscription),
         relationship_hide_reposts=i16::from(&RelationshipType::HideReposts),
         relationship_hide_replies=i16::from(&RelationshipType::HideReplies),
+        relationship_mute=i16::from(&RelationshipType::Mute),
         visibility_filter=build_visibility_filter(),
     );
     let limit: i64 = limit.into();

@@ -1,14 +1,9 @@
 use fedimovies_models::profiles::types::{
     ExtraField, IdentityProof, IdentityProofType, PaymentLink, PaymentOption,
 };
-use fedimovies_utils::did::Did;
 
 use crate::activitypub::vocabulary::{IDENTITY_PROOF, LINK, PROPERTY_VALUE};
 use crate::errors::ValidationError;
-use crate::identity::{
-    claims::create_identity_claim,
-    minisign::{parse_minisign_signature, verify_minisign_signature},
-};
 use crate::json_signatures::proofs::{PROOF_TYPE_ID_EIP191, PROOF_TYPE_ID_MINISIGN};
 use crate::web_client::urls::get_subscription_page_url;
 
@@ -30,51 +25,10 @@ pub fn attach_identity_proof(proof: IdentityProof) -> ActorAttachment {
 }
 
 pub fn parse_identity_proof(
-    actor_id: &str,
-    attachment: &ActorAttachment,
+    _actor_id: &str,
+    _attachment: &ActorAttachment,
 ) -> Result<IdentityProof, ValidationError> {
-    if attachment.object_type != IDENTITY_PROOF {
-        return Err(ValidationError("invalid attachment type".to_string()));
-    };
-    let proof_type_str = attachment
-        .signature_algorithm
-        .as_ref()
-        .ok_or(ValidationError("missing proof type".to_string()))?;
-    let proof_type = match proof_type_str.as_str() {
-        PROOF_TYPE_ID_EIP191 => IdentityProofType::LegacyEip191IdentityProof,
-        PROOF_TYPE_ID_MINISIGN => IdentityProofType::LegacyMinisignIdentityProof,
-        _ => return Err(ValidationError("unsupported proof type".to_string())),
-    };
-    let did = attachment
-        .name
-        .parse::<Did>()
-        .map_err(|_| ValidationError("invalid DID".to_string()))?;
-    let message = create_identity_claim(actor_id, &did)
-        .map_err(|_| ValidationError("invalid claim".to_string()))?;
-    let signature = attachment
-        .signature_value
-        .as_ref()
-        .ok_or(ValidationError("missing signature".to_string()))?;
-    match did {
-        Did::Key(ref did_key) => {
-            if !matches!(proof_type, IdentityProofType::LegacyMinisignIdentityProof) {
-                return Err(ValidationError("incorrect proof type".to_string()));
-            };
-            let signature_bin = parse_minisign_signature(signature)
-                .map_err(|_| ValidationError("invalid signature encoding".to_string()))?;
-            verify_minisign_signature(did_key, &message, &signature_bin)
-                .map_err(|_| ValidationError("invalid identity proof".to_string()))?;
-        }
-        Did::Pkh(ref _did_pkh) => {
-            return Err(ValidationError("incorrect proof type".to_string()));
-        }
-    };
-    let proof = IdentityProof {
-        issuer: did,
-        proof_type: proof_type,
-        value: signature.to_string(),
-    };
-    Ok(proof)
+    return Err(ValidationError("incorrect proof type".to_string()));
 }
 
 pub fn attach_payment_option(

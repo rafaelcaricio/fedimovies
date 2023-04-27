@@ -652,6 +652,26 @@ pub async fn unmute_posts(
     Ok(())
 }
 
+pub async fn is_muted(
+    db_client: &impl DatabaseClient,
+    source_id: &Uuid,
+    target_id: &Uuid,
+) -> Result<bool, DatabaseError> {
+    let rows = db_client
+        .query(
+            "
+        SELECT 1
+        FROM relationship
+        WHERE
+            source_id = $1 AND target_id = $2
+            AND relationship_type = $3
+        ",
+            &[&source_id, &target_id, &RelationshipType::Mute],
+        )
+        .await?;
+    Ok(rows.len() > 0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

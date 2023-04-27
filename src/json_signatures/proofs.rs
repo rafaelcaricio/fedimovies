@@ -14,7 +14,6 @@ pub const PROOF_TYPE_ID_MINISIGN: &str = "MitraMinisignSignature2022A";
 // - Digest algorithm: SHA-256
 // - Signature algorithm: RSASSA-PKCS1-v1_5
 pub const PROOF_TYPE_JCS_RSA: &str = "MitraJcsRsaSignature2022";
-pub const PROOF_TYPE_JCS_RSA_LEGACY: &str = "JcsRsaSignature2022";
 
 // https://w3c.github.io/vc-data-integrity/#dataintegrityproof
 pub const DATA_INTEGRITY_PROOF: &str = "DataIntegrityProof";
@@ -41,7 +40,7 @@ impl FromStr for ProofType {
 }
 
 impl ProofType {
-    pub fn from_cryptosuite(value: &str) -> Result<Self, ConversionError> {
+    pub fn from_cryptosuite(_value: &str) -> Result<Self, ConversionError> {
         Err(ConversionError)
     }
 }

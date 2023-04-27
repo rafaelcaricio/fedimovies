@@ -9,7 +9,7 @@ use fedimovies_utils::{files::sniff_media_type, urls::guess_protocol};
 
 use crate::activitypub::{
     actors::types::Actor,
-    constants::{AP_CONTEXT, AP_MEDIA_TYPE},
+    constants::{AP_MEDIA_TYPE, AS_CONTEXT},
     http_client::{build_federation_client, get_network_type},
     identifiers::{local_actor_key_id, local_instance_actor_id},
     types::Object,
@@ -153,7 +153,7 @@ pub async fn perform_webfinger_query(
     let jrd: JsonResourceDescriptor = serde_json::from_str(&webfinger_data)?;
     // Lemmy servers can have Group and Person actors with the same name
     // https://github.com/LemmyNet/lemmy/issues/2037
-    let ap_type_property = format!("{}#type", AP_CONTEXT);
+    let ap_type_property = format!("{}#type", AS_CONTEXT);
     let group_link = jrd.links.iter().find(|link| {
         link.rel == "self"
             && link

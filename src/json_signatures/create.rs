@@ -7,9 +7,6 @@ use crate::json_signatures::proofs::PROOF_TYPE_JCS_RSA;
 use fedimovies_utils::crypto_rsa::create_rsa_signature;
 use fedimovies_utils::{
     canonicalization::{canonicalize_object, CanonicalizationError},
-    crypto_rsa::create_rsa_sha256_signature,
-    did_key::DidKey,
-    did_pkh::DidPkh,
     multibase::encode_multibase_base58btc,
 };
 

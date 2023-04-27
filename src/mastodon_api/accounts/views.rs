@@ -11,22 +11,18 @@ use fedimovies_models::{
     profiles::queries::{
         get_profile_by_acct, get_profile_by_id, search_profiles_by_did, update_profile,
     },
-    profiles::types::{IdentityProof, IdentityProofType, ProfileUpdateData},
     relationships::queries::{
         get_followers_paginated, get_following_paginated, hide_replies, hide_reposts, show_replies,
         show_reposts, unfollow,
     },
     subscriptions::queries::get_incoming_subscriptions,
-    users::queries::{create_user, get_user_by_did, is_valid_invite_code},
+    users::queries::{create_user, is_valid_invite_code},
     users::types::{Role, UserCreateData},
 };
 use fedimovies_utils::{
-    caip2::ChainId,
     canonicalization::canonicalize_object,
     crypto_rsa::{generate_rsa_key, serialize_private_key},
-    currencies::Currency,
     did::Did,
-    did_pkh::DidPkh,
     id::generate_ulid,
     passwords::hash_password,
 };
@@ -34,25 +30,16 @@ use fedimovies_utils::{
 use super::helpers::{get_aliases, get_relationship};
 use super::types::{
     Account, AccountCreateData, AccountUpdateData, ActivityParams, ApiSubscription, FollowData,
-    FollowListQueryParams, IdentityClaim, IdentityClaimQueryParams, IdentityProofData,
-    LookupAcctQueryParams, RelationshipQueryParams, SearchAcctQueryParams, SearchDidQueryParams,
-    SignedActivity, StatusListQueryParams, UnsignedActivity,
+    FollowListQueryParams, LookupAcctQueryParams, RelationshipQueryParams, SearchAcctQueryParams,
+    SearchDidQueryParams, StatusListQueryParams, UnsignedActivity,
 };
-use crate::activitypub::{
-    builders::{
-        follow::follow_or_create_request,
-        undo_follow::prepare_undo_follow,
-        update_person::{build_update_person, prepare_update_person},
-    },
-    identifiers::local_actor_id,
+use crate::activitypub::builders::{
+    follow::follow_or_create_request,
+    undo_follow::prepare_undo_follow,
+    update_person::{build_update_person, prepare_update_person},
 };
 use crate::errors::ValidationError;
 use crate::http::{get_request_base_url, FormOrJson};
-use crate::identity::{
-    claims::create_identity_claim,
-    minisign::{minisign_key_to_did, parse_minisign_signature, verify_minisign_signature},
-};
-use crate::json_signatures::create::IntegrityProof;
 use crate::mastodon_api::{
     errors::MastodonError, oauth::auth::get_current_user, pagination::get_paginated_response,
     search::helpers::search_profiles_only, statuses::helpers::build_status_list,

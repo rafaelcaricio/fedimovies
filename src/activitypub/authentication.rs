@@ -165,7 +165,7 @@ pub async fn verify_signed_activity(
             let signer_key = deserialize_public_key(&signer_actor.public_key.public_key_pem)?;
             verify_rsa_json_signature(&signature_data, &signer_key)?;
         }
-        JsonSigner::Did(did) => {
+        JsonSigner::Did(_did) => {
             return Err(AuthenticationError::InvalidJsonSignatureType);
         }
     };

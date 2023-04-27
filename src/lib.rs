@@ -4,7 +4,6 @@ pub mod atom;
 mod errors;
 pub mod http;
 mod http_signatures;
-mod identity;
 mod ipfs;
 pub mod job_queue;
 mod json_signatures;

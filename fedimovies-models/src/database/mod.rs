@@ -1,4 +1,3 @@
-use deadpool_postgres::SslMode;
 use openssl::ssl::{SslConnector, SslMethod};
 use postgres_openssl::MakeTlsConnector;
 use std::path::Path;

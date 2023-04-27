@@ -114,7 +114,7 @@ pub async fn handle_movies_mentions(
             let mut repost =
                 match create_post(&mut transaction, &current_user.id, repost_data).await {
                     Ok(repost) => repost,
-                    Err(DatabaseError::AlreadyExists(err)) => {
+                    Err(DatabaseError::AlreadyExists(_err)) => {
                         log::info!(
                             "Review as Mention of {} already reposted the post with id {}",
                             current_user.profile.username,

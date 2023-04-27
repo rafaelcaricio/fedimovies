@@ -8,14 +8,11 @@ use fedimovies_utils::{
     canonicalization::{canonicalize_object, CanonicalizationError},
     crypto_rsa::verify_rsa_sha256_signature,
     did::Did,
-    did_key::DidKey,
-    did_pkh::DidPkh,
     multibase::{decode_multibase_base58btc, MultibaseError},
 };
 
 use super::create::{IntegrityProof, PROOF_KEY, PROOF_PURPOSE};
 use super::proofs::{ProofType, DATA_INTEGRITY_PROOF};
-use crate::identity::minisign::verify_minisign_signature;
 
 #[derive(Debug, PartialEq)]
 pub enum JsonSigner {

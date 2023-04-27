@@ -1,23 +1,9 @@
-use std::collections::HashMap;
-
-use serde::{de::Error as DeserializerError, Deserialize, Deserializer, Serialize};
-use serde_json::{json, Value};
-
-use fedimovies_config::Instance;
-use fedimovies_models::{
-    profiles::types::{DbActor, DbActorPublicKey, ExtraField, IdentityProof, PaymentOption},
-    users::types::User,
+use super::attachments::{
+    attach_extra_field, attach_identity_proof, attach_payment_option, parse_extra_field,
+    parse_identity_proof, parse_payment_option,
 };
-use fedimovies_utils::{
-    crypto_rsa::{deserialize_private_key, get_public_key_pem},
-    urls::get_hostname,
-};
-
 use crate::activitypub::types::build_default_context;
 use crate::activitypub::{
-    constants::{
-        AP_CONTEXT, MASTODON_CONTEXT, MITRA_CONTEXT, SCHEMA_ORG_CONTEXT, W3ID_SECURITY_CONTEXT,
-    },
     identifiers::{
         local_actor_id, local_actor_key_id, local_instance_actor_id, LocalActorCollection,
     },
@@ -27,11 +13,17 @@ use crate::activitypub::{
 use crate::errors::ValidationError;
 use crate::media::get_file_url;
 use crate::webfinger::types::ActorAddress;
-
-use super::attachments::{
-    attach_extra_field, attach_identity_proof, attach_payment_option, parse_extra_field,
-    parse_identity_proof, parse_payment_option,
+use fedimovies_config::Instance;
+use fedimovies_models::{
+    profiles::types::{DbActor, DbActorPublicKey, ExtraField, IdentityProof, PaymentOption},
+    users::types::User,
 };
+use fedimovies_utils::{
+    crypto_rsa::{deserialize_private_key, get_public_key_pem},
+    urls::get_hostname,
+};
+use serde::{de::Error as DeserializerError, Deserialize, Deserializer, Serialize};
+use serde_json::{json, Value};
 
 #[derive(Deserialize, Serialize)]
 #[cfg_attr(test, derive(Default))]
@@ -244,27 +236,6 @@ impl Actor {
 }
 
 pub type ActorKeyError = rsa::pkcs8::Error;
-
-fn build_actor_context() -> (
-    &'static str,
-    &'static str,
-    HashMap<&'static str, &'static str>,
-) {
-    (
-        AP_CONTEXT,
-        W3ID_SECURITY_CONTEXT,
-        HashMap::from([
-            ("manuallyApprovesFollowers", "as:manuallyApprovesFollowers"),
-            ("schema", SCHEMA_ORG_CONTEXT),
-            ("PropertyValue", "schema:PropertyValue"),
-            ("value", "schema:value"),
-            ("toot", MASTODON_CONTEXT),
-            ("IdentityProof", "toot:IdentityProof"),
-            ("fedimovies", MITRA_CONTEXT),
-            ("subscribers", "fedimovies:subscribers"),
-        ]),
-    )
-}
 
 pub fn get_local_actor(user: &User, instance_url: &str) -> Result<Actor, ActorKeyError> {
     let username = &user.profile.username;

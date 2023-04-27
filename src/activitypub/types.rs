@@ -1,3 +1,6 @@
+use crate::activitypub::constants::{
+    AS_CONTEXT, MASTODON_CONTEXT, SCHEMA_ORG_CONTEXT, W3ID_SECURITY_CONTEXT,
+};
 use chrono::{DateTime, Utc};
 use serde::{de::Error as DeserializerError, Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
@@ -124,11 +127,11 @@ pub type Context = Value;
 
 pub fn build_default_context() -> Context {
     json!([
-        "https://www.w3.org/ns/activitystreams",
-        "https://w3id.org/security/v1",
+        AS_CONTEXT,
+        W3ID_SECURITY_CONTEXT,
         {
             "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
-            "toot": "http://joinmastodon.org/ns#",
+            "toot": MASTODON_CONTEXT,
             "featured": {
                 "@id": "toot:featured",
                 "@type": "@id"
@@ -145,7 +148,7 @@ pub fn build_default_context() -> Context {
                 "@id": "as:movedTo",
                 "@type": "@id"
             },
-            "schema": "http://schema.org#",
+            "schema": SCHEMA_ORG_CONTEXT,
             "PropertyValue": "schema:PropertyValue",
             "value": "schema:value",
             "IdentityProof": "toot:IdentityProof",
